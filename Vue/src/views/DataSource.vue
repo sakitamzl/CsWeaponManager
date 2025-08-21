@@ -3,25 +3,19 @@
     <h1 class="page-title">数据来源配置</h1>
     
     <div class="data-source-container">
-      <div class="add-button-section">
-        <div class="card">
-          <div class="add-button-container">
-            <h3>数据源管理</h3>
-            <el-button type="primary" size="large" @click="openAddDialog">
-              <el-icon><Plus /></el-icon>
-              添加新数据源
-            </el-button>
-          </div>
-        </div>
-      </div>
-
       <div class="data-sources-list">
         <div class="card">
           <div class="card-header">
-            <h3>已配置的数据源</h3>
-            <el-button type="primary" @click="refreshAllSources" :loading="refreshing">
-              刷新所有
-            </el-button>
+            <h3>数据源</h3>
+            <div class="header-buttons">
+              <el-button type="primary" @click="openAddDialog">
+                <el-icon><Plus /></el-icon>
+                添加新数据源
+              </el-button>
+              <el-button type="primary" @click="refreshAllSources" :loading="refreshing">
+                刷新所有
+              </el-button>
+            </div>
           </div>
           
           <div class="grid grid-auto">
@@ -65,9 +59,6 @@
                 >
                   {{ collectingSourceIds.has(source.dataID) ? '采集中...' : '采集' }}
                 </el-button>
-                <el-button type="danger" size="small" @click="removeSource(source)">
-                  删除
-                </el-button>
               </div>
             </div>
           </div>
@@ -106,7 +97,6 @@
           <el-input 
             v-model="editForm.name" 
             placeholder="请输入数据源名称"
-            readonly
           />
         </el-form-item>
         <el-form-item label="数据源类型">
@@ -121,7 +111,7 @@
         </el-form-item>
 
         <!-- 悠悠有品特有配置 -->
-        <template v-if="editForm.name === '悠悠有品'">
+        <template v-if="editForm.type === 'youpin'">
           <el-form-item label="手机号">
             <el-input v-model="editForm.phone" placeholder="请输入手机号" />
           </el-form-item>
@@ -134,7 +124,6 @@
               type="textarea"
               :rows="2"
               placeholder="请输入Token"
-              readonly
             />
           </el-form-item>
           <el-form-item label="设备名称">
@@ -198,10 +187,29 @@
       
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="editDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="handleEditSubmit" :loading="editSubmitting">
-            保存更改
-          </el-button>
+          <div class="dialog-footer-left">
+            <el-button 
+              v-if="editForm.type === 'youpin'" 
+              type="warning" 
+              @click="handleEditCollectAll"
+              :loading="collectingSourceIds.has(editingSourceId)"
+              :disabled="!editForm.enabled"
+            >
+              全部采集
+            </el-button>
+            <el-button 
+              type="danger" 
+              @click="handleEditDelete"
+            >
+              删除数据源
+            </el-button>
+          </div>
+          <div class="dialog-footer-right">
+            <el-button @click="editDialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="handleEditSubmit" :loading="editSubmitting">
+              保存更改
+            </el-button>
+          </div>
         </div>
       </template>
     </el-dialog>
@@ -457,9 +465,10 @@ export default {
           enabled: inputForm.value.enabled
         }
 
-        // 根据数据源类型构建不同的配置数据
+        // 根据数据源类型构建配置JSON字符串
         if (inputForm.value.type === 'youpin') {
-          requestData.config = {
+          // 悠悠有品特殊配置
+          requestData.configJson = JSON.stringify({
             phone: inputForm.value.phone,
             Sessionid: inputForm.value.sessionid,
             token: inputForm.value.token,
@@ -468,11 +477,14 @@ export default {
             sleep_time: inputForm.value.sleepTime.toString(),
             app_type: inputForm.value.appType,
             userId: inputForm.value.userId
-          }
+          })
         } else {
-          requestData.apiUrl = inputForm.value.apiUrl
-          requestData.apiKey = inputForm.value.apiKey
-          requestData.updateFreq = inputForm.value.updateFreq
+          requestData.configJson = JSON.stringify({
+            apiUrl: inputForm.value.apiUrl,
+            apiKey: inputForm.value.apiKey,
+            updateFreq: inputForm.value.updateFreq,
+            sleep_time: '6000'
+          })
         }
 
         let response
@@ -687,7 +699,7 @@ export default {
 
     const startCollection = async (source) => {
       // 如果是悠悠有品，调用爬虫采集
-      if (source.dataName === '悠悠有品' || source.type === 'youpin') {
+      if (source.type === 'youpin') {
         return startYoupinSpiderCollection(source)
       }
       
@@ -795,7 +807,7 @@ export default {
       
       
       // 根据数据源类型解析不同的配置
-      if (source.dataName === '悠悠有品') {
+      if (source.type === 'youpin') {
         // 解析悠悠有品的配置 - 现在从JSON展开的字段中读取
         editForm.value.phone = config.yyyp_phone || ''
         editForm.value.sessionid = config.yyyp_Sessionid || ''
@@ -816,7 +828,7 @@ export default {
           appType: editForm.value.appType,
           userId: editForm.value.userId
         })
-      } else if (source.dataName === 'BUFF') {
+      } else if (source.type === 'buff') {
         // BUFF配置
         editForm.value.apiUrl = config.buff_api_url || ''
         editForm.value.apiKey = config.buff_token || config.buff_api_key || ''
@@ -866,6 +878,113 @@ export default {
       resetForm() // 关闭时重置表单
     }
 
+    // 编辑对话框中的"全部采集"功能
+    const handleEditCollectAll = async () => {
+      if (!editForm.value.name) {
+        ElMessage.error('数据源信息不完整')
+        return
+      }
+
+      if (!editForm.value.enabled) {
+        ElMessage.warning('请先启用数据源')
+        return
+      }
+
+      // 构建一个临时的source对象用于采集
+      const tempSource = {
+        dataID: editingSourceId.value,
+        dataName: editForm.value.name,
+        type: editForm.value.type || 'youpin',
+        enabled: editForm.value.enabled,
+        status: 'online',
+        lastUpdate: new Date(),
+        config: {
+          yyyp_phone: editForm.value.phone,
+          yyyp_Sessionid: editForm.value.sessionid,
+          yyyp_token: editForm.value.token,
+          yyyp_DeviceName: editForm.value.deviceName,
+          yyyp_app_version: editForm.value.appVersion,
+          yyyp_sleep_time: editForm.value.sleepTime.toString(),
+          yyyp_app_type: editForm.value.appType,
+          yyyp_userId: editForm.value.userId
+        }
+      }
+
+      // 调用采集函数
+      await startCollection(tempSource)
+    }
+
+    // 编辑对话框中的删除功能
+    const handleEditDelete = () => {
+      if (!editForm.value.name || !editingSourceId.value) {
+        ElMessage.error('数据源信息不完整')
+        return
+      }
+
+      ElMessageBox.confirm(
+        `确定要删除数据源 "${editForm.value.name}" 吗？\n\n删除后将无法恢复，该数据源的所有配置信息都会被永久删除。`,
+        '⚠️ 危险操作 - 确认删除',
+        {
+          confirmButtonText: '确认删除',
+          cancelButtonText: '取消',
+          type: 'error',
+          buttonSize: 'default',
+          showClose: true,
+          closeOnClickModal: false,
+          closeOnPressEscape: false,
+          beforeClose: (action, instance, done) => {
+            if (action === 'confirm') {
+              ElMessageBox.confirm(
+                '这是最后确认，删除后无法恢复！',
+                '最终确认',
+                {
+                  confirmButtonText: '我确定要删除',
+                  cancelButtonText: '取消',
+                  type: 'error'
+                }
+              ).then(() => {
+                done()
+              }).catch(() => {
+                // 取消最终确认，不关闭第一个对话框
+              })
+            } else {
+              done()
+            }
+          }
+        }
+      ).then(async () => {
+        try {
+          const response = await axios.delete(apiUrls.dataSourceById(editingSourceId.value))
+
+          const result = response.data
+          
+          if (result.success) {
+            const index = dataSources.value.findIndex(s => s.dataID === editingSourceId.value)
+            if (index > -1) {
+              dataSources.value.splice(index, 1)
+              ElMessage.success('数据源删除成功')
+              editDialogVisible.value = false // 关闭编辑对话框
+            }
+          } else {
+            ElMessage.error(result.message || '删除数据源失败')
+          }
+        } catch (error) {
+          console.error('删除数据源失败:', error)
+          let errorMessage = '删除数据源失败'
+          
+          if (error.response) {
+            errorMessage = error.response.data?.message || `删除失败 (${error.response.status})`
+          } else if (error.request) {
+            errorMessage = '无法连接到API服务器'
+          } else {
+            errorMessage = error.message || '删除失败'
+          }
+          
+          ElMessage.error(errorMessage)
+        }
+      })
+    }
+
     const handleEditSubmit = async () => {
       if (!editForm.value.name) {
         ElMessage.error('请填写数据源名称')
@@ -880,25 +999,25 @@ export default {
           enabled: editForm.value.enabled
         }
 
-        // 根据数据源类型构建不同的配置数据
-        if (editForm.value.name === '悠悠有品') {
-          requestData.config = {
-            yyyp_phone: editForm.value.phone,
-            yyyp_Sessionid: editForm.value.sessionid,
-            yyyp_token: editForm.value.token,
-            yyyp_DeviceName: editForm.value.deviceName,
-            yyyp_app_version: editForm.value.appVersion,
-            yyyp_sleep_time: editForm.value.sleepTime.toString(),
-            yyyp_app_type: editForm.value.appType,
-            yyyp_userId: editForm.value.userId
-          }
+        // 根据数据源类型构建配置JSON字符串
+        if (editForm.value.type === 'youpin') {
+          requestData.configJson = JSON.stringify({
+            phone: editForm.value.phone,
+            Sessionid: editForm.value.sessionid,
+            token: editForm.value.token,
+            DeviceName: editForm.value.deviceName,
+            app_version: editForm.value.appVersion,
+            sleep_time: editForm.value.sleepTime.toString(),
+            app_type: editForm.value.appType,
+            userId: editForm.value.userId
+          })
         } else {
-          requestData.config = {
-            type: editForm.value.type,
+          requestData.configJson = JSON.stringify({
             apiUrl: editForm.value.apiUrl,
             apiKey: editForm.value.apiKey,
-            updateFreq: editForm.value.updateFreq
-          }
+            updateFreq: editForm.value.updateFreq,
+            sleep_time: editForm.value.sleepTime?.toString() || '6000'
+          })
         }
 
         const response = await axios.put(
@@ -1021,20 +1140,12 @@ export default {
         if (result.success) {
           console.log('成功获取数据源，数量:', result.data.length)
           dataSources.value = result.data.map(item => {
-            // 尝试从配置中提取类型信息
-            let type = 'other'
-            if (item.dataName === '悠悠有品') type = 'youpin'
-            else if (item.dataName === 'BUFF') type = 'buff'
-            else if (item.dataName.toLowerCase().includes('steam')) type = 'steam'
-            else if (item.dataName.toLowerCase().includes('c5game')) type = 'c5game'
-            else if (item.dataName.toLowerCase().includes('igxe')) type = 'igxe'
-            
             return {
               id: item.dataID,
               dataID: item.dataID,
               name: item.dataName,
               dataName: item.dataName,
-              type: type,
+              type: item.type || 'other',  // 直接使用后端返回的type字段
               apiUrl: item.config?.apiUrl || '',
               updateFreq: item.updateFreq || '15min',
               enabled: item.enabled,
@@ -1108,6 +1219,8 @@ export default {
       editSource,
       handleEditDialogClose,
       handleEditSubmit,
+      handleEditCollectAll,
+      handleEditDelete,
       openAddDialog,
       handleAddDialogClose,
       removeSource,
@@ -1122,26 +1235,11 @@ export default {
   width: 100%;
 }
 
-.add-button-section {
-  margin-bottom: clamp(1.5rem, 4vw, 1.875rem);
-}
-
-.add-button-container {
+.header-buttons {
   display: flex;
-  justify-content: space-between;
+  gap: 10px;
   align-items: center;
-  padding: 20px 0;
-}
-
-.add-button-container h3 {
-  margin: 0;
-  color: #fff;
-}
-
-.add-button-container .el-button {
-  font-size: 16px;
-  padding: 12px 24px;
-  height: auto;
+  flex-wrap: wrap;
 }
 
 .data-sources-list {
@@ -1163,6 +1261,7 @@ export default {
   padding: clamp(1rem, 2.5vw, 1.25rem);
   border: 1px solid #333;
   transition: all 0.3s;
+  max-width: 400px;
 }
 
 .source-card:hover {
@@ -1267,6 +1366,11 @@ export default {
     align-items: stretch;
   }
   
+  .header-buttons {
+    justify-content: center;
+    margin-top: 10px;
+  }
+  
   .source-header {
     flex-direction: column;
     align-items: stretch;
@@ -1311,7 +1415,20 @@ export default {
 /* 对话框样式 */
 .dialog-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.dialog-footer-left {
+  flex: 1;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-start;
+}
+
+.dialog-footer-right {
+  display: flex;
   gap: 10px;
 }
 

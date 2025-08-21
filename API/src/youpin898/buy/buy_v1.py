@@ -3,22 +3,22 @@ from src.execution_db import Date_base
 
 youpin898BuyV1 = Blueprint('youpin898BuyV1', __name__)
 
-@youpin898BuyV1.route('/getWeaponNotEndStatusList', methods=['get'])
-def getWeaponNotEndStatusList():
-    sql = f"SELECT ID FROM `yyyp_Buy` WHERE `status` not in ('已完成', '已取消');"
+@youpin898BuyV1.route('/getWeaponNotEndStatusList/<data_user>', methods=['get'])
+def getWeaponNotEndStatusList(data_user):
+    sql = f"SELECT ID FROM `yyyp_Buy` WHERE `status` not in ('已完成', '已取消') AND data_user = {data_user};"
     flag, data = Date_base().select(sql)
     return jsonify(data), 200
 
-@youpin898BuyV1.route('/selectApexTime', methods=['get'])
-def selectApexTime():
-    sql = f"SELECT order_time FROM `BUFF`.`yyyp_Buy` ORDER BY order_time DESC LIMIT 1"
+@youpin898BuyV1.route('/selectApexTime/<data_user>', methods=['get'])
+def selectApexTime(data_user):
+    sql = f"SELECT order_time FROM `yyyp_Buy` ORDER BY order_time DESC LIMIT 1"
     flag, data = Date_base().select(sql)
     data = str(data[0][0])
     return jsonify(data), 200
 
-@youpin898BuyV1.route('/selectNotEndID', methods=['get'])
-def selectNotEndID():
-    sql = f"SELECT ID FROM `BUFF`.`yyyp_Buy` WHERE `status` <> '已完成' and `status` <> '已取消'"
+@youpin898BuyV1.route('/selectNotEndID/<data_user>', methods=['get'])
+def selectNotEndID(data_user):
+    sql = f"SELECT ID FROM `yyyp_Buy` WHERE `status` <> '已完成' and `status` <> '已取消' AND data_user = {data_user}"
     flag, data = Date_base().select(sql)
     return jsonify(data), 200
 
@@ -58,6 +58,7 @@ def insert_webside_buydata():
     data_from = data['from']
     order_time = data['order_time']
     steamid = data['steam_id']
+    data_user = data['data_user']
     try:
         buy_number = int(data['buy_number'])
     except TypeError:
@@ -73,20 +74,20 @@ def insert_webside_buydata():
     sql = (f"INSERT INTO `{data_from}_Buy` "
             f"(`ID`, `weapon_name`, `weapon_type`, `item_name`, `weapon_float`, `float_range`, `price`,"
             f" `seller_name`, `order_time`, `status`, `from`, `steam_id`,"
-            f" `buy_number`, `err_number`, `price_all`, `payment`, `trade_type`)"
+            f" `buy_number`, `err_number`, `price_all`, `payment`, `trade_type`, `data_user`)"
             f" VALUES "
             f"('{ID}','{weapon_name}','{weapon_type}','{item_name}',{weapon_float},'{float_range}',{price},"
             f" '{seller_name}', '{order_time}', '{status}', '{data_from}', '{steamid}',"
-            f" '{buy_number}', '{err_number}', {price_all}, '{payment}' , '{tradeType}');")
+            f" '{buy_number}', '{err_number}', {price_all}, '{payment}' , '{tradeType}', '{data_user}');")
     a_status = Date_base().insert(sql)
     
     if buy_number == 1 :
         sql = (f"INSERT INTO `Buy` "
         f"(`ID`, `weapon_name`, `weapon_type`, `item_name`, `weapon_float`, `float_range`, `price`,"
-        f" `seller_name`, `status`, `from`,  `steam_id`, `order_time`, `payment`, `trade_type` )"
+        f" `seller_name`, `status`, `from`,  `steam_id`, `order_time`, `payment`, `trade_type`, `data_user`)"
         f" VALUES "
         f"('{ID}','{weapon_name}','{weapon_type}','{item_name}',{weapon_float},'{float_range}',{price},"
-        f" '{seller_name}',  '{status}', '{data_from}', '{steamid}', '{order_time}', '{payment}' , '{tradeType}');")
+        f" '{seller_name}',  '{status}', '{data_from}', '{steamid}', '{order_time}', '{payment}' , '{tradeType}, '{data_user}'');")
         Date_base().insert(sql)
         
     if a_status == '重复数据':
@@ -114,6 +115,7 @@ def insert_main_buydata():
     steamid = data['steam_id']
     payment = data['payment']
     tradeType = data['tradeType']
+    data_user = data['data_user']
     try:
         buy_number = int(data['buy_number'])
     except TypeError:
@@ -127,10 +129,10 @@ def insert_main_buydata():
 
     sql = (f"INSERT INTO `Buy` "
         f"(`ID`, `weapon_name`, `weapon_type`, `item_name`, `weapon_float`, `float_range`, `price`,"
-        f" `seller_name`, `order_time`, `status`, `from`,  `steam_id`, `payment`, `trade_type` )"
+        f" `seller_name`, `order_time`, `status`, `from`,  `steam_id`, `payment`, `trade_type`, `data_user`)"
         f" VALUES "
         f"('{ID}','{weapon_name}','{weapon_type}','{item_name}',{weapon_float},'{float_range}',{price},"
-        f" '{seller_name}', '{order_time}', '{status}', '{data_from}',  '{steamid}', '{payment}', '{tradeType}' );")
+        f" '{seller_name}', '{order_time}', '{status}', '{data_from}',  '{steamid}', '{payment}', '{tradeType}', '{data_user}' );")
     a_status = Date_base().insert(sql)
     
     if a_status is True:
