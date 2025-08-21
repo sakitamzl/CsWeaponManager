@@ -194,6 +194,12 @@
           <el-form-item label="休眠时间(秒)">
             <el-input-number v-model="editForm.sleepTime" :min="1" :max="86400" style="width: 100%;" />
           </el-form-item>
+          <el-form-item label="应用类型">
+            <el-input v-model="editForm.appType" placeholder="请输入应用类型" />
+          </el-form-item>
+          <el-form-item label="用户ID">
+            <el-input v-model="editForm.userId" placeholder="请输入用户ID" />
+          </el-form-item>
         </template>
 
         <!-- BUFF特有配置 -->
@@ -279,7 +285,9 @@ export default {
       token: '',
       deviceName: '',
       appVersion: '',
-      sleepTime: 6000
+      sleepTime: 6000,
+      appType: '',
+      userId: ''
     })
     
     const inputForm = ref({
@@ -601,6 +609,8 @@ export default {
         editForm.value.deviceName = config.yyyp_DeviceName || ''
         editForm.value.appVersion = config.yyyp_app_version || ''
         editForm.value.sleepTime = parseInt(config.yyyp_sleep_time || '6000')
+        editForm.value.appType = config.yyyp_app_type || ''
+        editForm.value.userId = config.yyyp_userId || ''
         
         console.log('悠悠有品配置解析结果:', {
           phone: editForm.value.phone,
@@ -608,7 +618,9 @@ export default {
           token: editForm.value.token,
           deviceName: editForm.value.deviceName,
           appVersion: editForm.value.appVersion,
-          sleepTime: editForm.value.sleepTime
+          sleepTime: editForm.value.sleepTime,
+          appType: editForm.value.appType,
+          userId: editForm.value.userId
         })
       } else if (source.dataName === 'BUFF') {
         // BUFF配置
@@ -643,7 +655,9 @@ export default {
         token: '',
         deviceName: '',
         appVersion: '',
-        sleepTime: 6000
+        sleepTime: 6000,
+        appType: '',
+        userId: ''
       }
     }
 
@@ -669,7 +683,9 @@ export default {
             yyyp_token: editForm.value.token,
             yyyp_DeviceName: editForm.value.deviceName,
             yyyp_app_version: editForm.value.appVersion,
-            yyyp_sleep_time: editForm.value.sleepTime.toString()
+            yyyp_sleep_time: editForm.value.sleepTime.toString(),
+            yyyp_app_type: editForm.value.appType,
+            yyyp_userId: editForm.value.userId
           }
         } else {
           requestData.config = {
