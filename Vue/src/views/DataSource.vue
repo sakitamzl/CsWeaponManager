@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h1 class="page-title">数据来源配置</h1>
+    <h1 class="page-title">数据源</h1>
     
     <div class="data-source-container">
       <div class="data-sources-list">
@@ -65,22 +65,6 @@
         </div>
       </div>
 
-      <!-- 数据源统计 -->
-      <div class="stats-section">
-        <div class="card">
-          <h3>数据源统计</h3>
-          <div class="grid grid-2">
-            <div class="stat-item">
-              <div class="stat-number">{{ sourceStats.total }}</div>
-              <div class="stat-label">总数据源</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-number">{{ sourceStats.online }}</div>
-              <div class="stat-label">在线数量</div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- 编辑数据源对话框 -->
@@ -400,16 +384,6 @@ export default {
     })
 
     const dataSources = ref([])
-
-    const sourceStats = computed(() => {
-      const total = dataSources.value.length
-      const online = dataSources.value.filter(s => s.status === 'online').length
-
-      return {
-        total,
-        online
-      }
-    })
 
     const getSourceTypeLabel = (type) => {
       const labels = {
@@ -890,28 +864,71 @@ export default {
         return
       }
 
-      // 构建一个临时的source对象用于采集
-      const tempSource = {
-        dataID: editingSourceId.value,
-        dataName: editForm.value.name,
-        type: editForm.value.type || 'youpin',
-        enabled: editForm.value.enabled,
-        status: 'online',
-        lastUpdate: new Date(),
-        config: {
-          yyyp_phone: editForm.value.phone,
-          yyyp_Sessionid: editForm.value.sessionid,
-          yyyp_token: editForm.value.token,
-          yyyp_DeviceName: editForm.value.deviceName,
-          yyyp_app_version: editForm.value.appVersion,
-          yyyp_sleep_time: editForm.value.sleepTime.toString(),
-          yyyp_app_type: editForm.value.appType,
-          yyyp_userId: editForm.value.userId
-        }
+      // 确保只有悠悠有品类型才能调用全部采集
+      if (editForm.value.type !== 'youpin') {
+        ElMessage.error('只有悠悠有品数据源才支持全部采集功能')
+        return
       }
 
-      // 调用采集函数
-      await startCollection(tempSource)
+      if (collectingSourceIds.value.has(editingSourceId.value)) {
+        ElMessage.info('该数据源正在采集中...')
+        return
+      }
+
+      try {
+        // 添加到采集中的列表
+        collectingSourceIds.value.add(editingSourceId.value)
+        
+        ElMessage.info(`开始执行悠悠有品全部采集: ${editForm.value.name}`)
+        
+        // 准备发送给爬虫的数据 - 按照采集接口一样的传值方法
+        const spiderData = {
+          // 后端API需要的字段
+          phone: editForm.value.phone || '',
+          sessionid: editForm.value.sessionid || '',
+          token: editForm.value.token || '',
+          app_version: editForm.value.appVersion || '',
+          app_type: editForm.value.appType || '',
+          userId: editForm.value.userId || '',
+          
+          // 额外的数据源信息（可选）
+          dataID: editingSourceId.value,
+          dataName: editForm.value.name,
+          type: editForm.value.type,
+          enabled: editForm.value.enabled,
+          deviceName: editForm.value.deviceName || '',
+          sleepTime: editForm.value.sleepTime?.toString() || '6000'
+        }
+        
+        console.log('发送给全部采集爬虫的数据:', spiderData)
+        
+        // 调用全部采集爬虫API
+        const response = await axios.post(apiUrls.youpinFullSpider(), spiderData)
+
+        // 后端成功返回 200 状态码
+        if (response.status === 200) {
+          ElMessage.success(`${editForm.value.name} 全部采集完成！`)
+          console.log('全部采集响应:', response.data)
+        } else {
+          ElMessage.error(`全部采集失败: ${response.data}`)
+        }
+      } catch (error) {
+        console.error('全部采集失败:', error)
+        let errorMessage = `全部采集 ${editForm.value.name} 失败`
+        
+        if (error.response) {
+          errorMessage = error.response.data?.message || `全部采集失败 (${error.response.status})`
+        } else if (error.request) {
+          errorMessage = '无法连接到爬虫服务器'
+        } else {
+          errorMessage = error.message || '全部采集失败'
+        }
+        
+        ElMessage.error(errorMessage)
+      } finally {
+        // 从采集中的列表移除
+        collectingSourceIds.value.delete(editingSourceId.value)
+      }
     }
 
     // 编辑对话框中的删除功能
@@ -1205,7 +1222,6 @@ export default {
       editForm,
       inputForm,
       dataSources,
-      sourceStats,
       getSourceTypeLabel,
       getSourceTypeColor,
       getUpdateFreqLabel,
@@ -1305,29 +1321,6 @@ export default {
   flex-wrap: wrap;
 }
 
-.stats-section {
-  margin-bottom: clamp(1.5rem, 4vw, 1.875rem);
-}
-
-.stat-item {
-  text-align: center;
-  padding: clamp(1rem, 2.5vw, 1.25rem);
-  background-color: #2a2a2a;
-  border-radius: 0.5rem;
-  border: 1px solid #333;
-}
-
-.stat-number {
-  font-size: clamp(1.5rem, 4vw, 2rem);
-  font-weight: bold;
-  color: #4CAF50;
-  margin-bottom: clamp(0.5rem, 1vw, 0.5rem);
-}
-
-.stat-label {
-  color: #ccc;
-  font-size: clamp(0.75rem, 1.2vw, 0.875rem);
-}
 
 :deep(.el-form-item__label) {
   color: #ccc;

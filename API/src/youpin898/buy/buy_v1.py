@@ -22,6 +22,12 @@ def selectNotEndID(data_user):
     flag, data = Date_base().select(sql)
     return jsonify(data), 200
 
+@youpin898BuyV1.route('/getCount/<data_user>', methods=['get'])
+def getCount(data_user):
+    sql = f"SELECT COUNT(*) FROM `yyyp_Buy` WHERE data_user = '{data_user}';"
+    flag, data = Date_base().select(sql)
+    return jsonify(data[0][0]), 200
+
 @youpin898BuyV1.route('/updateBuyData', methods=['post'])
 def updateBuyData():
     data = request.get_json()

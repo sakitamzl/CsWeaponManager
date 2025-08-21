@@ -3,15 +3,20 @@ from src.log import Log
 from src.execution_db import Date_base
 import requests
 
-youpin898SellV1 = Blueprint('youpin898SellV1/<data_user>', __name__)
+youpin898SellV1 = Blueprint('youpin898SellV1/', __name__)
 
-@youpin898SellV1.route('/selectApexTime', methods=['get'])
+@youpin898SellV1.route('/selectApexTime/<data_user>', methods=['get'])
 def selectApexTime(data_user):
     sql = f"SELECT order_time FROM `yyyp_Sell` WHERE data_user = '{data_user}' ORDER BY order_time DESC LIMIT 1"
     flag, data = Date_base().select(sql)
     data = str(data[0][0])
     return jsonify(data), 200
 
+@youpin898SellV1.route('/getCount/<data_user>', methods=['get'])
+def getWeaponNotEndStatusList(data_user):
+    sql = f"SELECT COUNT(*) FROM `yyyp_Sell` WHERE = data_user = '{data_user}';"
+    flag, data = Date_base().select(sql)
+    return jsonify(data[0][0]), 200
 
 @youpin898SellV1.route('/insert_webside_selldata', methods=['post'])
 def insert_webside_selldata():
