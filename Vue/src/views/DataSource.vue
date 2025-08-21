@@ -3,63 +3,15 @@
     <h1 class="page-title">数据来源配置</h1>
     
     <div class="data-source-container">
-      <div class="input-section">
+      <div class="add-button-section">
         <div class="card">
-          <h3>添加新数据源</h3>
-          <el-form :model="inputForm" label-width="120px" @submit.prevent="handleSubmit">
-            <el-form-item label="数据源名称">
-              <el-input 
-                v-model="inputForm.name" 
-                placeholder="请输入数据源名称"
-                style="width: 400px;"
-              />
-            </el-form-item>
-            <el-form-item label="数据源类型">
-              <el-select v-model="inputForm.type" placeholder="选择数据源类型" style="width: 400px;">
-                <el-option label="BUFF" value="buff" />
-                <el-option label="Steam市场" value="steam" />
-                <el-option label="悠悠有品" value="youpin" />
-                <el-option label="C5GAME" value="c5game" />
-                <el-option label="IGXE" value="igxe" />
-                <el-option label="其他" value="other" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="API地址">
-              <el-input 
-                v-model="inputForm.apiUrl" 
-                placeholder="请输入API地址"
-                style="width: 400px;"
-              />
-            </el-form-item>
-            <el-form-item label="API密钥">
-              <el-input 
-                v-model="inputForm.apiKey" 
-                type="password"
-                show-password
-                placeholder="请输入API密钥"
-                style="width: 400px;"
-              />
-            </el-form-item>
-            <el-form-item label="更新频率">
-              <el-select v-model="inputForm.updateFreq" placeholder="选择更新频率" style="width: 400px;">
-                <el-option label="实时" value="realtime" />
-                <el-option label="每5分钟" value="5min" />
-                <el-option label="每15分钟" value="15min" />
-                <el-option label="每小时" value="1hour" />
-                <el-option label="每6小时" value="6hour" />
-                <el-option label="每天" value="daily" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="启用状态">
-              <el-switch v-model="inputForm.enabled" />
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" @click="handleSubmit" :loading="submitting">
-                {{ editingSourceId ? '更新数据源' : '添加数据源' }}
-              </el-button>
-              <el-button @click="resetForm">重置</el-button>
-            </el-form-item>
-          </el-form>
+          <div class="add-button-container">
+            <h3>数据源管理</h3>
+            <el-button type="primary" size="large" @click="openAddDialog">
+              <el-icon><Plus /></el-icon>
+              添加新数据源
+            </el-button>
+          </div>
         </div>
       </div>
 
@@ -253,17 +205,147 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 添加数据源对话框 -->
+    <el-dialog
+      v-model="addDialogVisible"
+      title="添加新数据源"
+      width="600px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      @close="handleAddDialogClose"
+    >
+      <el-form :model="inputForm" label-width="120px" @submit.prevent="handleSubmit">
+        <el-form-item label="数据源名称" required>
+          <el-input 
+            v-model="inputForm.name" 
+            placeholder="请输入数据源名称"
+          />
+        </el-form-item>
+        <el-form-item label="数据源类型" required>
+          <el-select v-model="inputForm.type" placeholder="选择数据源类型" style="width: 100%;">
+            <el-option label="BUFF" value="buff" />
+            <el-option label="Steam市场" value="steam" />
+            <el-option label="悠悠有品" value="youpin" />
+            <el-option label="C5GAME" value="c5game" />
+            <el-option label="IGXE" value="igxe" />
+            <el-option label="其他" value="other" />
+          </el-select>
+        </el-form-item>
+        
+        <!-- 通用配置 -->
+        <template v-if="inputForm.type && inputForm.type !== 'youpin'">
+          <el-form-item label="API地址">
+            <el-input 
+              v-model="inputForm.apiUrl" 
+              placeholder="请输入API地址"
+            />
+          </el-form-item>
+          <el-form-item label="API密钥">
+            <el-input 
+              v-model="inputForm.apiKey" 
+              type="password"
+              show-password
+              placeholder="请输入API密钥"
+            />
+          </el-form-item>
+          <el-form-item label="更新频率">
+            <el-select v-model="inputForm.updateFreq" placeholder="选择更新频率" style="width: 100%;">
+              <el-option label="实时" value="realtime" />
+              <el-option label="每5分钟" value="5min" />
+              <el-option label="每15分钟" value="15min" />
+              <el-option label="每小时" value="1hour" />
+              <el-option label="每6小时" value="6hour" />
+              <el-option label="每天" value="daily" />
+            </el-select>
+          </el-form-item>
+        </template>
+        
+        <!-- 悠悠有品特有配置 -->
+        <template v-if="inputForm.type === 'youpin'">
+          <el-form-item label="手机号">
+            <el-input 
+              v-model="inputForm.phone" 
+              placeholder="请输入手机号"
+            />
+          </el-form-item>
+          <el-form-item label="Session ID">
+            <el-input 
+              v-model="inputForm.sessionid" 
+              placeholder="请输入Session ID"
+            />
+          </el-form-item>
+          <el-form-item label="Token">
+            <el-input 
+              v-model="inputForm.token" 
+              type="textarea"
+              :rows="2"
+              placeholder="请输入Token"
+            />
+          </el-form-item>
+          <el-form-item label="设备名称">
+            <el-input 
+              v-model="inputForm.deviceName" 
+              placeholder="请输入设备名称"
+            />
+          </el-form-item>
+          <el-form-item label="应用版本">
+            <el-input 
+              v-model="inputForm.appVersion" 
+              placeholder="请输入应用版本"
+            />
+          </el-form-item>
+          <el-form-item label="休眠时间(秒)">
+            <el-input-number 
+              v-model="inputForm.sleepTime" 
+              :min="1" 
+              :max="86400" 
+              style="width: 100%;" 
+            />
+          </el-form-item>
+          <el-form-item label="应用类型">
+            <el-input 
+              v-model="inputForm.appType" 
+              placeholder="请输入应用类型"
+            />
+          </el-form-item>
+          <el-form-item label="用户ID">
+            <el-input 
+              v-model="inputForm.userId" 
+              placeholder="请输入用户ID"
+            />
+          </el-form-item>
+        </template>
+        
+        <el-form-item label="启用状态">
+          <el-switch v-model="inputForm.enabled" />
+        </el-form-item>
+      </el-form>
+      
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="addDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="handleSubmit" :loading="submitting">
+            添加数据源
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus } from '@element-plus/icons-vue'
 import axios from 'axios'
 import { apiUrls } from '@/config/api.js'
 
 export default {
   name: 'DataSource',
+  components: {
+    Plus
+  },
   setup() {
     const submitting = ref(false)
     const testing = ref(false)
@@ -272,6 +354,7 @@ export default {
     const collectingSourceIds = ref(new Set())
     const editDialogVisible = ref(false)
     const editSubmitting = ref(false)
+    const addDialogVisible = ref(false)
     const editForm = ref({
       name: '',
       type: '',
@@ -296,7 +379,16 @@ export default {
       apiUrl: '',
       apiKey: '',
       updateFreq: '15min',
-      enabled: true
+      enabled: true,
+      // 悠悠有品特有字段
+      phone: '',
+      sessionid: '',
+      token: '',
+      deviceName: '',
+      appVersion: '',
+      sleepTime: 6000,
+      appType: '',
+      userId: ''
     })
 
     const dataSources = ref([])
@@ -359,13 +451,28 @@ export default {
 
       submitting.value = true
       try {
-        const requestData = {
+        let requestData = {
           dataName: inputForm.value.name,
           type: inputForm.value.type,
-          apiUrl: inputForm.value.apiUrl,
-          apiKey: inputForm.value.apiKey,
-          updateFreq: inputForm.value.updateFreq,
           enabled: inputForm.value.enabled
+        }
+
+        // 根据数据源类型构建不同的配置数据
+        if (inputForm.value.type === 'youpin') {
+          requestData.config = {
+            phone: inputForm.value.phone,
+            Sessionid: inputForm.value.sessionid,
+            token: inputForm.value.token,
+            DeviceName: inputForm.value.deviceName,
+            app_version: inputForm.value.appVersion,
+            sleep_time: inputForm.value.sleepTime.toString(),
+            app_type: inputForm.value.appType,
+            userId: inputForm.value.userId
+          }
+        } else {
+          requestData.apiUrl = inputForm.value.apiUrl
+          requestData.apiKey = inputForm.value.apiKey
+          requestData.updateFreq = inputForm.value.updateFreq
         }
 
         let response
@@ -384,6 +491,7 @@ export default {
           ElMessage.success(`数据源${action}成功`)
           resetForm()
           editingSourceId.value = null
+          addDialogVisible.value = false // 关闭添加对话框
           loadDataSources()
         } else {
           const action = editingSourceId.value ? '更新' : '添加'
@@ -420,7 +528,16 @@ export default {
         apiUrl: '',
         apiKey: '',
         updateFreq: '15min',
-        enabled: true
+        enabled: true,
+        // 悠悠有品特有字段
+        phone: '',
+        sessionid: '',
+        token: '',
+        deviceName: '',
+        appVersion: '',
+        sleepTime: 6000,
+        appType: '',
+        userId: ''
       }
       editingSourceId.value = null
     }
@@ -661,6 +778,17 @@ export default {
       }
     }
 
+    // 打开添加数据源对话框
+    const openAddDialog = () => {
+      resetForm() // 先重置表单
+      addDialogVisible.value = true
+    }
+
+    // 关闭添加数据源对话框
+    const handleAddDialogClose = () => {
+      resetForm() // 关闭时重置表单
+    }
+
     const handleEditSubmit = async () => {
       if (!editForm.value.name) {
         ElMessage.error('请填写数据源名称')
@@ -885,6 +1013,7 @@ export default {
       collectingSourceIds,
       editDialogVisible,
       editSubmitting,
+      addDialogVisible,
       editForm,
       inputForm,
       dataSources,
@@ -902,6 +1031,8 @@ export default {
       editSource,
       handleEditDialogClose,
       handleEditSubmit,
+      openAddDialog,
+      handleAddDialogClose,
       removeSource,
       refreshAllSources
     }
@@ -914,8 +1045,26 @@ export default {
   width: 100%;
 }
 
-.input-section {
+.add-button-section {
   margin-bottom: clamp(1.5rem, 4vw, 1.875rem);
+}
+
+.add-button-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 0;
+}
+
+.add-button-container h3 {
+  margin: 0;
+  color: #fff;
+}
+
+.add-button-container .el-button {
+  font-size: 16px;
+  padding: 12px 24px;
+  height: auto;
 }
 
 .data-sources-list {
