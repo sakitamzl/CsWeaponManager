@@ -235,6 +235,7 @@
         <el-form-item label="启用状态">
           <el-switch v-model="editForm.enabled" />
         </el-form-item>
+
       </el-form>
       
       <template #footer>
@@ -253,6 +254,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
+import { apiUrls } from '@/config/api.js'
 
 export default {
   name: 'DataSource',
@@ -360,10 +362,10 @@ export default {
 
         let response
         if (editingSourceId.value) {
-          const url = `http://localhost:22024/dataSourcePageV1/api/datasource/${editingSourceId.value}`
+          const url = apiUrls.dataSourceById(editingSourceId.value)
           response = await axios.put(url, requestData)
         } else {
-          const url = 'http://localhost:22024/dataSourcePageV1/api/datasource'
+          const url = apiUrls.dataSource()
           response = await axios.post(url, requestData)
         }
 
@@ -423,7 +425,7 @@ export default {
 
       testing.value = true
       try {
-        const response = await axios.post('http://localhost:22024/dataSourcePageV1/api/datasource/test', {
+        const response = await axios.post(apiUrls.dataSourceTest(), {
           type: inputForm.value.type,
           apiUrl: inputForm.value.apiUrl,
           apiKey: inputForm.value.apiKey
@@ -458,7 +460,7 @@ export default {
       ElMessage.info(`正在测试 ${source.dataName} 连接...`)
       
       try {
-        const response = await axios.post('http://localhost:22024/dataSourcePageV1/api/datasource/test', {
+        const response = await axios.post(apiUrls.dataSourceTest(), {
           type: source.type,
           apiUrl: source.apiUrl,
           apiKey: '' // 不发送实际的API密钥
@@ -505,7 +507,7 @@ export default {
         ElMessage.info(`开始采集数据源: ${source.dataName}`)
         
         // 调用采集API
-        const response = await axios.post(`http://localhost:22024/dataSourcePageV1/api/datasource/${source.dataID}/collect`, {
+        const response = await axios.post(apiUrls.dataSourceCollect(source.dataID), {
           dataSourceId: source.dataID,
           dataSourceName: source.dataName,
           type: source.type
@@ -542,7 +544,7 @@ export default {
 
     const toggleSource = async (source) => {
       try {
-        const response = await axios.put(`http://localhost:22024/dataSourcePageV1/api/datasource/${source.dataID}/toggle`, {
+        const response = await axios.put(apiUrls.dataSourceToggle(source.dataID), {
           enabled: source.enabled
         })
 
@@ -589,46 +591,34 @@ export default {
       editForm.value.type = source.type
       editForm.value.enabled = source.enabled
       
+      
       // 根据数据源类型解析不同的配置
       if (source.dataName === '悠悠有品') {
-        // 解析悠悠有品的配置
-        if (config.yyyp) {
-          try {
-            const jsonConfig = JSON.parse(config.yyyp)
-            editForm.value.phone = jsonConfig.phone || config.yyyp_phone || ''
-            editForm.value.sessionid = jsonConfig.Sessionid || config.yyyp_Sessionid || ''
-            editForm.value.token = jsonConfig.token || config.yyyp_token || ''
-            editForm.value.deviceName = jsonConfig.DeviceName || config.yyyp_DeviceName || ''
-            editForm.value.appVersion = jsonConfig.app_version || config.yyyp_app_version || ''
-            editForm.value.sleepTime = parseInt(jsonConfig.sleep_time || config.yyyp_sleep_time || '6000')
-          } catch (e) {
-            console.warn('解析悠悠有品配置JSON失败:', e)
-            // 从单独字段解析
-            editForm.value.phone = config.yyyp_phone || ''
-            editForm.value.sessionid = config.yyyp_Sessionid || ''
-            editForm.value.token = config.yyyp_token || ''
-            editForm.value.deviceName = config.yyyp_DeviceName || ''
-            editForm.value.appVersion = config.yyyp_app_version || ''
-            editForm.value.sleepTime = parseInt(config.yyyp_sleep_time || '6000')
-          }
-        } else {
-          // 从单独字段解析
-          editForm.value.phone = config.yyyp_phone || ''
-          editForm.value.sessionid = config.yyyp_Sessionid || ''
-          editForm.value.token = config.yyyp_token || ''
-          editForm.value.deviceName = config.yyyp_DeviceName || ''
-          editForm.value.appVersion = config.yyyp_app_version || ''
-          editForm.value.sleepTime = parseInt(config.yyyp_sleep_time || '6000')
-        }
+        // 解析悠悠有品的配置 - 现在从JSON展开的字段中读取
+        editForm.value.phone = config.yyyp_phone || ''
+        editForm.value.sessionid = config.yyyp_Sessionid || ''
+        editForm.value.token = config.yyyp_token || ''
+        editForm.value.deviceName = config.yyyp_DeviceName || ''
+        editForm.value.appVersion = config.yyyp_app_version || ''
+        editForm.value.sleepTime = parseInt(config.yyyp_sleep_time || '6000')
+        
+        console.log('悠悠有品配置解析结果:', {
+          phone: editForm.value.phone,
+          sessionid: editForm.value.sessionid,
+          token: editForm.value.token,
+          deviceName: editForm.value.deviceName,
+          appVersion: editForm.value.appVersion,
+          sleepTime: editForm.value.sleepTime
+        })
       } else if (source.dataName === 'BUFF') {
         // BUFF配置
         editForm.value.apiUrl = config.buff_api_url || ''
         editForm.value.apiKey = config.buff_token || config.buff_api_key || ''
         editForm.value.sleepTime = parseInt(config.buff_sleep_time || '6000')
       } else {
-        // 通用配置
-        editForm.value.apiUrl = source.apiUrl || ''
-        editForm.value.apiKey = config.api_key || ''
+        // 通用配置 - 检查多种可能的字段名
+        editForm.value.apiUrl = config.api_url || source.apiUrl || ''
+        editForm.value.apiKey = config.api_key || config.token || ''
         editForm.value.sleepTime = parseInt(config.sleep_time || '6000')
       }
       
@@ -691,7 +681,7 @@ export default {
         }
 
         const response = await axios.put(
-          `http://localhost:22024/dataSourcePageV1/api/datasource/${editingSourceId.value}`, 
+          apiUrls.dataSourceById(editingSourceId.value), 
           requestData
         )
 
@@ -756,7 +746,7 @@ export default {
         }
       ).then(async () => {
         try {
-          const response = await axios.delete(`http://localhost:22024/dataSourcePageV1/api/datasource/${source.dataID}`)
+          const response = await axios.delete(apiUrls.dataSourceById(source.dataID))
 
           const result = response.data
           
@@ -801,7 +791,7 @@ export default {
     const loadDataSources = async () => {
       try {
         console.log('开始请求数据源API...')
-        const response = await axios.get('http://localhost:22024/dataSourcePageV1/api/datasource')
+        const response = await axios.get(apiUrls.dataSource())
         console.log('Axios response:', response)
         
         const result = response.data
@@ -847,7 +837,7 @@ export default {
           console.error('服务器响应错误:', error.response.data)
         } else if (error.request) {
           // 请求发送了但没有收到响应
-          errorMessage = '无法连接到API服务器，请检查服务器是否运行在 http://localhost:22024'
+          errorMessage = '无法连接到API服务器，请检查服务器是否运行在端口9001'
           console.error('网络请求错误，无响应')
         } else {
           // 其他错误
@@ -865,6 +855,7 @@ export default {
         ElMessage.error(errorMessage)
       }
     }
+
 
     onMounted(() => {
       loadDataSources()
@@ -1259,4 +1250,5 @@ export default {
 :deep(.el-overlay) {
   background-color: rgba(0, 0, 0, 0.7) !important;
 }
+
 </style>

@@ -3,10 +3,10 @@ const { defineConfig } = require('@vue/cli-service')
 module.exports = defineConfig({
   transpileDependencies: true,
   devServer: {
-    port: 18000,
+    port: 9001,
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:22024',
+        target: 'http://127.0.0.1:9001',
         changeOrigin: true,
         pathRewrite: {
           '^/api': ''
@@ -14,5 +14,18 @@ module.exports = defineConfig({
       }
     }
   },
+  SpiderServer: {
+    port: 9002,
+    proxy: {
+      '/spider': {
+        target: 'http://127.0.0.1:9002',
+        changeOrigin: true,
+        pathRewrite: {
+          '^/spider': ''
+        }
+      }
+    }
+  },
+
   publicPath: process.env.NODE_ENV === 'production' ? './' : '/'
 })

@@ -25,9 +25,12 @@ def get_datasources():
                 
                 if key not in datasource_groups:
                     from datetime import datetime
+                    # 从key2字段获取数据源类型
+                    data_source_type = key2 if key2 and not key1 else 'unknown'
                     datasource_groups[key] = {
                         'dataID': data_id,
                         'dataName': data_name,
+                        'type': data_source_type,
                         'config': {},
                         'status': status,
                         'enabled': status == '1',
@@ -35,9 +38,25 @@ def get_datasources():
                         'updateFreq': '15min'  # 默认值，会被sleep_time覆盖
                     }
                 
-                # 将key1, key2, value作为配置信息
-                if key1 and key2:
-                    datasource_groups[key]['config'][f"{key1}_{key2}"] = value
+                # 如果key1为空且key2不为空，说明key2存储的是数据源类型
+                if not key1 and key2:
+                    datasource_groups[key]['type'] = key2
+                # 如果key1和key2都有值，作为配置信息存储  
+                elif key1 and key2:
+                    # 特殊处理悠悠有品的JSON配置
+                    if key1 == 'yyyp' and key2 == 'youpin' and value:
+                        try:
+                            import json
+                            json_config = json.loads(value)
+                            if isinstance(json_config, dict):
+                                # 将JSON配置直接展开到config中，使用yyyp_前缀
+                                for json_key, json_value in json_config.items():
+                                    datasource_groups[key]['config'][f"yyyp_{json_key}"] = json_value
+                        except json.JSONDecodeError:
+                            # JSON解析失败，按原逻辑处理
+                            datasource_groups[key]['config'][f"{key1}_{key2}"] = value
+                    else:
+                        datasource_groups[key]['config'][f"{key1}_{key2}"] = value
                     
                     # 特殊处理sleep_time字段转换为更新频率
                     if key2 == 'sleep_time' and value:
@@ -56,8 +75,18 @@ def get_datasources():
                                 datasource_groups[key]['updateFreq'] = f"{days}day"
                         except (ValueError, TypeError):
                             datasource_groups[key]['updateFreq'] = '15min'
-                elif key1:
+                # 如果只有key1，作为单个配置项存储
+                elif key1 and not key2:
                     datasource_groups[key]['config'][key1] = value
+                # 如果只有value且没有key1和key2，可能是JSON配置
+                elif not key1 and not key2 and value:
+                    try:
+                        import json
+                        json_config = json.loads(value)
+                        if isinstance(json_config, dict):
+                            datasource_groups[key]['config'].update(json_config)
+                    except:
+                        pass
                 
                 # 更新状态信息（取最新的）
                 if status is not None:
@@ -116,10 +145,13 @@ def add_datasource():
             'description': data.get('description', '')
         }
         
+        # 将数据源类型存储在key2字段中
+        data_type = data.get('type', '')
+        
         # 插入新数据源
         insert_sql = f"""
         INSERT INTO config (dataID, dataName, key1, key2, value, status) 
-        VALUES ({new_id}, '{data['dataName']}', '{data.get('key1', '')}', '{data.get('key2', '')}', 
+        VALUES ({new_id}, '{data['dataName']}', '{data.get('key1', '')}', '{data_type}', 
                 '{json.dumps(config_data, ensure_ascii=False)}', '{'1' if data.get('enabled', True) else '0'}')
         """
         
@@ -166,54 +198,100 @@ def update_datasource(data_id):
                 'message': '请求数据不能为空'
             }), 400
         
-        # 构建更新的配置数据
-        config_data = {}
-        if data.get('config'):
-            config_data = data['config']
-        else:
-            config_data = {
-                'type': data.get('type', ''),
-                'apiUrl': data.get('apiUrl', ''),
-                'apiKey': data.get('apiKey', ''),
-                'updateFreq': data.get('updateFreq', '15min'),
-                'description': data.get('description', '')
-            }
-        
-        # 构建更新SQL
-        update_parts = []
-        if 'dataName' in data:
-            update_parts.append(f"dataName = '{data['dataName']}'")
-        if 'key1' in data:
-            update_parts.append(f"key1 = '{data['key1']}'")
-        if 'key2' in data:
-            update_parts.append(f"key2 = '{data['key2']}'")
-        if 'enabled' in data:
-            update_parts.append(f"status = '{'1' if data['enabled'] else '0'}'")
-        
-        if config_data:
-            update_parts.append(f"value = '{json.dumps(config_data, ensure_ascii=False)}'")
-        
-        if not update_parts:
-            return jsonify({
-                'success': False,
-                'message': '没有需要更新的数据'
-            }), 400
-        
-        update_sql = f"UPDATE config SET {', '.join(update_parts)} WHERE dataID = {data_id}"
-        
         db = Date_base()
-        result = db.update(update_sql)
         
-        if result:
-            return jsonify({
-                'success': True,
-                'message': '数据源更新成功'
-            }), 200
+        # 首先删除该数据源的所有配置记录
+        delete_sql = f"DELETE FROM config WHERE dataID = {data_id}"
+        db.update(delete_sql)
+        
+        # 插入基本信息记录（数据源类型）
+        if 'type' in data:
+            insert_type_sql = f"""
+            INSERT INTO config (dataID, dataName, key1, key2, value, status) 
+            VALUES ({data_id}, '{data['dataName']}', '', '{data['type']}', '', '{'1' if data.get('enabled', True) else '0'}')
+            """
+            db.insert(insert_type_sql)
+        
+        # 根据数据源类型插入配置记录
+        config_data = data.get('config', {})
+        data_name = data.get('dataName', '')
+        status = '1' if data.get('enabled', True) else '0'
+        
+        if data.get('type') == 'youpin':
+            # 悠悠有品特有配置
+            config_mappings = {
+                'phone': 'yyyp_phone',
+                'Sessionid': 'yyyp_Sessionid', 
+                'token': 'yyyp_token',
+                'DeviceName': 'yyyp_DeviceName',
+                'app_version': 'yyyp_app_version',
+                'app_type': 'yyyp_app_type',
+                'userId': 'yyyp_userId',
+                'sleep_time': 'yyyp_sleep_time'
+            }
+            
+            for config_key, db_key in config_mappings.items():
+                if config_key in config_data:
+                    key_parts = db_key.split('_', 1)
+                    key1 = key_parts[0] if len(key_parts) > 1 else ''
+                    key2 = key_parts[1] if len(key_parts) > 1 else db_key
+                    value = str(config_data[config_key])
+                    
+                    insert_config_sql = f"""
+                    INSERT INTO config (dataID, dataName, key1, key2, value, status) 
+                    VALUES ({data_id}, '{data_name}', '{key1}', '{key2}', '{value}', '{status}')
+                    """
+                    db.insert(insert_config_sql)
+                    
+        elif data.get('type') == 'buff':
+            # BUFF特有配置
+            if 'apiUrl' in config_data:
+                insert_sql = f"""
+                INSERT INTO config (dataID, dataName, key1, key2, value, status) 
+                VALUES ({data_id}, '{data_name}', 'buff', 'api_url', '{config_data['apiUrl']}', '{status}')
+                """
+                db.insert(insert_sql)
+            
+            if 'apiKey' in config_data:
+                insert_sql = f"""
+                INSERT INTO config (dataID, dataName, key1, key2, value, status) 
+                VALUES ({data_id}, '{data_name}', 'buff', 'token', '{config_data['apiKey']}', '{status}')
+                """
+                db.insert(insert_sql)
+                
+            if 'sleep_time' in config_data:
+                insert_sql = f"""
+                INSERT INTO config (dataID, dataName, key1, key2, value, status) 
+                VALUES ({data_id}, '{data_name}', 'buff', 'sleep_time', '{config_data.get('sleep_time', '6000')}', '{status}')
+                """
+                db.insert(insert_sql)
         else:
-            return jsonify({
-                'success': False,
-                'message': '更新数据源失败'
-            }), 500
+            # 通用配置
+            if 'apiUrl' in config_data:
+                insert_sql = f"""
+                INSERT INTO config (dataID, dataName, key1, key2, value, status) 
+                VALUES ({data_id}, '{data_name}', '', 'api_url', '{config_data['apiUrl']}', '{status}')
+                """
+                db.insert(insert_sql)
+                
+            if 'apiKey' in config_data:
+                insert_sql = f"""
+                INSERT INTO config (dataID, dataName, key1, key2, value, status) 
+                VALUES ({data_id}, '{data_name}', '', 'api_key', '{config_data['apiKey']}', '{status}')
+                """
+                db.insert(insert_sql)
+                
+            if 'sleep_time' in config_data:
+                insert_sql = f"""
+                INSERT INTO config (dataID, dataName, key1, key2, value, status) 
+                VALUES ({data_id}, '{data_name}', '', 'sleep_time', '{config_data.get('sleep_time', '6000')}', '{status}')
+                """
+                db.insert(insert_sql)
+        
+        return jsonify({
+            'success': True,
+            'message': '数据源更新成功'
+        }), 200
             
     except Exception as e:
         Log().write_log(f"更新数据源失败: {str(e)}", 'error')

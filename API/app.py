@@ -26,8 +26,6 @@ app.register_blueprint(webLentV1, url_prefix = '/webLentV1')
 app.register_blueprint(dataSourcePage, url_prefix='/dataSourcePageV1')
 
 
-def API():
-    app.run(debug=True, port=22024, host='0.0.0.0')
 
+app.run(debug=True, port=9001, host='0.0.0.0')
 
-API()
