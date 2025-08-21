@@ -614,7 +614,84 @@ export default {
       }
     }
 
+    // 悠悠有品专用爬虫采集函数
+    const startYoupinSpiderCollection = async (source) => {
+      if (!source.enabled) {
+        ElMessage.warning('请先启用数据源')
+        return
+      }
+
+      if (collectingSourceIds.value.has(source.dataID)) {
+        ElMessage.info('该数据源正在采集中...')
+        return
+      }
+
+      try {
+        // 添加到采集中的列表
+        collectingSourceIds.value.add(source.dataID)
+        
+        ElMessage.info(`开始使用爬虫采集悠悠有品数据: ${source.dataName}`)
+        
+        // 准备发送给爬虫的数据 - 按照后端API期望的字段名
+        const spiderData = {
+          // 后端API需要的字段
+          phone: source.config?.yyyp_phone || '',
+          sessionid: source.config?.yyyp_Sessionid || '',
+          token: source.config?.yyyp_token || '',
+          app_version: source.config?.yyyp_app_version || '',
+          app_type: source.config?.yyyp_app_type || '',
+          userId: source.config?.yyyp_userId || '',
+          
+          // 额外的数据源信息（可选）
+          dataID: source.dataID,
+          dataName: source.dataName,
+          type: source.type,
+          enabled: source.enabled,
+          deviceName: source.config?.yyyp_DeviceName || '',
+          sleepTime: source.config?.yyyp_sleep_time || '6000'
+        }
+        
+        console.log('发送给爬虫的数据:', spiderData)
+        
+        // 调用爬虫API
+        const response = await axios.post(apiUrls.youpinSpider(), spiderData)
+
+        // 后端成功返回 200 状态码和 "获取完成" 消息
+        if (response.status === 200) {
+          ElMessage.success(`${source.dataName} 爬虫采集完成！`)
+          console.log('爬虫采集响应:', response.data)
+          
+          // 更新数据源的最后更新时间
+          source.lastUpdate = new Date()
+        } else {
+          ElMessage.error(`爬虫采集失败: ${response.data}`)
+        }
+      } catch (error) {
+        console.error('爬虫采集失败:', error)
+        let errorMessage = `爬虫采集 ${source.dataName} 失败`
+        
+        if (error.response) {
+          errorMessage = error.response.data?.message || `爬虫采集失败 (${error.response.status})`
+        } else if (error.request) {
+          errorMessage = '无法连接到爬虫服务器'
+        } else {
+          errorMessage = error.message || '爬虫采集失败'
+        }
+        
+        ElMessage.error(errorMessage)
+      } finally {
+        // 从采集中的列表移除
+        collectingSourceIds.value.delete(source.dataID)
+      }
+    }
+
     const startCollection = async (source) => {
+      // 如果是悠悠有品，调用爬虫采集
+      if (source.dataName === '悠悠有品' || source.type === 'youpin') {
+        return startYoupinSpiderCollection(source)
+      }
+      
+      // 其他数据源使用原有的采集逻辑
       if (!source.enabled) {
         ElMessage.warning('请先启用数据源')
         return

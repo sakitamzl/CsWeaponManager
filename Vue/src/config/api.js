@@ -3,6 +3,9 @@ export const API_CONFIG = {
   // API 基础地址
   BASE_URL: 'http://localhost:9001',
   
+  // 爬虫服务器地址
+  SPIDER_BASE_URL: 'http://127.0.0.1:9002',
+  
   // API 端点
   ENDPOINTS: {
     // 数据源相关
@@ -18,13 +21,21 @@ export const API_CONFIG = {
     
     // 销售数据相关
     SELL_DATA: (page, limit) => `/webSellV1/getSellData/${page}/${limit}`,
-    SELL_STATS: '/webSellV1/getSellStats'
+    SELL_STATS: '/webSellV1/getSellStats',
+    
+    // 爬虫相关
+    YOUPIN_SPIDER: '/youping898SpiderV1/allDate'
   }
 }
 
 // 获取完整的 API URL
 export const getApiUrl = (endpoint) => {
   return `${API_CONFIG.BASE_URL}${endpoint}`
+}
+
+// 获取完整的爬虫 API URL
+export const getSpiderApiUrl = (endpoint) => {
+  return `${API_CONFIG.SPIDER_BASE_URL}${endpoint}`
 }
 
 // 快捷方法
@@ -42,5 +53,8 @@ export const apiUrls = {
   
   // 销售数据
   sellData: (page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.SELL_DATA(page, limit)),
-  sellStats: () => getApiUrl(API_CONFIG.ENDPOINTS.SELL_STATS)
+  sellStats: () => getApiUrl(API_CONFIG.ENDPOINTS.SELL_STATS),
+  
+  // 爬虫API
+  youpinSpider: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YOUPIN_SPIDER)
 }
