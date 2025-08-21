@@ -3,11 +3,11 @@ from src.log import Log
 from src.execution_db import Date_base
 import requests
 
-youpin898SellV1 = Blueprint('youpin898SellV1', __name__)
+youpin898SellV1 = Blueprint('youpin898SellV1/<data_user>', __name__)
 
 @youpin898SellV1.route('/selectApexTime', methods=['get'])
-def selectApexTime():
-    sql = f"SELECT order_time FROM `yyyp_Sell` ORDER BY order_time DESC LIMIT 1"
+def selectApexTime(data_user):
+    sql = f"SELECT order_time FROM `yyyp_Sell` WHERE data_user = '{data_user}' ORDER BY order_time DESC LIMIT 1"
     flag, data = Date_base().select(sql)
     data = str(data[0][0])
     return jsonify(data), 200
@@ -28,6 +28,7 @@ def insert_webside_selldata():
     data_from = data['from']
     order_time = data['order_time']
     steamid = data['steam_id']
+    data_user = data['data_user']
     try:
         sell_number = int(data['sell_number'])
     except TypeError:
@@ -42,23 +43,22 @@ def insert_webside_selldata():
 
     sql =  (f"INSERT INTO `{data_from}_Sell` "
             f"(`ID`, `weapon_name`, `weapon_type`, `item_name`, `weapon_float`, `float_range`, `price`,"
-            f" `buyer_name`, `status`, `from`, `order_time`, `steam_id`,"
-            f" `sell_number`, `err_number`, `price_all`)"
+            f" `buyer_name`, `status`, `from`, `order_time`, `steam_id`, `sell_number`, `err_number`, `price_all`, `data_user`)"
             f" VALUES "
             f"('{ID}','{weapon_name}','{weapon_type}','{item_name}',{weapon_float},'{float_range}',{price},"
             f" '{buyer_user_name}', '{status}', '{data_from}', '{order_time}', '{steamid}',"
-            f" '{sell_number}', '{err_number}', {price_all});")
+            f" '{sell_number}', '{err_number}', {price_all}, '{data_user}');")
     a_status = Date_base().insert(sql)
 
     if sell_number == 1:
         sql =  (f"INSERT INTO `Sell` "
                 f"(`ID`, `weapon_name`, `weapon_type`, `item_name`, `weapon_float`, `float_range`, `price`,"
                 f" `buyer_name`,  `status`, `from`, `order_time`, `steam_id`,"
-                f" `sell_number`, `err_number`, `price_all`)"
+                f" `sell_number`, `err_number`, `price_all` , `data_user`)"
                 f" VALUES "
                 f"('{ID}','{weapon_name}','{weapon_type}','{item_name}',{weapon_float},'{float_range}',{price},"
                 f" '{buyer_user_name}',  '{status}', '{data_from}', '{order_time}', '{steamid}',"
-                f" '{sell_number}', '{err_number}', {price_all});")
+                f" '{sell_number}', '{err_number}', {price_all}, '{data_user}');")
         Date_base().insert(sql)
         
     if a_status == '重复数据':
@@ -84,6 +84,7 @@ def insert_main_selldata():
     data_from = data['from']
     order_time = data['order_time']
     steamid = data['steam_id']
+    data_user = data['data_user']
     try:
         sell_number = int(data['sell_number'])
     except TypeError:
@@ -97,11 +98,11 @@ def insert_main_selldata():
     sql =  (f"INSERT INTO `Sell` "
         f"(`ID`, `weapon_name`, `weapon_type`, `item_name`, `weapon_float`, `float_range`, `price`,"
         f" `buyer_name`, `status`, `from`, `order_time`, `steam_id`,"
-        f" `sell_number`, `err_number`, `price_all`)"
+        f" `sell_number`, `err_number`, `price_all`, `data_user`)"
         f" VALUES "
         f"('{ID}','{weapon_name}','{weapon_type}','{item_name}',{weapon_float},'{float_range}',{price},"
         f" '{buyer_user_name}', '{status}', '{data_from}', '{order_time}', '{steamid}',"
-        f" '{sell_number}', '{err_number}', {price_all});")
+        f" '{sell_number}', '{err_number}', {price_all}, '{data_user}');")
     a_status = Date_base().insert(sql)
     
     if a_status is True:
