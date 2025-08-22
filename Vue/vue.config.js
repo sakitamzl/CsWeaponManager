@@ -11,12 +11,7 @@ module.exports = defineConfig({
         pathRewrite: {
           '^/api': ''
         }
-      }
-    }
-  },
-  SpiderServer: {
-    port: 9002,
-    proxy: {
+      },
       '/spider': {
         target: 'http://127.0.0.1:9002',
         changeOrigin: true,
