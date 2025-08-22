@@ -45,7 +45,7 @@ class DatabaseSetup:
                 'port': int(self.config.get('database', 'port')),
                 'user': self.config.get('database', 'user'),
                 'password': self.config.get('database', 'password'),
-                'database_name': self.db_name
+                'database_name': self.config.get('database', 'database_name'),
             }
         except Exception as e:
             print(f"读取数据库配置失败: {e}")
