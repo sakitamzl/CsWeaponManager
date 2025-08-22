@@ -8,6 +8,7 @@ youpin898SellV1 = Blueprint('youpin898SellV1/', __name__)
 @youpin898SellV1.route('/selectApexTime/<data_user>', methods=['get'])
 def selectApexTime(data_user):
     sql = f"SELECT order_time FROM `yyyp_Sell` WHERE data_user = '{data_user}' ORDER BY order_time DESC LIMIT 1"
+    print(sql)
     flag, data = Date_base().select(sql)
     data = str(data[0][0])
     return jsonify(data), 200
