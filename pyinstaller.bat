@@ -2,7 +2,7 @@
 echo Starting PyInstaller packaging process...
 
 :: Set version number (modify this for each release)
-set VERSION=v1.0.1
+set VERSION=v1.0.2
 
 :: Activate conda environment
 call conda activate CS2DB
@@ -28,7 +28,7 @@ if exist "Spider\build" rmdir /s /q "Spider\build"
 
 :: Package blankEndApi.py
 echo.
-echo [1/3] Packaging blankEndApi.exe...
+echo [1/4] Packaging blankEndApi.exe...
 cd blankEndApi
 pyinstaller -F blankEndApi.py --distpath "..\Releases\%VERSION%"
 if %errorlevel% neq 0 (
@@ -39,9 +39,22 @@ if %errorlevel% neq 0 (
 )
 cd ..
 
+:: Package setup_database.py
+echo.
+echo [2/4] Packaging setup_database.exe...
+cd blankEndApi
+pyinstaller -F setup_database.py --distpath "..\Releases\%VERSION%"
+if %errorlevel% neq 0 (
+    echo Error: Failed to package setup_database.py
+    cd ..
+    pause
+    exit /b 1
+)
+cd ..
+
 :: Package getAppToken.py
 echo.
-echo [2/3] Packaging getAppToken.exe...
+echo [3/4] Packaging getAppToken.exe...
 cd getAppToken
 pyinstaller -F getAppToken.py --distpath "..\Releases\%VERSION%"
 if %errorlevel% neq 0 (
@@ -54,7 +67,7 @@ cd ..
 
 :: Package Spider.py
 echo.
-echo [3/3] Packaging Spider.exe...
+echo [4/4] Packaging Spider.exe...
 cd Spider
 pyinstaller -F Spider.py --distpath "..\Releases\%VERSION%"
 if %errorlevel% neq 0 (
@@ -64,6 +77,49 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 cd ..
+
+:: Copy additional files to version folder
+echo.
+echo Copying additional files to version folder...
+if exist "Releases\start_all.bat" (
+    copy "Releases\start_all.bat" "Releases\%VERSION%\start_all.bat"
+    echo start_all.bat copied successfully
+) else (
+    echo Warning: start_all.bat not found in Releases folder
+)
+
+if exist "Releases\conf.ini" (
+    copy "Releases\conf.ini" "Releases\%VERSION%\conf.ini"
+    echo conf.ini copied successfully
+) else (
+    echo Warning: conf.ini not found in Releases folder
+)
+
+if exist "blankEndApi\DB.sql" (
+    copy "blankEndApi\DB.sql" "Releases\%VERSION%\DB.sql"
+    echo DB.sql copied successfully
+) else (
+    echo Warning: DB.sql not found in blankEndApi folder
+)
+
+if exist "WebSite" (
+    xcopy "WebSite" "Releases\%VERSION%\WebSite" /E /I /H /Y
+    echo WebSite folder copied successfully
+) else (
+    echo Warning: WebSite folder not found in root directory
+)
+
+:: Create log directory (required by both blankEndApi.exe and Spider.exe)
+if not exist "Releases\%VERSION%\log" mkdir "Releases\%VERSION%\log"
+echo log directory created successfully
+
+:: Copy existing logs if they exist
+if exist "logs" (
+    xcopy "logs" "Releases\%VERSION%\logs" /E /I /H /Y
+    echo logs folder copied successfully
+) else (
+    echo Warning: logs folder not found in root directory
+)
 
 :: Clean up build artifacts
 echo.
