@@ -1,17 +1,17 @@
 # 使用MuMu模拟器进行演示
 
 ## 1、 开启MuMu模拟器的网络桥接功能
-![这是图片](/imge/mumu模拟器配置/1.jpg "Magic Gardens")
+![这是图片](../imge/mumu模拟器配置/1.jpg "Magic Gardens")
 
 ## 2、 安装V2RayNG到模拟器中 在V2RayNG中添加HTTP代理
 ### 2、1
-![这是图片](/imge/v2rayNG/1.png "Magic Gardens")
+![这是图片](../imge/v2rayNG/1.png "Magic Gardens")
 ### 2、2
-![这是图片](/imge/v2rayNG/2.png "Magic Gardens")
+![这是图片](../imge/v2rayNG/2.png "Magic Gardens")
 ### 2、3
-![这是图片](/imge/v2rayNG/3.png "Magic Gardens")
+![这是图片](../imge/v2rayNG/3.png "Magic Gardens")
 ### 2、4 输入完成后 选中 点击下面启动按钮
-![这是图片](/imge/v2rayNG/4.png "Magic Gardens")
+![这是图片](../imge/v2rayNG/4.png "Magic Gardens")
 
 ## 3、打开getAppToken.exe 输入1 进入悠悠有品模式
 ``` text
@@ -20,19 +20,19 @@
 ```
 
 ## 4、看见该页面后 同时需要保持V2rayNG处于开启状态
-![这是图片](/imge/悠悠有品/1.png "Magic Gardens")
+![这是图片](../imge/悠悠有品/1.png "Magic Gardens")
 
 ## 5、 在模拟器中点开悠悠有品 如果超过10秒没有加载出数据 则需要关闭后重新打开 直到最后程序入下图展示为止
-![这是图片](/imge/悠悠有品/2.png "Magic Gardens")
+![这是图片](../imge/悠悠有品/2.png "Magic Gardens")
 
 ## 6、 在web页面 点击数据来源-添加数据来源
-![这是图片](/imge/WEB/1.png "Magic Gardens")
+![这是图片](../imge/WEB/1.png "Magic Gardens")
 
 ## 7、 选择悠悠有品
-![这是图片](/imge/WEB/2.png "Magic Gardens")
+![这是图片](../imge/WEB/2.png "Magic Gardens")
 
 ## 8、 黑框框获取到的数据填入对应的框中
-![这是图片](/imge/WEB/3.png "Magic Gardens")
+![这是图片](../imge/WEB/3.png "Magic Gardens")
 
 ## 9、首次添加的数据源 点击编辑 点击内部的 全部采集 按钮 进行首次数据采集 如果中断了 重新点击
-![这是图片](/imge/WEB/4.png "Magic Gardens")
+![这是图片](../imge/WEB/4.png "Magic Gardens")
