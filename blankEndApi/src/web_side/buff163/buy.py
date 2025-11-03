@@ -46,16 +46,27 @@ def getLatestData(user_id):
         if records and len(records) > 0:
             latest_record = records[0]
             return jsonify({
+                "success": True,
                 "ID": latest_record.ID,
                 "order_time": latest_record.order_time
             }), 200
         else:
-            return jsonify({"ID": None, "order_time": None}), 200
+            return jsonify({
+                "success": False,
+                "ID": None,
+                "order_time": None,
+                "message": "未查询到数据"
+            }), 200
     except Exception as e:
         print(f"获取最新购买数据失败: {e}")
         import traceback
         print(f"详细错误信息: {traceback.format_exc()}")
-        return jsonify({"ID": None, "order_time": None}), 500
+        return jsonify({
+            "success": False,
+            "ID": None,
+            "order_time": None,
+            "message": f"查询异常: {str(e)}"
+        }), 500
 
 @buff163BuyV1.route('/updateOrderStatus', methods=['post'])
 def updateOrderStatus():
