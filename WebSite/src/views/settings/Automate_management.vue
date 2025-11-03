@@ -767,8 +767,8 @@ const loadSavedTasks = async () => {
           targetInfo: getTaskTargetInfo(savedTask),
           interval: savedTask.config.interval,
           status: savedTask.enabled ? '运行中' : '已停止',
-          lastRun: '-',
-          nextRun: savedTask.enabled ? calculateNextRun(savedTask.config.interval) : '-',
+          lastRun: savedTask.lastRun || '-',
+          nextRun: savedTask.nextRun || (savedTask.enabled ? calculateNextRun(savedTask.config.interval) : '-'),
           config: savedTask.config // 保存配置供后续使用
         }
         

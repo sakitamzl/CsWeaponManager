@@ -14,7 +14,7 @@ def get_auto_manager_tasks():
         
         # 查询所有 key2 = 'auto_manager' 的配置
         query_sql = """
-        SELECT dataID, dataName, key1, value, status 
+        SELECT dataID, dataName, key1, value, status, lastRun, nextRun 
         FROM config 
         WHERE key2 = 'auto_manager'
         ORDER BY dataID DESC
@@ -34,7 +34,9 @@ def get_auto_manager_tasks():
                         'taskName': row[1],
                         'automateType': row[2],  # key1 存储自动化类型
                         'config': config,
-                        'enabled': row[4] == '1'
+                        'enabled': row[4] == '1',
+                        'lastRun': row[5] if len(row) > 5 and row[5] else None,
+                        'nextRun': row[6] if len(row) > 6 and row[6] else None
                     })
                 except json.JSONDecodeError as e:
                     Log().write_log(f"解析任务配置失败 (dataID={row[0]}): {e}", 'error')

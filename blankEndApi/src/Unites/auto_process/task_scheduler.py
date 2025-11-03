@@ -100,10 +100,35 @@ class TaskScheduler:
             
             self.tasks[task_id] = task_info
             
+            # 初始化下次执行时间
+            self._initialize_next_run_time(task_id, config.get('interval', 30))
+            
             # 立即执行一次,然后开始定时
             self._schedule_task(task_id)
             
             self.log.write_log(f"任务已启动: {task_name} (ID: {task_id})", 'info')
+    
+    def _initialize_next_run_time(self, task_id, interval_minutes):
+        """初始化下次执行时间"""
+        try:
+            from datetime import datetime, timedelta
+            
+            db = Date_base()
+            
+            # 计算下次执行时间
+            next_run = (datetime.now() + timedelta(minutes=interval_minutes)).strftime('%Y-%m-%d %H:%M:%S')
+            
+            # 更新数据库
+            update_sql = f"""
+            UPDATE config 
+            SET nextRun = '{next_run}' 
+            WHERE dataID = {task_id} AND key2 = 'auto_manager'
+            """
+            
+            db.update(update_sql)
+            
+        except Exception as e:
+            self.log.write_log(f"初始化下次执行时间失败 (taskId={task_id}): {str(e)}", 'error')
     
     def stop_task(self, task_id):
         """停止单个任务"""
@@ -160,6 +185,9 @@ class TaskScheduler:
         # 执行任务
         try:
             self._execute_task(task_info)
+            
+            # 更新最后执行时间
+            self._update_task_execution_time(task_id)
         except Exception as e:
             self.log.write_log(f"执行任务失败 ({task_info['task_name']}): {str(e)}", 'error')
         
@@ -172,6 +200,37 @@ class TaskScheduler:
             timer.start()
             
             self.tasks[task_id]['timer'] = timer
+    
+    def _update_task_execution_time(self, task_id):
+        """更新任务执行时间到数据库"""
+        try:
+            from datetime import datetime, timedelta
+            
+            db = Date_base()
+            
+            # 获取任务配置
+            if task_id not in self.tasks:
+                return
+            
+            task_info = self.tasks[task_id]
+            interval = task_info['config'].get('interval', 30)
+            
+            # 计算时间
+            now = datetime.now()
+            last_run = now.strftime('%Y-%m-%d %H:%M:%S')
+            next_run = (now + timedelta(minutes=interval)).strftime('%Y-%m-%d %H:%M:%S')
+            
+            # 更新数据库
+            update_sql = f"""
+            UPDATE config 
+            SET lastRun = '{last_run}', nextRun = '{next_run}' 
+            WHERE dataID = {task_id} AND key2 = 'auto_manager'
+            """
+            
+            db.update(update_sql)
+            
+        except Exception as e:
+            self.log.write_log(f"更新任务执行时间失败 (taskId={task_id}): {str(e)}", 'error')
     
     def _execute_task(self, task_info):
         """执行具体任务"""
@@ -206,13 +265,13 @@ class TaskScheduler:
             return
         
         # 根据任务类型调用相应的API
-        base_url = "http://127.0.0.1:9001"  # 本地API地址
+        spider_base_url = "http://127.0.0.1:9002"  # Spider服务地址
         
         try:
             if selected_task == 'update_steam_inventory':
                 # 更新Steam库存
                 response = requests.post(
-                    f"{base_url}/webInventoryV1/update_inventory",
+                    f"{spider_base_url}/steamSpiderV1/getInventory",
                     json={'steamId': steam_id},
                     timeout=300  # 5分钟超时
                 )
@@ -221,7 +280,7 @@ class TaskScheduler:
             elif selected_task == 'fetch_yyyp_price':
                 # 获取悠悠有品价格
                 response = requests.post(
-                    f"{base_url}/youping898SpiderV1/getYoupingPrice",
+                    f"{spider_base_url}/youping898SpiderV1/getYYYPPrice",
                     json={'steamId': steam_id},
                     timeout=300
                 )
@@ -230,7 +289,7 @@ class TaskScheduler:
             elif selected_task == 'fetch_buff_price':
                 # 获取BUFF价格
                 response = requests.post(
-                    f"{base_url}/buffSpiderV1/getBUFFPrice",
+                    f"{spider_base_url}/buffSpiderV1/getBUFFPrice",
                     json={'steamId': steam_id},
                     timeout=300
                 )
@@ -275,12 +334,12 @@ class TaskScheduler:
                 steam_id = result[0][3]
                 
                 # 根据任务类型和数据源类型执行采集
-                base_url = "http://127.0.0.1:9001"
+                spider_base_url = "http://127.0.0.1:9002"  # Spider服务地址
                 
                 if selected_task == 'collect_buff' and data_type == 'buff':
                     # 采集BUFF数据
                     response = requests.post(
-                        f"{base_url}/buffSpiderV1/NewData",
+                        f"{spider_base_url}/buffSpiderV1/NewData",
                         json={'steamID': steam_id},
                         timeout=600  # 10分钟超时
                     )
@@ -299,7 +358,7 @@ class TaskScheduler:
                     }
                     
                     response = requests.post(
-                        f"{base_url}/youping898SpiderV1/NewData",
+                        f"{spider_base_url}/youpin898SpiderV1/NewData",
                         json=spider_data,
                         timeout=600
                     )
