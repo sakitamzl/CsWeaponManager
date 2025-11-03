@@ -35,9 +35,9 @@ def get_steam_ids():
         
         db = DatabaseManager()
         
-        # 只查询 key1='steam' AND key2='config' 的记录
+        # 只查询 key1='steam' AND key2='config' 的记录，包含 dataID
         steam_config_sql = """
-        SELECT dataName, value, steamID
+        SELECT dataID, dataName, value, steamID
         FROM config 
         WHERE key1 = 'steam' AND key2 = 'config'
         ORDER BY dataID
@@ -47,9 +47,10 @@ def get_steam_ids():
         steam_ids = []
         
         for row in steam_config_results:
-            data_name = row[0] if row[0] else None
-            value_json = row[1] if len(row) > 1 else None
-            steam_id_from_field = row[2] if len(row) > 2 else None
+            data_id = row[0]
+            data_name = row[1] if row[1] else None
+            value_json = row[2] if len(row) > 2 else None
+            steam_id_from_field = row[3] if len(row) > 3 else None
             
             # 尝试从value JSON中解析steamID
             steam_id = steam_id_from_field
@@ -88,8 +89,9 @@ def get_steam_ids():
             item_count = count_result[0][0] if count_result else 0
             
             steam_ids.append({
-                'steam_id': steam_id,
-                'data_name': data_name,
+                'dataID': data_id,  # 添加 dataID
+                'dataName': data_name,  # 改为 dataName 保持一致
+                'steamID': steam_id,  # 改为 steamID 保持一致
                 'item_count': item_count
             })
         

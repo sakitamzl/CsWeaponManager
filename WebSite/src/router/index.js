@@ -68,7 +68,46 @@ const routes = [
         path: '/settings',
         name: 'Settings',
         component: Settings,
-        meta: { title: '系统设置' }
+        meta: { title: '系统设置' },
+        redirect: '/settings/data-source',
+        children: [
+          {
+            path: 'data-source',
+            name: 'DataSource',
+            component: () => import('@/views/settings/DataSource.vue'),
+            meta: { title: '数据来源' }
+          },
+          {
+            path: 'auto-manager',
+            name: 'AutoManager',
+            component: () => import('@/views/settings/Automate_management.vue'),
+            meta: { title: '自动化管理' }
+          },
+          {
+            path: 'spider-rename',
+            name: 'SpiderRename',
+            component: () => import('@/views/settings/SpiderWeaponRename.vue'),
+            meta: { title: '爬取改名' }
+          },
+          {
+            path: 'steam-market',
+            name: 'SteamMarket',
+            component: () => import('@/views/settings/SteamMarket.vue'),
+            meta: { title: 'Steam市场历史' }
+          },
+          {
+            path: 'steam-inventory-history',
+            name: 'SteamInventoryHistory',
+            component: () => import('@/views/settings/SteamInventoryHistory.vue'),
+            meta: { title: 'Steam交易历史' }
+          },
+          {
+            path: 'dev-tools',
+            name: 'DevTools',
+            component: () => import('@/views/settings/DevTool.vue'),
+            meta: { title: '开发工具' }
+          }
+        ]
       }
     ]
   }

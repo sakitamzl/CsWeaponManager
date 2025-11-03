@@ -9,8 +9,8 @@
         
         <ul class="category-list">
           <li 
-            :class="{ active: selectedCategory === 'data_source' }"
-            @click="selectCategory('data_source')"
+            :class="{ active: $route.name === 'DataSource' }"
+            @click="navigateTo('/settings/data-source')"
           >
             <el-icon :size="18">
               <DataBoard />
@@ -18,8 +18,8 @@
             <span>数据来源</span>
           </li>
           <li 
-            :class="{ active: selectedCategory === 'auto_manager' }"
-            @click="selectCategory('auto_manager')"
+            :class="{ active: $route.name === 'AutoManager' }"
+            @click="navigateTo('/settings/auto-manager')"
           >
             <el-icon :size="18">
               <Timer />
@@ -27,8 +27,8 @@
             <span>自动化管理</span>
           </li>
           <li 
-            :class="{ active: selectedCategory === 'spider_rename' }"
-            @click="selectCategory('spider_rename')"
+            :class="{ active: $route.name === 'SpiderRename' }"
+            @click="navigateTo('/settings/spider-rename')"
           >
             <el-icon :size="18">
               <EditPen />
@@ -36,8 +36,8 @@
             <span>爬取改名</span>
           </li>
           <li 
-            :class="{ active: selectedCategory === 'steam_market' }"
-            @click="selectCategory('steam_market')"
+            :class="{ active: $route.name === 'SteamMarket' }"
+            @click="navigateTo('/settings/steam-market')"
           >
             <el-icon :size="18">
               <ShoppingCart />
@@ -45,8 +45,8 @@
             <span>Steam市场历史</span>
           </li>
           <li 
-            :class="{ active: selectedCategory === 'steam_inventory_history' }"
-            @click="selectCategory('steam_inventory_history')"
+            :class="{ active: $route.name === 'SteamInventoryHistory' }"
+            @click="navigateTo('/settings/steam-inventory-history')"
           >
             <el-icon :size="18">
               <Box />
@@ -54,8 +54,8 @@
             <span>Steam交易历史</span>
           </li>
           <li 
-            :class="{ active: selectedCategory === 'dev_tools' }"
-            @click="selectCategory('dev_tools')"
+            :class="{ active: $route.name === 'DevTools' }"
+            @click="navigateTo('/settings/dev-tools')"
           >
             <el-icon :size="18">
               <Tools />
@@ -76,43 +76,22 @@
 
     <!-- 主内容区域 -->
     <div class="main-wrapper" :class="{ expanded: sidebarCollapsed }" @click="handleContentClick">
-      <!-- 数据来源页面 -->
-      <DataSourceContent v-if="selectedCategory === 'data_source'" />
-      
-      <!-- 自动化管理页面 -->
-      <AutomateManagementContent v-if="selectedCategory === 'auto_manager'" />
-      
-      <!-- 爬取改名页面 -->
-      <SpiderWeaponRenameContent v-if="selectedCategory === 'spider_rename'" />
-      
-      <!-- Steam市场历史页面 -->
-      <SteamMarketContent v-if="selectedCategory === 'steam_market'" />
-      
-      <!-- Steam交易历史页面 -->
-      <SteamInventoryHistoryContent v-if="selectedCategory === 'steam_inventory_history'" />
-      
-      <!-- 开发工具页面 -->
-      <DevToolContent v-if="selectedCategory === 'dev_tools'" />
+      <router-view />
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { EditPen, Tools, ShoppingCart, Box, Timer, DataBoard, ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
-import DataSourceContent from './settings/DataSource.vue'
-import AutomateManagementContent from './settings/Automate_management.vue'
-import SpiderWeaponRenameContent from './settings/SpiderWeaponRename.vue'
-import SteamMarketContent from './settings/SteamMarket.vue'
-import SteamInventoryHistoryContent from './settings/SteamInventoryHistory.vue'
-import DevToolContent from './settings/DevTool.vue'
 
-const selectedCategory = ref('data_source')
+const router = useRouter()
 const sidebarCollapsed = ref(false)
 const isMainSidebarCollapsed = ref(false)
 
-const selectCategory = (categoryId) => {
-  selectedCategory.value = categoryId
+const navigateTo = (path) => {
+  router.push(path)
 }
 
 const toggleSidebar = () => {

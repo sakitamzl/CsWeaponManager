@@ -40,19 +40,19 @@
           </el-select>
         </el-form-item>
 
-        <!-- Steam ID 选择 (仅在自动更新数据时显示) -->
+        <!-- Steam账号选择 (仅在自动更新数据时显示) -->
         <el-form-item v-if="automateForm.automateType === 'auto_update'" label="Steam账号">
           <el-select 
-            v-model="automateForm.selectedSteamId" 
+            v-model="automateForm.selectedSteamConfig" 
             placeholder="请选择Steam账号"
             style="width: 300px"
             filterable
           >
             <el-option 
-              v-for="item in steamIdList" 
-              :key="item.steam_id" 
-              :label="`${item.data_name} (${item.steam_id})`" 
-              :value="item.steam_id" 
+              v-for="config in steamConfigList" 
+              :key="config.dataID" 
+              :label="`${config.dataName} (${config.steamID || '无SteamID'})`" 
+              :value="config.dataID" 
             />
           </el-select>
         </el-form-item>
@@ -179,7 +179,7 @@ const automateForm = ref({
   taskName: '', // 任务名称
   automateType: '',
   selectedTask: '',
-  selectedSteamId: '',
+  selectedSteamConfig: '', // Steam配置的dataID
   selectedDataSource: '', // 单选数据源
   interval: 30
 })
@@ -191,8 +191,8 @@ const executing = ref(false)
 const isEditing = ref(false)
 const editingTaskId = ref(null)
 
-// Steam ID 列表
-const steamIdList = ref([])
+// Steam配置列表
+const steamConfigList = ref([])
 
 // 数据源列表
 const dataSources = ref([])
@@ -241,26 +241,19 @@ const filteredDataSources = computed(() => {
   return []
 })
 
-// 加载 Steam ID 列表
-const loadSteamIds = async () => {
+// 加载 Steam 配置列表
+const loadSteamConfigs = async () => {
   try {
     const response = await axios.get(`${API_CONFIG.BASE_URL}/webInventoryV1/steam_ids`)
-    console.log('Steam ID API响应:', response.data)
+    console.log('Steam配置API响应:', response.data)
     
     if (response.data && response.data.success && Array.isArray(response.data.data)) {
-      // 保存完整的对象数组（包含 steam_id, data_name, item_count）
-      steamIdList.value = response.data.data
-      console.log('已加载Steam ID列表:', steamIdList.value)
-    } else if (response.data && Array.isArray(response.data)) {
-      // 兼容旧格式（字符串数组转为对象数组）
-      steamIdList.value = response.data.map(id => ({
-        steam_id: id,
-        data_name: null,
-        item_count: 0
-      }))
+      // 保存完整的对象数组（包含 dataID, dataName, steamID, item_count）
+      steamConfigList.value = response.data.data
+      console.log('已加载Steam配置列表:', steamConfigList.value)
     }
   } catch (error) {
-    console.error('加载Steam ID列表失败:', error)
+    console.error('加载Steam配置列表失败:', error)
     ElMessage.error('加载Steam账号列表失败: ' + error.message)
   }
 }
@@ -284,7 +277,7 @@ const loadDataSources = async () => {
 // 处理类型变化
 const handleTypeChange = () => {
   automateForm.value.selectedTask = ''
-  automateForm.value.selectedSteamId = ''
+  automateForm.value.selectedSteamConfig = ''
   automateForm.value.selectedDataSource = ''
 }
 
@@ -307,7 +300,7 @@ const handleExecute = async () => {
   }
 
   if (automateForm.value.automateType === 'auto_update') {
-    if (!automateForm.value.selectedSteamId) {
+    if (!automateForm.value.selectedSteamConfig) {
       ElMessage.warning('请选择Steam账号')
       return
     }
@@ -520,7 +513,7 @@ const startScheduledTask = async () => {
   try {
     const config = {
       selectedTask: automateForm.value.selectedTask,
-      selectedSteamId: automateForm.value.selectedSteamId,
+      selectedSteamConfig: automateForm.value.selectedSteamConfig, // Steam配置的dataID
       selectedDataSource: automateForm.value.selectedDataSource, // 单个数据源
       interval: automateForm.value.interval
     }
@@ -641,7 +634,7 @@ const editTask = (task) => {
     taskName: task.taskName,
     automateType: task.type === '更新steam库存价格' ? 'auto_update' : 'auto_fetch',
     selectedTask: task.config.selectedTask,
-    selectedSteamId: task.config.selectedSteamId || '',
+    selectedSteamConfig: task.config.selectedSteamConfig || '',
     selectedDataSource: task.config.selectedDataSource || '',
     interval: task.interval
   }
@@ -666,7 +659,7 @@ const updateTask = async () => {
       automateType: automateForm.value.automateType,
       config: {
         selectedTask: automateForm.value.selectedTask,
-        selectedSteamId: automateForm.value.selectedSteamId,
+        selectedSteamConfig: automateForm.value.selectedSteamConfig,
         selectedDataSource: automateForm.value.selectedDataSource,
         interval: automateForm.value.interval
       }
@@ -762,7 +755,8 @@ const calculateNextRun = (intervalMinutes) => {
 // 获取目标信息
 const getTargetInfo = () => {
   if (automateForm.value.automateType === 'auto_update') {
-    return `Steam ID: ${automateForm.value.selectedSteamId}`
+    const config = steamConfigList.value.find(c => c.dataID === automateForm.value.selectedSteamConfig)
+    return config ? `${config.dataName} (${config.steamID || '无SteamID'})` : '-'
   } else {
     const source = dataSources.value.find(s => s.dataID === automateForm.value.selectedDataSource)
     return source ? `${source.dataName} (${source.steamID || '无SteamID'})` : '-'
@@ -776,7 +770,7 @@ const handleReset = () => {
     taskName: '',
     automateType: '',
     selectedTask: '',
-    selectedSteamId: '',
+    selectedSteamConfig: '',
     selectedDataSource: '',
     interval: 30
   }
@@ -907,9 +901,21 @@ const executeTaskWithConfig = async (taskOrSavedTask) => {
 // 获取任务目标信息 (详细显示)
 const getTaskTargetInfo = (savedTask) => {
   if (savedTask.automateType === 'auto_update') {
-    // 更新类型:只显示Steam ID
-    const steamId = savedTask.config.selectedSteamId
-    return steamId || '-'
+    // 更新类型:显示Steam配置名称和ID
+    const selectedId = savedTask.config.selectedSteamConfig
+    
+    if (!selectedId) {
+      return '-'
+    }
+    
+    // 查找Steam配置
+    const config = steamConfigList.value.find(c => c.dataID === selectedId)
+    if (!config) {
+      return '-'
+    }
+    
+    // 显示格式: 配置名称 (SteamID)
+    return config.steamID ? `${config.dataName} (${config.steamID})` : config.dataName
   } else {
     // 获取数据类型:只显示数据源名称和SteamID
     const selectedId = savedTask.config.selectedDataSource
@@ -931,7 +937,7 @@ const getTaskTargetInfo = (savedTask) => {
 
 // 组件挂载时加载数据
 onMounted(async () => {
-  await loadSteamIds()
+  await loadSteamConfigs()
   await loadDataSources()
   await loadSavedTasks()
 })
