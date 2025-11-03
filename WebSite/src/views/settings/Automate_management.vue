@@ -205,11 +205,19 @@ const availableTasks = computed(() => {
 
 // 过滤后的数据源 (根据选择的任务类型)
 const filteredDataSources = computed(() => {
+  console.log('过滤数据源 - 选中任务:', automateForm.value.selectedTask)
+  console.log('所有数据源:', dataSources.value)
+  
   if (automateForm.value.selectedTask === 'collect_buff') {
-    return dataSources.value.filter(s => s.type === 'buff' && s.enabled)
+    const filtered = dataSources.value.filter(s => s.type === 'buff' && s.enabled)
+    console.log('过滤后的BUFF数据源:', filtered)
+    return filtered
   } else if (automateForm.value.selectedTask === 'collect_youpin') {
-    return dataSources.value.filter(s => s.type === 'youpin' && s.enabled)
+    const filtered = dataSources.value.filter(s => s.type === 'youpin' && s.enabled)
+    console.log('过滤后的悠悠有品数据源:', filtered)
+    return filtered
   }
+  console.log('未选择任务,返回空数组')
   return []
 })
 
@@ -229,8 +237,12 @@ const loadSteamIds = async () => {
 const loadDataSources = async () => {
   try {
     const response = await axios.get(`${API_CONFIG.BASE_URL}/dataSourcePageV1/api/datasources`)
+    console.log('数据源API响应:', response.data)
     if (response.data.success && Array.isArray(response.data.data)) {
       dataSources.value = response.data.data
+      console.log('已加载数据源:', dataSources.value)
+      console.log('BUFF数据源:', dataSources.value.filter(s => s.type === 'buff'))
+      console.log('悠悠有品数据源:', dataSources.value.filter(s => s.type === 'youpin'))
     }
   } catch (error) {
     console.error('加载数据源列表失败:', error)

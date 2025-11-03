@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
-from blankEndApi.src.DataBase.Date_base import Date_base
-from blankEndApi.src.log.log import Log
+from src.execution_db import Date_base
+from src.log import Log
 import json
 
 autoManagerPage = Blueprint('autoManagerPage', __name__)
