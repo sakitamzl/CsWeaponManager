@@ -57,29 +57,21 @@
           </el-select>
         </el-form-item>
 
-        <!-- 数据源选择 (仅在自动获取数据时显示) - 支持多选 -->
+        <!-- 数据源选择 (仅在自动获取数据时显示) - 单选 -->
         <el-form-item v-if="automateForm.automateType === 'auto_fetch'" label="数据源">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <el-select 
-              v-model="automateForm.selectedDataSources" 
-              placeholder="请选择数据源(可多选)"
-              style="width: 300px"
-              multiple
-              collapse-tags
-              collapse-tags-tooltip
-              filterable
-            >
-              <el-option 
-                v-for="source in filteredDataSources" 
-                :key="source.dataID" 
-                :label="`${source.dataName} (${source.steamID || '无SteamID'})`" 
-                :value="source.dataID" 
-              />
-            </el-select>
-            <span v-if="automateForm.selectedDataSources.length > 0" style="color: #909399; font-size: 14px; white-space: nowrap;">
-              已选择 {{ automateForm.selectedDataSources.length }} 个数据源
-            </span>
-          </div>
+          <el-select 
+            v-model="automateForm.selectedDataSource" 
+            placeholder="请选择数据源"
+            style="width: 300px"
+            filterable
+          >
+            <el-option 
+              v-for="source in filteredDataSources" 
+              :key="source.dataID" 
+              :label="`${source.dataName} (${source.steamID || '无SteamID'})`" 
+              :value="source.dataID" 
+            />
+          </el-select>
         </el-form-item>
 
         <!-- 执行间隔 -->
@@ -188,7 +180,7 @@ const automateForm = ref({
   automateType: '',
   selectedTask: '',
   selectedSteamId: '',
-  selectedDataSources: [], // 改为数组支持多选
+  selectedDataSource: '', // 单选数据源
   interval: 30
 })
 
@@ -281,7 +273,7 @@ const loadDataSources = async () => {
 const handleTypeChange = () => {
   automateForm.value.selectedTask = ''
   automateForm.value.selectedSteamId = ''
-  automateForm.value.selectedDataSources = []
+  automateForm.value.selectedDataSource = ''
 }
 
 // 执行任务
@@ -308,8 +300,8 @@ const handleExecute = async () => {
       return
     }
   } else {
-    if (!automateForm.value.selectedDataSources || automateForm.value.selectedDataSources.length === 0) {
-      ElMessage.warning('请至少选择一个数据源')
+    if (!automateForm.value.selectedDataSource) {
+      ElMessage.warning('请选择数据源')
       return
     }
   }
@@ -517,7 +509,7 @@ const startScheduledTask = async () => {
     const config = {
       selectedTask: automateForm.value.selectedTask,
       selectedSteamId: automateForm.value.selectedSteamId,
-      selectedDataSources: automateForm.value.selectedDataSources, // 保存多个数据源
+      selectedDataSource: automateForm.value.selectedDataSource, // 单个数据源
       interval: automateForm.value.interval
     }
     
@@ -617,7 +609,7 @@ const editTask = (task) => {
     automateType: task.type === '更新steam库存价格' ? 'auto_update' : 'auto_fetch',
     selectedTask: task.config.selectedTask,
     selectedSteamId: task.config.selectedSteamId || '',
-    selectedDataSources: task.config.selectedDataSources || [],
+    selectedDataSource: task.config.selectedDataSource || '',
     interval: task.interval
   }
   
@@ -642,7 +634,7 @@ const updateTask = async () => {
       config: {
         selectedTask: automateForm.value.selectedTask,
         selectedSteamId: automateForm.value.selectedSteamId,
-        selectedDataSources: automateForm.value.selectedDataSources,
+        selectedDataSource: automateForm.value.selectedDataSource,
         interval: automateForm.value.interval
       }
     }
@@ -752,7 +744,7 @@ const handleReset = () => {
     automateType: '',
     selectedTask: '',
     selectedSteamId: '',
-    selectedDataSources: [],
+    selectedDataSource: '',
     interval: 30
   }
   
@@ -894,10 +886,10 @@ const getTaskTargetInfo = (savedTask) => {
     return steamId ? `${taskName} - Steam ID: ${steamId}` : '-'
   } else {
     // 获取数据类型:显示选中的数据源详细信息
-    const selectedIds = savedTask.config.selectedDataSources || []
+    const selectedId = savedTask.config.selectedDataSource
     const taskType = savedTask.config.selectedTask
     
-    if (selectedIds.length === 0) {
+    if (!selectedId) {
       return '-'
     }
     
@@ -909,23 +901,14 @@ const getTaskTargetInfo = (savedTask) => {
       taskName = '悠悠有品'
     }
     
-    const sourceDetails = selectedIds
-      .map(id => {
-        const source = dataSources.value.find(s => s.dataID === id)
-        if (source) {
-          // 显示: 平台, 数据源名称, SteamID
-          return `${source.dataName}${source.steamID ? ` (${source.steamID})` : ''}`
-        }
-        return null
-      })
-      .filter(detail => detail !== null)
-    
-    if (sourceDetails.length === 0) {
+    // 查找数据源
+    const source = dataSources.value.find(s => s.dataID === selectedId)
+    if (!source) {
       return '-'
     }
     
-    // 显示格式: 平台 - 数据源1, 数据源2...
-    return `${taskName} - ${sourceDetails.join(', ')}`
+    // 显示格式: 平台 - 数据源名称 (SteamID)
+    return `${taskName} - ${source.dataName}${source.steamID ? ` (${source.steamID})` : ''}`
   }
 }
 

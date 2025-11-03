@@ -314,72 +314,71 @@ class TaskScheduler:
         """执行数据采集类任务"""
         config = task_info['config']
         selected_task = config.get('selectedTask')
-        data_source_ids = config.get('selectedDataSources', [])
+        data_source_id = config.get('selectedDataSource')
         
-        if not data_source_ids:
+        if not data_source_id:
             self.log.write_log(f"任务 {task_info['task_name']} 没有选择数据源", 'error')
             return
         
         # 获取数据源配置
         db = Date_base()
         
-        for data_source_id in data_source_ids:
-            try:
-                # 查询数据源配置
-                query_sql = f"""
-                SELECT dataName, key1, value, steamID 
-                FROM config 
-                WHERE dataID = {data_source_id} AND key2 = 'config'
-                """
+        try:
+            # 查询数据源配置
+            query_sql = f"""
+            SELECT dataName, key1, value, steamID 
+            FROM config 
+            WHERE dataID = {data_source_id} AND key2 = 'config'
+            """
+            
+            success, result = db.select(query_sql)
+            
+            if not success or not result:
+                self.log.write_log(f"数据源不存在: ID={data_source_id}", 'error')
+                return
+            
+            data_name = result[0][0]
+            data_type = result[0][1]
+            config_json = json.loads(result[0][2]) if result[0][2] else {}
+            steam_id = result[0][3]
+            
+            # 根据任务类型和数据源类型执行采集
+            spider_base_url = "http://127.0.0.1:9002"  # Spider服务地址
+            
+            if selected_task == 'collect_buff' and data_type == 'buff':
+                # 采集BUFF数据
+                response = requests.post(
+                    f"{spider_base_url}/buffSpiderV1/NewData",
+                    json={'steamID': steam_id},
+                    timeout=600  # 10分钟超时
+                )
+                self.log.write_log(f"BUFF数据采集完成: {data_name}, 状态: {response.status_code}", 'info')
                 
-                success, result = db.select(query_sql)
+            elif selected_task == 'collect_youpin' and data_type == 'youpin':
+                # 采集悠悠有品数据
+                spider_data = {
+                    'phone': config_json.get('phone', ''),
+                    'sessionid': config_json.get('Sessionid', ''),
+                    'token': config_json.get('token', ''),
+                    'app_version': config_json.get('app_version', ''),
+                    'app_type': config_json.get('app_type', ''),
+                    'userId': config_json.get('userId', ''),
+                    'steamId': config_json.get('steamId', '')
+                }
                 
-                if not success or not result:
-                    self.log.write_log(f"数据源不存在: ID={data_source_id}", 'error')
-                    continue
+                response = requests.post(
+                    f"{spider_base_url}/youpin898SpiderV1/NewData",
+                    json=spider_data,
+                    timeout=600
+                )
+                self.log.write_log(f"悠悠有品数据采集完成: {data_name}, 状态: {response.status_code}", 'info')
                 
-                data_name = result[0][0]
-                data_type = result[0][1]
-                config_json = json.loads(result[0][2]) if result[0][2] else {}
-                steam_id = result[0][3]
-                
-                # 根据任务类型和数据源类型执行采集
-                spider_base_url = "http://127.0.0.1:9002"  # Spider服务地址
-                
-                if selected_task == 'collect_buff' and data_type == 'buff':
-                    # 采集BUFF数据
-                    response = requests.post(
-                        f"{spider_base_url}/buffSpiderV1/NewData",
-                        json={'steamID': steam_id},
-                        timeout=600  # 10分钟超时
-                    )
-                    self.log.write_log(f"BUFF数据采集完成: {data_name}, 状态: {response.status_code}", 'info')
-                    
-                elif selected_task == 'collect_youpin' and data_type == 'youpin':
-                    # 采集悠悠有品数据
-                    spider_data = {
-                        'phone': config_json.get('phone', ''),
-                        'sessionid': config_json.get('Sessionid', ''),
-                        'token': config_json.get('token', ''),
-                        'app_version': config_json.get('app_version', ''),
-                        'app_type': config_json.get('app_type', ''),
-                        'userId': config_json.get('userId', ''),
-                        'steamId': config_json.get('steamId', '')
-                    }
-                    
-                    response = requests.post(
-                        f"{spider_base_url}/youpin898SpiderV1/NewData",
-                        json=spider_data,
-                        timeout=600
-                    )
-                    self.log.write_log(f"悠悠有品数据采集完成: {data_name}, 状态: {response.status_code}", 'info')
-                    
-            except requests.exceptions.Timeout:
-                self.log.write_log(f"数据采集超时: {data_name}", 'error')
-            except requests.exceptions.RequestException as e:
-                self.log.write_log(f"数据采集失败 ({data_name}): {str(e)}", 'error')
-            except Exception as e:
-                self.log.write_log(f"处理数据源失败 (ID={data_source_id}): {str(e)}", 'error')
+        except requests.exceptions.Timeout:
+            self.log.write_log(f"数据采集超时", 'error')
+        except requests.exceptions.RequestException as e:
+            self.log.write_log(f"数据采集失败: {str(e)}", 'error')
+        except Exception as e:
+            self.log.write_log(f"处理数据源失败 (ID={data_source_id}): {str(e)}", 'error')
 
 
 # 全局调度器实例
