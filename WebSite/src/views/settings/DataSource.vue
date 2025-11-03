@@ -2548,27 +2548,12 @@ export default {
         
         ElMessage.info(`开始使用爬虫采集悠悠有品数据: ${source.dataName}`)
         
-        // 准备发送给爬虫的数据 - 按照后端API期望的字段名
+        // 准备发送给爬虫的数据 - newData接口只需要steamId，后端会根据steamId获取完整配置
         const spiderData = {
-          // 后端API需要的字段
-          phone: source.config?.yyyp_phone || '',
-          sessionid: source.config?.yyyp_Sessionid || '',
-          token: source.config?.yyyp_token || '',
-          app_version: source.config?.yyyp_app_version || '',
-          app_type: source.config?.yyyp_app_type || '',
-          userId: source.config?.yyyp_userId || '',
-          steamId: source.config?.yyyp_steamId || '',
-          
-          // 额外的数据源信息（可选）
-          dataID: source.dataID,
-          dataName: source.dataName,
-          type: source.type,
-          enabled: source.enabled,
-          deviceName: source.config?.yyyp_DeviceName || '',
-          sleepTime: source.config?.yyyp_sleep_time || '6000'
+          steamId: source.config?.yyyp_steamId || source.steamID || ''
         }
         
-        console.log('发送给爬虫的数据:', spiderData)
+        console.log('发送给悠悠有品爬虫的数据:', spiderData)
         
         // 调用爬虫API
         const response = await axios.post(apiUrls.youpinSpider(), spiderData)

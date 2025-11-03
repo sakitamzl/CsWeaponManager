@@ -434,21 +434,23 @@ class TaskScheduler:
             
             if selected_task == 'collect_buff' and data_type == 'buff':
                 # 采集BUFF数据
-                response = requests.post(
-                    f"{spider_base_url}/buffSpiderV1/NewData",
-                    json={'steamID': steam_id},
-                    timeout=600  # 10分钟超时
-                )
-                self.log.write_log(f"BUFF数据采集完成: {data_name}, 状态: {response.status_code}", 'info')
+                url = f"{spider_base_url}/buffSpiderV1/NewData"
+                data = {'steamID': steam_id}
+                self.log.write_log(f"请求BUFF采集 - URL: {url}, 数据: {data}", 'info')
+                
+                response = requests.post(url, json=data, timeout=600)
+                
+                self.log.write_log(f"BUFF数据采集完成: {data_name}, 状态: {response.status_code}, 响应: {response.text[:200]}", 'info')
                 
             elif selected_task == 'collect_youpin' and data_type == 'youpin':
                 # 采集悠悠有品数据（只需要传递steamId，后端会根据steamId获取完整配置）
-                response = requests.post(
-                    f"{spider_base_url}/youpin898SpiderV1/newData",
-                    json={'steamId': steam_id},
-                    timeout=600
-                )
-                self.log.write_log(f"悠悠有品数据采集完成: {data_name}, 状态: {response.status_code}", 'info')
+                url = f"{spider_base_url}/youpin898SpiderV1/newData"
+                data = {'steamId': steam_id}
+                self.log.write_log(f"请求悠悠有品采集 - URL: {url}, 数据: {data}", 'info')
+                
+                response = requests.post(url, json=data, timeout=600)
+                
+                self.log.write_log(f"悠悠有品数据采集完成: {data_name}, 状态: {response.status_code}, 响应: {response.text[:200]}", 'info')
                 
         except requests.exceptions.Timeout:
             self.log.write_log(f"数据采集超时", 'error')
