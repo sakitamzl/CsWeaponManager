@@ -392,7 +392,31 @@ class TaskScheduler:
         """执行更新类任务"""
         config = task_info['config']
         selected_task = config.get('selectedTask')
-        steam_id = config.get('selectedSteamId')
+        
+        # 获取Steam配置ID（新版本）或直接的Steam ID（旧版本兼容）
+        steam_config_id = config.get('selectedSteamConfig')
+        steam_id = config.get('selectedSteamId')  # 兼容旧版本
+        
+        # 如果有steam_config_id，从数据库查询对应的steamID
+        if steam_config_id:
+            try:
+                db = Date_base()
+                query_sql = f"""
+                SELECT steamID 
+                FROM config 
+                WHERE dataID = {steam_config_id} AND key1 = 'steam' AND key2 = 'config'
+                """
+                success, result = db.select(query_sql)
+                
+                if success and result and result[0][0]:
+                    steam_id = result[0][0]
+                    self.log.write_log(f"从配置ID {steam_config_id} 获取到 Steam ID: {steam_id}", 'info')
+                else:
+                    self.log.write_log(f"未找到配置ID {steam_config_id} 对应的Steam ID", 'error')
+                    return
+            except Exception as e:
+                self.log.write_log(f"查询Steam ID失败: {str(e)}", 'error')
+                return
         
         if not steam_id:
             self.log.write_log(f"任务 {task_info['task_name']} 缺少 Steam ID", 'error')
@@ -403,36 +427,65 @@ class TaskScheduler:
         
         try:
             if selected_task == 'update_steam_inventory':
-                # 更新Steam库存
+                # 更新Steam库存 - 调用Spider接口，与前端Inventory页面逻辑一致
+                self.log.write_log(f"开始更新Steam库存: {steam_id}", 'info')
                 response = requests.post(
                     f"{spider_base_url}/steamSpiderV1/getInventory",
                     json={'steamId': steam_id},
                     timeout=300  # 5分钟超时
                 )
-                self.log.write_log(f"更新Steam库存完成: {steam_id}, 状态: {response.status_code}", 'info')
+                
+                if response.status_code == 200:
+                    response_data = response.json()
+                    if response_data.get('success'):
+                        self.log.write_log(f"更新Steam库存成功: {steam_id}, 消息: {response_data.get('message', '')}", 'info')
+                    else:
+                        self.log.write_log(f"更新Steam库存失败: {steam_id}, 消息: {response_data.get('message', '')}", 'error')
+                else:
+                    self.log.write_log(f"更新Steam库存HTTP错误: {steam_id}, 状态码: {response.status_code}", 'error')
                 
             elif selected_task == 'fetch_yyyp_price':
                 # 获取悠悠有品价格
+                self.log.write_log(f"开始获取悠悠有品价格: {steam_id}", 'info')
                 response = requests.post(
                     f"{spider_base_url}/youping898SpiderV1/getYYYPPrice",
                     json={'steamId': steam_id},
                     timeout=300
                 )
-                self.log.write_log(f"获取悠悠有品价格完成: {steam_id}, 状态: {response.status_code}", 'info')
+                
+                if response.status_code == 200:
+                    response_data = response.json()
+                    if response_data.get('success'):
+                        self.log.write_log(f"获取悠悠有品价格成功: {steam_id}", 'info')
+                    else:
+                        self.log.write_log(f"获取悠悠有品价格失败: {steam_id}", 'error')
+                else:
+                    self.log.write_log(f"获取悠悠有品价格HTTP错误: {steam_id}, 状态码: {response.status_code}", 'error')
                 
             elif selected_task == 'fetch_buff_price':
                 # 获取BUFF价格
+                self.log.write_log(f"开始获取BUFF价格: {steam_id}", 'info')
                 response = requests.post(
                     f"{spider_base_url}/buffSpiderV1/getBUFFPrice",
                     json={'steamId': steam_id},
                     timeout=300
                 )
-                self.log.write_log(f"获取BUFF价格完成: {steam_id}, 状态: {response.status_code}", 'info')
+                
+                if response.status_code == 200:
+                    response_data = response.json()
+                    if response_data.get('success'):
+                        self.log.write_log(f"获取BUFF价格成功: {steam_id}", 'info')
+                    else:
+                        self.log.write_log(f"获取BUFF价格失败: {steam_id}", 'error')
+                else:
+                    self.log.write_log(f"获取BUFF价格HTTP错误: {steam_id}, 状态码: {response.status_code}", 'error')
                 
         except requests.exceptions.Timeout:
-            self.log.write_log(f"任务执行超时: {task_info['task_name']}", 'error')
+            self.log.write_log(f"任务执行超时: {task_info['task_name']}, Steam ID: {steam_id}", 'error')
         except requests.exceptions.RequestException as e:
-            self.log.write_log(f"API请求失败: {str(e)}", 'error')
+            self.log.write_log(f"API请求失败: {task_info['task_name']}, Steam ID: {steam_id}, 错误: {str(e)}", 'error')
+        except Exception as e:
+            self.log.write_log(f"执行任务异常: {task_info['task_name']}, 错误: {str(e)}", 'error')
     
     def _execute_fetch_task(self, task_info):
         """执行数据采集类任务"""

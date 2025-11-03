@@ -11,11 +11,11 @@
         >
           <el-option
             v-for="item in steamIdList"
-            :key="item.steam_id"
-            :label="`${item.steam_id} (${item.item_count}件)`"
-            :value="item.steam_id"
+            :key="item.dataID"
+            :label="`${item.dataName} (${item.steamID}) - ${item.item_count}件`"
+            :value="item.steamID"
           >
-            <span style="float: left">{{ item.steam_id }}</span>
+            <span style="float: left">{{ item.dataName }} ({{ item.steamID }})</span>
             <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">
               {{ item.item_count }}件
             </span>
@@ -611,8 +611,8 @@ export default {
         if (response.data.success) {
           steamIdList.value = response.data.data
           if (steamIdList.value.length > 0) {
-            // 默认选择第一个
-            selectedSteamId.value = steamIdList.value[0].steam_id
+            // 默认选择第一个 - 使用新格式 steamID（大写）
+            selectedSteamId.value = steamIdList.value[0].steamID
             console.log('默认选择Steam ID:', selectedSteamId.value)
           } else {
             ElMessage.warning('没有找到库存数据，请先获取Steam库存')
