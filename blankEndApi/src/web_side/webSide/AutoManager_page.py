@@ -19,10 +19,10 @@ def get_auto_manager_tasks():
         ORDER BY dataID DESC
         """
         
-        results = db.select(query_sql)
+        success, results = db.select(query_sql)
         
         tasks = []
-        if results:
+        if success and results:
             for row in results:
                 try:
                     # 解析 value 字段中的 JSON 配置
@@ -200,9 +200,9 @@ def toggle_auto_manager_task(task_id):
         
         # 查询当前状态
         query_sql = f"SELECT status FROM config WHERE dataID = {task_id} AND key2 = 'auto_manager'"
-        result = db.select(query_sql)
+        success, result = db.select(query_sql)
         
-        if not result:
+        if not success or not result:
             return jsonify({
                 'success': False,
                 'message': '任务不存在'

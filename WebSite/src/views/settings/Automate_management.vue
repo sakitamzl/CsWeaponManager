@@ -98,20 +98,20 @@
         </el-button>
       </div>
       <el-table :data="runningTasks" style="width: 100%">
-        <el-table-column prop="type" label="自动化类型" width="120" />
-        <el-table-column prop="taskName" label="任务名称" width="180" />
-        <el-table-column prop="targetInfo" label="目标" width="200" />
-        <el-table-column prop="interval" label="间隔(分钟)" width="100" />
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column prop="type" label="自动化类型" min-width="120" />
+        <el-table-column prop="taskName" label="任务名称" min-width="150" />
+        <el-table-column prop="targetInfo" label="目标" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="interval" label="间隔(分钟)" width="100" align="center" />
+        <el-table-column prop="status" label="状态" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="row.status === '运行中' ? 'success' : 'info'">
               {{ row.status }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="lastRun" label="最后执行时间" width="180" />
-        <el-table-column prop="nextRun" label="下次执行时间" width="180" />
-        <el-table-column label="操作" width="120">
+        <el-table-column prop="lastRun" label="最后执行时间" min-width="160" />
+        <el-table-column prop="nextRun" label="下次执行时间" min-width="160" />
+        <el-table-column label="操作" width="100" align="center" fixed="right">
           <template #default="{ row }">
             <el-button size="small" type="danger" @click="stopTask(row.id)">停止</el-button>
           </template>
@@ -126,18 +126,18 @@
     <div class="history-section">
       <h3>执行历史 (最近10条)</h3>
       <el-table :data="executionHistory" style="width: 100%">
-        <el-table-column prop="time" label="执行时间" width="180" />
-        <el-table-column prop="type" label="类型" width="120" />
-        <el-table-column prop="taskName" label="任务" width="180" />
-        <el-table-column prop="targetInfo" label="目标" width="200" />
-        <el-table-column prop="result" label="结果" width="100">
+        <el-table-column prop="time" label="执行时间" min-width="160" />
+        <el-table-column prop="type" label="类型" min-width="120" />
+        <el-table-column prop="taskName" label="任务" min-width="150" />
+        <el-table-column prop="targetInfo" label="目标" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="result" label="结果" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="row.result === '成功' ? 'success' : 'danger'">
               {{ row.result }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="message" label="消息" />
+        <el-table-column prop="message" label="消息" min-width="200" show-overflow-tooltip />
       </el-table>
       <div v-if="executionHistory.length === 0" class="empty-placeholder">
         <el-empty description="暂无执行历史" />
@@ -236,7 +236,7 @@ const loadSteamIds = async () => {
 // 加载数据源列表
 const loadDataSources = async () => {
   try {
-    const response = await axios.get(`${API_CONFIG.BASE_URL}/dataSourcePageV1/api/datasources`)
+    const response = await axios.get(`${API_CONFIG.BASE_URL}/dataSourcePageV1/api/datasource`)
     console.log('数据源API响应:', response.data)
     if (response.data.success && Array.isArray(response.data.data)) {
       dataSources.value = response.data.data
