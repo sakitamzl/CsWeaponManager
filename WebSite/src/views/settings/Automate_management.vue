@@ -48,12 +48,15 @@
           </el-select>
         </el-form-item>
 
-        <!-- 数据源选择 (仅在自动获取数据时显示) -->
+        <!-- 数据源选择 (仅在自动获取数据时显示) - 支持多选 -->
         <el-form-item v-if="automateForm.automateType === 'auto_fetch'" label="数据源">
           <el-select 
-            v-model="automateForm.selectedDataSource" 
-            placeholder="请选择数据源"
+            v-model="automateForm.selectedDataSources" 
+            placeholder="请选择数据源(可多选)"
             style="width: 300px"
+            multiple
+            collapse-tags
+            collapse-tags-tooltip
             filterable
           >
             <el-option 
@@ -63,6 +66,9 @@
               :value="source.dataID" 
             />
           </el-select>
+          <div style="margin-top: 8px; color: #909399; font-size: 12px;">
+            已选择 {{ automateForm.selectedDataSources.length }} 个数据源
+          </div>
         </el-form-item>
 
         <!-- 执行间隔 -->
@@ -90,7 +96,7 @@
         <!-- 操作按钮 -->
         <el-form-item>
           <el-button type="primary" @click="handleExecute" :loading="executing">
-            启动定时任务
+            保存定时任务
           </el-button>
           <el-button @click="handleReset">重置</el-button>
         </el-form-item>
@@ -144,7 +150,7 @@ const automateForm = ref({
   automateType: '',
   selectedTask: '',
   selectedSteamId: '',
-  selectedDataSource: '',
+  selectedDataSources: [], // 改为数组支持多选
   interval: 30
 })
 
@@ -236,7 +242,7 @@ const loadDataSources = async () => {
 const handleTypeChange = () => {
   automateForm.value.selectedTask = ''
   automateForm.value.selectedSteamId = ''
-  automateForm.value.selectedDataSource = ''
+  automateForm.value.selectedDataSources = []
 }
 
 // 执行任务
@@ -258,8 +264,8 @@ const handleExecute = async () => {
       return
     }
   } else {
-    if (!automateForm.value.selectedDataSource) {
-      ElMessage.warning('请选择数据源')
+    if (!automateForm.value.selectedDataSources || automateForm.value.selectedDataSources.length === 0) {
+      ElMessage.warning('请至少选择一个数据源')
       return
     }
   }
@@ -289,14 +295,30 @@ const executeTask = async () => {
         result = await fetchBuffPrice(steamId)
       }
     } else {
-      // 自动获取数据任务
-      const dataSourceId = automateForm.value.selectedDataSource
-      const dataSource = dataSources.value.find(s => s.dataID === dataSourceId)
+      // 自动获取数据任务 - 支持多个数据源
+      const dataSourceIds = automateForm.value.selectedDataSources
+      const results = []
       
-      if (taskType === 'collect_buff') {
-        result = await collectBuffData(dataSource)
-      } else if (taskType === 'collect_youpin') {
-        result = await collectYoupinData(dataSource)
+      for (const dataSourceId of dataSourceIds) {
+        const dataSource = dataSources.value.find(s => s.dataID === dataSourceId)
+        
+        if (dataSource) {
+          let singleResult
+          if (taskType === 'collect_buff') {
+            singleResult = await collectBuffData(dataSource)
+          } else if (taskType === 'collect_youpin') {
+            singleResult = await collectYoupinData(dataSource)
+          }
+          results.push({ source: dataSource.dataName, ...singleResult })
+        }
+      }
+      
+      // 汇总结果
+      const successCount = results.filter(r => r.success).length
+      const totalCount = results.length
+      result = {
+        success: successCount > 0,
+        message: `完成 ${successCount}/${totalCount} 个数据源采集`
       }
     }
     
@@ -447,7 +469,7 @@ const startScheduledTask = async () => {
     const config = {
       selectedTask: automateForm.value.selectedTask,
       selectedSteamId: automateForm.value.selectedSteamId,
-      selectedDataSource: automateForm.value.selectedDataSource,
+      selectedDataSources: automateForm.value.selectedDataSources, // 保存多个数据源
       interval: automateForm.value.interval
     }
     
@@ -496,10 +518,10 @@ const startScheduledTask = async () => {
     
     timers.value.set(taskId, timer)
     
-    ElMessage.success('定时任务已启动并保存')
+    ElMessage.success('定时任务已保存并启动')
   } catch (error) {
-    console.error('启动定时任务失败:', error)
-    ElMessage.error('启动任务失败: ' + error.message)
+    console.error('保存定时任务失败:', error)
+    ElMessage.error('保存任务失败: ' + error.message)
   }
 }
 
@@ -627,14 +649,33 @@ const executeTaskWithConfig = async (savedTask) => {
         result = await fetchBuffPrice(steamId)
       }
     } else {
-      const dataSourceId = savedTask.config.selectedDataSource
-      const dataSource = dataSources.value.find(s => s.dataID === dataSourceId)
+      // 支持多个数据源
+      const dataSourceIds = savedTask.config.selectedDataSources || []
+      const results = []
       
-      if (dataSource) {
-        if (taskType === 'collect_buff') {
-          result = await collectBuffData(dataSource)
-        } else if (taskType === 'collect_youpin') {
-          result = await collectYoupinData(dataSource)
+      for (const dataSourceId of dataSourceIds) {
+        const dataSource = dataSources.value.find(s => s.dataID === dataSourceId)
+        
+        if (dataSource) {
+          let singleResult
+          if (taskType === 'collect_buff') {
+            singleResult = await collectBuffData(dataSource)
+          } else if (taskType === 'collect_youpin') {
+            singleResult = await collectYoupinData(dataSource)
+          }
+          if (singleResult) {
+            results.push({ source: dataSource.dataName, ...singleResult })
+          }
+        }
+      }
+      
+      // 汇总结果
+      if (results.length > 0) {
+        const successCount = results.filter(r => r.success).length
+        const totalCount = results.length
+        result = {
+          success: successCount > 0,
+          message: `完成 ${successCount}/${totalCount} 个数据源采集`
         }
       }
     }
