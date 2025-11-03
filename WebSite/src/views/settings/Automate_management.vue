@@ -10,8 +10,8 @@
             style="width: 300px"
             @change="handleTypeChange"
           >
-            <el-option label="自动更新数据" value="auto_update" />
-            <el-option label="自动获取数据" value="auto_fetch" />
+            <el-option label="更新steam库存价格" value="auto_update" />
+            <el-option label="获取平台交易记录" value="auto_fetch" />
           </el-select>
         </el-form-item>
 
@@ -65,24 +65,32 @@
           </el-select>
         </el-form-item>
 
-        <!-- 定时设置 -->
-        <el-form-item label="定时执行">
-          <el-switch v-model="automateForm.isScheduled" />
-        </el-form-item>
-
-        <el-form-item v-if="automateForm.isScheduled" label="执行间隔(分钟)">
-          <el-input-number 
+        <!-- 执行间隔 -->
+        <el-form-item label="执行间隔">
+          <el-select 
             v-model="automateForm.interval" 
-            :min="1" 
-            :max="1440" 
+            placeholder="请选择执行间隔"
             style="width: 300px"
-          />
+          >
+            <el-option label="5分钟" :value="5" />
+            <el-option label="15分钟" :value="15" />
+            <el-option label="30分钟" :value="30" />
+            <el-option label="1小时" :value="60" />
+            <el-option label="3小时" :value="180" />
+            <el-option label="6小时" :value="360" />
+            <el-option label="8小时" :value="480" />
+            <el-option label="10小时" :value="600" />
+            <el-option label="12小时" :value="720" />
+            <el-option label="16小时" :value="960" />
+            <el-option label="20小时" :value="1200" />
+            <el-option label="24小时" :value="1440" />
+          </el-select>
         </el-form-item>
 
         <!-- 操作按钮 -->
         <el-form-item>
           <el-button type="primary" @click="handleExecute" :loading="executing">
-            {{ automateForm.isScheduled ? '启动定时任务' : '立即执行' }}
+            启动定时任务
           </el-button>
           <el-button @click="handleReset">重置</el-button>
         </el-form-item>
@@ -122,27 +130,6 @@
       </div>
     </div>
 
-    <!-- 执行历史 -->
-    <div class="history-section">
-      <h3>执行历史 (最近10条)</h3>
-      <el-table :data="executionHistory" style="width: 100%">
-        <el-table-column prop="time" label="执行时间" min-width="160" />
-        <el-table-column prop="type" label="类型" min-width="120" />
-        <el-table-column prop="taskName" label="任务" min-width="150" />
-        <el-table-column prop="targetInfo" label="目标" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="result" label="结果" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.result === '成功' ? 'success' : 'danger'">
-              {{ row.result }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="message" label="消息" min-width="200" show-overflow-tooltip />
-      </el-table>
-      <div v-if="executionHistory.length === 0" class="empty-placeholder">
-        <el-empty description="暂无执行历史" />
-      </div>
-    </div>
   </div>
 </template>
 
@@ -158,7 +145,6 @@ const automateForm = ref({
   selectedTask: '',
   selectedSteamId: '',
   selectedDataSource: '',
-  isScheduled: false,
   interval: 30
 })
 
@@ -173,9 +159,6 @@ const dataSources = ref([])
 
 // 运行中的任务
 const runningTasks = ref([])
-
-// 执行历史
-const executionHistory = ref([])
 
 // 定时器映射
 const timers = ref(new Map())
@@ -281,13 +264,8 @@ const handleExecute = async () => {
     }
   }
 
-  if (automateForm.value.isScheduled) {
-    // 启动定时任务
-    startScheduledTask()
-  } else {
-    // 立即执行
-    await executeTask()
-  }
+  // 启动定时任务
+  startScheduledTask()
 }
 
 // 执行具体任务
@@ -470,8 +448,7 @@ const startScheduledTask = async () => {
       selectedTask: automateForm.value.selectedTask,
       selectedSteamId: automateForm.value.selectedSteamId,
       selectedDataSource: automateForm.value.selectedDataSource,
-      interval: automateForm.value.interval,
-      isScheduled: true
+      interval: automateForm.value.interval
     }
     
     const response = await axios.post(
@@ -493,7 +470,7 @@ const startScheduledTask = async () => {
     
     const taskInfo = {
       id: taskId,
-      type: automateForm.value.automateType === 'auto_update' ? '自动更新数据' : '自动获取数据',
+      type: automateForm.value.automateType === 'auto_update' ? '更新steam库存价格' : '获取平台交易记录',
       taskName: availableTasks.value.find(t => t.value === automateForm.value.selectedTask)?.label || '',
       targetInfo: getTargetInfo(),
       interval: automateForm.value.interval,
@@ -570,13 +547,6 @@ const getTargetInfo = () => {
   }
 }
 
-// 添加执行历史
-const addExecutionHistory = (record) => {
-  executionHistory.value.unshift(record)
-  if (executionHistory.value.length > 10) {
-    executionHistory.value = executionHistory.value.slice(0, 10)
-  }
-}
 
 // 重置表单
 const handleReset = () => {
@@ -585,7 +555,6 @@ const handleReset = () => {
     selectedTask: '',
     selectedSteamId: '',
     selectedDataSource: '',
-    isScheduled: false,
     interval: 30
   }
 }
@@ -598,11 +567,11 @@ const loadSavedTasks = async () => {
     if (response.data.success && Array.isArray(response.data.data)) {
       // 恢复已保存的定时任务
       for (const savedTask of response.data.data) {
-        if (savedTask.enabled && savedTask.config.isScheduled) {
+        if (savedTask.enabled) {
           // 重新启动定时任务
           const taskInfo = {
             id: savedTask.taskId,
-            type: savedTask.automateType === 'auto_update' ? '自动更新数据' : '自动获取数据',
+            type: savedTask.automateType === 'auto_update' ? '更新steam库存价格' : '获取平台交易记录',
             taskName: savedTask.taskName,
             targetInfo: getTaskTargetInfo(savedTask),
             interval: savedTask.config.interval,
