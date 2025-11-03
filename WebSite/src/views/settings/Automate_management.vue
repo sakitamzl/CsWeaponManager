@@ -559,6 +559,12 @@ const startScheduledTask = async () => {
 // 启动任务 (后端执行)
 const startTask = async (task) => {
   try {
+    // 验证任务ID
+    if (!task.id || task.id === 0) {
+      ElMessage.error('任务ID无效,请刷新页面重试')
+      return
+    }
+    
     // 调用后端API启动任务
     const response = await axios.post(`${API_CONFIG.BASE_URL}/autoManagerPageV1/api/auto-manager/task/${task.id}/toggle`)
     
@@ -573,7 +579,12 @@ const startTask = async (task) => {
     }
   } catch (error) {
     console.error('启动任务失败:', error)
-    ElMessage.error('启动任务失败: ' + error.message)
+    
+    if (error.response && error.response.status === 404) {
+      ElMessage.error('任务不存在,请刷新页面')
+    } else {
+      ElMessage.error('启动任务失败: ' + (error.response?.data?.message || error.message))
+    }
   }
 }
 

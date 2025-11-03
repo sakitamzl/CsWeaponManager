@@ -31,6 +31,9 @@ class TaskScheduler:
         # 加载并启动所有已启用的任务
         self.load_and_start_tasks()
         
+        # 启动轮询线程,定期检查数据库中的任务状态变化
+        self._start_polling()
+        
     def stop(self):
         """停止调度器"""
         self.running = False
@@ -44,6 +47,77 @@ class TaskScheduler:
             self.tasks.clear()
         
         self.log.write_log("任务调度器已停止", 'info')
+    
+    def _start_polling(self):
+        """启动轮询线程,定期检查任务状态变化"""
+        def poll_tasks():
+            while self.running:
+                try:
+                    # 每30秒检查一次数据库
+                    time.sleep(30)
+                    
+                    if not self.running:
+                        break
+                    
+                    self._sync_tasks_from_db()
+                    
+                except Exception as e:
+                    self.log.write_log(f"轮询任务失败: {str(e)}", 'error')
+        
+        # 创建守护线程
+        polling_thread = threading.Thread(target=poll_tasks, daemon=True)
+        polling_thread.start()
+        self.log.write_log("任务轮询线程已启动,每30秒同步一次", 'info')
+    
+    def _sync_tasks_from_db(self):
+        """从数据库同步任务状态"""
+        try:
+            db = Date_base()
+            
+            # 查询所有 status='1' 且 key2='auto_manager' 的任务
+            query_sql = """
+            SELECT dataID, dataName, key1, value 
+            FROM config 
+            WHERE key2 = 'auto_manager' AND status = '1'
+            """
+            
+            success, results = db.select(query_sql)
+            
+            if not success or not results:
+                return
+            
+            db_task_ids = set()
+            
+            # 检查需要启动的任务
+            for row in results:
+                task_id = row[0]
+                task_name = row[1]
+                automate_type = row[2]
+                
+                try:
+                    config = json.loads(row[3]) if row[3] else {}
+                    db_task_ids.add(task_id)
+                    
+                    # 如果任务不在运行中,启动它
+                    if task_id not in self.tasks:
+                        self.log.write_log(f"检测到新启用的任务: {task_name} (ID: {task_id})", 'info')
+                        self.start_task(task_id, task_name, automate_type, config)
+                        
+                except json.JSONDecodeError as e:
+                    self.log.write_log(f"解析任务配置失败 (taskId={task_id}): {e}", 'error')
+                    continue
+            
+            # 检查需要停止的任务
+            with self.lock:
+                current_task_ids = list(self.tasks.keys())
+                
+            for task_id in current_task_ids:
+                if task_id not in db_task_ids:
+                    self.log.write_log(f"检测到任务被禁用或删除 (ID: {task_id})", 'info')
+                    self.stop_task(task_id)
+                    
+        except Exception as e:
+            self.log.write_log(f"同步任务状态失败: {str(e)}", 'error')
         
     def load_and_start_tasks(self):
         """从数据库加载并启动所有已启用的任务"""
