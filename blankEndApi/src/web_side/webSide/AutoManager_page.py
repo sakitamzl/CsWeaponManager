@@ -218,10 +218,12 @@ def delete_auto_manager_task(task_id):
 def toggle_auto_manager_task(task_id):
     """切换自动化管理任务的启用状态"""
     try:
+        from datetime import datetime, timedelta
+        
         db = Date_base()
         
-        # 查询当前状态
-        query_sql = f"SELECT status FROM config WHERE dataID = {task_id} AND key2 = 'auto_manager'"
+        # 查询当前状态和配置
+        query_sql = f"SELECT status, value FROM config WHERE dataID = {task_id} AND key2 = 'auto_manager'"
         success, result = db.select(query_sql)
         
         if not success or not result:
@@ -233,16 +235,35 @@ def toggle_auto_manager_task(task_id):
         current_status = result[0][0]
         new_status = '0' if current_status == '1' else '1'
         
-        # 更新状态
-        update_sql = f"UPDATE config SET status = '{new_status}' WHERE dataID = {task_id} AND key2 = 'auto_manager'"
+        # 如果是启动任务,需要设置下次执行时间
+        if new_status == '1':
+            try:
+                # 解析配置获取执行间隔
+                config = json.loads(result[0][1]) if result[0][1] else {}
+                interval = config.get('interval', 30)  # 分钟
+                
+                # 计算下次执行时间(立即执行,设置为当前时间)
+                next_run = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                config['nextRun'] = next_run
+                
+                # 更新配置
+                config_json = json.dumps(config, ensure_ascii=False).replace("'", "''")
+                update_sql = f"""
+                UPDATE config 
+                SET status = '{new_status}', value = '{config_json}' 
+                WHERE dataID = {task_id} AND key2 = 'auto_manager'
+                """
+            except Exception as e:
+                Log().write_log(f"设置下次执行时间失败: {str(e)}", 'error')
+                # 如果失败,仍然更新状态
+                update_sql = f"UPDATE config SET status = '{new_status}' WHERE dataID = {task_id} AND key2 = 'auto_manager'"
+        else:
+            # 停止任务,只更新状态
+            update_sql = f"UPDATE config SET status = '{new_status}' WHERE dataID = {task_id} AND key2 = 'auto_manager'"
         
         update_result = db.update(update_sql)
         
         if update_result:
-            # 重新加载任务(会根据新状态决定启动或停止)
-            scheduler = get_scheduler()
-            scheduler.reload_task(task_id)
-            
             Log().write_log(f"切换自动化任务状态成功: taskId={task_id}, newStatus={new_status}", 'info')
             return jsonify({
                 'success': True,

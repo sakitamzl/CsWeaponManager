@@ -542,13 +542,13 @@ const startScheduledTask = async () => {
       config: config // 保存配置以便后续启动
     }
     
-    // 添加到任务列表 (不自动启动)
-    runningTasks.value.push(taskInfo)
-    
     ElMessage.success('定时任务已保存(停止状态)')
     
     // 清空表单
     handleReset()
+    
+    // 重新加载任务列表,获取完整的任务信息(包括真实ID)
+    await loadSavedTasks()
   } catch (error) {
     console.error('保存定时任务失败:', error)
     ElMessage.error('保存任务失败: ' + error.message)
@@ -561,19 +561,19 @@ const startTask = async (task) => {
   try {
     // 验证任务ID
     if (!task.id || task.id === 0) {
-      ElMessage.error('任务ID无效,请刷新页面重试')
+      ElMessage.warning('任务正在初始化,请稍后再试')
       return
     }
     
-    // 调用后端API启动任务
+    // 调用后端API切换状态为启用
     const response = await axios.post(`${API_CONFIG.BASE_URL}/autoManagerPageV1/api/auto-manager/task/${task.id}/toggle`)
     
     if (response.data.success) {
       // 更新前端显示
       task.status = '运行中'
-      task.nextRun = calculateNextRun(task.interval)
+      task.nextRun = '即将执行'
       
-      ElMessage.success('任务已启动,将在后台运行')
+      ElMessage.success('任务已启用,后台将立即执行一次')
     } else {
       ElMessage.error('启动任务失败: ' + response.data.message)
     }
@@ -881,35 +881,15 @@ const executeTaskWithConfig = async (taskOrSavedTask) => {
 // 获取任务目标信息 (详细显示)
 const getTaskTargetInfo = (savedTask) => {
   if (savedTask.automateType === 'auto_update') {
-    // 更新类型:显示Steam ID和任务类型
+    // 更新类型:只显示Steam ID
     const steamId = savedTask.config.selectedSteamId
-    const taskType = savedTask.config.selectedTask
-    
-    let taskName = ''
-    if (taskType === 'update_steam_inventory') {
-      taskName = '更新Steam库存'
-    } else if (taskType === 'fetch_yyyp_price') {
-      taskName = '获取悠悠有品价格'
-    } else if (taskType === 'fetch_buff_price') {
-      taskName = '获取BUFF价格'
-    }
-    
-    return steamId ? `${taskName} - Steam ID: ${steamId}` : '-'
+    return steamId || '-'
   } else {
-    // 获取数据类型:显示选中的数据源详细信息
+    // 获取数据类型:只显示数据源名称和SteamID
     const selectedId = savedTask.config.selectedDataSource
-    const taskType = savedTask.config.selectedTask
     
     if (!selectedId) {
       return '-'
-    }
-    
-    // 获取任务类型名称
-    let taskName = ''
-    if (taskType === 'collect_buff') {
-      taskName = 'BUFF'
-    } else if (taskType === 'collect_youpin') {
-      taskName = '悠悠有品'
     }
     
     // 查找数据源
@@ -918,8 +898,8 @@ const getTaskTargetInfo = (savedTask) => {
       return '-'
     }
     
-    // 显示格式: 平台 - 数据源名称 (SteamID)
-    return `${taskName} - ${source.dataName}${source.steamID ? ` (${source.steamID})` : ''}`
+    // 显示格式: 数据源名称 (SteamID)
+    return source.steamID ? `${source.dataName} (${source.steamID})` : source.dataName
   }
 }
 

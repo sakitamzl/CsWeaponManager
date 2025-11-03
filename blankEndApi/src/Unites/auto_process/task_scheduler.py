@@ -17,6 +17,7 @@ class TaskScheduler:
         self.running = False
         self.tasks = {}  # {task_id: {'timer': threading.Timer, 'config': {...}}}
         self.lock = threading.Lock()
+        self.execution_lock = threading.Lock()  # 任务执行互斥锁
         self.log = Log()
         
     def start(self):
@@ -53,8 +54,8 @@ class TaskScheduler:
         def poll_tasks():
             while self.running:
                 try:
-                    # 每30秒检查一次数据库
-                    time.sleep(30)
+                    # 每5秒检查一次数据库
+                    time.sleep(5)
                     
                     if not self.running:
                         break
@@ -67,7 +68,7 @@ class TaskScheduler:
         # 创建守护线程
         polling_thread = threading.Thread(target=poll_tasks, daemon=True)
         polling_thread.start()
-        self.log.write_log("任务轮询线程已启动,每30秒同步一次", 'info')
+        self.log.write_log("任务轮询线程已启动,每5秒同步一次", 'info')
     
     def _sync_tasks_from_db(self):
         """从数据库同步任务状态"""
@@ -249,14 +250,23 @@ class TaskScheduler:
         
         task_info = self.tasks[task_id]
         
-        # 执行任务
-        try:
-            self._execute_task(task_info)
-            
-            # 更新最后执行时间
-            self._update_task_execution_time(task_id)
-        except Exception as e:
-            self.log.write_log(f"执行任务失败 ({task_info['task_name']}): {str(e)}", 'error')
+        # 尝试获取执行锁,如果有其他任务正在执行,则跳过本次执行
+        lock_acquired = self.execution_lock.acquire(blocking=False)
+        
+        if not lock_acquired:
+            self.log.write_log(f"任务 {task_info['task_name']} (ID: {task_id}) 跳过本次执行,有其他任务正在运行", 'warning')
+        else:
+            try:
+                # 执行任务
+                self._execute_task(task_info)
+                
+                # 更新最后执行时间
+                self._update_task_execution_time(task_id)
+            except Exception as e:
+                self.log.write_log(f"执行任务失败 ({task_info['task_name']}): {str(e)}", 'error')
+            finally:
+                # 释放执行锁
+                self.execution_lock.release()
         
         # 设置下次执行
         if task_id in self.tasks:  # 确保任务没有被停止
@@ -429,20 +439,10 @@ class TaskScheduler:
                 self.log.write_log(f"BUFF数据采集完成: {data_name}, 状态: {response.status_code}", 'info')
                 
             elif selected_task == 'collect_youpin' and data_type == 'youpin':
-                # 采集悠悠有品数据
-                spider_data = {
-                    'phone': config_json.get('phone', ''),
-                    'sessionid': config_json.get('Sessionid', ''),
-                    'token': config_json.get('token', ''),
-                    'app_version': config_json.get('app_version', ''),
-                    'app_type': config_json.get('app_type', ''),
-                    'userId': config_json.get('userId', ''),
-                    'steamId': config_json.get('steamId', '')
-                }
-                
+                # 采集悠悠有品数据（只需要传递steamId，后端会根据steamId获取完整配置）
                 response = requests.post(
-                    f"{spider_base_url}/youpin898SpiderV1/NewData",
-                    json=spider_data,
+                    f"{spider_base_url}/youpin898SpiderV1/newData",
+                    json={'steamId': steam_id},
                     timeout=600
                 )
                 self.log.write_log(f"悠悠有品数据采集完成: {data_name}, 状态: {response.status_code}", 'info')
