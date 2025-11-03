@@ -136,9 +136,40 @@
         </el-table-column>
         <el-table-column prop="lastRun" label="最后执行时间" min-width="160" />
         <el-table-column prop="nextRun" label="下次执行时间" min-width="160" />
-        <el-table-column label="操作" width="100" align="center" fixed="right">
+        <el-table-column label="操作" width="220" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" type="danger" @click="stopTask(row.id)">停止</el-button>
+            <el-button 
+              v-if="row.status === '已停止'" 
+              size="small" 
+              type="success" 
+              @click="startTask(row)"
+            >
+              启动
+            </el-button>
+            <el-button 
+              v-else 
+              size="small" 
+              type="danger" 
+              @click="stopTask(row.id)"
+            >
+              停止
+            </el-button>
+            <el-button 
+              size="small" 
+              type="primary" 
+              @click="editTask(row)"
+              plain
+            >
+              编辑
+            </el-button>
+            <el-button 
+              size="small" 
+              type="danger" 
+              @click="deleteTask(row.id)"
+              plain
+            >
+              删除
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -152,7 +183,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
 import { API_CONFIG } from '@/config/api.js'
 
@@ -168,6 +199,10 @@ const automateForm = ref({
 
 // 执行状态
 const executing = ref(false)
+
+// 编辑状态
+const isEditing = ref(false)
+const editingTaskId = ref(null)
 
 // Steam ID 列表
 const steamIdList = ref([])
@@ -529,6 +564,37 @@ const startScheduledTask = async () => {
   }
 }
 
+// 启动单个任务
+const startTask = async (task) => {
+  try {
+    // 更新数据库中的状态为启动 (status = '1')
+    await axios.post(`${API_CONFIG.BASE_URL}/autoManagerPageV1/api/auto-manager/task/${task.id}/toggle`)
+    
+    // 创建定时器
+    const timer = setInterval(async () => {
+      await executeTaskWithConfig(task)
+      
+      // 更新任务信息
+      const currentTask = runningTasks.value.find(t => t.id === task.id)
+      if (currentTask) {
+        currentTask.lastRun = new Date().toLocaleString()
+        currentTask.nextRun = calculateNextRun(task.interval)
+      }
+    }, task.interval * 60 * 1000)
+    
+    timers.value.set(task.id, timer)
+    
+    // 更新任务状态
+    task.status = '运行中'
+    task.nextRun = calculateNextRun(task.interval)
+    
+    ElMessage.success('任务已启动')
+  } catch (error) {
+    console.error('启动任务失败:', error)
+    ElMessage.error('启动任务失败: ' + error.message)
+  }
+}
+
 // 停止单个任务
 const stopTask = async (taskId) => {
   const timer = timers.value.get(taskId)
@@ -537,15 +603,60 @@ const stopTask = async (taskId) => {
     timers.value.delete(taskId)
   }
   
-  // 从数据库删除任务
+  // 更新数据库中的状态为停止 (status = '0')
   try {
-    await axios.delete(`${API_CONFIG.BASE_URL}/autoManagerPageV1/api/auto-manager/task/${taskId}`)
+    await axios.post(`${API_CONFIG.BASE_URL}/autoManagerPageV1/api/auto-manager/task/${taskId}/toggle`)
+    
+    // 更新任务列表中的状态
+    const task = runningTasks.value.find(t => t.id === taskId)
+    if (task) {
+      task.status = '已停止'
+      task.nextRun = '-'
+    }
+    
+    ElMessage.success('任务已停止')
   } catch (error) {
-    console.error('删除任务配置失败:', error)
+    console.error('停止任务失败:', error)
+    ElMessage.error('停止任务失败: ' + error.message)
   }
-  
-  runningTasks.value = runningTasks.value.filter(t => t.id !== taskId)
-  ElMessage.success('任务已停止')
+}
+
+// 删除任务
+const deleteTask = async (taskId) => {
+  // 二次确认
+  ElMessageBox.confirm(
+    '确定要删除这个定时任务吗？删除后将无法恢复。',
+    '删除确认',
+    {
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消',
+      type: 'warning',
+      buttonSize: 'default'
+    }
+  ).then(async () => {
+    try {
+      // 先停止定时器
+      const timer = timers.value.get(taskId)
+      if (timer) {
+        clearInterval(timer)
+        timers.value.delete(taskId)
+      }
+      
+      // 从数据库删除
+      await axios.delete(`${API_CONFIG.BASE_URL}/autoManagerPageV1/api/auto-manager/task/${taskId}`)
+      
+      // 从列表中移除
+      runningTasks.value = runningTasks.value.filter(t => t.id !== taskId)
+      
+      ElMessage.success('任务已删除')
+    } catch (error) {
+      console.error('删除任务失败:', error)
+      ElMessage.error('删除任务失败: ' + error.message)
+    }
+  }).catch(() => {
+    // 用户取消删除
+    ElMessage.info('已取消删除')
+  })
 }
 
 // 停止所有任务
@@ -592,22 +703,27 @@ const loadSavedTasks = async () => {
     const response = await axios.get(`${API_CONFIG.BASE_URL}/autoManagerPageV1/api/auto-manager/tasks`)
     
     if (response.data.success && Array.isArray(response.data.data)) {
-      // 恢复已保存的定时任务
+      let enabledCount = 0
+      
+      // 加载所有任务 (包括已停止的)
       for (const savedTask of response.data.data) {
+        const taskInfo = {
+          id: savedTask.taskId,
+          type: savedTask.automateType === 'auto_update' ? '更新steam库存价格' : '获取平台交易记录',
+          taskName: savedTask.taskName,
+          targetInfo: getTaskTargetInfo(savedTask),
+          interval: savedTask.config.interval,
+          status: savedTask.enabled ? '运行中' : '已停止',
+          lastRun: '-',
+          nextRun: savedTask.enabled ? calculateNextRun(savedTask.config.interval) : '-',
+          config: savedTask.config // 保存配置供后续使用
+        }
+        
+        runningTasks.value.push(taskInfo)
+        
+        // 只为启用的任务创建定时器
         if (savedTask.enabled) {
-          // 重新启动定时任务
-          const taskInfo = {
-            id: savedTask.taskId,
-            type: savedTask.automateType === 'auto_update' ? '更新steam库存价格' : '获取平台交易记录',
-            taskName: savedTask.taskName,
-            targetInfo: getTaskTargetInfo(savedTask),
-            interval: savedTask.config.interval,
-            status: '运行中',
-            lastRun: '-',
-            nextRun: calculateNextRun(savedTask.config.interval)
-          }
-          
-          runningTasks.value.push(taskInfo)
+          enabledCount++
           
           // 创建定时器
           const timer = setInterval(async () => {
@@ -627,7 +743,7 @@ const loadSavedTasks = async () => {
       }
       
       if (runningTasks.value.length > 0) {
-        ElMessage.success(`已恢复 ${runningTasks.value.length} 个定时任务`)
+        ElMessage.success(`已加载 ${runningTasks.value.length} 个任务，其中 ${enabledCount} 个正在运行`)
       }
     }
   } catch (error) {
@@ -635,13 +751,15 @@ const loadSavedTasks = async () => {
   }
 }
 
-// 使用配置执行任务
-const executeTaskWithConfig = async (savedTask) => {
+// 使用配置执行任务 (支持从数据库加载的任务和手动启动的任务)
+const executeTaskWithConfig = async (taskOrSavedTask) => {
   const startTime = new Date().toLocaleString()
   
   try {
     let result
-    const taskType = savedTask.config.selectedTask
+    // 兼容两种数据结构
+    const config = taskOrSavedTask.config || taskOrSavedTask
+    const taskType = config.selectedTask
     
     if (savedTask.automateType === 'auto_update') {
       const steamId = savedTask.config.selectedSteamId
