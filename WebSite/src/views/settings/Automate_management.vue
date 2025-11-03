@@ -107,21 +107,16 @@
         <!-- 操作按钮 -->
         <el-form-item>
           <el-button type="primary" @click="handleExecute" :loading="executing">
-            保存定时任务
+            {{ isEditing ? '更新任务' : '保存定时任务' }}
           </el-button>
-          <el-button @click="handleReset">重置</el-button>
+          <el-button @click="handleReset">{{ isEditing ? '取消编辑' : '重置' }}</el-button>
         </el-form-item>
       </el-form>
     </div>
 
     <!-- 任务列表 -->
     <div class="task-list-section">
-      <div class="section-header">
-        <h3>运行中的定时任务</h3>
-        <el-button size="small" type="danger" @click="stopAllTasks" v-if="runningTasks.length > 0">
-          停止所有任务
-        </el-button>
-      </div>
+      <h3>定时任务列表</h3>
       <el-table :data="runningTasks" style="width: 100%">
         <el-table-column prop="type" label="自动化类型" min-width="120" />
         <el-table-column prop="taskName" label="任务名称" min-width="150" />
@@ -322,8 +317,12 @@ const handleExecute = async () => {
     }
   }
 
-  // 启动定时任务
-  startScheduledTask()
+  // 如果是编辑模式,执行更新;否则创建新任务
+  if (isEditing.value) {
+    updateTask()
+  } else {
+    startScheduledTask()
+  }
 }
 
 // 执行具体任务
@@ -621,6 +620,102 @@ const stopTask = async (taskId) => {
   }
 }
 
+// 编辑任务
+const editTask = (task) => {
+  // 填充表单
+  automateForm.value = {
+    taskName: task.taskName,
+    automateType: task.type === '更新steam库存价格' ? 'auto_update' : 'auto_fetch',
+    selectedTask: task.config.selectedTask,
+    selectedSteamId: task.config.selectedSteamId || '',
+    selectedDataSources: task.config.selectedDataSources || [],
+    interval: task.interval
+  }
+  
+  // 设置编辑状态
+  isEditing.value = true
+  editingTaskId.value = task.id
+  
+  // 滚动到表单顶部
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+  
+  ElMessage.info('已加载任务配置,修改后点击"更新任务"保存')
+}
+
+// 更新任务配置
+const updateTask = async () => {
+  executing.value = true
+  
+  try {
+    const taskConfig = {
+      taskName: automateForm.value.taskName,
+      automateType: automateForm.value.automateType,
+      config: {
+        selectedTask: automateForm.value.selectedTask,
+        selectedSteamId: automateForm.value.selectedSteamId,
+        selectedDataSources: automateForm.value.selectedDataSources,
+        interval: automateForm.value.interval
+      }
+    }
+    
+    const response = await axios.put(
+      `${API_CONFIG.BASE_URL}/autoManagerPageV1/api/auto-manager/task/${editingTaskId.value}`,
+      taskConfig
+    )
+    
+    if (response.data.success) {
+      // 更新任务列表中的任务信息
+      const taskIndex = runningTasks.value.findIndex(t => t.id === editingTaskId.value)
+      if (taskIndex !== -1) {
+        const task = runningTasks.value[taskIndex]
+        const wasRunning = task.status === '运行中'
+        
+        task.taskName = automateForm.value.taskName
+        task.type = automateForm.value.automateType === 'auto_update' ? '更新steam库存价格' : '获取平台交易记录'
+        task.targetInfo = getTaskTargetInfo({
+          automateType: automateForm.value.automateType,
+          config: taskConfig.config
+        })
+        task.interval = automateForm.value.interval
+        task.config = taskConfig.config
+        
+        // 如果任务正在运行,需要重启定时器
+        if (wasRunning) {
+          // 先停止
+          const timer = timers.value.get(editingTaskId.value)
+          if (timer) {
+            clearInterval(timer)
+            timers.value.delete(editingTaskId.value)
+          }
+          
+          // 重新启动
+          task.nextRun = calculateNextRun(automateForm.value.interval)
+          const newTimer = setInterval(async () => {
+            await executeTaskWithConfig({ 
+              automateType: task.type === '更新steam库存价格' ? 'auto_update' : 'auto_fetch', 
+              config: task.config 
+            })
+            task.lastRun = new Date().toLocaleString()
+            task.nextRun = calculateNextRun(task.interval)
+          }, automateForm.value.interval * 60 * 1000)
+          
+          timers.value.set(editingTaskId.value, newTimer)
+        }
+      }
+      
+      ElMessage.success('任务配置已更新')
+      handleReset()
+    } else {
+      ElMessage.error('更新任务失败: ' + (response.data.message || '未知错误'))
+    }
+  } catch (error) {
+    console.error('更新任务失败:', error)
+    ElMessage.error('更新任务失败: ' + error.message)
+  } finally {
+    executing.value = false
+  }
+}
+
 // 删除任务
 const deleteTask = async (taskId) => {
   // 二次确认
@@ -695,6 +790,10 @@ const handleReset = () => {
     selectedDataSources: [],
     interval: 30
   }
+  
+  // 清除编辑状态
+  isEditing.value = false
+  editingTaskId.value = null
 }
 
 // 加载已保存的任务
@@ -830,10 +929,34 @@ const executeTaskWithConfig = async (taskOrSavedTask) => {
 // 获取任务目标信息
 const getTaskTargetInfo = (savedTask) => {
   if (savedTask.automateType === 'auto_update') {
-    return `Steam ID: ${savedTask.config.selectedSteamId}`
+    // 更新类型:显示Steam ID
+    const steamId = savedTask.config.selectedSteamId
+    return steamId ? `Steam ID: ${steamId}` : '-'
   } else {
-    const source = dataSources.value.find(s => s.dataID === savedTask.config.selectedDataSource)
-    return source ? `${source.dataName} (${source.steamID || '无SteamID'})` : '-'
+    // 获取数据类型:显示选中的数据源名称
+    const selectedIds = savedTask.config.selectedDataSources || []
+    if (selectedIds.length === 0) {
+      return '-'
+    }
+    
+    const sourceNames = selectedIds
+      .map(id => {
+        const source = dataSources.value.find(s => s.dataID === id)
+        return source ? source.dataName : null
+      })
+      .filter(name => name !== null)
+    
+    if (sourceNames.length === 0) {
+      return '-'
+    }
+    
+    // 如果只有一个数据源,直接显示名称
+    if (sourceNames.length === 1) {
+      return sourceNames[0]
+    }
+    
+    // 如果有多个数据源,显示数量
+    return `${sourceNames.length}个数据源: ${sourceNames.join(', ')}`
   }
 }
 
@@ -873,15 +996,7 @@ onUnmounted(() => {
   border: 1px solid rgba(58, 58, 58, 0.8);
 }
 
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.task-list-section h3,
-.history-section h3 {
+.task-list-section h3 {
   font-size: 18px;
   color: #e8e8e8;
   margin: 0 0 16px 0;
