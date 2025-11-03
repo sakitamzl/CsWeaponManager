@@ -157,7 +157,7 @@ class TaskScheduler:
         except Exception as e:
             self.log.write_log(f"加载定时任务失败: {str(e)}", 'error')
     
-    def start_task(self, task_id, task_name, automate_type, config, delay_seconds=30):
+    def start_task(self, task_id, task_name, automate_type, config, delay_seconds=0):
         """启动单个任务
         
         Args:
@@ -165,7 +165,7 @@ class TaskScheduler:
             task_name: 任务名称
             automate_type: 自动化类型
             config: 任务配置
-            delay_seconds: 延迟执行秒数(默认30秒,等待程序完全启动)
+            delay_seconds: 延迟执行秒数(默认0秒,立即执行)
         """
         with self.lock:
             # 如果任务已存在,先停止
@@ -190,7 +190,10 @@ class TaskScheduler:
             
             self.tasks[task_id]['timer'] = timer
             
-            self.log.write_log(f"任务已启动: {task_name} (ID: {task_id}), 将在 {delay_seconds} 秒后开始执行", 'info')
+            if delay_seconds == 0:
+                self.log.write_log(f"任务已启动: {task_name} (ID: {task_id}), 将立即执行", 'info')
+            else:
+                self.log.write_log(f"任务已启动: {task_name} (ID: {task_id}), 将在 {delay_seconds} 秒后开始执行", 'info')
     
     
     def stop_task(self, task_id):
