@@ -527,7 +527,7 @@ const startScheduledTask = async () => {
         taskName: automateForm.value.taskName, // 使用用户输入的任务名称
         automateType: automateForm.value.automateType,
         config: config,
-        enabled: true
+        enabled: false // 创建时默认停止状态
       }
     )
     
@@ -553,7 +553,10 @@ const startScheduledTask = async () => {
     // 添加到任务列表 (不自动启动)
     runningTasks.value.push(taskInfo)
     
-    ElMessage.success('定时任务已保存')
+    ElMessage.success('定时任务已保存(停止状态)')
+    
+    // 清空表单
+    handleReset()
   } catch (error) {
     console.error('保存定时任务失败:', error)
     ElMessage.error('保存任务失败: ' + error.message)
@@ -698,7 +701,7 @@ const deleteTask = async (taskId) => {
   ).then(async () => {
     try {
       // 调用后端API删除任务 (后端会自动停止定时器)
-      await axios.delete(`${API_CONFIG.BASE_URL}/autoManagerPageV1/api/auto-manager/task/${taskId}`)
+      const response = await axios.delete(`${API_CONFIG.BASE_URL}/autoManagerPageV1/api/auto-manager/task/${taskId}`)
       
       // 从列表中移除
       runningTasks.value = runningTasks.value.filter(t => t.id !== taskId)
@@ -706,7 +709,15 @@ const deleteTask = async (taskId) => {
       ElMessage.success('任务已删除')
     } catch (error) {
       console.error('删除任务失败:', error)
-      ElMessage.error('删除任务失败: ' + error.message)
+      
+      // 如果是404错误,说明任务已经不存在了
+      if (error.response && error.response.status === 404) {
+        // 仍然从前端列表中移除
+        runningTasks.value = runningTasks.value.filter(t => t.id !== taskId)
+        ElMessage.warning('任务已不存在,已从列表中移除')
+      } else {
+        ElMessage.error('删除任务失败: ' + (error.response?.data?.message || error.message))
+      }
     }
   }).catch(() => {
     // 用户取消删除
@@ -864,37 +875,57 @@ const executeTaskWithConfig = async (taskOrSavedTask) => {
   }
 }
 
-// 获取任务目标信息
+// 获取任务目标信息 (详细显示)
 const getTaskTargetInfo = (savedTask) => {
   if (savedTask.automateType === 'auto_update') {
-    // 更新类型:显示Steam ID
+    // 更新类型:显示Steam ID和任务类型
     const steamId = savedTask.config.selectedSteamId
-    return steamId ? `Steam ID: ${steamId}` : '-'
+    const taskType = savedTask.config.selectedTask
+    
+    let taskName = ''
+    if (taskType === 'update_steam_inventory') {
+      taskName = '更新Steam库存'
+    } else if (taskType === 'fetch_yyyp_price') {
+      taskName = '获取悠悠有品价格'
+    } else if (taskType === 'fetch_buff_price') {
+      taskName = '获取BUFF价格'
+    }
+    
+    return steamId ? `${taskName} - Steam ID: ${steamId}` : '-'
   } else {
-    // 获取数据类型:显示选中的数据源名称
+    // 获取数据类型:显示选中的数据源详细信息
     const selectedIds = savedTask.config.selectedDataSources || []
+    const taskType = savedTask.config.selectedTask
+    
     if (selectedIds.length === 0) {
       return '-'
     }
     
-    const sourceNames = selectedIds
+    // 获取任务类型名称
+    let taskName = ''
+    if (taskType === 'collect_buff') {
+      taskName = 'BUFF'
+    } else if (taskType === 'collect_youpin') {
+      taskName = '悠悠有品'
+    }
+    
+    const sourceDetails = selectedIds
       .map(id => {
         const source = dataSources.value.find(s => s.dataID === id)
-        return source ? source.dataName : null
+        if (source) {
+          // 显示: 平台, 数据源名称, SteamID
+          return `${source.dataName}${source.steamID ? ` (${source.steamID})` : ''}`
+        }
+        return null
       })
-      .filter(name => name !== null)
+      .filter(detail => detail !== null)
     
-    if (sourceNames.length === 0) {
+    if (sourceDetails.length === 0) {
       return '-'
     }
     
-    // 如果只有一个数据源,直接显示名称
-    if (sourceNames.length === 1) {
-      return sourceNames[0]
-    }
-    
-    // 如果有多个数据源,显示数量
-    return `${sourceNames.length}个数据源: ${sourceNames.join(', ')}`
+    // 显示格式: 平台 - 数据源1, 数据源2...
+    return `${taskName} - ${sourceDetails.join(', ')}`
   }
 }
 
