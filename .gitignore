@@ -353,7 +353,7 @@ src/get_app_token/certificates/*
 
 Spider
 Releases
-csweaponmanager.db
+csweaponmanager.db*
 pyinstaller.bat
 .claude/settings.local.json
 待完成清单.txt
