@@ -1,10 +1,5 @@
 <template>
   <div class="automate-management">
-    <div class="page-header">
-      <h2>自动化管理</h2>
-      <p>配置和管理自动化采集任务</p>
-    </div>
-
     <div class="config-section">
       <el-form :model="automateForm" label-width="120px" label-position="left">
         <!-- 自动化类型选择 -->
@@ -100,23 +95,6 @@ const handleReset = () => {
 .automate-management {
   padding: 24px;
   background: transparent;
-}
-
-.page-header {
-  margin-bottom: 32px;
-}
-
-.page-header h2 {
-  font-size: 24px;
-  color: #e8e8e8;
-  margin: 0 0 8px 0;
-  font-weight: 600;
-}
-
-.page-header p {
-  font-size: 14px;
-  color: #909399;
-  margin: 0;
 }
 
 .config-section {
