@@ -3129,24 +3129,9 @@ export default {
         
         ElMessage.info(`开始执行悠悠有品全部采集: ${editForm.value.name}`)
         
-        // 准备发送给爬虫的数据 - 按照采集接口一样的传值方法
+        // 准备发送给爬虫的数据 - NoneData接口只需要steamId，后端会根据steamId获取完整配置
         const spiderData = {
-          // 后端API需要的字段
-          phone: editForm.value.phone || '',
-          sessionid: editForm.value.sessionid || '',
-          token: editForm.value.token || '',
-          app_version: editForm.value.appVersion || '',
-          app_type: editForm.value.appType || '',
-          userId: editForm.value.userId || '',
-          steamId: editForm.value.steamId || '',
-
-          // 额外的数据源信息（可选）
-          dataID: editingSourceId.value,
-          dataName: editForm.value.name,
-          type: editForm.value.type,
-          enabled: editForm.value.enabled,
-          deviceName: editForm.value.deviceName || '',
-          sleepTime: editForm.value.sleepTime?.toString() || '6000'
+          steamId: editForm.value.steamId || ''
         }
         
         console.log('发送给悠悠有品全部采集爬虫的数据:', spiderData)
