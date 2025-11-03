@@ -82,8 +82,16 @@ class TaskScheduler:
         except Exception as e:
             self.log.write_log(f"加载定时任务失败: {str(e)}", 'error')
     
-    def start_task(self, task_id, task_name, automate_type, config):
-        """启动单个任务"""
+    def start_task(self, task_id, task_name, automate_type, config, delay_seconds=30):
+        """启动单个任务
+        
+        Args:
+            task_id: 任务ID
+            task_name: 任务名称
+            automate_type: 自动化类型
+            config: 任务配置
+            delay_seconds: 延迟执行秒数(默认30秒,等待程序完全启动)
+        """
         with self.lock:
             # 如果任务已存在,先停止
             if task_id in self.tasks:
@@ -100,35 +108,15 @@ class TaskScheduler:
             
             self.tasks[task_id] = task_info
             
-            # 初始化下次执行时间
-            self._initialize_next_run_time(task_id, config.get('interval', 30))
+            # 延迟执行任务
+            timer = threading.Timer(delay_seconds, lambda: self._schedule_task(task_id))
+            timer.daemon = True
+            timer.start()
             
-            # 立即执行一次,然后开始定时
-            self._schedule_task(task_id)
+            self.tasks[task_id]['timer'] = timer
             
-            self.log.write_log(f"任务已启动: {task_name} (ID: {task_id})", 'info')
+            self.log.write_log(f"任务已启动: {task_name} (ID: {task_id}), 将在 {delay_seconds} 秒后开始执行", 'info')
     
-    def _initialize_next_run_time(self, task_id, interval_minutes):
-        """初始化下次执行时间"""
-        try:
-            from datetime import datetime, timedelta
-            
-            db = Date_base()
-            
-            # 计算下次执行时间
-            next_run = (datetime.now() + timedelta(minutes=interval_minutes)).strftime('%Y-%m-%d %H:%M:%S')
-            
-            # 更新数据库
-            update_sql = f"""
-            UPDATE config 
-            SET nextRun = '{next_run}' 
-            WHERE dataID = {task_id} AND key2 = 'auto_manager'
-            """
-            
-            db.update(update_sql)
-            
-        except Exception as e:
-            self.log.write_log(f"初始化下次执行时间失败 (taskId={task_id}): {str(e)}", 'error')
     
     def stop_task(self, task_id):
         """停止单个任务"""
@@ -138,12 +126,17 @@ class TaskScheduler:
                 
                 # 取消定时器
                 if task_info.get('timer'):
-                    task_info['timer'].cancel()
+                    try:
+                        task_info['timer'].cancel()
+                    except Exception as e:
+                        self.log.write_log(f"取消定时器失败 (taskId={task_id}): {str(e)}", 'warning')
                 
                 task_name = task_info.get('task_name', 'Unknown')
                 del self.tasks[task_id]
                 
                 self.log.write_log(f"任务已停止: {task_name} (ID: {task_id})", 'info')
+            else:
+                self.log.write_log(f"任务不存在或已停止 (taskId={task_id})", 'info')
     
     def reload_task(self, task_id):
         """重新加载单个任务(用于更新任务配置)"""
@@ -202,7 +195,7 @@ class TaskScheduler:
             self.tasks[task_id]['timer'] = timer
     
     def _update_task_execution_time(self, task_id):
-        """更新任务执行时间到数据库"""
+        """更新任务执行时间到数据库(存储在value JSON中)"""
         try:
             from datetime import datetime, timedelta
             
@@ -220,14 +213,31 @@ class TaskScheduler:
             last_run = now.strftime('%Y-%m-%d %H:%M:%S')
             next_run = (now + timedelta(minutes=interval)).strftime('%Y-%m-%d %H:%M:%S')
             
-            # 更新数据库
-            update_sql = f"""
-            UPDATE config 
-            SET lastRun = '{last_run}', nextRun = '{next_run}' 
-            WHERE dataID = {task_id} AND key2 = 'auto_manager'
-            """
+            # 获取当前配置
+            query_sql = f"SELECT value FROM config WHERE dataID = {task_id} AND key2 = 'auto_manager'"
+            success, result = db.select(query_sql)
             
-            db.update(update_sql)
+            if success and result:
+                # 解析现有配置
+                current_config = json.loads(result[0][0]) if result[0][0] else {}
+                
+                # 更新执行时间
+                current_config['lastRun'] = last_run
+                current_config['nextRun'] = next_run
+                
+                # 保存回数据库
+                config_json = json.dumps(current_config, ensure_ascii=False).replace("'", "''")
+                update_sql = f"""
+                UPDATE config 
+                SET value = '{config_json}' 
+                WHERE dataID = {task_id} AND key2 = 'auto_manager'
+                """
+                
+                db.update(update_sql)
+                
+                # 同步更新内存中的配置
+                task_info['config']['lastRun'] = last_run
+                task_info['config']['nextRun'] = next_run
             
         except Exception as e:
             self.log.write_log(f"更新任务执行时间失败 (taskId={task_id}): {str(e)}", 'error')

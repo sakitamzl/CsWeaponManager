@@ -14,7 +14,7 @@ def get_auto_manager_tasks():
         
         # 查询所有 key2 = 'auto_manager' 的配置
         query_sql = """
-        SELECT dataID, dataName, key1, value, status, lastRun, nextRun 
+        SELECT dataID, dataName, key1, value, status 
         FROM config 
         WHERE key2 = 'auto_manager'
         ORDER BY dataID DESC
@@ -29,14 +29,18 @@ def get_auto_manager_tasks():
                     # 解析 value 字段中的 JSON 配置
                     config = json.loads(row[3]) if row[3] else {}
                     
+                    # 从配置中提取执行时间
+                    last_run = config.get('lastRun', None)
+                    next_run = config.get('nextRun', None)
+                    
                     tasks.append({
                         'taskId': row[0],
                         'taskName': row[1],
                         'automateType': row[2],  # key1 存储自动化类型
                         'config': config,
                         'enabled': row[4] == '1',
-                        'lastRun': row[5] if len(row) > 5 and row[5] else None,
-                        'nextRun': row[6] if len(row) > 6 and row[6] else None
+                        'lastRun': last_run,
+                        'nextRun': next_run
                     })
                 except json.JSONDecodeError as e:
                     Log().write_log(f"解析任务配置失败 (dataID={row[0]}): {e}", 'error')
@@ -178,16 +182,19 @@ def delete_auto_manager_task(task_id):
     try:
         db = Date_base()
         
+        # 先停止后台任务(在删除数据库记录之前)
+        try:
+            scheduler = get_scheduler()
+            scheduler.stop_task(task_id)
+        except Exception as e:
+            Log().write_log(f"停止任务失败 (taskId={task_id}): {str(e)}", 'warning')
+        
         # 删除数据
         delete_sql = f"DELETE FROM config WHERE dataID = {task_id} AND key2 = 'auto_manager'"
         
         result = db.delete(delete_sql)
         
         if result:
-            # 停止后台任务
-            scheduler = get_scheduler()
-            scheduler.stop_task(task_id)
-            
             Log().write_log(f"删除自动化任务成功: taskId={task_id}", 'info')
             return jsonify({
                 'success': True,
@@ -196,8 +203,8 @@ def delete_auto_manager_task(task_id):
         else:
             return jsonify({
                 'success': False,
-                'message': '任务删除失败'
-            }), 500
+                'message': '任务删除失败,可能任务不存在'
+            }), 404
             
     except Exception as e:
         Log().write_log(f"删除自动化任务失败: {str(e)}", 'error')
