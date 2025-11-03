@@ -34,18 +34,29 @@ def get_steam_ids():
         classid_filter = request.args.get('classid', '')
         
         db = DatabaseManager()
-        # 从config表中获取去重的steamID
+        # 从config表中获取去重的steamID，并优先获取有dataName的记录
+        # 使用GROUP BY确保每个steamID只返回一条记录，优先选择有dataName的
         sql = """
-        SELECT DISTINCT steamID
+        SELECT steamID, 
+               MAX(CASE WHEN dataName IS NOT NULL AND dataName != '' THEN dataName ELSE NULL END) as dataName
         FROM config 
         WHERE steamID IS NOT NULL AND steamID != ''
+        GROUP BY steamID
         ORDER BY steamID
         """
         results = db.execute_query(sql)
         
         steam_ids = []
+        seen_steam_ids = set()  # 用于去重
+        
         for row in results:
             steam_id = row[0]
+            data_name = row[1] if len(row) > 1 and row[1] else None
+            
+            # 如果已经处理过这个steamID，跳过
+            if steam_id in seen_steam_ids:
+                continue
+            seen_steam_ids.add(steam_id)
             
             # 查询该steamID在库存中的物品数量
             if classid_filter:
@@ -69,6 +80,7 @@ def get_steam_ids():
             
             steam_ids.append({
                 'steam_id': steam_id,
+                'data_name': data_name if data_name else steam_id,  # 如果没有dataName，使用steamID作为名称
                 'item_count': item_count
             })
         

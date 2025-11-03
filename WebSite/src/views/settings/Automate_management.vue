@@ -49,10 +49,10 @@
             filterable
           >
             <el-option 
-              v-for="steamId in steamIdList" 
-              :key="steamId" 
-              :label="steamId" 
-              :value="steamId" 
+              v-for="item in steamIdList" 
+              :key="item.steam_id" 
+              :label="item.data_name && item.data_name !== item.steam_id ? `${item.data_name} (${item.steam_id})` : item.steam_id" 
+              :value="item.steam_id" 
             />
           </el-select>
         </el-form-item>
@@ -245,11 +245,23 @@ const filteredDataSources = computed(() => {
 const loadSteamIds = async () => {
   try {
     const response = await axios.get(`${API_CONFIG.BASE_URL}/webInventoryV1/steam_ids`)
-    if (response.data && Array.isArray(response.data)) {
-      steamIdList.value = response.data
+    console.log('Steam ID API响应:', response.data)
+    
+    if (response.data && response.data.success && Array.isArray(response.data.data)) {
+      // 保存完整的对象数组（包含 steam_id, data_name, item_count）
+      steamIdList.value = response.data.data
+      console.log('已加载Steam ID列表:', steamIdList.value)
+    } else if (response.data && Array.isArray(response.data)) {
+      // 兼容旧格式（字符串数组转为对象数组）
+      steamIdList.value = response.data.map(id => ({
+        steam_id: id,
+        data_name: null,
+        item_count: 0
+      }))
     }
   } catch (error) {
     console.error('加载Steam ID列表失败:', error)
+    ElMessage.error('加载Steam账号列表失败: ' + error.message)
   }
 }
 
@@ -782,6 +794,9 @@ const loadSavedTasks = async () => {
     if (response.data.success && Array.isArray(response.data.data)) {
       let enabledCount = 0
       
+      // 清空现有任务列表
+      runningTasks.value = []
+      
       // 加载所有任务 (包括已停止的)
       for (const savedTask of response.data.data) {
         const taskInfo = {
@@ -803,8 +818,9 @@ const loadSavedTasks = async () => {
         }
       }
       
-      if (runningTasks.value.length > 0) {
-        ElMessage.success(`已加载 ${runningTasks.value.length} 个任务，其中 ${enabledCount} 个正在后台运行`)
+      // 只在首次加载时显示成功消息
+      if (runningTasks.value.length > 0 && !isEditing.value) {
+        console.log(`已加载 ${runningTasks.value.length} 个任务，其中 ${enabledCount} 个正在后台运行`)
       }
     }
   } catch (error) {
