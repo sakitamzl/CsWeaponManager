@@ -31,6 +31,7 @@ from src.web_side.webSide.stock_components import webStockComponentsV1
 from src.web_side.prefectWorld.prefectworld_config import prefectWorldConfigV1
 from src.web_side.prefectWorld.stock_components_api import prefectWorldStockComponentsV1
 from src.db_manager import init_database
+from src.Unites.auto_process.task_scheduler import get_scheduler
 
 app = Flask(__name__)
 CORS(app)
@@ -73,6 +74,13 @@ def blankEndApi():
     app.register_blueprint(webStockComponentsV1, url_prefix = '/webStockComponentsV1')
     app.register_blueprint(prefectWorldConfigV1, url_prefix = '/prefectWorldConfigV1')
     app.register_blueprint(prefectWorldStockComponentsV1, url_prefix = '/prefectWorldStockComponentsV1')
+    
+    # 启动任务调度器 (只在主进程中启动)
+    if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+        scheduler = get_scheduler()
+        scheduler.start()
+        print("✅ 任务调度器已启动")
+    
     app.run(debug=True, port=9001, host='0.0.0.0')
 
 if __name__ == '__main__':

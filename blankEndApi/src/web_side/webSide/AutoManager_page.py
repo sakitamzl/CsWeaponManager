@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from src.execution_db import Date_base
 from src.log import Log
+from src.Unites.auto_process.task_scheduler import get_scheduler
 import json
 
 autoManagerPage = Blueprint('autoManagerPage', __name__)
@@ -88,6 +89,11 @@ def create_auto_manager_task():
             success, last_id_result = db.select("SELECT last_insert_rowid()")
             new_id = last_id_result[0][0] if success and last_id_result else None
             
+            # 如果任务启用,立即启动后台调度
+            if enabled == '1':
+                scheduler = get_scheduler()
+                scheduler.start_task(new_id, task_name, automate_type, config_data)
+            
             Log().write_log(f"创建自动化任务成功: {task_name}, ID: {new_id}", 'info')
             return jsonify({
                 'success': True,
@@ -141,6 +147,10 @@ def update_auto_manager_task(task_id):
         result = db.update(update_sql)
         
         if result:
+            # 重新加载任务(会根据状态决定是否启动)
+            scheduler = get_scheduler()
+            scheduler.reload_task(task_id)
+            
             Log().write_log(f"更新自动化任务成功: {task_name}", 'info')
             return jsonify({
                 'success': True,
@@ -172,6 +182,10 @@ def delete_auto_manager_task(task_id):
         result = db.delete(delete_sql)
         
         if result:
+            # 停止后台任务
+            scheduler = get_scheduler()
+            scheduler.stop_task(task_id)
+            
             Log().write_log(f"删除自动化任务成功: taskId={task_id}", 'info')
             return jsonify({
                 'success': True,
@@ -216,6 +230,10 @@ def toggle_auto_manager_task(task_id):
         update_result = db.update(update_sql)
         
         if update_result:
+            # 重新加载任务(会根据新状态决定启动或停止)
+            scheduler = get_scheduler()
+            scheduler.reload_task(task_id)
+            
             Log().write_log(f"切换自动化任务状态成功: taskId={task_id}, newStatus={new_status}", 'info')
             return jsonify({
                 'success': True,
