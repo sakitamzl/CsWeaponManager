@@ -264,11 +264,36 @@ def toggle_auto_manager_task(task_id):
         update_result = db.update(update_sql)
         
         if update_result:
+            # 重新查询任务以获取最新的执行时间
+            query_sql = f"SELECT value FROM config WHERE dataID = {task_id} AND key2 = 'auto_manager'"
+            success, result = db.select(query_sql)
+            
+            next_run = None
+            last_run = None
+            if success and result and result[0][0]:
+                try:
+                    config = json.loads(result[0][0])
+                    next_run = config.get('nextRun')
+                    last_run = config.get('lastRun')
+                except:
+                    pass
+            
             Log().write_log(f"切换自动化任务状态成功: taskId={task_id}, newStatus={new_status}", 'info')
+            
+            # 重新加载调度器中的任务
+            try:
+                from src.Unites.auto_process.task_scheduler import get_scheduler
+                scheduler = get_scheduler()
+                scheduler.reload_task(task_id)
+            except Exception as e:
+                Log().write_log(f"重新加载调度器任务失败: {str(e)}", 'warning')
+            
             return jsonify({
                 'success': True,
                 'message': '状态切换成功',
-                'enabled': new_status == '1'
+                'enabled': new_status == '1',
+                'nextRun': next_run,
+                'lastRun': last_run
             }), 200
         else:
             return jsonify({

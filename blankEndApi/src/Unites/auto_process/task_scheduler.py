@@ -157,7 +157,7 @@ class TaskScheduler:
         except Exception as e:
             self.log.write_log(f"加载定时任务失败: {str(e)}", 'error')
     
-    def start_task(self, task_id, task_name, automate_type, config, delay_seconds=0):
+    def start_task(self, task_id, task_name, automate_type, config, delay_seconds=None):
         """启动单个任务
         
         Args:
@@ -165,12 +165,45 @@ class TaskScheduler:
             task_name: 任务名称
             automate_type: 自动化类型
             config: 任务配置
-            delay_seconds: 延迟执行秒数(默认0秒,立即执行)
+            delay_seconds: 延迟执行秒数(如果为None,则从数据库读取nextRun时间计算延迟)
         """
         with self.lock:
             # 如果任务已存在,先停止
             if task_id in self.tasks:
                 self.stop_task(task_id)
+            
+            # 如果没有指定延迟时间,从数据库读取nextRun时间
+            if delay_seconds is None:
+                try:
+                    db = Date_base()
+                    query_sql = f"""
+                    SELECT value 
+                    FROM config 
+                    WHERE dataID = {task_id} AND key2 = 'auto_manager'
+                    """
+                    success, result = db.select(query_sql)
+                    
+                    if success and result and result[0][0]:
+                        value_json = json.loads(result[0][0])
+                        next_run_str = value_json.get('nextRun')
+                        
+                        if next_run_str:
+                            from datetime import datetime
+                            next_run_time = datetime.strptime(next_run_str, '%Y-%m-%d %H:%M:%S')
+                            now = datetime.now()
+                            
+                            # 计算延迟秒数
+                            delay_seconds = max(0, (next_run_time - now).total_seconds())
+                            self.log.write_log(f"任务 {task_name} 下次执行时间: {next_run_str}, 延迟: {delay_seconds}秒", 'info')
+                        else:
+                            # 如果没有nextRun,立即执行
+                            delay_seconds = 0
+                    else:
+                        # 如果查询失败,立即执行
+                        delay_seconds = 0
+                except Exception as e:
+                    self.log.write_log(f"读取任务执行时间失败 (taskId={task_id}): {str(e)}, 将立即执行", 'warning')
+                    delay_seconds = 0
             
             # 创建任务信息
             task_info = {
@@ -192,8 +225,12 @@ class TaskScheduler:
             
             if delay_seconds == 0:
                 self.log.write_log(f"任务已启动: {task_name} (ID: {task_id}), 将立即执行", 'info')
+            elif delay_seconds < 60:
+                self.log.write_log(f"任务已启动: {task_name} (ID: {task_id}), 将在 {int(delay_seconds)} 秒后执行", 'info')
+            elif delay_seconds < 3600:
+                self.log.write_log(f"任务已启动: {task_name} (ID: {task_id}), 将在 {int(delay_seconds/60)} 分钟后执行", 'info')
             else:
-                self.log.write_log(f"任务已启动: {task_name} (ID: {task_id}), 将在 {delay_seconds} 秒后开始执行", 'info')
+                self.log.write_log(f"任务已启动: {task_name} (ID: {task_id}), 将在 {int(delay_seconds/3600)} 小时后执行", 'info')
     
     
     def stop_task(self, task_id):
@@ -444,7 +481,7 @@ class TaskScheduler:
                 
             elif selected_task == 'collect_youpin' and data_type == 'youpin':
                 # 采集悠悠有品数据（只需要传递steamId，后端会根据steamId获取完整配置）
-                url = f"{spider_base_url}/youpin898SpiderV1/newData"
+                url = f"{spider_base_url}/youping898SpiderV1/newData"
                 data = {'steamId': steam_id}
                 self.log.write_log(f"请求悠悠有品采集 - URL: {url}, 数据: {data}", 'info')
                 

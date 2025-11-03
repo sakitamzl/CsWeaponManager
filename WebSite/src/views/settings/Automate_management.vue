@@ -571,7 +571,17 @@ const startTask = async (task) => {
     if (response.data.success) {
       // 更新前端显示
       task.status = '运行中'
-      task.nextRun = '即将执行'
+      
+      // 使用后端返回的执行时间
+      if (response.data.nextRun) {
+        task.nextRun = response.data.nextRun
+      } else {
+        task.nextRun = '即将执行'
+      }
+      
+      if (response.data.lastRun) {
+        task.lastRun = response.data.lastRun
+      }
       
       ElMessage.success('任务已启用,后台将立即执行一次')
     } else {
@@ -904,15 +914,26 @@ const getTaskTargetInfo = (savedTask) => {
 }
 
 // 组件挂载时加载数据
+// 定时轮询任务状态
+let pollingTimer = null
+
 onMounted(async () => {
   await loadSteamIds()
   await loadDataSources()
   await loadSavedTasks()
+  
+  // 启动定时轮询,每10秒更新一次任务状态
+  pollingTimer = setInterval(async () => {
+    await loadSavedTasks()
+  }, 10000)
 })
 
-// 组件卸载时无需清理(任务在后端运行)
+// 组件卸载时清理轮询
 onUnmounted(() => {
-  // 任务在后端运行,前端关闭不影响
+  if (pollingTimer) {
+    clearInterval(pollingTimer)
+    pollingTimer = null
+  }
 })
 </script>
 
