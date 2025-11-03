@@ -80,10 +80,7 @@
       <DataSourceContent v-if="selectedCategory === 'data_source'" />
       
       <!-- 自动化管理页面 -->
-      <div v-if="selectedCategory === 'auto_manager'" class="auto-manager-placeholder">
-        <h2>自动化管理</h2>
-        <p>此页面用于集中管理所有自动化采集任务</p>
-      </div>
+      <AutomateManagementContent v-if="selectedCategory === 'auto_manager'" />
       
       <!-- 爬取改名页面 -->
       <SpiderWeaponRenameContent v-if="selectedCategory === 'spider_rename'" />
@@ -104,6 +101,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { EditPen, Tools, ShoppingCart, Box, Timer, DataBoard, ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 import DataSourceContent from './settings/DataSource.vue'
+import AutomateManagementContent from './settings/Automate_management.vue'
 import SpiderWeaponRenameContent from './settings/SpiderWeaponRename.vue'
 import SteamMarketContent from './settings/SteamMarket.vue'
 import SteamInventoryHistoryContent from './settings/SteamInventoryHistory.vue'
@@ -410,23 +408,6 @@ onUnmounted(() => {
 
 .main-wrapper::-webkit-scrollbar-thumb:hover {
   background: rgba(90, 90, 90, 0.8);
-}
-
-/* 自动化管理占位样式 */
-.auto-manager-placeholder {
-  padding: 40px;
-  text-align: center;
-  color: #909399;
-}
-
-.auto-manager-placeholder h2 {
-  font-size: 24px;
-  margin-bottom: 16px;
-  color: #e8e8e8;
-}
-
-.auto-manager-placeholder p {
-  font-size: 16px;
 }
 </style>
 
