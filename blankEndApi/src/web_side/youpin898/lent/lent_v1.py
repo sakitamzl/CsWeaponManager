@@ -63,17 +63,27 @@ def selectApexTime(steamId):
         
         result = db.execute_query(sql, (steamId,))
         
-        if result and len(result) > 0:
+        if result and len(result) > 0 and result[0][0]:
             apex_time = result[0][0]
-            return jsonify(apex_time), 200
+            return jsonify({
+                "success": True,
+                "order_time": apex_time
+            }), 200
         else:
-            # 如果没有数据，返回一个很早的时间
-            return jsonify('2000-01-01 00:00:00'), 200
+            return jsonify({
+                "success": False,
+                "order_time": None,
+                "message": "未查询到数据"
+            }), 200
     except Exception as e:
         print(f"查询最新租赁时间失败: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify('2000-01-01 00:00:00'), 500
+        return jsonify({
+            "success": False,
+            "order_time": None,
+            "message": f"查询异常: {str(e)}"
+        }), 500
 
 @youpin898LentV1.route('/getCount/<steamId>', methods=['get'])
 def getCount(steamId):

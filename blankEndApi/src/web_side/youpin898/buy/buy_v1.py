@@ -32,14 +32,24 @@ def selectApexTime(data_user=None):
             (data_user,),
             limit=1
         )
-        if records:
-            data = str(records[0].order_time)
+        if records and records[0].order_time:
+            return jsonify({
+                "success": True,
+                "order_time": str(records[0].order_time)
+            }), 200
         else:
-            data = 0
-        return jsonify(data), 200
+            return jsonify({
+                "success": False,
+                "order_time": None,
+                "message": "未查询到数据"
+            }), 200
     except Exception as e:
         print(f"查询最新时间失败: {e}")
-        return jsonify(0), 500
+        return jsonify({
+            "success": False,
+            "order_time": None,
+            "message": f"查询异常: {str(e)}"
+        }), 500
 
 @youpin898BuyV1.route('/selectNotEndID/<data_user>', methods=['get'])
 def selectNotEndID(data_user):
