@@ -51,7 +51,7 @@
             <el-option 
               v-for="item in steamIdList" 
               :key="item.steam_id" 
-              :label="item.data_name && item.data_name !== item.steam_id ? `${item.data_name} (${item.steam_id})` : item.steam_id" 
+              :label="`${item.data_name} (${item.steam_id})`" 
               :value="item.steam_id" 
             />
           </el-select>

@@ -28,39 +28,49 @@ def get_auto_price(item_name):
 
 @webInventoryV1.route('/steam_ids', methods=['GET'])
 def get_steam_ids():
-    """从config表获取所有不同的Steam ID列表"""
+    """从config表获取所有Steam配置（key1='steam' AND key2='config'）"""
     try:
         # 获取查询参数，判断是否只统计特定classid的物品
         classid_filter = request.args.get('classid', '')
         
         db = DatabaseManager()
-        # 从config表中获取去重的steamID，并优先获取有dataName的记录
-        # 使用GROUP BY确保每个steamID只返回一条记录，优先选择有dataName的
-        sql = """
-        SELECT steamID, 
-               MAX(CASE WHEN dataName IS NOT NULL AND dataName != '' THEN dataName ELSE NULL END) as dataName
+        
+        # 只查询 key1='steam' AND key2='config' 的记录
+        steam_config_sql = """
+        SELECT dataName, value, steamID
         FROM config 
-        WHERE steamID IS NOT NULL AND steamID != ''
-        GROUP BY steamID
-        ORDER BY steamID
+        WHERE key1 = 'steam' AND key2 = 'config'
+        ORDER BY dataID
         """
-        results = db.execute_query(sql)
+        steam_config_results = db.execute_query(steam_config_sql)
         
         steam_ids = []
-        seen_steam_ids = set()  # 用于去重
         
-        for row in results:
-            steam_id = row[0]
-            data_name = row[1] if len(row) > 1 and row[1] else None
+        for row in steam_config_results:
+            data_name = row[0] if row[0] else None
+            value_json = row[1] if len(row) > 1 else None
+            steam_id_from_field = row[2] if len(row) > 2 else None
             
-            # 如果已经处理过这个steamID，跳过
-            if steam_id in seen_steam_ids:
+            # 尝试从value JSON中解析steamID
+            steam_id = steam_id_from_field
+            if not steam_id and value_json:
+                try:
+                    import json
+                    config_data = json.loads(value_json)
+                    steam_id = config_data.get('steamID')
+                except:
+                    pass
+            
+            # 如果没有steamID，跳过这条记录
+            if not steam_id:
                 continue
-            seen_steam_ids.add(steam_id)
+            
+            # 如果没有dataName，使用steamID作为名称
+            if not data_name:
+                data_name = steam_id
             
             # 查询该steamID在库存中的物品数量
             if classid_filter:
-                # 如果指定了classid，只统计该classid的物品数量
                 count_sql = """
                 SELECT COUNT(*) 
                 FROM steam_inventory 
@@ -68,7 +78,6 @@ def get_steam_ids():
                 """
                 count_result = db.execute_query(count_sql, (steam_id, classid_filter))
             else:
-                # 否则统计所有物品数量
                 count_sql = """
                 SELECT COUNT(*) 
                 FROM steam_inventory 
@@ -80,7 +89,7 @@ def get_steam_ids():
             
             steam_ids.append({
                 'steam_id': steam_id,
-                'data_name': data_name if data_name else steam_id,  # 如果没有dataName，使用steamID作为名称
+                'data_name': data_name,
                 'item_count': item_count
             })
         
@@ -768,4 +777,61 @@ def batch_update_buff_price():
         return jsonify({
             'success': False,
             'error': f'更新失败: {str(e)}'
+        }), 500
+
+
+@webInventoryV1.route('/steam_account_name/<steam_id>', methods=['PUT'])
+def update_steam_account_name(steam_id):
+    """更新或创建Steam账号名称配置"""
+    try:
+        data = request.get_json()
+        account_name = data.get('accountName', '').replace("'", "''")
+        
+        if not account_name:
+            return jsonify({
+                'success': False,
+                'message': '账号名称不能为空'
+            }), 400
+        
+        from src.db_manager.database import DatabaseManager
+        db = DatabaseManager()
+        
+        # 先检查是否已存在该steamID的账号名称配置
+        check_sql = """
+        SELECT dataID FROM config 
+        WHERE steamID = ? AND key2 = 'steam_account'
+        LIMIT 1
+        """
+        check_result = db.execute_query(check_sql, (steam_id,))
+        
+        if check_result:
+            # 如果存在，更新
+            update_sql = f"""
+            UPDATE config 
+            SET dataName = '{account_name}' 
+            WHERE steamID = ? AND key2 = 'steam_account'
+            """
+            db.execute_update(update_sql, (steam_id,))
+            message = '账号名称更新成功'
+        else:
+            # 如果不存在，创建新记录
+            insert_sql = f"""
+            INSERT INTO config (dataName, key1, key2, steamID, status) 
+            VALUES ('{account_name}', 'steam', 'steam_account', '{steam_id.replace("'", "''")}', '1')
+            """
+            db.execute_update(insert_sql)
+            message = '账号名称创建成功'
+        
+        return jsonify({
+            'success': True,
+            'message': message
+        }), 200
+        
+    except Exception as e:
+        print(f"更新Steam账号名称失败: {e}")
+        import traceback
+        print(f"详细错误信息: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'message': f'更新失败: {str(e)}'
         }), 500
