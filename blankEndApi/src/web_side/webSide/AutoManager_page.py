@@ -66,11 +66,6 @@ def create_auto_manager_task():
         
         db = Date_base()
         
-        # 获取最大的 dataID
-        max_id_sql = "SELECT MAX(dataID) FROM config"
-        max_id_result = db.select(max_id_sql)
-        new_id = (max_id_result[0][0] or 0) + 1 if max_id_result else 1
-        
         task_name = data.get('taskName', '').replace("'", "''")
         automate_type = data.get('automateType', '').replace("'", "''")  # auto_update 或 auto_fetch
         config_data = data.get('config', {})
@@ -80,16 +75,20 @@ def create_auto_manager_task():
         config_json = json.dumps(config_data, ensure_ascii=False)
         config_json_escaped = config_json.replace("'", "''")
         
-        # 插入数据
+        # 插入数据 (dataID自增,不需要手动指定)
         insert_sql = f"""
-        INSERT INTO config (dataID, dataName, key1, key2, value, status) 
-        VALUES ({new_id}, '{task_name}', '{automate_type}', 'auto_manager', '{config_json_escaped}', '{enabled}')
+        INSERT INTO config (dataName, key1, key2, value, status) 
+        VALUES ('{task_name}', '{automate_type}', 'auto_manager', '{config_json_escaped}', '{enabled}')
         """
         
         result = db.insert(insert_sql)
         
         if result:
-            Log().write_log(f"创建自动化任务成功: {task_name}", 'info')
+            # 获取刚插入的ID
+            success, last_id_result = db.select("SELECT last_insert_rowid()")
+            new_id = last_id_result[0][0] if success and last_id_result else None
+            
+            Log().write_log(f"创建自动化任务成功: {task_name}, ID: {new_id}", 'info')
             return jsonify({
                 'success': True,
                 'message': '任务创建成功',

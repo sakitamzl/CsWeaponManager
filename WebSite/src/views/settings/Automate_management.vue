@@ -50,24 +50,26 @@
 
         <!-- 数据源选择 (仅在自动获取数据时显示) - 支持多选 -->
         <el-form-item v-if="automateForm.automateType === 'auto_fetch'" label="数据源">
-          <el-select 
-            v-model="automateForm.selectedDataSources" 
-            placeholder="请选择数据源(可多选)"
-            style="width: 300px"
-            multiple
-            collapse-tags
-            collapse-tags-tooltip
-            filterable
-          >
-            <el-option 
-              v-for="source in filteredDataSources" 
-              :key="source.dataID" 
-              :label="`${source.dataName} (${source.steamID || '无SteamID'})`" 
-              :value="source.dataID" 
-            />
-          </el-select>
-          <div style="margin-top: 8px; color: #909399; font-size: 12px;">
-            已选择 {{ automateForm.selectedDataSources.length }} 个数据源
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <el-select 
+              v-model="automateForm.selectedDataSources" 
+              placeholder="请选择数据源(可多选)"
+              style="width: 300px"
+              multiple
+              collapse-tags
+              collapse-tags-tooltip
+              filterable
+            >
+              <el-option 
+                v-for="source in filteredDataSources" 
+                :key="source.dataID" 
+                :label="`${source.dataName} (${source.steamID || '无SteamID'})`" 
+                :value="source.dataID" 
+              />
+            </el-select>
+            <span v-if="automateForm.selectedDataSources.length > 0" style="color: #909399; font-size: 14px; white-space: nowrap;">
+              已选择 {{ automateForm.selectedDataSources.length }} 个数据源
+            </span>
           </div>
         </el-form-item>
 
