@@ -7,13 +7,8 @@ import Sell from '@/views/Sell.vue'
 import Lent from '@/views/Lent.vue'
 import Inventory from '@/views/Inventory.vue'
 import Setting from '@/views/Setting.vue'
-import DataSource from '@/views/DataSource.vue'
-import SteamMarket from '@/views/SteamMarket.vue'
-import SteamInventoryHistory from '@/views/SteamInventoryHistory.vue'
 import StockComponents from '@/views/StockComponents.vue'
-import DevTool from '@/views/DevTool.vue'
-import SpiderWeaponRename from '@/views/SpiderWeaponRename.vue'
-import Automation from '@/views/Automation.vue'
+import Settings from '@/views/Settings.vue'
 
 const routes = [
   {
@@ -64,48 +59,18 @@ const routes = [
         meta: { title: '设置' }
       },
       {
-        path: '/data-source',
-        name: 'DataSource',
-        component: DataSource,
-        meta: { title: '数据来源' }
-      },
-      {
-        path: '/steam-market',
-        name: 'SteamMarket',
-        component: SteamMarket,
-        meta: { title: 'Steam市场历史' }
-      },
-      {
-        path: '/steam-inventory-history',
-        name: 'SteamInventoryHistory',
-        component: SteamInventoryHistory,
-        meta: { title: 'Steam交易历史' }
-      },
-      {
         path: '/stock-components',
         name: 'StockComponents',
         component: StockComponents,
         meta: { title: '库存组件' }
       },
       {
-        path: '/devTool',
-        name: 'DevTool',
-        component: DevTool,
-        meta: { title: '开发工具' }
-      },
-      {
-        path: '/automation',
-        name: 'Automation',
-        component: Automation,
-        meta: { title: '其他工具' }
+        path: '/settings',
+        name: 'Settings',
+        component: Settings,
+        meta: { title: '系统设置' }
       }
     ]
-  },
-  {
-    path: '/spider-weapon-rename',
-    name: 'SpiderWeaponRename',
-    component: SpiderWeaponRename,
-    meta: { title: '饰品重命名工具' }
   }
 ]
 

@@ -86,13 +86,8 @@ export default {
           icon: '/icons/Stock_components.png'
         },
         {
-          path: '/data-source',
-          title: '数据来源',
-          icon: '/icons/data_from.png'
-        },
-        {
-          path: '/automation',
-          title: '其他工具',
+          path: '/settings',
+          title: '系统设置',
           icon: '/icons/setting.png'
         }
         // {

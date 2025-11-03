@@ -1,5 +1,5 @@
 <template>
-  <div class="automation-container" :class="{ 'main-sidebar-collapsed': isMainSidebarCollapsed }">
+  <div class="settings-container" :class="{ 'main-sidebar-collapsed': isMainSidebarCollapsed }">
     <!-- 二级左侧栏 -->
     <aside class="secondary-sidebar" :class="{ collapsed: sidebarCollapsed }">
       <div class="sidebar-content">
@@ -8,6 +8,15 @@
         </div>
         
         <ul class="category-list">
+          <li 
+            :class="{ active: selectedCategory === 'data_source' }"
+            @click="selectCategory('data_source')"
+          >
+            <el-icon :size="18">
+              <DataBoard />
+            </el-icon>
+            <span>数据来源</span>
+          </li>
           <li 
             :class="{ active: selectedCategory === 'auto_manager' }"
             @click="selectCategory('auto_manager')"
@@ -60,13 +69,16 @@
     <!-- 折叠/展开按钮 -->
     <div class="toggle-button" :class="{ collapsed: sidebarCollapsed }" @click="toggleSidebar">
       <el-icon :size="20">
-        <DArrowLeft v-if="!sidebarCollapsed" />
-        <DArrowRight v-else />
+        <ArrowLeft v-if="!sidebarCollapsed" />
+        <ArrowRight v-else />
       </el-icon>
     </div>
 
     <!-- 主内容区域 -->
     <div class="main-wrapper" :class="{ expanded: sidebarCollapsed }" @click="handleContentClick">
+      <!-- 数据来源页面 -->
+      <DataSourceContent v-if="selectedCategory === 'data_source'" />
+      
       <!-- 自动化管理页面 -->
       <div v-if="selectedCategory === 'auto_manager'" class="auto-manager-placeholder">
         <h2>自动化管理</h2>
@@ -90,13 +102,14 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { EditPen, Tools, ShoppingCart, Box, Timer, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
-import SpiderWeaponRenameContent from './SpiderWeaponRename.vue'
-import SteamMarketContent from './SteamMarket.vue'
-import SteamInventoryHistoryContent from './SteamInventoryHistory.vue'
-import DevToolContent from './DevTool.vue'
+import { EditPen, Tools, ShoppingCart, Box, Timer, DataBoard, ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
+import DataSourceContent from './settings/DataSource.vue'
+import SpiderWeaponRenameContent from './settings/SpiderWeaponRename.vue'
+import SteamMarketContent from './settings/SteamMarket.vue'
+import SteamInventoryHistoryContent from './settings/SteamInventoryHistory.vue'
+import DevToolContent from './settings/DevTool.vue'
 
-const selectedCategory = ref('auto_manager')
+const selectedCategory = ref('data_source')
 const sidebarCollapsed = ref(false)
 const isMainSidebarCollapsed = ref(false)
 
@@ -150,7 +163,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.automation-container {
+.settings-container {
   display: flex;
   min-height: 100vh;
   width: 100%;
@@ -180,7 +193,7 @@ onUnmounted(() => {
 }
 
 /* 当主侧边栏收缩时，二级侧边栏也跟随调整 */
-.automation-container.main-sidebar-collapsed .secondary-sidebar {
+.settings-container.main-sidebar-collapsed .secondary-sidebar {
   left: 4rem;
 }
 
@@ -215,11 +228,11 @@ onUnmounted(() => {
 }
 
 /* 当主侧边栏收缩时 */
-.automation-container.main-sidebar-collapsed .toggle-button {
+.settings-container.main-sidebar-collapsed .toggle-button {
   left: calc(4rem + 240px + 2px);
 }
 
-.automation-container.main-sidebar-collapsed .toggle-button.collapsed {
+.settings-container.main-sidebar-collapsed .toggle-button.collapsed {
   left: 4rem;
 }
 
