@@ -169,7 +169,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
 import { API_CONFIG } from '@/config/api.js'
@@ -914,26 +914,10 @@ const getTaskTargetInfo = (savedTask) => {
 }
 
 // 组件挂载时加载数据
-// 定时轮询任务状态
-let pollingTimer = null
-
 onMounted(async () => {
   await loadSteamIds()
   await loadDataSources()
   await loadSavedTasks()
-  
-  // 启动定时轮询,每10秒更新一次任务状态
-  pollingTimer = setInterval(async () => {
-    await loadSavedTasks()
-  }, 10000)
-})
-
-// 组件卸载时清理轮询
-onUnmounted(() => {
-  if (pollingTimer) {
-    clearInterval(pollingTimer)
-    pollingTimer = null
-  }
 })
 </script>
 
