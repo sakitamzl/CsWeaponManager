@@ -2,6 +2,15 @@
   <div class="automate-management">
     <div class="config-section">
       <el-form :model="automateForm" label-width="140px" label-position="left">
+        <!-- 任务名称 -->
+        <el-form-item label="任务名称">
+          <el-input 
+            v-model="automateForm.taskName" 
+            placeholder="请输入任务名称"
+            style="width: 300px"
+          />
+        </el-form-item>
+
         <!-- 自动化类型选择 -->
         <el-form-item label="自动化类型">
           <el-select 
@@ -149,6 +158,7 @@ import { API_CONFIG } from '@/config/api.js'
 
 // 表单数据
 const automateForm = ref({
+  taskName: '', // 任务名称
   automateType: '',
   selectedTask: '',
   selectedSteamId: '',
@@ -250,6 +260,11 @@ const handleTypeChange = () => {
 // 执行任务
 const handleExecute = async () => {
   // 验证表单
+  if (!automateForm.value.taskName || !automateForm.value.taskName.trim()) {
+    ElMessage.warning('请输入任务名称')
+    return
+  }
+  
   if (!automateForm.value.automateType) {
     ElMessage.warning('请选择自动化类型')
     return
@@ -478,7 +493,7 @@ const startScheduledTask = async () => {
     const response = await axios.post(
       `${API_CONFIG.BASE_URL}/autoManagerPageV1/api/auto-manager/task`,
       {
-        taskName: availableTasks.value.find(t => t.value === automateForm.value.selectedTask)?.label || '未命名任务',
+        taskName: automateForm.value.taskName, // 使用用户输入的任务名称
         automateType: automateForm.value.automateType,
         config: config,
         enabled: true
@@ -495,32 +510,19 @@ const startScheduledTask = async () => {
     const taskInfo = {
       id: taskId,
       type: automateForm.value.automateType === 'auto_update' ? '更新steam库存价格' : '获取平台交易记录',
-      taskName: availableTasks.value.find(t => t.value === automateForm.value.selectedTask)?.label || '',
+      taskName: automateForm.value.taskName, // 使用用户输入的任务名称
       targetInfo: getTargetInfo(),
       interval: automateForm.value.interval,
-      status: '运行中',
+      status: '已停止',
       lastRun: '-',
-      nextRun: calculateNextRun(automateForm.value.interval)
+      nextRun: '-',
+      config: config // 保存配置以便后续启动
     }
     
-    // 添加到运行任务列表
+    // 添加到任务列表 (不自动启动)
     runningTasks.value.push(taskInfo)
     
-    // 创建定时器
-    const timer = setInterval(async () => {
-      await executeTask()
-      
-      // 更新任务信息
-      const task = runningTasks.value.find(t => t.id === taskId)
-      if (task) {
-        task.lastRun = new Date().toLocaleString()
-        task.nextRun = calculateNextRun(automateForm.value.interval)
-      }
-    }, automateForm.value.interval * 60 * 1000)
-    
-    timers.value.set(taskId, timer)
-    
-    ElMessage.success('定时任务已保存并启动')
+    ElMessage.success('定时任务已保存')
   } catch (error) {
     console.error('保存定时任务失败:', error)
     ElMessage.error('保存任务失败: ' + error.message)
@@ -575,10 +577,11 @@ const getTargetInfo = () => {
 // 重置表单
 const handleReset = () => {
   automateForm.value = {
+    taskName: '',
     automateType: '',
     selectedTask: '',
     selectedSteamId: '',
-    selectedDataSource: '',
+    selectedDataSources: [],
     interval: 30
   }
 }
