@@ -2,7 +2,7 @@
 echo Starting PyInstaller packaging process...
 
 :: Set version number (modify this for each release)
-set VERSION=v1.0.2
+set VERSION=v1.1.5
 
 :: Activate conda environment
 call conda activate CS2DB
@@ -21,14 +21,12 @@ echo Creating release in: Releases\%VERSION%
 echo Cleaning previous builds...
 if exist "blankEndApi\dist" rmdir /s /q "blankEndApi\dist"
 if exist "blankEndApi\build" rmdir /s /q "blankEndApi\build"
-if exist "getAppToken\dist" rmdir /s /q "getAppToken\dist"
-if exist "getAppToken\build" rmdir /s /q "getAppToken\build"
 if exist "Spider\dist" rmdir /s /q "Spider\dist"
 if exist "Spider\build" rmdir /s /q "Spider\build"
 
 :: Package blankEndApi.py
 echo.
-echo [1/4] Packaging blankEndApi.exe...
+echo [1/2] Packaging blankEndApi.exe...
 cd blankEndApi
 pyinstaller -F blankEndApi.py --distpath "..\Releases\%VERSION%"
 if %errorlevel% neq 0 (
@@ -39,35 +37,9 @@ if %errorlevel% neq 0 (
 )
 cd ..
 
-:: Package setup_database.py
-echo.
-echo [2/4] Packaging setup_database.exe...
-cd blankEndApi
-pyinstaller -F setup_database.py --distpath "..\Releases\%VERSION%"
-if %errorlevel% neq 0 (
-    echo Error: Failed to package setup_database.py
-    cd ..
-    pause
-    exit /b 1
-)
-cd ..
-
-:: Package getAppToken.py
-echo.
-echo [3/4] Packaging getAppToken.exe...
-cd getAppToken
-pyinstaller -F getAppToken.py --distpath "..\Releases\%VERSION%"
-if %errorlevel% neq 0 (
-    echo Error: Failed to package getAppToken.py
-    cd ..
-    pause
-    exit /b 1
-)
-cd ..
-
 :: Package Spider.py
 echo.
-echo [4/4] Packaging Spider.exe...
+echo [2/2] Packaging Spider.exe...
 cd Spider
 pyinstaller -F Spider.py --distpath "..\Releases\%VERSION%"
 if %errorlevel% neq 0 (
@@ -95,18 +67,51 @@ if exist "Releases\conf.ini" (
     echo Warning: conf.ini not found in Releases folder
 )
 
-if exist "blankEndApi\DB.sql" (
-    copy "blankEndApi\DB.sql" "Releases\%VERSION%\DB.sql"
-    echo DB.sql copied successfully
-) else (
-    echo Warning: DB.sql not found in blankEndApi folder
-)
-
 if exist "WebSite" (
-    xcopy "WebSite" "Releases\%VERSION%\WebSite" /E /I /H /Y
-    echo WebSite folder copied successfully
+    echo Copying WebSite files and folders...
+    
+    :: Create WebSite directory
+    if not exist "Releases\%VERSION%\WebSite" mkdir "Releases\%VERSION%\WebSite"
+    
+    :: Copy public folder
+    if exist "WebSite\public" (
+        xcopy "WebSite\public" "Releases\%VERSION%\WebSite\public\" /E /I /H /Y /Q
+        echo - public folder copied
+    )
+    
+    :: Copy src folder
+    if exist "WebSite\src" (
+        xcopy "WebSite\src" "Releases\%VERSION%\WebSite\src\" /E /I /H /Y /Q
+        echo - src folder copied
+    )
+    
+    :: Copy package.json
+    if exist "WebSite\package.json" (
+        copy "WebSite\package.json" "Releases\%VERSION%\WebSite\package.json" >nul
+        echo - package.json copied
+    )
+    
+    :: Copy package-lock.json
+    if exist "WebSite\package-lock.json" (
+        copy "WebSite\package-lock.json" "Releases\%VERSION%\WebSite\package-lock.json" >nul
+        echo - package-lock.json copied
+    )
+    
+    :: Copy vue.config.js
+    if exist "WebSite\vue.config.js" (
+        copy "WebSite\vue.config.js" "Releases\%VERSION%\WebSite\vue.config.js" >nul
+        echo - vue.config.js copied
+    )
+    
+    :: Copy README.md if exists
+    if exist "WebSite\README.md" (
+        copy "WebSite\README.md" "Releases\%VERSION%\WebSite\README.md" >nul
+        echo - README.md copied
+    )
+    
+    echo WebSite files copied successfully
 ) else (
-    echo Warning: WebSite folder not found in root directory
+    echo Warning: WebSite folder not found
 )
 
 :: Create log directory (required by both blankEndApi.exe and Spider.exe)
@@ -126,8 +131,6 @@ echo.
 echo Cleaning up build artifacts...
 if exist "blankEndApi\build" rmdir /s /q "blankEndApi\build"
 if exist "blankEndApi\*.spec" del /q "blankEndApi\*.spec"
-if exist "getAppToken\build" rmdir /s /q "getAppToken\build"
-if exist "getAppToken\*.spec" del /q "getAppToken\*.spec"
 if exist "Spider\build" rmdir /s /q "Spider\build"
 if exist "Spider\*.spec" del /q "Spider\*.spec"
 
@@ -139,4 +142,32 @@ echo ========================================
 echo All executables have been created in: Releases\%VERSION%
 dir /b "Releases\%VERSION%\*.exe"
 echo ========================================
+
+:: Create ZIP file
+echo.
+echo Creating ZIP archive...
+set ZIP_FILE=Releases\%VERSION%.zip
+
+:: Remove old zip if exists
+if exist "%ZIP_FILE%" (
+    echo Removing old ZIP file...
+    del /q "%ZIP_FILE%"
+)
+
+:: Use PowerShell to create ZIP archive with NoProfile to avoid path issues
+echo Compressing files to %ZIP_FILE%...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Compress-Archive -Path 'Releases\%VERSION%\*' -DestinationPath '%ZIP_FILE%' -CompressionLevel Optimal -Force"
+
+if %errorlevel% neq 0 (
+    echo Warning: Failed to create ZIP archive
+) else (
+    echo.
+    echo ========================================
+    echo ZIP archive created successfully!
+    echo ========================================
+    echo Location: %ZIP_FILE%
+    for %%A in ("%ZIP_FILE%") do echo Size: %%~zA bytes
+    echo ========================================
+)
+
 pause

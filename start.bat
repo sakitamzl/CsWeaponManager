@@ -1,18 +1,20 @@
 @echo off
 chcp 65001 >nul
 
+setlocal
+
 call conda activate CS2DB
 
-:: 启动各个服务，每个服务都从项目根目录开始
-start /b cmd /c "cd blankEndApi && python blankEndApi.py"
-timeout /t 1 /nobreak >nul
+cd /d "%~dp0blankEndApi"
+start /b cmd /c "python blankEndApi.py"
 
-start /b cmd /c "cd Spider && python Spider.py"
-timeout /t 1 /nobreak >nul
+cd /d "%~dp0Spider"
+start /b cmd /c "python Spider.py"
 
-if exist "WebSite\package.json" (
-    start /b cmd /c "cd WebSite && npm run serve"
+cd /d "%~dp0WebSite"
+if exist "package.json" (
+    start /b cmd /c "npm run serve"
 )
+cd /d "%~dp0"
 
-:: 保持窗口打开，显示所有输出
 pause
