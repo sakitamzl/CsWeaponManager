@@ -1,8 +1,7 @@
 <template>
   <div class="dev-tool-container">
-    <div class="card dev-card">
-      <!-- 饰品映射同步区域 -->
-      <div class="sync-section">
+    <!-- 饰品映射同步区域 -->
+    <div class="sync-section">
         <h2 class="section-title">平台饰品映射</h2>
         
         <div class="sync-controls">
@@ -96,8 +95,6 @@
         <div v-if="lastCsqaqTime" class="sync-info" style="margin-top: 0.5rem;">
           <span class="sync-time">最后采集时间: {{ lastCsqaqTime }}</span>
         </div>
-      </div>
-      
     </div>
   </div>
 </template>
@@ -475,13 +472,8 @@ export default {
 .dev-tool-container {
   width: 100%;
   padding: 1rem;
-}
-
-.dev-card {
-  padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;
-  min-height: 400px;
 }
 
 .dev-title {
@@ -709,8 +701,8 @@ export default {
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .dev-card {
-    padding: 1rem;
+  .dev-tool-container {
+    padding: 0.5rem;
   }
 
   .dev-title {

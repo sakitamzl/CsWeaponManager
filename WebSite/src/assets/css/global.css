@@ -253,7 +253,6 @@ div, section, article, aside, main, header, footer, nav {
 
 /* 卡片样式 */
 .card {
-    background-color: var(--bg-secondary);
     border-radius: 0.5rem;
     padding: clamp(1rem, 2.5vw, 1.25rem);
     margin-bottom: clamp(0.75rem, 2vw, 1.25rem);
