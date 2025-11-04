@@ -62,6 +62,7 @@
       <!-- 统一的工具区域 -->
       <div class="unified-tool-section" :class="{ collapsed: isToolSectionCollapsed }">
         <div class="tool-section-header" @click="toggleToolSection">
+          <h2 class="section-title">爬取配置</h2>
           <el-button type="text" class="collapse-btn">
             <el-icon :size="20">
               <ArrowUp v-if="!isToolSectionCollapsed" />
@@ -72,7 +73,6 @@
         
         <div class="tool-section-content" v-show="!isToolSectionCollapsed">
         <div class="tool-section">
-        <h2 class="section-title">爬取配置</h2>
         
         <div class="form-container">
           <el-form :model="crawlForm" label-width="120px" ref="crawlFormRef">
@@ -257,15 +257,30 @@
               style="width: 200px;"
             >
               <el-option label="全部稀有度" value="" />
-              <el-option label="隐秘" value="隐秘" />
-              <el-option label="保密" value="保密" />
-              <el-option label="受限" value="受限" />
-              <el-option label="军规级" value="军规级" />
-              <el-option label="工业级" value="工业级" />
-              <el-option label="消费级" value="消费级" />
-              <el-option label="非凡" value="非凡" />
-              <el-option label="奇异" value="奇异" />
-              <el-option label="违禁" value="违禁" />
+              <el-option label="违禁" value="违禁">
+                <span :style="{ color: getRarityColor('违禁'), fontWeight: 600 }">违禁</span>
+              </el-option>
+              <el-option label="隐秘" value="隐秘">
+                <span :style="{ color: getRarityColor('隐秘'), fontWeight: 600 }">隐秘</span>
+              </el-option>
+              <el-option label="保密" value="保密">
+                <span :style="{ color: getRarityColor('保密'), fontWeight: 600 }">保密</span>
+              </el-option>
+              <el-option label="受限" value="受限">
+                <span :style="{ color: getRarityColor('受限'), fontWeight: 600 }">受限</span>
+              </el-option>
+              <el-option label="军规级" value="军规级">
+                <span :style="{ color: getRarityColor('军规级'), fontWeight: 600 }">军规级</span>
+              </el-option>
+              <el-option label="工业级" value="工业级">
+                <span :style="{ color: getRarityColor('工业级'), fontWeight: 600 }">工业级</span>
+              </el-option>
+              <el-option label="消费级" value="消费级">
+                <span :style="{ color: getRarityColor('消费级'), fontWeight: 600 }">消费级</span>
+              </el-option>
+              <el-option label="普通级" value="普通级">
+                <span :style="{ color: getRarityColor('普通级'), fontWeight: 600 }">普通级</span>
+              </el-option>
             </el-select>
             
             <el-input 
@@ -275,9 +290,7 @@
               clearable
               style="width: 150px;"
               class="no-spinner"
-            >
-              <template #prefix>¥</template>
-            </el-input>
+            />
             
             <el-input 
               v-model.number="weaponSearchFilters.priceMax" 
@@ -286,9 +299,7 @@
               clearable
               style="width: 150px;"
               class="no-spinner"
-            >
-              <template #prefix>¥</template>
-            </el-input>
+            />
             
             <el-input 
               v-model.number="weaponSearchFilters.minOnSaleCount" 
@@ -297,9 +308,7 @@
               clearable
               style="width: 150px;"
               class="no-spinner"
-            >
-              <template #prefix>#</template>
-            </el-input>
+            />
           </div>
           
           <el-input
@@ -328,20 +337,30 @@
             <span class="results-title">
               搜索结果 ({{ weaponSearchResults.length }} 件)
             </span>
-            <el-button 
-              type="text" 
-              size="small"
-              @click="clearWeaponSearch"
-            >
-              清除结果
-            </el-button>
+            <div class="results-actions">
+              <el-button 
+                type="success" 
+                size="small"
+                @click="addAllWeaponIds"
+                :disabled="weaponSearchResults.length === 0"
+              >
+                <el-icon><Document /></el-icon>
+                一键添加全部
+              </el-button>
+              <el-button 
+                type="text" 
+                size="small"
+                @click="clearWeaponSearch"
+              >
+                清除结果
+              </el-button>
+            </div>
           </div>
           
           <div class="table-wrapper" @scroll="handleTableScroll">
           <el-table 
             :data="weaponSearchResults" 
             style="width: 100%"
-            height="400"
             :row-class-name="getRowClassName"
           >
             <el-table-column type="index" label="#" width="60" align="center" />
@@ -361,6 +380,15 @@
             <el-table-column label="武器类型" width="120" align="center">
               <template #default="{ row }">
                 <el-tag size="small" type="info">{{ row.weapon_type || '-' }}</el-tag>
+              </template>
+            </el-table-column>
+            
+            <el-table-column label="稀有度" width="120" align="center">
+              <template #default="{ row }">
+                <span v-if="row.Rarity" class="rarity-text" :style="{ color: getRarityColor(row.Rarity) }">
+                  {{ row.Rarity }}
+                </span>
+                <span v-else class="no-data">-</span>
               </template>
             </el-table-column>
             
@@ -1442,9 +1470,71 @@ export default {
         id: weaponId.toString(),
         name: row.market_listing_item_name || row.name || '未知饰品'
       })
-      
+
       const platformName = crawlForm.value.platformType === 'buff' ? 'BUFF' : '悠悠有品'
       ElMessage.success(`已添加${platformName}饰品: ${row.market_listing_item_name || row.name}`)
+    }
+
+    // 一键添加全部饰品ID
+    const addAllWeaponIds = async () => {
+      if (!weaponSearchResults.value || weaponSearchResults.value.length === 0) {
+        ElMessage.warning('没有可添加的饰品')
+        return
+      }
+
+      try {
+        const platformName = crawlForm.value.platformType === 'buff' ? 'BUFF' : '悠悠有品'
+        
+        await ElMessageBox.confirm(
+          `确定要添加全部 ${weaponSearchResults.value.length} 个饰品吗？`,
+          '确认添加',
+          {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'info'
+          }
+        )
+
+        let addedCount = 0
+        let skippedCount = 0
+        let noIdCount = 0
+
+        weaponSearchResults.value.forEach(row => {
+          const weaponId = getWeaponIdByPlatform(row)
+          
+          // 没有ID的跳过
+          if (!weaponId) {
+            noIdCount++
+            return
+          }
+
+          // 已存在的跳过
+          if (crawlForm.value.weaponId.some(w => w.id === weaponId.toString())) {
+            skippedCount++
+            return
+          }
+          
+          // 添加饰品对象
+          crawlForm.value.weaponId.push({
+            id: weaponId.toString(),
+            name: row.market_listing_item_name || row.name || '未知饰品'
+          })
+          
+          addedCount++
+        })
+
+        let message = `添加完成！成功添加 ${addedCount} 个饰品`
+        if (skippedCount > 0) {
+          message += `，跳过 ${skippedCount} 个已存在的饰品`
+        }
+        if (noIdCount > 0) {
+          message += `，${noIdCount} 个饰品没有${platformName}ID`
+        }
+        
+        ElMessage.success(message)
+      } catch {
+        // 用户取消操作
+      }
     }
 
     // 删除饰品ID
@@ -1596,6 +1686,22 @@ export default {
       return 'weapon-row'
     }
 
+    // 获取稀有度颜色样式（与ItemSearch保持一致）
+    const getRarityColor = (rarity) => {
+      if (!rarity) return ''
+      const rarityColorMap = {
+        '违禁': '#e4ae39',      // 金色
+        '隐秘': '#eb4b4b',      // 红色
+        '保密': '#d32ce6',      // 紫色/粉色
+        '受限': '#8847ff',      // 紫色
+        '军规级': '#4b69ff',    // 蓝色
+        '工业级': '#5e98d9',    // 浅蓝色
+        '消费级': '#b0c3d9',    // 灰蓝色
+        '普通级': '#b0c3d9'     // 灰蓝色
+      }
+      return rarityColorMap[rarity] || '#fff'
+    }
+
     // 格式化 JSON
     const formatJson = () => {
       jsonValidationMessage.value = ''
@@ -1718,10 +1824,12 @@ export default {
       clearWeaponSearch,
       getWeaponIdByPlatform,
       addWeaponId,
+      addAllWeaponIds,
       removeWeaponId,
       clearAllWeaponIds,
       weaponIdList,
       getRowClassName,
+      getRarityColor,
       // 购买相关
       buyingItems,
       handleBuyWeapon,
@@ -1900,16 +2008,39 @@ export default {
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #333;
+  padding: 1rem;
+  background-color: #2a2a2a;
+  border-radius: 0.5rem;
   margin-bottom: 1.5rem;
   user-select: none;
+  transition: all 0.3s ease;
+}
+
+.tool-section-header:hover {
+  background-color: #333;
+}
+
+.tool-section-header .section-title {
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0;
+  flex: 1;
 }
 
 .unified-tool-section.collapsed .tool-section-header {
-  padding-bottom: 0;
-  border-bottom: none;
   margin-bottom: 0;
+}
+
+.collapse-btn {
+  padding: 0.25rem;
+  color: #4CAF50;
+  transition: transform 0.3s ease;
+}
+
+.collapse-btn:hover {
+  color: #66BB6A;
+  transform: scale(1.1);
 }
 
 .main-section-title {
@@ -1917,17 +2048,6 @@ export default {
   font-size: 1.5rem;
   font-weight: 600;
   margin: 0;
-}
-
-.collapse-btn {
-  color: #909399;
-  padding: 0.5rem;
-  transition: all 0.3s ease;
-}
-
-.collapse-btn:hover {
-  color: #409eff;
-  transform: scale(1.1);
 }
 
 .tool-section-content {
@@ -1981,9 +2101,32 @@ export default {
 }
 
 .table-wrapper {
-  max-height: 400px;
+  max-height: 500px;
   overflow-y: auto;
   overflow-x: hidden;
+  border: 1px solid #333;
+  border-top: none;
+  border-radius: 0 0 0.5rem 0.5rem;
+  background-color: #1a1a1a;
+}
+
+/* 自定义滚动条样式 */
+.table-wrapper::-webkit-scrollbar {
+  width: 8px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+  background: #2a2a2a;
+  border-radius: 4px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: #4CAF50;
+  border-radius: 4px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #66BB6A;
 }
 
 .results-header {
@@ -2001,6 +2144,12 @@ export default {
   font-size: 1rem;
   font-weight: 600;
   color: #4CAF50;
+}
+
+.results-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
 }
 
 .weapon-name {
@@ -2028,6 +2177,12 @@ export default {
   color: #409EFF;
   font-weight: 500;
   font-size: 0.9rem;
+}
+
+.rarity-text {
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
 }
 
 .platform-tip {

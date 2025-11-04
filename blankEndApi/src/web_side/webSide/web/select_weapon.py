@@ -168,54 +168,62 @@ def searchWeaponDetail():
             params=tuple(params) if params else None
         )
         
-        # 如果有价格筛选或在售数量筛选，在Python层面进行过滤
+        # 价格筛选、在售数量筛选以及自动过滤在售数量为0的数据
         # 根据平台类型选择对应的价格字段和在售数量字段
-        if price_min or price_max or min_on_sale_count:
-            # 根据平台类型确定字段
-            price_field = 'yyyp_Price' if platform_type == 'youpin' else 'buff_Price'
-            on_sale_count_field = 'yyyp_OnSaleCount' if platform_type == 'youpin' else 'buff_OnSaleCount'
+        price_field = 'yyyp_Price' if platform_type == 'youpin' else 'buff_Price'
+        on_sale_count_field = 'yyyp_OnSaleCount' if platform_type == 'youpin' else 'buff_OnSaleCount'
+        
+        filtered_records = []
+        for record in records:
+            # 自动过滤在售数量为0的数据
+            on_sale_count_str = getattr(record, on_sale_count_field, None)
+            if on_sale_count_str:
+                try:
+                    on_sale_count = int(on_sale_count_str)
+                    if on_sale_count == 0:
+                        continue  # 跳过在售数量为0的记录
+                except (ValueError, TypeError):
+                    pass  # 无法解析的数据保留
             
-            filtered_records = []
-            for record in records:
-                # 价格筛选
-                if price_min or price_max:
-                    price_str = getattr(record, price_field, None)
-                    
-                    if not price_str:
-                        continue
-                    
-                    try:
-                        price = float(price_str)
-                        
-                        # 检查价格区间
-                        if price_min and price < float(price_min):
-                            continue
-                        if price_max and price > float(price_max):
-                            continue
-                    except (ValueError, TypeError):
-                        # 价格转换失败，跳过
-                        continue
+            # 价格筛选
+            if price_min or price_max:
+                price_str = getattr(record, price_field, None)
                 
-                # 在售数量筛选
-                if min_on_sale_count:
-                    on_sale_count_str = getattr(record, on_sale_count_field, None)
-                    
-                    if not on_sale_count_str:
-                        continue
-                    
-                    try:
-                        on_sale_count = int(on_sale_count_str)
-                        
-                        # 检查在售数量
-                        if on_sale_count < int(min_on_sale_count):
-                            continue
-                    except (ValueError, TypeError):
-                        # 在售数量转换失败，跳过
-                        continue
+                if not price_str:
+                    continue
                 
-                filtered_records.append(record)
+                try:
+                    price = float(price_str)
+                    
+                    # 检查价格区间
+                    if price_min and price < float(price_min):
+                        continue
+                    if price_max and price > float(price_max):
+                        continue
+                except (ValueError, TypeError):
+                    # 价格转换失败，跳过
+                    continue
             
-            records = filtered_records
+            # 在售数量筛选（最小在售数量）
+            if min_on_sale_count:
+                on_sale_count_str = getattr(record, on_sale_count_field, None)
+                
+                if not on_sale_count_str:
+                    continue
+                
+                try:
+                    on_sale_count = int(on_sale_count_str)
+                    
+                    # 检查在售数量
+                    if on_sale_count < int(min_on_sale_count):
+                        continue
+                except (ValueError, TypeError):
+                    # 在售数量转换失败，跳过
+                    continue
+            
+            filtered_records.append(record)
+        
+        records = filtered_records
         
         # 根据平台类型确定价格字段，并按价格正序排序
         price_field = 'yyyp_Price' if platform_type == 'youpin' else 'buff_Price'
