@@ -1417,8 +1417,48 @@ export default {
         return
       }
       
+      // 记录加载前的滚动位置和页面高度
+      const oldScrollHeight = document.documentElement.scrollHeight
+      const oldScrollTop = window.pageYOffset || document.documentElement.scrollTop
+      
+      console.log('🔄 开始加载更多', {
+        currentPage: currentPage.value,
+        oldScrollHeight,
+        oldScrollTop
+      })
+      
       currentPage.value++
       await loadWeaponData()
+      
+      // 等待 DOM 更新后调整滚动位置
+      await nextTick()
+      
+      // 加载完成后，将滚动位置向上调整，避免立即触发下一次加载
+      const newScrollHeight = document.documentElement.scrollHeight
+      const addedHeight = newScrollHeight - oldScrollHeight
+      
+      if (addedHeight > 0 && hasMore.value) {
+        // 将滚动位置设置到距离底部 300px 的位置
+        const clientHeight = window.innerHeight
+        const targetScrollTop = newScrollHeight - clientHeight - 300
+        
+        // 确保新的滚动位置不会小于原来的位置
+        if (targetScrollTop > oldScrollTop) {
+          window.scrollTo({
+            top: targetScrollTop,
+            behavior: 'auto'  // 使用 auto 立即跳转，不使用平滑滚动
+          })
+          
+          console.log('📍 调整滚动位置', {
+            oldScrollHeight,
+            newScrollHeight,
+            addedHeight,
+            oldScrollTop,
+            targetScrollTop,
+            distanceToBottom: newScrollHeight - targetScrollTop - clientHeight
+          })
+        }
+      }
     }
 
     // 页面滚动事件处理
@@ -1426,6 +1466,11 @@ export default {
     const handlePageScroll = () => {
       // 如果没有搜索结果，不处理滚动
       if (weaponSearchResults.value.length === 0) {
+        return
+      }
+      
+      // 如果爬取配置区域是展开状态，不触发自动加载
+      if (!isToolSectionCollapsed.value) {
         return
       }
       
