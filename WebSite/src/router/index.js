@@ -90,9 +90,9 @@ const routes = [
             meta: { title: '爬取改名' }
           },
           {
-            path: 'spider-sticker',
-            name: 'SpiderSticker',
-            component: () => import('@/views/settings/SpiderSticker.vue'),
+            path: 'spider-pendant',
+            name: 'SpiderPendant',
+            component: () => import('@/views/settings/SpiderPendant.vue'),
             meta: { title: '爬取挂件' }
           },
           {

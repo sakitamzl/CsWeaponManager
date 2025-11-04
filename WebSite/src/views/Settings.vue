@@ -36,8 +36,8 @@
             <span>爬取改名</span>
           </li>
           <li 
-            :class="{ active: $route.name === 'SpiderSticker' }"
-            @click="navigateTo('/settings/spider-sticker')"
+            :class="{ active: $route.name === 'SpiderPendant' }"
+            @click="navigateTo('/settings/spider-pendant')"
           >
             <el-icon :size="18">
               <PriceTag />

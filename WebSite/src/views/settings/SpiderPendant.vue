@@ -1,5 +1,5 @@
 <template>
-  <div class="spider-sticker-container">
+  <div class="spider-pendant-container">
     <div class="page-layout">
       <!-- 左侧配置管理栏 -->
       <aside class="config-sidebar">
@@ -385,7 +385,7 @@ import { Document, Delete, Refresh, ArrowUp, ArrowDown } from '@element-plus/ico
 import { API_CONFIG } from '@/config/api.js'
 
 export default {
-  name: 'SpiderSticker',
+  name: 'SpiderPendant',
   components: {
     Document,
     Delete,
@@ -564,7 +564,7 @@ export default {
 
         // 使用 fetch 进行流式请求
         const response = await fetch(
-          `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/auto_buy_sticker_weapon`,
+          `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/auto_buy_pendant_weapon`,
           {
             method: 'POST',
             headers: {
@@ -766,10 +766,10 @@ export default {
     // 加载配置列表
     const loadConfigList = async () => {
       try {
-        // 只加载 key1 = 'spider_sticker' 的配置
+        // 只加载 key1 = 'spider_pendant' 的配置
         const response = await axios.get(`${API_CONFIG.BASE_URL}/configV1/list`, {
           params: {
-            key1: 'spider_sticker'
+            key1: 'spider_pendant'
           }
         })
         
@@ -913,7 +913,7 @@ export default {
 
         const configData = {
           dataName: crawlForm.value.configName,
-          key1: 'spider_sticker',
+          key1: 'spider_pendant',
           key2: key2,
           value: JSON.stringify(valueObj)
         }
@@ -1340,7 +1340,7 @@ export default {
 </script>
 
 <style scoped>
-.spider-sticker-container {
+.spider-pendant-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
   padding: 2rem;
