@@ -318,6 +318,7 @@
             style="width: 100%"
             max-height="400"
             :row-class-name="getRowClassName"
+            @scroll.native="handleTableScroll"
           >
             <el-table-column type="index" label="#" width="60" align="center" />
             
@@ -366,6 +367,20 @@
               </template>
             </el-table-column>
           </el-table>
+          
+          <!-- 加载更多提示 -->
+          <div v-if="weaponSearchResults.length > 0" class="load-more-container">
+            <div v-if="isLoadingMore" class="loading-more">
+              <el-icon class="is-loading"><Loading /></el-icon>
+              <span>加载中...</span>
+            </div>
+            <div v-else-if="!hasMore" class="no-more-data">
+              已加载全部 {{ weaponSearchResults.length }} 条数据
+            </div>
+            <div v-else class="can-load-more">
+              已加载 {{ weaponSearchResults.length }} 条，下拉加载更多
+            </div>
+          </div>
         </div>
         </div>
 
@@ -500,6 +515,10 @@ export default {
     const weaponSearchKeyword = ref('')
     const weaponSearchResults = ref([])
     const isSearchingWeapon = ref(false)
+    const isLoadingMore = ref(false)  // 加载更多数据中
+    const currentPage = ref(1)  // 当前页码
+    const pageSize = ref(50)  // 每页数量
+    const hasMore = ref(true)  // 是否还有更多数据
     const weaponSearchFilters = ref({
       weaponType: '',  // 武器类型筛选
       weaponName: '',  // 武器名称筛选
@@ -1214,6 +1233,8 @@ export default {
       weaponSearchFilters.value.priceMin = null
       weaponSearchFilters.value.priceMax = null
       weaponNameList.value = []
+      currentPage.value = 1
+      hasMore.value = true
     }
 
     // 根据平台类型获取对应的饰品ID

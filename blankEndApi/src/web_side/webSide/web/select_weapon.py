@@ -117,8 +117,10 @@ def searchWeaponDetail():
         rarity - 稀有度筛选（可选）
         priceMin - 最低价格（可选）
         priceMax - 最高价格（可选）
+        page - 页码（可选，默认1）
+        limit - 每页数量（可选，默认50）
         如果所有参数都为空，则返回全部数据
-    返回: 匹配的武器完整信息列表（所有字段，不限制数量，不去重）
+    返回: 匹配的武器完整信息列表（按价格正序排序）
     """
     try:
         platform_type = request.args.get('platformType', 'youpin')
@@ -128,6 +130,8 @@ def searchWeaponDetail():
         rarity = request.args.get('rarity', '')
         price_min = request.args.get('priceMin', '')
         price_max = request.args.get('priceMax', '')
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 50))
         
         # 构建查询条件
         where_clauses = []
@@ -192,9 +196,31 @@ def searchWeaponDetail():
             
             records = filtered_records
         
+        # 根据平台类型确定价格字段，并按价格正序排序
+        price_field = 'yyyp_Price' if platform_type == 'youpin' else 'buff_Price'
+        
+        # 对结果按价格正序排序
+        sorted_records = []
+        for record in records:
+            price_str = getattr(record, price_field, None)
+            try:
+                price = float(price_str) if price_str else float('inf')
+            except (ValueError, TypeError):
+                price = float('inf')
+            sorted_records.append((record, price))
+        
+        # 按价格排序（正序：从低到高）
+        sorted_records.sort(key=lambda x: x[1])
+        
+        # 分页处理
+        total_count = len(sorted_records)
+        start_index = (page - 1) * limit
+        end_index = start_index + limit
+        paginated_records = sorted_records[start_index:end_index]
+        
         # 返回完整的武器信息
         results = []
-        for record in records:
+        for record, price in paginated_records:
             weapon_data = {
                 'steam_hash_name': record.steam_hash_name,
                 'market_listing_item_name': record.market_listing_item_name,
@@ -207,14 +233,19 @@ def searchWeaponDetail():
                 'weapon_name': record.weapon_name,
                 'item_name': record.item_name,
                 'float_range': record.float_range,
-                'Rarity': record.Rarity
+                'Rarity': record.Rarity,
+                'yyyp_Price': record.yyyp_Price,
+                'buff_Price': record.buff_Price
             }
             results.append(weapon_data)
         
         return jsonify({
             "success": True,
             "data": results,
-            "count": len(results)
+            "count": len(results),
+            "total": total_count,
+            "page": page,
+            "limit": limit
         }), 200
         
     except Exception as e:
