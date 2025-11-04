@@ -313,12 +313,12 @@
             </el-button>
           </div>
           
+          <div class="table-wrapper" @scroll="handleTableScroll">
           <el-table 
             :data="weaponSearchResults" 
             style="width: 100%"
-            max-height="400"
+            height="400"
             :row-class-name="getRowClassName"
-            @scroll.native="handleTableScroll"
           >
             <el-table-column type="index" label="#" width="60" align="center" />
             
@@ -379,6 +379,7 @@
               </template>
             </el-table-column>
           </el-table>
+          </div>
           
           <!-- 加载更多提示 -->
           <div v-if="weaponSearchResults.length > 0" class="load-more-container">
@@ -1282,13 +1283,19 @@ export default {
 
     // 表格滚动事件处理
     const handleTableScroll = (event) => {
-      const target = event.target.querySelector('.el-table__body-wrapper')
+      const target = event.target
       if (!target) return
       
       const { scrollTop, scrollHeight, clientHeight } = target
       
       // 滚动到底部触发加载更多（距离底部100px时触发）
       if (scrollHeight - scrollTop - clientHeight < 100 && hasMore.value && !isLoadingMore.value) {
+        console.log('触发加载更多', {
+          scrollTop,
+          scrollHeight,
+          clientHeight,
+          distance: scrollHeight - scrollTop - clientHeight
+        })
         loadMoreWeapons()
       }
     }
@@ -1850,6 +1857,12 @@ export default {
 
 .search-results-table {
   margin-top: 1rem;
+}
+
+.table-wrapper {
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .results-header {
