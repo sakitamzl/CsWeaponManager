@@ -117,6 +117,7 @@ def searchWeaponDetail():
         rarity - 稀有度筛选（可选）
         priceMin - 最低价格（可选）
         priceMax - 最高价格（可选）
+        minOnSaleCount - 最小在售数量（可选）
         page - 页码（可选，默认1）
         limit - 每页数量（可选，默认50）
         如果所有参数都为空，则返回全部数据
@@ -130,6 +131,7 @@ def searchWeaponDetail():
         rarity = request.args.get('rarity', '')
         price_min = request.args.get('priceMin', '')
         price_max = request.args.get('priceMax', '')
+        min_on_sale_count = request.args.get('minOnSaleCount', '')
         page = int(request.args.get('page', 1))
         limit = int(request.args.get('limit', 50))
         
@@ -166,33 +168,52 @@ def searchWeaponDetail():
             params=tuple(params) if params else None
         )
         
-        # 如果有价格筛选，在Python层面进行过滤
-        # 根据平台类型选择对应的价格字段
-        if price_min or price_max:
-            # 根据平台类型确定价格字段
+        # 如果有价格筛选或在售数量筛选，在Python层面进行过滤
+        # 根据平台类型选择对应的价格字段和在售数量字段
+        if price_min or price_max or min_on_sale_count:
+            # 根据平台类型确定字段
             price_field = 'yyyp_Price' if platform_type == 'youpin' else 'buff_Price'
+            on_sale_count_field = 'yyyp_OnSaleCount' if platform_type == 'youpin' else 'buff_OnSaleCount'
             
             filtered_records = []
             for record in records:
-                # 获取对应平台的价格
-                price_str = getattr(record, price_field, None)
-                
-                if not price_str:
-                    continue
-                
-                try:
-                    price = float(price_str)
+                # 价格筛选
+                if price_min or price_max:
+                    price_str = getattr(record, price_field, None)
                     
-                    # 检查价格区间
-                    if price_min and price < float(price_min):
-                        continue
-                    if price_max and price > float(price_max):
+                    if not price_str:
                         continue
                     
-                    filtered_records.append(record)
-                except (ValueError, TypeError):
-                    # 价格转换失败，跳过
-                    continue
+                    try:
+                        price = float(price_str)
+                        
+                        # 检查价格区间
+                        if price_min and price < float(price_min):
+                            continue
+                        if price_max and price > float(price_max):
+                            continue
+                    except (ValueError, TypeError):
+                        # 价格转换失败，跳过
+                        continue
+                
+                # 在售数量筛选
+                if min_on_sale_count:
+                    on_sale_count_str = getattr(record, on_sale_count_field, None)
+                    
+                    if not on_sale_count_str:
+                        continue
+                    
+                    try:
+                        on_sale_count = int(on_sale_count_str)
+                        
+                        # 检查在售数量
+                        if on_sale_count < int(min_on_sale_count):
+                            continue
+                    except (ValueError, TypeError):
+                        # 在售数量转换失败，跳过
+                        continue
+                
+                filtered_records.append(record)
             
             records = filtered_records
         

@@ -112,25 +112,33 @@
                   <el-option label="悠悠有品" value="youpin" />
                   <el-option label="BUFF" value="buff" />
                 </el-select>
-                <div v-if="weaponIdList && weaponIdList.length > 0" class="platform-tip">
-                  <el-icon><InfoFilled /></el-icon>
-                  <span>饰品列表不为空时无法切换平台</span>
-                </div>
               </el-form-item>
             </div>
 
             <el-form-item label="饰品列表">
-              <div class="weapon-id-tags">
-                <el-tag
-                  v-for="weapon in weaponIdList"
-                  :key="weapon.id"
-                  closable
-                  @close="removeWeaponId(weapon.id)"
-                  type="primary"
-                  size="large"
+              <div class="weapon-id-section">
+                <div class="weapon-id-tags">
+                  <el-tag
+                    v-for="weapon in weaponIdList"
+                    :key="weapon.id"
+                    closable
+                    @close="removeWeaponId(weapon.id)"
+                    type="primary"
+                    size="large"
+                  >
+                    {{ weapon.name }} (ID: {{ weapon.id }})
+                  </el-tag>
+                </div>
+                <el-button 
+                  v-if="weaponIdList && weaponIdList.length > 0"
+                  type="danger" 
+                  size="small"
+                  @click="clearAllWeaponIds"
+                  style="margin-left: 10px;"
                 >
-                  {{ weapon.name }} (ID: {{ weapon.id }})
-                </el-tag>
+                  <el-icon><Delete /></el-icon>
+                  一键清空
+                </el-button>
               </div>
             </el-form-item>
 
@@ -280,6 +288,17 @@
               class="no-spinner"
             >
               <template #prefix>¥</template>
+            </el-input>
+            
+            <el-input 
+              v-model.number="weaponSearchFilters.minOnSaleCount" 
+              placeholder="最小在售数量"
+              type="number"
+              clearable
+              style="width: 150px;"
+              class="no-spinner"
+            >
+              <template #prefix>#</template>
             </el-input>
           </div>
           
@@ -518,7 +537,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Document, Delete, Refresh, ArrowUp, ArrowDown } from '@element-plus/icons-vue'
+import { Document, Delete, Refresh, ArrowUp, ArrowDown, InfoFilled, Loading } from '@element-plus/icons-vue'
 import { API_CONFIG } from '@/config/api.js'
 
 export default {
@@ -528,7 +547,9 @@ export default {
     Delete,
     Refresh,
     ArrowUp,
-    ArrowDown
+    ArrowDown,
+    InfoFilled,
+    Loading
   },
   setup() {
     const router = useRouter()
@@ -554,7 +575,8 @@ export default {
       weaponName: '',  // 武器名称筛选
       rarity: '',      // 稀有度筛选
       priceMin: null,  // 最低价格
-      priceMax: null   // 最高价格
+      priceMax: null,  // 最高价格
+      minOnSaleCount: null  // 最小在售数量
     })
     const weaponNameList = ref([])  // 武器名称列表
     const isLoadingWeaponNames = ref(false)  // 加载武器名称中
@@ -1027,6 +1049,60 @@ export default {
       ElMessage.info('已清空表单，可以创建新配置')
     }
 
+    // 平台类型改变处理
+    const handlePlatformTypeChange = () => {
+      // 实时保存配置
+      if (selectedConfigId.value) {
+        autoSaveConfig()
+      }
+    }
+
+    // 自动保存配置
+    const autoSaveConfig = async () => {
+      if (!crawlForm.value.configName) {
+        return
+      }
+
+      try {
+        // 验证JSON配置
+        const jsonValidation = validateJsonConfig()
+        if (!jsonValidation.valid) {
+          console.log('JSON配置格式错误，跳过自动保存')
+          return
+        }
+
+        // 构建配置对象
+        const valueObj = {
+          weapon_id: crawlForm.value.weaponId,
+          steam_id: crawlForm.value.steamId
+        }
+
+        // 如果有自定义配置，合并进去
+        if (jsonValidation.config) {
+          Object.assign(valueObj, jsonValidation.config)
+        }
+
+        // 根据平台类型设置 key2
+        const key2 = crawlForm.value.platformType === 'buff' ? 'buff' : 'youpin'
+
+        const configData = {
+          id: selectedConfigId.value,
+          dataName: crawlForm.value.configName,
+          key1: 'spider_pendant',
+          key2: key2,
+          value: JSON.stringify(valueObj)
+        }
+
+        const response = await axios.post(`${API_CONFIG.BASE_URL}/webConfigV1/updateConfig`, configData)
+        
+        if (response.data.success) {
+          console.log('配置已自动保存')
+        }
+      } catch (error) {
+        console.error('自动保存失败:', error)
+      }
+    }
+
     // 保存配置（直接保存，不弹窗）
     const saveConfig = async () => {
       if (!crawlForm.value.configName) {
@@ -1252,6 +1328,11 @@ export default {
           params.priceMax = weaponSearchFilters.value.priceMax
         }
         
+        // 如果设置了最小在售数量，添加到查询参数
+        if (weaponSearchFilters.value.minOnSaleCount !== null && weaponSearchFilters.value.minOnSaleCount !== '') {
+          params.minOnSaleCount = weaponSearchFilters.value.minOnSaleCount
+        }
+        
         const response = await axios.get(`${API_CONFIG.BASE_URL}/webSelectWeaponV1/searchWeaponDetail`, {
           params: params
         })
@@ -1370,6 +1451,26 @@ export default {
     const removeWeaponId = (idToRemove) => {
       crawlForm.value.weaponId = crawlForm.value.weaponId.filter(w => w.id !== idToRemove)
       ElMessage.success('已删除饰品')
+    }
+
+    // 一键清空饰品列表
+    const clearAllWeaponIds = async () => {
+      try {
+        await ElMessageBox.confirm(
+          `确定要清空所有饰品吗？此操作将清除 ${weaponIdList.value.length} 个饰品。`,
+          '确认清空',
+          {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        )
+        
+        crawlForm.value.weaponId = []
+        ElMessage.success('已清空所有饰品')
+      } catch {
+        // 用户取消操作
+      }
     }
 
     // 购买饰品
@@ -1618,6 +1719,7 @@ export default {
       getWeaponIdByPlatform,
       addWeaponId,
       removeWeaponId,
+      clearAllWeaponIds,
       weaponIdList,
       getRowClassName,
       // 购买相关
@@ -2010,11 +2112,19 @@ export default {
   margin-left: 0.5rem;
 }
 
+.weapon-id-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+}
+
 .weapon-id-tags {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+  flex: 1;
 }
 
 .action-buttons {
