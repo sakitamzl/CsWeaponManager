@@ -357,7 +357,6 @@
             </div>
           </div>
           
-          <div class="table-wrapper" @scroll="handleTableScroll">
           <el-table 
             :data="weaponSearchResults" 
             style="width: 100%"
@@ -443,7 +442,6 @@
               </template>
             </el-table-column>
           </el-table>
-          </div>
           
           <!-- 加载更多提示 -->
           <div v-if="weaponSearchResults.length > 0" class="load-more-container">
@@ -561,7 +559,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -1407,15 +1405,17 @@ export default {
       await loadWeaponData()
     }
 
-    // 表格滚动事件处理
-    const handleTableScroll = (event) => {
-      const target = event.target
-      if (!target) return
+    // 页面滚动事件处理
+    const handlePageScroll = () => {
+      // 如果没有搜索结果，不处理滚动
+      if (weaponSearchResults.value.length === 0) return
       
-      const { scrollTop, scrollHeight, clientHeight } = target
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+      const scrollHeight = document.documentElement.scrollHeight
+      const clientHeight = window.innerHeight
       
-      // 滚动到底部触发加载更多（距离底部100px时触发）
-      if (scrollHeight - scrollTop - clientHeight < 100 && hasMore.value && !isLoadingMore.value) {
+      // 滚动到底部触发加载更多（距离底部200px时触发）
+      if (scrollHeight - scrollTop - clientHeight < 200 && hasMore.value && !isLoadingMore.value) {
         console.log('触发加载更多', {
           scrollTop,
           scrollHeight,
@@ -1785,6 +1785,14 @@ export default {
     onMounted(() => {
       loadSteamIdList()
       loadConfigList()
+      
+      // 添加页面滚动监听
+      window.addEventListener('scroll', handlePageScroll)
+    })
+
+    onUnmounted(() => {
+      // 移除页面滚动监听
+      window.removeEventListener('scroll', handlePageScroll)
     })
 
     return {
@@ -1820,7 +1828,6 @@ export default {
       handleWeaponTypeChange,
       handleSearchWeapon,
       loadMoreWeapons,
-      handleTableScroll,
       clearWeaponSearch,
       getWeaponIdByPlatform,
       addWeaponId,
@@ -2098,35 +2105,10 @@ export default {
 
 .search-results-table {
   margin-top: 1rem;
-}
-
-.table-wrapper {
-  max-height: 500px;
-  overflow-y: auto;
-  overflow-x: hidden;
   border: 1px solid #333;
   border-top: none;
   border-radius: 0 0 0.5rem 0.5rem;
-  background-color: #1a1a1a;
-}
-
-/* 自定义滚动条样式 */
-.table-wrapper::-webkit-scrollbar {
-  width: 8px;
-}
-
-.table-wrapper::-webkit-scrollbar-track {
-  background: #2a2a2a;
-  border-radius: 4px;
-}
-
-.table-wrapper::-webkit-scrollbar-thumb {
-  background: #4CAF50;
-  border-radius: 4px;
-}
-
-.table-wrapper::-webkit-scrollbar-thumb:hover {
-  background: #66BB6A;
+  overflow: hidden;
 }
 
 .results-header {
