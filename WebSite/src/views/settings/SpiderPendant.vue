@@ -333,11 +333,11 @@
 
         <!-- 搜索结果表格 -->
         <div v-if="weaponSearchResults.length > 0" class="search-results-table">
-          <div class="results-header">
+          <div class="results-header" @click="toggleSearchResults">
             <span class="results-title">
               搜索结果 ({{ weaponSearchResults.length }} 件)
             </span>
-            <div class="results-actions">
+            <div class="results-actions" @click.stop>
               <el-button 
                 type="success" 
                 size="small"
@@ -354,9 +354,16 @@
               >
                 清除结果
               </el-button>
+              <el-button type="text" class="collapse-btn">
+                <el-icon :size="20">
+                  <ArrowUp v-if="!isSearchResultsCollapsed" />
+                  <ArrowDown v-else />
+                </el-icon>
+              </el-button>
             </div>
           </div>
           
+          <div v-show="!isSearchResultsCollapsed">
           <el-table 
             :data="weaponSearchResults" 
             style="width: 100%"
@@ -444,7 +451,7 @@
           </el-table>
           
           <!-- 加载更多提示 -->
-          <div v-if="weaponSearchResults.length > 0" class="load-more-container">
+          <div class="load-more-container">
             <div v-if="isLoadingMore" class="loading-more">
               <el-icon class="is-loading"><Loading /></el-icon>
               <span>加载中...</span>
@@ -456,8 +463,9 @@
               已加载 {{ weaponSearchResults.length }} 条，下拉加载更多
             </div>
           </div>
+          </div>
         </div>
-        </div>
+      </div>
 
         </div>
         <!-- 结束 tool-section-content -->
@@ -612,6 +620,7 @@ export default {
     
     // 工具区域折叠状态
     const isToolSectionCollapsed = ref(false)
+    const isSearchResultsCollapsed = ref(false)  // 搜索结果列表折叠状态
     
     // JSON 验证相关
     const jsonValidationMessage = ref('')
@@ -677,6 +686,11 @@ export default {
     // 切换工具区域显示/隐藏
     const toggleToolSection = () => {
       isToolSectionCollapsed.value = !isToolSectionCollapsed.value
+    }
+
+    // 切换搜索结果列表显示/隐藏
+    const toggleSearchResults = () => {
+      isSearchResultsCollapsed.value = !isSearchResultsCollapsed.value
     }
 
     // 开始爬取（流式接收）
@@ -1930,6 +1944,8 @@ export default {
       // 工具区域折叠
       isToolSectionCollapsed,
       toggleToolSection,
+      isSearchResultsCollapsed,
+      toggleSearchResults,
       // JSON 编辑器
       jsonValidationMessage,
       jsonValidationStatus,
@@ -2207,6 +2223,13 @@ export default {
   border-radius: 0.5rem 0.5rem 0 0;
   border: 1px solid #333;
   border-bottom: none;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.3s ease;
+}
+
+.results-header:hover {
+  background-color: #333;
 }
 
 .results-title {
