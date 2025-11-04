@@ -1367,6 +1367,13 @@ export default {
           const newData = response.data.data || []
           const total = response.data.total || 0
           
+          console.log('📦 加载数据响应', {
+            page: currentPage.value,
+            newDataLength: newData.length,
+            total,
+            pageSize: pageSize.value
+          })
+          
           if (currentPage.value === 1) {
             weaponSearchResults.value = newData
             if (newData.length === 0) {
@@ -1377,10 +1384,19 @@ export default {
             }
           } else {
             weaponSearchResults.value.push(...newData)
+            console.log(`📥 追加 ${newData.length} 条数据，总计 ${weaponSearchResults.value.length} 条`)
           }
           
           // 判断是否还有更多数据
-          hasMore.value = newData.length >= pageSize.value
+          const hasMoreData = newData.length >= pageSize.value
+          hasMore.value = hasMoreData
+          
+          console.log('📊 加载状态', {
+            hasMore: hasMore.value,
+            currentTotal: weaponSearchResults.value.length,
+            newDataLength: newData.length,
+            pageSize: pageSize.value
+          })
           
         } else {
           ElMessage.error(response.data.message || '搜索失败')
@@ -1406,24 +1422,41 @@ export default {
     }
 
     // 页面滚动事件处理
+    let scrollTimer = null
     const handlePageScroll = () => {
       // 如果没有搜索结果，不处理滚动
-      if (weaponSearchResults.value.length === 0) return
+      if (weaponSearchResults.value.length === 0) {
+        return
+      }
       
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop
-      const scrollHeight = document.documentElement.scrollHeight
-      const clientHeight = window.innerHeight
+      // 防抖处理，避免频繁触发
+      if (scrollTimer) {
+        clearTimeout(scrollTimer)
+      }
       
-      // 滚动到底部触发加载更多（距离底部200px时触发）
-      if (scrollHeight - scrollTop - clientHeight < 200 && hasMore.value && !isLoadingMore.value) {
-        console.log('触发加载更多', {
-          scrollTop,
+      scrollTimer = setTimeout(() => {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+        const scrollHeight = document.documentElement.scrollHeight
+        const clientHeight = window.innerHeight
+        const distanceToBottom = scrollHeight - scrollTop - clientHeight
+        
+        console.log('滚动位置检查', {
+          scrollTop: Math.round(scrollTop),
           scrollHeight,
           clientHeight,
-          distance: scrollHeight - scrollTop - clientHeight
+          distanceToBottom: Math.round(distanceToBottom),
+          hasMore: hasMore.value,
+          isLoadingMore: isLoadingMore.value,
+          currentPage: currentPage.value,
+          resultsCount: weaponSearchResults.value.length
         })
-        loadMoreWeapons()
-      }
+        
+        // 滚动到底部触发加载更多（距离底部200px时触发）
+        if (distanceToBottom < 200 && hasMore.value && !isLoadingMore.value) {
+          console.log('✅ 触发加载更多数据')
+          loadMoreWeapons()
+        }
+      }, 100) // 100ms 防抖延迟
     }
 
     // 清除搜索结果

@@ -168,57 +168,49 @@ def searchWeaponDetail():
             params=tuple(params) if params else None
         )
         
-        # 价格筛选、在售数量筛选以及自动过滤在售数量为0的数据
+        # 价格筛选、在售数量筛选以及自动过滤
         # 根据平台类型选择对应的价格字段和在售数量字段
         price_field = 'yyyp_Price' if platform_type == 'youpin' else 'buff_Price'
         on_sale_count_field = 'yyyp_OnSaleCount' if platform_type == 'youpin' else 'buff_OnSaleCount'
         
         filtered_records = []
         for record in records:
-            # 自动过滤在售数量为0的数据
+            # 1. 默认过滤：价格 < 1 的数据不查询
+            price_str = getattr(record, price_field, None)
+            if price_str:
+                try:
+                    price = float(price_str)
+                    if price < 1:
+                        continue  # 跳过价格小于1的记录
+                except (ValueError, TypeError):
+                    continue  # 价格无法解析的跳过
+            else:
+                continue  # 没有价格的跳过
+            
+            # 2. 默认过滤：在售数量 < 10 的数据不查询
             on_sale_count_str = getattr(record, on_sale_count_field, None)
             if on_sale_count_str:
                 try:
                     on_sale_count = int(on_sale_count_str)
-                    if on_sale_count == 0:
-                        continue  # 跳过在售数量为0的记录
+                    if on_sale_count < 10:
+                        continue  # 跳过在售数量小于10的记录
                 except (ValueError, TypeError):
-                    pass  # 无法解析的数据保留
+                    continue  # 在售数量无法解析的跳过
+            else:
+                continue  # 没有在售数量的跳过
             
-            # 价格筛选
+            # 3. 用户指定的价格筛选（价格已在步骤1中获取）
             if price_min or price_max:
-                price_str = getattr(record, price_field, None)
-                
-                if not price_str:
+                # 检查价格区间
+                if price_min and price < float(price_min):
                     continue
-                
-                try:
-                    price = float(price_str)
-                    
-                    # 检查价格区间
-                    if price_min and price < float(price_min):
-                        continue
-                    if price_max and price > float(price_max):
-                        continue
-                except (ValueError, TypeError):
-                    # 价格转换失败，跳过
+                if price_max and price > float(price_max):
                     continue
             
-            # 在售数量筛选（最小在售数量）
+            # 4. 用户指定的在售数量筛选（在售数量已在步骤2中获取）
             if min_on_sale_count:
-                on_sale_count_str = getattr(record, on_sale_count_field, None)
-                
-                if not on_sale_count_str:
-                    continue
-                
-                try:
-                    on_sale_count = int(on_sale_count_str)
-                    
-                    # 检查在售数量
-                    if on_sale_count < int(min_on_sale_count):
-                        continue
-                except (ValueError, TypeError):
-                    # 在售数量转换失败，跳过
+                # 检查在售数量是否满足用户指定的最小值
+                if on_sale_count < int(min_on_sale_count):
                     continue
             
             filtered_records.append(record)
