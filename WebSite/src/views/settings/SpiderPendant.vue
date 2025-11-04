@@ -1470,9 +1470,9 @@ export default {
         return
       }
       
-      // 如果爬取配置区域是展开状态，不触发自动加载
-      if (!isToolSectionCollapsed.value) {
-        console.log('❌ 跳过滚动检查：配置区域展开中')
+      // 只有在爬取配置区域是展开状态时，才触发自动加载
+      if (isToolSectionCollapsed.value) {
+        console.log('❌ 跳过滚动检查：配置区域已收起')
         return
       }
       
