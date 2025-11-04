@@ -235,7 +235,9 @@ def searchWeaponDetail():
                 'float_range': record.float_range,
                 'Rarity': record.Rarity,
                 'yyyp_Price': record.yyyp_Price,
-                'buff_Price': record.buff_Price
+                'buff_Price': record.buff_Price,
+                'yyyp_OnSaleCount': record.yyyp_OnSaleCount,
+                'buff_OnSaleCount': record.buff_OnSaleCount
             }
             results.append(weapon_data)
         

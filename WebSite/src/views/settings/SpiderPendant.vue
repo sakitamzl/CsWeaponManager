@@ -106,11 +106,16 @@
                   v-model="crawlForm.platformType" 
                   placeholder="选择平台类型"
                   style="width: 100%;"
-                  :disabled="!!selectedConfigId"
+                  :disabled="!!selectedConfigId || (weaponIdList && weaponIdList.length > 0)"
+                  @change="handlePlatformTypeChange"
                 >
                   <el-option label="悠悠有品" value="youpin" />
                   <el-option label="BUFF" value="buff" />
                 </el-select>
+                <div v-if="weaponIdList && weaponIdList.length > 0" class="platform-tip">
+                  <el-icon><InfoFilled /></el-icon>
+                  <span>饰品列表不为空时无法切换平台</span>
+                </div>
               </el-form-item>
             </div>
 
@@ -352,14 +357,26 @@
               </template>
             </el-table-column>
             
-            <el-table-column label="悠悠有品ID" width="130" align="center">
+            <el-table-column label="在售数量" width="100" align="center">
+              <template #default="{ row }">
+                <span class="count-text" v-if="crawlForm.platformType === 'youpin' && row.yyyp_OnSaleCount">
+                  {{ row.yyyp_OnSaleCount }}
+                </span>
+                <span class="count-text" v-else-if="crawlForm.platformType === 'buff' && row.buff_OnSaleCount">
+                  {{ row.buff_OnSaleCount }}
+                </span>
+                <span v-else class="no-data">-</span>
+              </template>
+            </el-table-column>
+            
+            <el-table-column v-if="crawlForm.platformType === 'youpin'" label="悠悠有品ID" width="130" align="center">
               <template #default="{ row }">
                 <el-tag type="warning" v-if="row.yyyp_id">{{ row.yyyp_id }}</el-tag>
                 <span v-else class="no-data">-</span>
               </template>
             </el-table-column>
             
-            <el-table-column label="BUFF ID" width="110" align="center">
+            <el-table-column v-if="crawlForm.platformType === 'buff'" label="BUFF ID" width="110" align="center">
               <template #default="{ row }">
                 <el-tag type="info" v-if="row.buff_id">{{ row.buff_id }}</el-tag>
                 <span v-else class="no-data">-</span>
@@ -1579,6 +1596,8 @@ export default {
       selectConfig,
       createNewConfig,
       saveConfig,
+      autoSaveConfig,
+      handlePlatformTypeChange,
       deleteConfig,
       deleteCurrentConfig,
       formatTime,
@@ -1901,6 +1920,21 @@ export default {
   color: #67C23A;
   font-weight: 600;
   font-size: 0.95rem;
+}
+
+.count-text {
+  color: #409EFF;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.platform-tip {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  color: #E6A23C;
+  font-size: 0.75rem;
 }
 
 .load-more-container {
