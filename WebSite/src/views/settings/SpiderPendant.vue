@@ -340,6 +340,18 @@
               </template>
             </el-table-column>
             
+            <el-table-column label="价格" width="100" align="center">
+              <template #default="{ row }">
+                <span class="price-text" v-if="crawlForm.platformType === 'youpin' && row.yyyp_Price">
+                  ¥{{ row.yyyp_Price }}
+                </span>
+                <span class="price-text" v-else-if="crawlForm.platformType === 'buff' && row.buff_Price">
+                  ¥{{ row.buff_Price }}
+                </span>
+                <span v-else class="no-data">-</span>
+              </template>
+            </el-table-column>
+            
             <el-table-column label="悠悠有品ID" width="130" align="center">
               <template #default="{ row }">
                 <el-tag type="warning" v-if="row.yyyp_id">{{ row.yyyp_id }}</el-tag>
@@ -1151,7 +1163,7 @@ export default {
       }
     }
 
-    // 搜索饰品
+    // 搜索饰品（重置并开始新搜索）
     const handleSearchWeapon = async () => {
       // 验证价格区间
       if (weaponSearchFilters.value.priceMin !== null && 
@@ -1161,10 +1173,33 @@ export default {
         return
       }
       
-      isSearchingWeapon.value = true
+      // 重置分页状态
+      currentPage.value = 1
+      weaponSearchResults.value = []
+      hasMore.value = true
+      
+      // 执行搜索
+      await loadWeaponData()
+    }
+
+    // 加载饰品数据
+    const loadWeaponData = async () => {
+      if (!hasMore.value && currentPage.value > 1) {
+        return
+      }
+      
+      const loading = currentPage.value === 1
+      if (loading) {
+        isSearchingWeapon.value = true
+      } else {
+        isLoadingMore.value = true
+      }
       
       try {
-        const params = {}
+        const params = {
+          page: currentPage.value,
+          limit: pageSize.value
+        }
         
         // 使用爬取配置中的平台类型
         params.platformType = crawlForm.value.platformType
@@ -1204,13 +1239,24 @@ export default {
         })
         
         if (response.data.success) {
-          weaponSearchResults.value = response.data.data || []
+          const newData = response.data.data || []
+          const total = response.data.total || 0
           
-          if (weaponSearchResults.value.length === 0) {
-            ElMessage.info('未找到匹配的饰品')
+          if (currentPage.value === 1) {
+            weaponSearchResults.value = newData
+            if (newData.length === 0) {
+              ElMessage.info('未找到匹配的饰品')
+              hasMore.value = false
+            } else {
+              ElMessage.success(`找到 ${total} 件饰品，已加载 ${newData.length} 件`)
+            }
           } else {
-            ElMessage.success(`找到 ${weaponSearchResults.value.length} 件饰品`)
+            weaponSearchResults.value.push(...newData)
           }
+          
+          // 判断是否还有更多数据
+          hasMore.value = newData.length >= pageSize.value
+          
         } else {
           ElMessage.error(response.data.message || '搜索失败')
         }
@@ -1220,6 +1266,30 @@ export default {
         ElMessage.error(errorMessage)
       } finally {
         isSearchingWeapon.value = false
+        isLoadingMore.value = false
+      }
+    }
+
+    // 加载更多数据
+    const loadMoreWeapons = async () => {
+      if (isLoadingMore.value || !hasMore.value) {
+        return
+      }
+      
+      currentPage.value++
+      await loadWeaponData()
+    }
+
+    // 表格滚动事件处理
+    const handleTableScroll = (event) => {
+      const target = event.target.querySelector('.el-table__body-wrapper')
+      if (!target) return
+      
+      const { scrollTop, scrollHeight, clientHeight } = target
+      
+      // 滚动到底部触发加载更多（距离底部100px时触发）
+      if (scrollHeight - scrollTop - clientHeight < 100 && hasMore.value && !isLoadingMore.value) {
+        loadMoreWeapons()
       }
     }
 
@@ -1509,11 +1579,15 @@ export default {
       weaponSearchKeyword,
       weaponSearchResults,
       isSearchingWeapon,
+      isLoadingMore,
+      hasMore,
       weaponSearchFilters,
       weaponNameList,
       isLoadingWeaponNames,
       handleWeaponTypeChange,
       handleSearchWeapon,
+      loadMoreWeapons,
+      handleTableScroll,
       clearWeaponSearch,
       getWeaponIdByPlatform,
       addWeaponId,
@@ -1808,6 +1882,35 @@ export default {
 .no-data {
   color: #666;
   font-size: 0.875rem;
+}
+
+.price-text {
+  color: #67C23A;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.load-more-container {
+  text-align: center;
+  padding: 1rem;
+  color: #909399;
+  font-size: 0.875rem;
+}
+
+.loading-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: #409EFF;
+}
+
+.no-more-data {
+  color: #909399;
+}
+
+.can-load-more {
+  color: #606266;
 }
 
 .weapon-row {
