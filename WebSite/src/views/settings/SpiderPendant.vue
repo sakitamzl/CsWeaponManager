@@ -502,19 +502,16 @@
             
             <el-table-column label="溢价" width="100">
               <template #default="scope">
-                <el-tag type="success" size="small">
-                  +¥{{ scope.row.spread.toFixed(2) }}
+                <el-tag type="danger" size="small">
+                  {{ scope.row.spread.toFixed(2) }}
                 </el-tag>
               </template>
             </el-table-column>
             
             <el-table-column label="差价" width="120" align="center">
               <template #default="scope">
-                <el-tag 
-                  :type="scope.row.priceDiff >= 0 ? 'success' : 'danger'" 
-                  size="small"
-                >
-                  {{ scope.row.priceDiff >= 0 ? '+' : '' }}¥{{ scope.row.priceDiff.toFixed(2) }}
+                <el-tag type="success" size="small">
+                  +{{ scope.row.priceDiff.toFixed(2) }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -1682,9 +1679,8 @@ export default {
       // 确认购买
       try {
         const pendantNames = item.pendants ? item.pendants.map(p => p.name).join(', ') : '无'
-        const priceDiffText = item.priceDiff >= 0 ? `+¥${item.priceDiff.toFixed(2)}` : `-¥${Math.abs(item.priceDiff).toFixed(2)}`
         await ElMessageBox.confirm(
-          `确认购买该商品吗？\n\n挂件：${pendantNames}\n价格：¥${item.price}\n磨损：${item.abrade || '-'}\n溢价：+¥${item.spread.toFixed(2)}\n差价：${priceDiffText}`,
+          `确认购买该商品吗？\n\n挂件：${pendantNames}\n价格：¥${item.price}\n磨损：${item.abrade || '-'}\n溢价：${item.spread.toFixed(2)}\n差价：+${item.priceDiff.toFixed(2)}`,
           '确认购买',
           {
             confirmButtonText: '确认购买',
