@@ -59,11 +59,14 @@ def searchWeapon():
 def searchWeaponDetail():
     """
     根据market_listing_item_name模糊搜索武器详细信息（用于表格展示）
-    参数: keyword - 搜索关键词
+    参数: 
+        keyword - 搜索关键词
+        rarity - 稀有度筛选（可选）
     返回: 匹配的武器完整信息列表（所有字段，不限制数量，不去重）
     """
     try:
         keyword = request.args.get('keyword', '')
+        rarity = request.args.get('rarity', '')
         
         if not keyword or len(keyword.strip()) == 0:
             return jsonify({
@@ -72,14 +75,22 @@ def searchWeaponDetail():
                 "count": 0
             }), 200
         
-        # 使用LIKE进行模糊查询
-        where_clause = "[market_listing_item_name] LIKE ?"
-        params = (f"%{keyword}%",)
+        # 构建查询条件
+        where_clauses = ["[market_listing_item_name] LIKE ?"]
+        params = [f"%{keyword}%"]
+        
+        # 如果指定了稀有度，添加到查询条件
+        if rarity and len(rarity.strip()) > 0:
+            where_clauses.append("[Rarity] = ?")
+            params.append(rarity.strip())
+        
+        # 组合查询条件
+        where_clause = " AND ".join(where_clauses)
         
         # 查询数据库，返回所有匹配的记录
         records = WeaponClassIDModel.find_all(
             where=where_clause, 
-            params=params
+            params=tuple(params)
         )
         
         # 返回完整的武器信息

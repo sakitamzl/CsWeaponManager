@@ -76,6 +76,26 @@
           <h2 class="section-title">搜索饰品</h2>
         
         <div class="search-container">
+          <div class="search-filters">
+            <el-select 
+              v-model="weaponSearchFilters.rarity" 
+              placeholder="选择稀有度"
+              clearable
+              style="width: 200px;"
+            >
+              <el-option label="全部稀有度" value="" />
+              <el-option label="隐秘" value="隐秘" />
+              <el-option label="保密" value="保密" />
+              <el-option label="受限" value="受限" />
+              <el-option label="军规级" value="军规级" />
+              <el-option label="工业级" value="工业级" />
+              <el-option label="消费级" value="消费级" />
+              <el-option label="非凡" value="非凡" />
+              <el-option label="奇异" value="奇异" />
+              <el-option label="违禁" value="违禁" />
+            </el-select>
+          </div>
+          
           <el-input
             v-model="weaponSearchKeyword"
             placeholder="搜索饰品名称..."
@@ -415,6 +435,9 @@ export default {
     const weaponSearchKeyword = ref('')
     const weaponSearchResults = ref([])
     const isSearchingWeapon = ref(false)
+    const weaponSearchFilters = ref({
+      rarity: ''  // 稀有度筛选
+    })
     
     // 购买相关
     const buyingItems = ref({})
@@ -1016,10 +1039,17 @@ export default {
       isSearchingWeapon.value = true
       
       try {
+        const params = {
+          keyword: weaponSearchKeyword.value.trim()
+        }
+        
+        // 如果选择了稀有度，添加到查询参数
+        if (weaponSearchFilters.value.rarity) {
+          params.rarity = weaponSearchFilters.value.rarity
+        }
+        
         const response = await axios.get(`${API_CONFIG.BASE_URL}/webSelectWeaponV1/searchWeaponDetail`, {
-          params: {
-            keyword: weaponSearchKeyword.value.trim()
-          }
+          params: params
         })
         
         if (response.data.success) {
@@ -1046,6 +1076,7 @@ export default {
     const clearWeaponSearch = () => {
       weaponSearchResults.value = []
       weaponSearchKeyword.value = ''
+      weaponSearchFilters.value.rarity = ''
     }
 
     // 根据平台类型获取对应的饰品ID
@@ -1568,6 +1599,13 @@ export default {
 
 .search-container {
   margin-bottom: 1.5rem;
+}
+
+.search-filters {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
 }
 
 .weapon-search-input {
