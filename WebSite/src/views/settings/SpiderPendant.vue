@@ -473,28 +473,22 @@
       <!-- 结束 unified-tool-section -->
 
       <!-- 查询结果区域 -->
-      <div v-if="crawlResult && crawlResult.weapons && crawlResult.weapons.length > 0" class="result-section">
-        <h2 class="section-title">查询结果</h2>
+      <div v-if="allCrawlItems && allCrawlItems.length > 0" class="result-section">
+        <h2 class="section-title">查询结果 ({{ allCrawlItems.length }} 件)</h2>
         
-        <!-- 每个饰品的结果 -->
-        <div v-for="weapon in crawlResult.weapons" :key="weapon.weapon_id" class="weapon-result-card">
-          <div class="weapon-header">
-            <h3 class="weapon-name">{{ weapon.weapon_name }}</h3>
-            <div class="weapon-stats">
-              <el-tag size="small">总在售: {{ weapon.total_count }}</el-tag>
-              <el-tag size="small" type="warning">最低价: ¥{{ weapon.lowest_price }}</el-tag>
-              <el-tag size="small" type="info">挂件数: {{ weapon.pendant_count }}</el-tag>
-              <el-tag size="small" type="success">符合条件: {{ weapon.target_count }}</el-tag>
-            </div>
-          </div>
+        <!-- 统一商品列表 -->
+        <el-table 
+          :data="allCrawlItems" 
+          style="width: 100%"
+          stripe
+        >
+          <el-table-column label="武器名称" width="200" fixed="left">
+            <template #default="scope">
+              <div class="weapon-name-cell">{{ scope.row.weapon_name }}</div>
+            </template>
+          </el-table-column>
           
-          <!-- 商品列表 -->
-          <el-table 
-            :data="weapon.items" 
-            style="width: 100%"
-            stripe
-          >
-            <el-table-column label="价格" width="100">
+          <el-table-column label="价格" width="100">
               <template #default="scope">
                 <span class="price">¥{{ scope.row.price }}</span>
               </template>
@@ -560,13 +554,13 @@
                   size="small"
                   @click="handleBuyWeapon(scope.row)"
                   :loading="buyingItems[scope.row.id]"
+                  :disabled="scope.row.priceDiff < 0"
                 >
-                  购买
+                  {{ scope.row.priceDiff < 0 ? '亏损' : '购买' }}
                 </el-button>
               </template>
             </el-table-column>
-          </el-table>
-        </div>
+        </el-table>
       </div>
 
       </div>
@@ -602,6 +596,35 @@ export default {
     const steamIdList = ref([])
     const isCrawling = ref(false)
     const crawlResult = ref(null)
+    
+    // 合并所有武器的items到一个统一列表，并按差价从高到低排序
+    const allCrawlItems = computed(() => {
+      if (!crawlResult.value || !crawlResult.value.weapons) {
+        return []
+      }
+      
+      const items = []
+      crawlResult.value.weapons.forEach(weapon => {
+        if (weapon.items && weapon.items.length > 0) {
+          weapon.items.forEach(item => {
+            items.push({
+              ...item,
+              weapon_name: weapon.weapon_name,  // 添加武器名称
+              weapon_id: weapon.weapon_id
+            })
+          })
+        }
+      })
+      
+      // 按差价从高到低排序
+      items.sort((a, b) => {
+        const diffA = a.priceDiff !== undefined ? a.priceDiff : -Infinity
+        const diffB = b.priceDiff !== undefined ? b.priceDiff : -Infinity
+        return diffB - diffA  // 从高到低
+      })
+      
+      return items
+    })
     
     // 配置管理相关
     const savedConfigs = ref([])
@@ -883,6 +906,13 @@ export default {
                   console.log(`[前端] 添加商品到 ${eventData.weapon_name}，当前已有 ${weaponData.items.length} 个`)
                   weaponData.items.push(eventData.item)
                   weaponData.target_count = weaponData.items.length
+
+                  // 按差价从高到低排序
+                  weaponData.items.sort((a, b) => {
+                    const diffA = a.priceDiff !== undefined ? a.priceDiff : -Infinity
+                    const diffB = b.priceDiff !== undefined ? b.priceDiff : -Infinity
+                    return diffB - diffA  // 从高到低
+                  })
 
                   // 实时更新显示 - 创建新对象以触发 Vue 响应式更新
                   crawlResult.value = {
@@ -1914,6 +1944,7 @@ export default {
       isCrawling,
       crawlForm,
       crawlResult,
+      allCrawlItems,
       canStartCrawl,
       startCrawl,
       resetForm,
@@ -2259,6 +2290,15 @@ export default {
 .weapon-name {
   color: #fff;
   font-weight: 500;
+}
+
+.weapon-name-cell {
+  color: #409eff;
+  font-weight: 500;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .hash-name-text {
