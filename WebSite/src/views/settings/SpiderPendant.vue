@@ -550,7 +550,7 @@
             <el-table-column label="操作" width="100" fixed="right">
               <template #default="scope">
                 <el-button 
-                  :type="scope.row.priceDiff < 0 ? 'info' : (scope.row.priceDiff < 3 ? 'warning' : 'primary')"
+                  :type="scope.row.priceDiff < 0 ? 'info' : (scope.row.priceDiff < 3 ? 'warning' : 'success')"
                   size="small"
                   @click="handleBuyWeapon(scope.row)"
                   :loading="buyingItems[scope.row.id]"
