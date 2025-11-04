@@ -1798,6 +1798,25 @@ export default {
   text-align: center;
 }
 
+/* 价格区间提示样式 */
+.price-range-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.5;
+}
+
+/* 隐藏数字输入框的加减器 */
+.no-spinner :deep(input[type="number"]::-webkit-outer-spin-button),
+.no-spinner :deep(input[type="number"]::-webkit-inner-spin-button) {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.no-spinner :deep(input[type="number"]) {
+  -moz-appearance: textfield;
+}
+
 .result-info {
   display: grid;
   gap: 1rem;
