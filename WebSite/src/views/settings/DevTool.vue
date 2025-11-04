@@ -13,10 +13,10 @@
             :disabled="isSyncing || isSyncingBuff"
           >
             <el-option 
-              v-for="steamId in steamIdList" 
-              :key="steamId.steam_id" 
-              :label="steamId.steam_id" 
-              :value="steamId.steam_id"
+              v-for="item in steamIdList" 
+              :key="item.steamID || item.steam_id" 
+              :label="`${item.dataName || '未命名'} (${item.steamID || item.steam_id || '无ID'})`" 
+              :value="item.steamID || item.steam_id"
             />
           </el-select>
           
@@ -138,9 +138,11 @@ export default {
         const response = await axios.get(`${API_CONFIG.BASE_URL}/webInventoryV1/steam_ids`)
         if (response.data.success && response.data.data.length > 0) {
           steamIdList.value = response.data.data
+          console.log('已加载 Steam ID 列表:', steamIdList.value)
           // 默认选择第一个
           if (!selectedSteamId.value && steamIdList.value.length > 0) {
-            selectedSteamId.value = steamIdList.value[0].steam_id
+            const firstItem = steamIdList.value[0]
+            selectedSteamId.value = firstItem.steamID || firstItem.steam_id || ''
           }
         }
       } catch (error) {

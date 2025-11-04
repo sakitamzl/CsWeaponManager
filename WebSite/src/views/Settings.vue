@@ -69,7 +69,7 @@
             <el-icon :size="18">
               <Tools />
             </el-icon>
-            <span>开发工具</span>
+            <span>开荒工具</span>
           </li>
         </ul>
       </div>

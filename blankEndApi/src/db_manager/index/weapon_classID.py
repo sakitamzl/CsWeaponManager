@@ -19,7 +19,9 @@ class WeaponClassIDModel(BaseModel):
     def get_fields(cls) -> Dict[str, Dict[str, Any]]:
         # 注意：字段顺序必须与数据库表的实际列顺序一致！
         # 数据库列顺序：steam_hash_name, market_listing_item_name, yyyp_id, buff_id, steam_id, 
-        #              weapon_type, weapon_name, item_name, float_range, Rarity, yyyp_class_name, buff_class_name
+        #              weapon_type, weapon_name, item_name, float_range, Rarity, yyyp_class_name, buff_class_name,
+        #              yyyp_Price, yyyp_Rent, yyyp_OnSaleCount, yyyp_OnLeaseCount,
+        #              buff_Price, buff_Rent, buff_OnSaleCount, buff_OnLeaseCount
         return {
             'steam_hash_name': {
                 'type': 'TEXT',
@@ -81,6 +83,46 @@ class WeaponClassIDModel(BaseModel):
                 'default': None
             },
             'buff_class_name': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None
+            },
+            'yyyp_Price': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None
+            },
+            'yyyp_Rent': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None
+            },
+            'yyyp_OnSaleCount': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None
+            },
+            'yyyp_OnLeaseCount': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None
+            },
+            'buff_Price': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None
+            },
+            'buff_Rent': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None
+            },
+            'buff_OnSaleCount': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None
+            },
+            'buff_OnLeaseCount': {
                 'type': 'TEXT',
                 'not_null': False,
                 'default': None
@@ -242,15 +284,30 @@ class WeaponClassIDModel(BaseModel):
                         existing_records = cls.find_by_steam_hash_name(steam_hash_name)
                         
                         if existing_records:
-                            # 记录已存在，只更新 yyyp_id 和 yyyp_class_name
+                            # 记录已存在，更新 yyyp_id, yyyp_class_name 和新的价格、数量字段
                             yyyp_class_name = weapon_data.get('yyyp_class_name', '')
-                            sql_update = f'UPDATE {cls.get_table_name()} SET [yyyp_id] = ?, [yyyp_class_name] = ? WHERE [steam_hash_name] = ?'
-                            affected_rows = db.execute_update(sql_update, (platform_id, yyyp_class_name, steam_hash_name))
+                            yyyp_price = weapon_data.get('yyyp_Price', '')
+                            yyyp_rent = weapon_data.get('yyyp_Rent', '')
+                            yyyp_on_sale_count = weapon_data.get('yyyp_OnSaleCount', '')
+                            yyyp_on_lease_count = weapon_data.get('yyyp_OnLeaseCount', '')
+                            
+                            sql_update = f'''UPDATE {cls.get_table_name()} 
+                                           SET [yyyp_id] = ?, [yyyp_class_name] = ?, 
+                                               [yyyp_Price] = ?, [yyyp_Rent] = ?, 
+                                               [yyyp_OnSaleCount] = ?, [yyyp_OnLeaseCount] = ? 
+                                           WHERE [steam_hash_name] = ?'''
+                            affected_rows = db.execute_update(sql_update, (
+                                platform_id, yyyp_class_name, 
+                                yyyp_price, yyyp_rent, 
+                                yyyp_on_sale_count, yyyp_on_lease_count, 
+                                steam_hash_name
+                            ))
                             
                             if affected_rows > 0:
                                 success_count += 1
                                 update_count += 1
-                                print(f"✅ 更新悠悠有品数据成功 (steam_hash_name匹配): yyyp_id={platform_id}, steam_hash_name={steam_hash_name}")
+                                print(f"✅ 更新悠悠有品数据成功 (steam_hash_name匹配): yyyp_id={platform_id}, steam_hash_name={steam_hash_name}, "
+                                      f"价格={yyyp_price}, 租金={yyyp_rent}, 在售={yyyp_on_sale_count}, 出租={yyyp_on_lease_count}")
                             continue
                     
                     # 如果没有 steam_hash_name 或未找到匹配记录，插入新记录
@@ -267,7 +324,8 @@ class WeaponClassIDModel(BaseModel):
                         insert_data['market_listing_item_name'] = weapon_data['market_listing_item_name']
                     
                     # 复制其他字段
-                    for key in ['yyyp_id', 'yyyp_class_name', 'weapon_type', 'weapon_name', 'item_name', 'float_range', 'Rarity']:
+                    for key in ['yyyp_id', 'yyyp_class_name', 'weapon_type', 'weapon_name', 'item_name', 'float_range', 'Rarity',
+                                'yyyp_Price', 'yyyp_Rent', 'yyyp_OnSaleCount', 'yyyp_OnLeaseCount']:
                         if key in weapon_data:
                             insert_data[key] = weapon_data[key]
                     
@@ -319,7 +377,8 @@ class WeaponClassIDModel(BaseModel):
         """
         BUFF专用：批量更新或插入buff_id和相关字段（UPSERT操作）
         :param weapon_list: 武器数据列表，每项包含 buff_id, steam_hash_name, market_listing_item_name, 
-                           buff_class_name, weapon_type, weapon_name, item_name
+                           buff_class_name, weapon_type, weapon_name, item_name,
+                           buff_Price, buff_Rent, buff_OnSaleCount, buff_OnLeaseCount
         :return: 成功处理的数量
         """
         success_count = 0
@@ -337,6 +396,12 @@ class WeaponClassIDModel(BaseModel):
                 weapon_type = weapon_data.get('weapon_type', '')
                 weapon_name = weapon_data.get('weapon_name', '')
                 item_name = weapon_data.get('item_name', '')
+                
+                # 获取BUFF的价格和数量字段
+                buff_price = weapon_data.get('buff_Price', '')
+                buff_rent = weapon_data.get('buff_Rent', '')
+                buff_on_sale_count = weapon_data.get('buff_OnSaleCount', '')
+                buff_on_lease_count = weapon_data.get('buff_OnLeaseCount', '')
 
                 if not buff_id:
                     print(f"BUFF数据缺少buff_id字段，跳过")
@@ -353,26 +418,41 @@ class WeaponClassIDModel(BaseModel):
                 
                 if existing_records:
                     # 记录已存在，执行 UPDATE
-                    # 如果steam_hash_name匹配成功，则只写入buff_id和buff_class_name
-                    sql_update = f'UPDATE {cls.get_table_name()} SET [buff_id] = ?, [buff_class_name] = ? WHERE [steam_hash_name] = ?'
-                    affected_rows = db.execute_update(sql_update, (buff_id, buff_class_name, steam_hash_name))
+                    # 更新buff_id, buff_class_name和新的价格、数量字段
+                    sql_update = f'''UPDATE {cls.get_table_name()} 
+                                    SET [buff_id] = ?, [buff_class_name] = ?,
+                                        [buff_Price] = ?, [buff_Rent] = ?,
+                                        [buff_OnSaleCount] = ?, [buff_OnLeaseCount] = ?
+                                    WHERE [steam_hash_name] = ?'''
+                    affected_rows = db.execute_update(sql_update, (
+                        buff_id, buff_class_name,
+                        buff_price, buff_rent,
+                        buff_on_sale_count, buff_on_lease_count,
+                        steam_hash_name
+                    ))
                     
                     if affected_rows > 0:
                         success_count += 1
                         update_count += 1
-                        print(f"✅ 更新BUFF数据成功 (steam_hash_name匹配): buff_id={buff_id}, steam_hash_name={steam_hash_name}")
+                        print(f"✅ 更新BUFF数据成功 (steam_hash_name匹配): buff_id={buff_id}, steam_hash_name={steam_hash_name}, "
+                              f"价格={buff_price}, 租金={buff_rent}, 在售={buff_on_sale_count}, 出租={buff_on_lease_count}")
                 else:
                     # 记录不存在，执行 INSERT，写入所有字段
                     sql_insert = f'''INSERT INTO {cls.get_table_name()} 
                                     ([steam_hash_name], [market_listing_item_name], [buff_id], [buff_class_name], 
-                                     [weapon_type], [weapon_name], [item_name]) 
-                                    VALUES (?, ?, ?, ?, ?, ?, ?)'''
-                    db.execute_insert(sql_insert, (steam_hash_name, market_listing_item_name, buff_id, 
-                                                   buff_class_name, weapon_type, weapon_name, item_name))
+                                     [weapon_type], [weapon_name], [item_name],
+                                     [buff_Price], [buff_Rent], [buff_OnSaleCount], [buff_OnLeaseCount]) 
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'''
+                    db.execute_insert(sql_insert, (
+                        steam_hash_name, market_listing_item_name, buff_id, 
+                        buff_class_name, weapon_type, weapon_name, item_name,
+                        buff_price, buff_rent, buff_on_sale_count, buff_on_lease_count
+                    ))
                     success_count += 1
                     insert_count += 1
                     print(f"✅ 插入新BUFF数据 (无steam_hash_name匹配): buff_id={buff_id}, steam_hash_name={steam_hash_name}, "
-                          f"weapon_type={weapon_type}, weapon_name={weapon_name}, item_name={item_name}")
+                          f"weapon_type={weapon_type}, weapon_name={weapon_name}, item_name={item_name}, "
+                          f"价格={buff_price}, 租金={buff_rent}, 在售={buff_on_sale_count}, 出租={buff_on_lease_count}")
 
             except Exception as e:
                 print(f"处理BUFF数据失败: buff_id={weapon_data.get('buff_id')}, 错误: {e}")

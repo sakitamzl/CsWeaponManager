@@ -111,7 +111,7 @@ const routes = [
             path: 'dev-tools',
             name: 'DevTools',
             component: () => import('@/views/settings/DevTool.vue'),
-            meta: { title: '开发工具' }
+            meta: { title: '开荒工具' }
           }
         ]
       }
