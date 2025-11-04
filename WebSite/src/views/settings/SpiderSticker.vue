@@ -186,12 +186,13 @@
                   v-model="crawlForm.steamId" 
                   placeholder="选择 Steam ID"
                   style="width: 100%;"
+                  filterable
                 >
                   <el-option 
-                    v-for="steamId in steamIdList" 
-                    :key="steamId.steam_id" 
-                    :label="steamId.steam_id" 
-                    :value="steamId.steam_id"
+                    v-for="item in steamIdList" 
+                    :key="item.steamID || item.steam_id" 
+                    :label="`${item.dataName || '未命名'} (${item.steamID || item.steam_id || '无ID'})`" 
+                    :value="item.steamID || item.steam_id"
                   />
                 </el-select>
               </el-form-item>
@@ -226,38 +227,17 @@
 
             <el-form-item label="自定义配置">
               <div class="json-editor-container">
-                <el-input 
-                  v-model="crawlForm.customConfig" 
-                  type="textarea"
-                  :autosize="{ minRows: 5, maxRows: 20 }"
-                  placeholder='示例: { "是否授权": true, "饰品自动查询间隔": 3, "是否自动购买": false, "最大差价": 10 }'
-                  class="json-textarea"
-                  @blur="formatJson"
-                />
-                <div class="json-tools">
-                  <el-button 
-                    size="small" 
-                    type="primary" 
-                    @click="formatJson"
-                    :icon="'DocumentChecked'"
-                  >
-                    格式化JSON
-                  </el-button>
-                  <el-button 
-                    size="small" 
-                    type="warning" 
-                    @click="validateJsonOnly"
-                    :icon="'CircleCheck'"
-                  >
-                    验证JSON
-                  </el-button>
-                  <el-button 
-                    size="small" 
-                    @click="clearJson"
-                    :icon="'Delete'"
-                  >
-                    清空
-                  </el-button>
+                <!-- JSON 编辑器 -->
+                <div class="json-editor-wrapper">
+                  <div class="json-editor-preview" v-if="crawlForm.customConfig" v-html="highlightedJson"></div>
+                  <textarea 
+                    v-model="crawlForm.customConfig" 
+                    class="json-textarea"
+                    placeholder='请输入 JSON 配置...'
+                    @blur="formatJson"
+                    @input="updateHighlight"
+                    rows="8"
+                  ></textarea>
                 </div>
                 <div v-if="jsonValidationMessage" class="json-validation">
                   <el-alert 
@@ -438,6 +418,7 @@ export default {
     // JSON 验证相关
     const jsonValidationMessage = ref('')
     const jsonValidationStatus = ref('success')
+    const highlightedJson = ref('')
 
     const crawlForm = ref({
       configName: '',      // 对应 dataName
@@ -471,7 +452,8 @@ export default {
           console.log('已加载 Steam ID 列表:', steamIdList.value)
           // 默认选择第一个
           if (!crawlForm.value.steamId && steamIdList.value.length > 0) {
-            crawlForm.value.steamId = steamIdList.value[0].steam_id
+            const firstItem = steamIdList.value[0]
+            crawlForm.value.steamId = firstItem.steamID || firstItem.steam_id || ''
           }
         }
       } catch (error) {
@@ -767,9 +749,13 @@ export default {
 
     // 重置表单
     const resetForm = () => {
+      const defaultSteamId = steamIdList.value.length > 0 
+        ? (steamIdList.value[0].steamID || steamIdList.value[0].steam_id || '') 
+        : ''
+      
       crawlForm.value = {
         configName: '',
-        steamId: steamIdList.value.length > 0 ? steamIdList.value[0].steam_id : '',
+        steamId: defaultSteamId,
         platformType: 'youpin',
         weaponId: [],
         customConfig: ''
@@ -1230,12 +1216,7 @@ export default {
       try {
         const parsed = JSON.parse(crawlForm.value.customConfig)
         crawlForm.value.customConfig = JSON.stringify(parsed, null, 2)
-        jsonValidationMessage.value = 'JSON 格式正确'
-        jsonValidationStatus.value = 'success'
-        
-        setTimeout(() => {
-          jsonValidationMessage.value = ''
-        }, 2000)
+        // 格式化成功，不显示提示
       } catch (error) {
         jsonValidationMessage.value = `JSON 格式错误: ${error.message}`
         jsonValidationStatus.value = 'error'
@@ -1270,6 +1251,37 @@ export default {
     const clearJson = () => {
       crawlForm.value.customConfig = ''
       jsonValidationMessage.value = ''
+      highlightedJson.value = ''
+    }
+
+    // 更新语法高亮
+    const updateHighlight = () => {
+      const json = crawlForm.value.customConfig
+      if (!json || json.trim() === '') {
+        highlightedJson.value = ''
+        return
+      }
+      
+      // 简单的 JSON 语法高亮
+      let highlighted = json
+        // 转义 HTML 特殊字符
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        // 高亮字符串（键）
+        .replace(/"([^"]+)"(\s*:)/g, '<span class="json-key">"$1"</span>$2')
+        // 高亮字符串值
+        .replace(/:\s*"([^"]*)"/g, ': <span class="json-string">"$1"</span>')
+        // 高亮数字
+        .replace(/:\s*(\d+\.?\d*)/g, ': <span class="json-number">$1</span>')
+        // 高亮布尔值
+        .replace(/:\s*(true|false)/g, ': <span class="json-boolean">$1</span>')
+        // 高亮 null
+        .replace(/:\s*(null)/g, ': <span class="json-null">$1</span>')
+        // 高亮括号
+        .replace(/([{}[\]])/g, '<span class="json-bracket">$1</span>')
+      
+      highlightedJson.value = highlighted
     }
 
     // 组件挂载时加载数据
@@ -1317,9 +1329,11 @@ export default {
       // JSON 编辑器
       jsonValidationMessage,
       jsonValidationStatus,
+      highlightedJson,
       formatJson,
       validateJsonOnly,
-      clearJson
+      clearJson,
+      updateHighlight
     }
   }
 }
@@ -1796,19 +1810,79 @@ export default {
   width: 100%;
 }
 
-.json-textarea {
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: 13px;
+.json-editor-wrapper {
+  position: relative;
+  width: 100%;
+  min-height: 200px;
+  background-color: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 4px;
+  overflow: hidden;
 }
 
-.json-textarea :deep(.el-textarea__inner) {
+.json-editor-preview {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 8px 11px;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 13px;
   line-height: 1.6;
-  background-color: #1a1a1a;
+  color: transparent;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.json-textarea {
+  position: relative;
+  width: 100%;
+  min-height: 200px;
+  padding: 8px 11px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  background-color: transparent;
   color: #e8e8e8;
-  border: 1px solid #444;
-  border-radius: 4px;
+  border: none;
+  outline: none;
+  resize: vertical;
+  z-index: 2;
+  caret-color: #e8e8e8;
+}
+
+.json-textarea::placeholder {
+  color: #666;
+  font-size: 12px;
+}
+
+/* JSON 语法高亮颜色 */
+:deep(.json-key) {
+  color: #9cdcfe; /* 键名 - 浅蓝色 */
+}
+
+:deep(.json-string) {
+  color: #ce9178; /* 字符串值 - 橙色 */
+}
+
+:deep(.json-number) {
+  color: #b5cea8; /* 数字 - 浅绿色 */
+}
+
+:deep(.json-boolean) {
+  color: #569cd6; /* 布尔值 - 蓝色 */
+}
+
+:deep(.json-null) {
+  color: #569cd6; /* null - 蓝色 */
+}
+
+:deep(.json-bracket) {
+  color: #ffd700; /* 括号 - 金色 */
 }
 
 .json-tools {
