@@ -36,6 +36,15 @@
             <span>爬取改名</span>
           </li>
           <li 
+            :class="{ active: $route.name === 'SpiderSticker' }"
+            @click="navigateTo('/settings/spider-sticker')"
+          >
+            <el-icon :size="18">
+              <PriceTag />
+            </el-icon>
+            <span>爬取挂件</span>
+          </li>
+          <li 
             :class="{ active: $route.name === 'SteamMarket' }"
             @click="navigateTo('/settings/steam-market')"
           >
@@ -84,7 +93,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { EditPen, Tools, ShoppingCart, Box, Timer, DataBoard, ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
+import { EditPen, Tools, ShoppingCart, Box, Timer, DataBoard, ArrowLeft, ArrowRight, PriceTag } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const sidebarCollapsed = ref(false)

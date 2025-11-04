@@ -1,5 +1,5 @@
 <template>
-  <div class="spider-weapon-rename-container">
+  <div class="spider-sticker-container">
     <div class="page-layout">
       <!-- 左侧配置管理栏 -->
       <aside class="config-sidebar">
@@ -59,7 +59,6 @@
       <!-- 右侧主内容区域 -->
       <div class="main-content-area">
 
-      <!-- 饰品搜索区域 -->
       <!-- 统一的工具区域 -->
       <div class="unified-tool-section" :class="{ collapsed: isToolSectionCollapsed }">
         <div class="tool-section-header" @click="toggleToolSection">
@@ -315,13 +314,13 @@
         <h2 class="section-title">查询结果</h2>
         
         <!-- 每个饰品的结果 -->
-        <div v-for="weapon in crawlResult.weapons" :key="weapon.yyyp_id" class="weapon-result-card">
+        <div v-for="weapon in crawlResult.weapons" :key="weapon.weapon_id" class="weapon-result-card">
           <div class="weapon-header">
             <h3 class="weapon-name">{{ weapon.weapon_name }}</h3>
             <div class="weapon-stats">
               <el-tag size="small">总在售: {{ weapon.total_count }}</el-tag>
               <el-tag size="small" type="warning">最低价: ¥{{ weapon.lowest_price }}</el-tag>
-              <el-tag size="small" type="info">改名数: {{ weapon.renamed_count }}</el-tag>
+              <el-tag size="small" type="info">贴纸数: {{ weapon.sticker_count }}</el-tag>
               <el-tag size="small" type="success">符合条件: {{ weapon.target_count }}</el-tag>
             </div>
           </div>
@@ -352,9 +351,18 @@
               </template>
             </el-table-column>
             
-            <el-table-column label="改名" min-width="200">
+            <el-table-column label="贴纸" min-width="200">
               <template #default="scope">
-                <span class="name-tag">{{ scope.row.nameTag || '-' }}</span>
+                <div class="sticker-list">
+                  <el-tag 
+                    v-for="(sticker, index) in scope.row.stickers" 
+                    :key="index" 
+                    size="small"
+                    class="sticker-tag"
+                  >
+                    {{ sticker.name }}
+                  </el-tag>
+                </div>
               </template>
             </el-table-column>
             
@@ -397,7 +405,7 @@ import { Document, Delete, Refresh, ArrowUp, ArrowDown } from '@element-plus/ico
 import { API_CONFIG } from '@/config/api.js'
 
 export default {
-  name: 'SpiderWeaponRename',
+  name: 'SpiderSticker',
   components: {
     Document,
     Delete,
@@ -469,8 +477,6 @@ export default {
       } catch (error) {
         console.error('加载Steam ID列表失败:', error)
         console.error('错误详情:', error.response)
-        // 暂时不显示错误提示，避免干扰用户
-        // ElMessage.error('加载Steam ID列表失败')
       }
     }
 
@@ -523,7 +529,7 @@ export default {
       // 确认对话框
       try {
         const weaponNames = crawlForm.value.weaponId.map(w => w.name).join('、')
-        let confirmMessage = `确定要开始查询改名饰品吗？\n\n`
+        let confirmMessage = `确定要开始查询带贴纸饰品吗？\n\n`
         confirmMessage += `配置名称: ${crawlForm.value.configName}\n`
         confirmMessage += `Steam ID: ${crawlForm.value.steamId}\n`
         confirmMessage += `平台类型: ${crawlForm.value.platformType === 'buff' ? 'BUFF' : '悠悠有品'}\n`
@@ -576,7 +582,7 @@ export default {
 
         // 使用 fetch 进行流式请求
         const response = await fetch(
-          `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/auto_buy_renamed_weapon`,
+          `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/auto_buy_sticker_weapon`,
           {
             method: 'POST',
             headers: {
@@ -651,24 +657,24 @@ export default {
 
                 case 'item':
                   // 收到一个新商品，立即添加到结果中
-                  const yyypId = eventData.yyyp_id
+                  const weaponId = eventData.weapon_id
                   
                   console.log(`[前端] 收到 item 事件:`, eventData)
 
-                  if (!weaponsMap.has(yyypId)) {
-                    console.log(`[前端] 创建新饰品条目: ${eventData.weapon_name} (${yyypId})`)
-                    weaponsMap.set(yyypId, {
-                      yyyp_id: yyypId,
+                  if (!weaponsMap.has(weaponId)) {
+                    console.log(`[前端] 创建新饰品条目: ${eventData.weapon_name} (${weaponId})`)
+                    weaponsMap.set(weaponId, {
+                      weapon_id: weaponId,
                       weapon_name: eventData.weapon_name,
                       total_count: eventData.total_count,
                       lowest_price: eventData.lowest_price,
-                      renamed_count: 0,
+                      sticker_count: 0,
                       target_count: 0,
                       items: []
                     })
                   }
 
-                  const weaponData = weaponsMap.get(yyypId)
+                  const weaponData = weaponsMap.get(weaponId)
                   console.log(`[前端] 添加商品到 ${eventData.weapon_name}，当前已有 ${weaponData.items.length} 个`)
                   weaponData.items.push(eventData.item)
                   weaponData.target_count = weaponData.items.length
@@ -682,29 +688,29 @@ export default {
                   }
                   
                   console.log(`[前端] 🔄 触发响应式更新`)
-                  console.log(`[前端] ✅ 新增商品: ${eventData.item.nameTag}，${eventData.weapon_name} 当前共 ${weaponData.items.length} 个`)
+                  console.log(`[前端] ✅ 新增商品，${eventData.weapon_name} 当前共 ${weaponData.items.length} 个`)
                   console.log(`[前端] 📊 当前 crawlResult.value:`, crawlResult.value)
                   break
 
                 case 'weapon_complete':
                   // 某个饰品查询完成，更新统计信息
-                  const completeYyypId = eventData.yyyp_id
+                  const completeWeaponId = eventData.weapon_id
 
-                  if (!weaponsMap.has(completeYyypId)) {
-                    weaponsMap.set(completeYyypId, {
-                      yyyp_id: completeYyypId,
+                  if (!weaponsMap.has(completeWeaponId)) {
+                    weaponsMap.set(completeWeaponId, {
+                      weapon_id: completeWeaponId,
                       weapon_name: eventData.weapon_name,
                       total_count: eventData.total_count,
                       lowest_price: eventData.lowest_price,
-                      renamed_count: eventData.renamed_count || 0,
+                      sticker_count: eventData.sticker_count || 0,
                       target_count: eventData.target_count || 0,
                       items: []
                     })
                   } else {
-                    const weaponData = weaponsMap.get(completeYyypId)
+                    const weaponData = weaponsMap.get(completeWeaponId)
                     weaponData.total_count = eventData.total_count
                     weaponData.lowest_price = eventData.lowest_price
-                    weaponData.renamed_count = eventData.renamed_count || 0
+                    weaponData.sticker_count = eventData.sticker_count || 0
                   }
 
                   // 更新显示 - 创建新对象引用
@@ -719,9 +725,9 @@ export default {
                   break
 
                 case 'complete':
-                  const totalRenamed = Array.from(weaponsMap.values()).reduce((sum, w) => sum + w.renamed_count, 0)
+                  const totalSticker = Array.from(weaponsMap.values()).reduce((sum, w) => sum + w.sticker_count, 0)
                   const totalTarget = Array.from(weaponsMap.values()).reduce((sum, w) => sum + w.target_count, 0)
-                  ElMessage.success(`查询完成！共找到 ${totalRenamed} 个改名饰品，其中 ${totalTarget} 个符合条件`)
+                  ElMessage.success(`查询完成！共找到 ${totalSticker} 个贴纸饰品，其中 ${totalTarget} 个符合条件`)
                   break
 
                 case 'error':
@@ -771,33 +777,13 @@ export default {
       crawlResult.value = null
     }
 
-    // 获取模式标签
-    const getModeLabel = (mode) => {
-      const labels = {
-        all: '爬取所有已改名饰品',
-        new: '仅爬取新改名饰品',
-        incremental: '增量更新'
-      }
-      return labels[mode] || mode
-    }
-
-    // 获取来源标签
-    const getSourceLabel = (source) => {
-      const labels = {
-        youpin: '悠悠有品',
-        buff: 'BUFF',
-        steam: 'Steam库存'
-      }
-      return labels[source] || source
-    }
-
     // 加载配置列表
     const loadConfigList = async () => {
       try {
-        // 只加载 key1 = 'spider_rename' 的配置
+        // 只加载 key1 = 'spider_sticker' 的配置
         const response = await axios.get(`${API_CONFIG.BASE_URL}/configV1/list`, {
           params: {
-            key1: 'spider_rename'
+            key1: 'spider_sticker'
           }
         })
         
@@ -815,7 +801,6 @@ export default {
         console.log('加载的配置列表:', savedConfigs.value)
       } catch (error) {
         console.error('加载配置列表失败:', error)
-        // ElMessage.error('加载配置列表失败')
       }
     }
 
@@ -942,7 +927,7 @@ export default {
 
         const configData = {
           dataName: crawlForm.value.configName,
-          key1: 'spider_rename',
+          key1: 'spider_sticker',
           key2: key2,
           value: JSON.stringify(valueObj)
         }
@@ -964,7 +949,6 @@ export default {
       }
     }
 
-    // 删除配置
     // 删除当前配置
     const deleteCurrentConfig = async () => {
       if (!selectedConfigId.value) {
@@ -992,7 +976,6 @@ export default {
           }
         )
 
-        // TODO: 替换为实际的API端点
         const response = await axios.delete(`${API_CONFIG.BASE_URL}/configV1/delete/${configId}`)
         
         if (response.data.success) {
@@ -1119,8 +1102,9 @@ export default {
       
       // 确认购买
       try {
+        const stickerNames = item.stickers ? item.stickers.map(s => s.name).join(', ') : '无'
         await ElMessageBox.confirm(
-          `确认购买该商品吗？\n\n改名：${item.nameTag || '无'}\n价格：¥${item.price}\n磨损：${item.abrade || '-'}\n溢价：+¥${item.spread.toFixed(2)}`,
+          `确认购买该商品吗？\n\n贴纸：${stickerNames}\n价格：¥${item.price}\n磨损：${item.abrade || '-'}\n溢价：+¥${item.spread.toFixed(2)}`,
           '确认购买',
           {
             confirmButtonText: '确认购买',
@@ -1179,7 +1163,7 @@ export default {
           
           if (payStatus === 2) {
             // 支付成功
-            message = `购买成功！\n\n商品：${item.nameTag || '改名饰品'}\n订单号：${orderNo}\n金额：¥${paymentAmount}\n状态：支付成功✅\n\n饰品将发送至您的库存。`
+            message = `购买成功！\n\n商品：贴纸饰品\n订单号：${orderNo}\n金额：¥${paymentAmount}\n状态：支付成功✅\n\n饰品将发送至您的库存。`
           } else if (payStatus === 1) {
             // 支付处理中
             message = `订单已创建！\n\n订单号：${orderNo}\n金额：¥${paymentAmount}\n状态：支付处理中⏳\n\n请稍后查看订单状态。`
@@ -1303,8 +1287,6 @@ export default {
       canStartCrawl,
       startCrawl,
       resetForm,
-      getModeLabel,
-      getSourceLabel,
       // 配置管理
       savedConfigs,
       selectedConfigId,
@@ -1344,7 +1326,7 @@ export default {
 </script>
 
 <style scoped>
-.spider-weapon-rename-container {
+.spider-sticker-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
   padding: 2rem;
@@ -1715,10 +1697,14 @@ export default {
   color: #ffa500;
 }
 
-.name-tag {
-  color: #67c23a;
-  font-weight: 500;
-  font-size: 0.95rem;
+.sticker-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.sticker-tag {
+  margin: 0;
 }
 
 .result-info {
@@ -1854,7 +1840,7 @@ export default {
 }
 
 @media (max-width: 768px) {
-  .spider-weapon-rename-container {
+  .spider-sticker-container {
     padding: 1rem;
   }
 

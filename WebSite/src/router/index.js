@@ -90,6 +90,12 @@ const routes = [
             meta: { title: '爬取改名' }
           },
           {
+            path: 'spider-sticker',
+            name: 'SpiderSticker',
+            component: () => import('@/views/settings/SpiderSticker.vue'),
+            meta: { title: '爬取挂件' }
+          },
+          {
             path: 'steam-market',
             name: 'SteamMarket',
             component: () => import('@/views/settings/SteamMarket.vue'),
