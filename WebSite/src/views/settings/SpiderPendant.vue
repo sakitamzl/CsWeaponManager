@@ -300,7 +300,7 @@
             <div class="weapon-stats">
               <el-tag size="small">总在售: {{ weapon.total_count }}</el-tag>
               <el-tag size="small" type="warning">最低价: ¥{{ weapon.lowest_price }}</el-tag>
-              <el-tag size="small" type="info">贴纸数: {{ weapon.sticker_count }}</el-tag>
+              <el-tag size="small" type="info">挂件数: {{ weapon.pendant_count }}</el-tag>
               <el-tag size="small" type="success">符合条件: {{ weapon.target_count }}</el-tag>
             </div>
           </div>
@@ -331,17 +331,24 @@
               </template>
             </el-table-column>
             
-            <el-table-column label="贴纸" min-width="200">
+            <el-table-column label="挂件" min-width="250">
               <template #default="scope">
-                <div class="sticker-list">
-                  <el-tag 
-                    v-for="(sticker, index) in scope.row.stickers" 
-                    :key="index" 
-                    size="small"
-                    class="sticker-tag"
+                <div class="pendant-list">
+                  <div
+                    v-for="(pendant, index) in scope.row.pendants" 
+                    :key="index"
+                    class="pendant-item"
                   >
-                    {{ sticker.name }}
-                  </el-tag>
+                    <img v-if="pendant.img" :src="pendant.img" class="pendant-img" :alt="pendant.name" />
+                    <div class="pendant-info">
+                      <div class="pendant-name">{{ pendant.name }}</div>
+                      <div class="pendant-details">
+                        <span class="pendant-price">¥{{ pendant.price }}</span>
+                        <span class="pendant-pattern">模板: {{ pendant.pattern }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <span v-if="!scope.row.pendants || scope.row.pendants.length === 0" class="no-pendant">无挂件</span>
                 </div>
               </template>
             </el-table-column>
@@ -511,7 +518,7 @@ export default {
       // 确认对话框
       try {
         const weaponNames = crawlForm.value.weaponId.map(w => w.name).join('、')
-        let confirmMessage = `确定要开始查询带贴纸饰品吗？\n\n`
+        let confirmMessage = `确定要开始查询带挂件饰品吗？\n\n`
         confirmMessage += `配置名称: ${crawlForm.value.configName}\n`
         confirmMessage += `Steam ID: ${crawlForm.value.steamId}\n`
         confirmMessage += `平台类型: ${crawlForm.value.platformType === 'buff' ? 'BUFF' : '悠悠有品'}\n`
@@ -650,7 +657,7 @@ export default {
                       weapon_name: eventData.weapon_name,
                       total_count: eventData.total_count,
                       lowest_price: eventData.lowest_price,
-                      sticker_count: 0,
+                      pendant_count: 0,
                       target_count: 0,
                       items: []
                     })
@@ -684,7 +691,7 @@ export default {
                       weapon_name: eventData.weapon_name,
                       total_count: eventData.total_count,
                       lowest_price: eventData.lowest_price,
-                      sticker_count: eventData.sticker_count || 0,
+                      pendant_count: eventData.pendant_count || 0,
                       target_count: eventData.target_count || 0,
                       items: []
                     })
@@ -692,7 +699,7 @@ export default {
                     const weaponData = weaponsMap.get(completeWeaponId)
                     weaponData.total_count = eventData.total_count
                     weaponData.lowest_price = eventData.lowest_price
-                    weaponData.sticker_count = eventData.sticker_count || 0
+                    weaponData.pendant_count = eventData.pendant_count || 0
                   }
 
                   // 更新显示 - 创建新对象引用
@@ -707,9 +714,9 @@ export default {
                   break
 
                 case 'complete':
-                  const totalSticker = Array.from(weaponsMap.values()).reduce((sum, w) => sum + w.sticker_count, 0)
+                  const totalPendant = Array.from(weaponsMap.values()).reduce((sum, w) => sum + w.pendant_count, 0)
                   const totalTarget = Array.from(weaponsMap.values()).reduce((sum, w) => sum + w.target_count, 0)
-                  ElMessage.success(`查询完成！共找到 ${totalSticker} 个贴纸饰品，其中 ${totalTarget} 个符合条件`)
+                  ElMessage.success(`查询完成！共找到 ${totalPendant} 个挂件饰品，其中 ${totalTarget} 个符合条件`)
                   break
 
                 case 'error':
@@ -1088,9 +1095,9 @@ export default {
       
       // 确认购买
       try {
-        const stickerNames = item.stickers ? item.stickers.map(s => s.name).join(', ') : '无'
+        const pendantNames = item.pendants ? item.pendants.map(p => p.name).join(', ') : '无'
         await ElMessageBox.confirm(
-          `确认购买该商品吗？\n\n贴纸：${stickerNames}\n价格：¥${item.price}\n磨损：${item.abrade || '-'}\n溢价：+¥${item.spread.toFixed(2)}`,
+          `确认购买该商品吗？\n\n挂件：${pendantNames}\n价格：¥${item.price}\n磨损：${item.abrade || '-'}\n溢价：+¥${item.spread.toFixed(2)}`,
           '确认购买',
           {
             confirmButtonText: '确认购买',
@@ -1149,7 +1156,7 @@ export default {
           
           if (payStatus === 2) {
             // 支付成功
-            message = `购买成功！\n\n商品：贴纸饰品\n订单号：${orderNo}\n金额：¥${paymentAmount}\n状态：支付成功✅\n\n饰品将发送至您的库存。`
+            message = `购买成功！\n\n商品：挂件饰品\n订单号：${orderNo}\n金额：¥${paymentAmount}\n状态：支付成功✅\n\n饰品将发送至您的库存。`
           } else if (payStatus === 1) {
             // 支付处理中
             message = `订单已创建！\n\n订单号：${orderNo}\n金额：¥${paymentAmount}\n状态：支付处理中⏳\n\n请稍后查看订单状态。`
@@ -1711,14 +1718,84 @@ export default {
   color: #ffa500;
 }
 
-.sticker-list {
+/* 挂件样式 */
+.pendant-list {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 300px;
+  overflow-y: auto;
 }
 
-.sticker-tag {
-  margin: 0;
+.pendant-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.pendant-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.pendant-img {
+  width: 60px;
+  height: 60px;
+  max-width: 60px;
+  max-height: 60px;
+  min-width: 60px;
+  min-height: 60px;
+  object-fit: contain;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 6px;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.pendant-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pendant-name {
+  color: #67c23a;
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pendant-details {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+.pendant-price {
+  color: #f56c6c;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.pendant-pattern {
+  color: #909399;
+  font-size: 12px;
+}
+
+.no-pendant {
+  color: #909399;
+  font-size: 13px;
+  font-style: italic;
+  padding: 8px;
+  text-align: center;
 }
 
 .result-info {
