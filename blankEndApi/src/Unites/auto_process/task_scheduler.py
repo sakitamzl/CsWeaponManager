@@ -290,11 +290,17 @@ class TaskScheduler:
         
         task_info = self.tasks[task_id]
         
-        # 尝试获取执行锁,如果有其他任务正在执行,则跳过本次执行
+        # 尝试获取执行锁,如果有其他任务正在执行,则稍后重试
         lock_acquired = self.execution_lock.acquire(blocking=False)
         
         if not lock_acquired:
-            self.log.write_log(f"任务 {task_info['task_name']} (ID: {task_id}) 跳过本次执行,有其他任务正在运行", 'warning')
+            self.log.write_log(f"任务 {task_info['task_name']} (ID: {task_id}) 有其他任务正在运行，30秒后重试", 'warning')
+            # 30秒后重试，而不是等待完整的间隔周期
+            if task_id in self.tasks:
+                timer = threading.Timer(30, lambda: self._schedule_task(task_id))
+                timer.daemon = True
+                timer.start()
+                self.tasks[task_id]['timer'] = timer
         else:
             try:
                 # 执行任务
@@ -307,16 +313,16 @@ class TaskScheduler:
             finally:
                 # 释放执行锁
                 self.execution_lock.release()
-        
-        # 设置下次执行
-        if task_id in self.tasks:  # 确保任务没有被停止
-            interval = task_info['config'].get('interval', 30) * 60  # 转换为秒
             
-            timer = threading.Timer(interval, lambda: self._schedule_task(task_id))
-            timer.daemon = True
-            timer.start()
-            
-            self.tasks[task_id]['timer'] = timer
+            # 设置下次执行（只有成功执行后才设置）
+            if task_id in self.tasks:  # 确保任务没有被停止
+                interval = task_info['config'].get('interval', 30) * 60  # 转换为秒
+                
+                timer = threading.Timer(interval, lambda: self._schedule_task(task_id))
+                timer.daemon = True
+                timer.start()
+                
+                self.tasks[task_id]['timer'] = timer
     
     def _update_task_execution_time(self, task_id):
         """更新任务执行时间到数据库(存储在value JSON中)"""
