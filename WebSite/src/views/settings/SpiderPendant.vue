@@ -78,6 +78,48 @@
         <div class="search-container">
           <div class="search-filters">
             <el-select 
+              v-model="weaponSearchFilters.weaponType" 
+              placeholder="选择武器类型"
+              clearable
+              style="width: 200px;"
+              @change="handleWeaponTypeChange"
+            >
+              <el-option label="全部武器" value="" />
+              <el-option label="手枪" value="手枪" />
+              <el-option label="步枪" value="步枪" />
+              <el-option label="狙击步枪" value="狙击步枪" />
+              <el-option label="冲锋枪" value="冲锋枪" />
+              <el-option label="霰弹枪" value="霰弹枪" />
+              <el-option label="机枪" value="机枪" />
+              <el-option label="匕首" value="匕首" />
+              <el-option label="手套" value="手套" />
+              <el-option label="探员" value="探员" />
+              <el-option label="印花" value="印花" />
+              <el-option label="涂鸦" value="涂鸦" />
+              <el-option label="音乐盒" value="音乐盒" />
+              <el-option label="收藏品" value="收藏品" />
+              <el-option label="容器" value="容器" />
+            </el-select>
+            
+            <el-select 
+              v-model="weaponSearchFilters.weaponName" 
+              placeholder="选择武器名称"
+              clearable
+              filterable
+              style="width: 200px;"
+              :loading="isLoadingWeaponNames"
+              :disabled="!weaponSearchFilters.weaponType"
+            >
+              <el-option label="全部" value="" />
+              <el-option 
+                v-for="name in weaponNameList" 
+                :key="name" 
+                :label="name" 
+                :value="name" 
+              />
+            </el-select>
+            
+            <el-select 
               v-model="weaponSearchFilters.rarity" 
               placeholder="选择稀有度"
               clearable
@@ -436,8 +478,12 @@ export default {
     const weaponSearchResults = ref([])
     const isSearchingWeapon = ref(false)
     const weaponSearchFilters = ref({
-      rarity: ''  // 稀有度筛选
+      weaponType: '',  // 武器类型筛选
+      weaponName: '',  // 武器名称筛选
+      rarity: ''       // 稀有度筛选
     })
+    const weaponNameList = ref([])  // 武器名称列表
+    const isLoadingWeaponNames = ref(false)  // 加载武器名称中
     
     // 购买相关
     const buyingItems = ref({})
@@ -1029,18 +1075,58 @@ export default {
       })
     }
 
-    // 搜索饰品
-    const handleSearchWeapon = async () => {
-      if (!weaponSearchKeyword.value.trim()) {
-        ElMessage.warning('请输入搜索关键词')
+    // 武器类型改变时，加载对应的武器名称列表
+    const handleWeaponTypeChange = async (weaponType) => {
+      // 清空武器名称选择
+      weaponSearchFilters.value.weaponName = ''
+      weaponNameList.value = []
+      
+      if (!weaponType) {
         return
       }
+      
+      isLoadingWeaponNames.value = true
+      
+      try {
+        const response = await axios.get(`${API_CONFIG.BASE_URL}/webSelectWeaponV1/getWeaponNames`, {
+          params: {
+            weaponType: weaponType
+          }
+        })
+        
+        if (response.data.success) {
+          weaponNameList.value = response.data.data || []
+        } else {
+          ElMessage.error('获取武器名称失败')
+        }
+      } catch (error) {
+        console.error('获取武器名称失败:', error)
+        ElMessage.error('获取武器名称失败')
+      } finally {
+        isLoadingWeaponNames.value = false
+      }
+    }
 
+    // 搜索饰品
+    const handleSearchWeapon = async () => {
       isSearchingWeapon.value = true
       
       try {
-        const params = {
-          keyword: weaponSearchKeyword.value.trim()
+        const params = {}
+        
+        // 添加关键词（如果有）
+        if (weaponSearchKeyword.value.trim()) {
+          params.keyword = weaponSearchKeyword.value.trim()
+        }
+        
+        // 如果选择了武器类型，添加到查询参数
+        if (weaponSearchFilters.value.weaponType) {
+          params.weaponType = weaponSearchFilters.value.weaponType
+        }
+        
+        // 如果选择了武器名称，添加到查询参数
+        if (weaponSearchFilters.value.weaponName) {
+          params.weaponName = weaponSearchFilters.value.weaponName
         }
         
         // 如果选择了稀有度，添加到查询参数
@@ -1076,7 +1162,10 @@ export default {
     const clearWeaponSearch = () => {
       weaponSearchResults.value = []
       weaponSearchKeyword.value = ''
+      weaponSearchFilters.value.weaponType = ''
+      weaponSearchFilters.value.weaponName = ''
       weaponSearchFilters.value.rarity = ''
+      weaponNameList.value = []
     }
 
     // 根据平台类型获取对应的饰品ID
@@ -1351,6 +1440,10 @@ export default {
       weaponSearchKeyword,
       weaponSearchResults,
       isSearchingWeapon,
+      weaponSearchFilters,
+      weaponNameList,
+      isLoadingWeaponNames,
+      handleWeaponTypeChange,
       handleSearchWeapon,
       clearWeaponSearch,
       getWeaponIdByPlatform,
