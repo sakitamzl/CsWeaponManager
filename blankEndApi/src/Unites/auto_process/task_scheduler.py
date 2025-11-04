@@ -40,27 +40,26 @@ class TaskScheduler:
         self.running = False
         
         with self.lock:
-            # 取消所有定时器
-            for task_id, task_info in self.tasks.items():
-                if task_info.get('timer'):
-                    task_info['timer'].cancel()
-            
             self.tasks.clear()
         
         self.log.write_log("任务调度器已停止", 'info')
     
     def _start_polling(self):
-        """启动轮询线程,定期检查任务状态变化"""
+        """启动轮询线程,定期检查并执行到期任务"""
         def poll_tasks():
             while self.running:
                 try:
-                    # 每5秒检查一次数据库
-                    time.sleep(5)
+                    # 每30秒检查一次数据库
+                    time.sleep(30)
                     
                     if not self.running:
                         break
                     
+                    # 检查数据库中的任务状态变化（启用/禁用）
                     self._sync_tasks_from_db()
+                    
+                    # 执行所有到期的任务
+                    self._execute_due_tasks()
                     
                 except Exception as e:
                     self.log.write_log(f"轮询任务失败: {str(e)}", 'error')
@@ -68,7 +67,7 @@ class TaskScheduler:
         # 创建守护线程
         polling_thread = threading.Thread(target=poll_tasks, daemon=True)
         polling_thread.start()
-        self.log.write_log("任务轮询线程已启动,每5秒同步一次", 'info')
+        self.log.write_log("任务轮询线程已启动,每30秒检查一次到期任务", 'info')
     
     def _sync_tasks_from_db(self):
         """从数据库同步任务状态"""
@@ -119,6 +118,87 @@ class TaskScheduler:
                     
         except Exception as e:
             self.log.write_log(f"同步任务状态失败: {str(e)}", 'error')
+    
+    def _execute_due_tasks(self):
+        """执行所有到期的任务"""
+        try:
+            db = Date_base()
+            
+            # 查询所有启用的任务
+            query_sql = """
+            SELECT dataID, dataName, key1, value 
+            FROM config 
+            WHERE key2 = 'auto_manager' AND status = '1'
+            """
+            
+            success, results = db.select(query_sql)
+            
+            if not success or not results:
+                return
+            
+            # 收集所有需要执行的任务
+            due_tasks = []
+            now = datetime.now()
+            
+            for row in results:
+                task_id = row[0]
+                task_name = row[1]
+                automate_type = row[2]
+                
+                try:
+                    config = json.loads(row[3]) if row[3] else {}
+                    next_run_str = config.get('nextRun')
+                    
+                    # 检查是否到期
+                    if next_run_str:
+                        next_run_time = datetime.strptime(next_run_str, '%Y-%m-%d %H:%M:%S')
+                        
+                        # 如果当前时间已经超过或等于 nextRun 时间，则需要执行
+                        if now >= next_run_time:
+                            due_tasks.append({
+                                'task_id': task_id,
+                                'task_name': task_name,
+                                'automate_type': automate_type,
+                                'config': config,
+                                'next_run': next_run_str
+                            })
+                    
+                except (json.JSONDecodeError, ValueError) as e:
+                    self.log.write_log(f"解析任务配置失败 (taskId={task_id}): {e}", 'error')
+                    continue
+            
+            # 如果有到期的任务，逐个执行
+            if due_tasks:
+                self.log.write_log(f"发现 {len(due_tasks)} 个到期任务，开始执行", 'info')
+                
+                for task in due_tasks:
+                    try:
+                        # 尝试获取执行锁（阻塞等待，直到可以执行）
+                        self.execution_lock.acquire()
+                        
+                        self.log.write_log(
+                            f"开始执行到期任务: {task['task_name']} (ID: {task['task_id']}, 计划时间: {task['next_run']})", 
+                            'info'
+                        )
+                        
+                        # 执行任务
+                        self._execute_task(task)
+                        
+                        # 更新执行时间
+                        self._update_task_execution_time(task['task_id'])
+                        
+                        self.log.write_log(f"任务 {task['task_name']} 执行完成", 'info')
+                        
+                    except Exception as e:
+                        self.log.write_log(f"执行任务失败 ({task['task_name']}): {str(e)}", 'error')
+                    finally:
+                        # 释放执行锁
+                        self.execution_lock.release()
+                
+                self.log.write_log(f"所有到期任务执行完毕，共 {len(due_tasks)} 个", 'info')
+            
+        except Exception as e:
+            self.log.write_log(f"检查到期任务失败: {str(e)}", 'error')
         
     def load_and_start_tasks(self):
         """从数据库加载并启动所有已启用的任务"""
@@ -157,101 +237,44 @@ class TaskScheduler:
         except Exception as e:
             self.log.write_log(f"加载定时任务失败: {str(e)}", 'error')
     
-    def start_task(self, task_id, task_name, automate_type, config, delay_seconds=None):
-        """启动单个任务
+    def start_task(self, task_id, task_name, automate_type, config):
+        """注册任务到调度器（轮询模式不需要创建Timer）
         
         Args:
             task_id: 任务ID
             task_name: 任务名称
             automate_type: 自动化类型
             config: 任务配置
-            delay_seconds: 延迟执行秒数(如果为None,则从数据库读取nextRun时间计算延迟)
         """
         with self.lock:
-            # 如果任务已存在,先停止
+            # 如果任务已存在，更新配置
             if task_id in self.tasks:
-                self.stop_task(task_id)
-            
-            # 如果没有指定延迟时间,从数据库读取nextRun时间
-            if delay_seconds is None:
-                try:
-                    db = Date_base()
-                    query_sql = f"""
-                    SELECT value 
-                    FROM config 
-                    WHERE dataID = {task_id} AND key2 = 'auto_manager'
-                    """
-                    success, result = db.select(query_sql)
-                    
-                    if success and result and result[0][0]:
-                        value_json = json.loads(result[0][0])
-                        next_run_str = value_json.get('nextRun')
-                        
-                        if next_run_str:
-                            from datetime import datetime
-                            next_run_time = datetime.strptime(next_run_str, '%Y-%m-%d %H:%M:%S')
-                            now = datetime.now()
-                            
-                            # 计算延迟秒数
-                            delay_seconds = max(0, (next_run_time - now).total_seconds())
-                            self.log.write_log(f"任务 {task_name} 下次执行时间: {next_run_str}, 延迟: {delay_seconds}秒", 'info')
-                        else:
-                            # 如果没有nextRun,立即执行
-                            delay_seconds = 0
-                    else:
-                        # 如果查询失败,立即执行
-                        delay_seconds = 0
-                except Exception as e:
-                    self.log.write_log(f"读取任务执行时间失败 (taskId={task_id}): {str(e)}, 将立即执行", 'warning')
-                    delay_seconds = 0
-            
-            # 创建任务信息
-            task_info = {
-                'task_id': task_id,
-                'task_name': task_name,
-                'automate_type': automate_type,
-                'config': config,
-                'timer': None
-            }
-            
-            self.tasks[task_id] = task_info
-            
-            # 延迟执行任务
-            timer = threading.Timer(delay_seconds, lambda: self._schedule_task(task_id))
-            timer.daemon = True
-            timer.start()
-            
-            self.tasks[task_id]['timer'] = timer
-            
-            if delay_seconds == 0:
-                self.log.write_log(f"任务已启动: {task_name} (ID: {task_id}), 将立即执行", 'info')
-            elif delay_seconds < 60:
-                self.log.write_log(f"任务已启动: {task_name} (ID: {task_id}), 将在 {int(delay_seconds)} 秒后执行", 'info')
-            elif delay_seconds < 3600:
-                self.log.write_log(f"任务已启动: {task_name} (ID: {task_id}), 将在 {int(delay_seconds/60)} 分钟后执行", 'info')
+                self.tasks[task_id].update({
+                    'task_name': task_name,
+                    'automate_type': automate_type,
+                    'config': config
+                })
+                self.log.write_log(f"任务已更新: {task_name} (ID: {task_id})", 'info')
             else:
-                self.log.write_log(f"任务已启动: {task_name} (ID: {task_id}), 将在 {int(delay_seconds/3600)} 小时后执行", 'info')
+                # 创建新任务
+                self.tasks[task_id] = {
+                    'task_id': task_id,
+                    'task_name': task_name,
+                    'automate_type': automate_type,
+                    'config': config
+                }
+                self.log.write_log(f"任务已注册到调度器: {task_name} (ID: {task_id})", 'info')
     
     
     def stop_task(self, task_id):
-        """停止单个任务"""
+        """从调度器移除任务"""
         with self.lock:
             if task_id in self.tasks:
-                task_info = self.tasks[task_id]
-                
-                # 取消定时器
-                if task_info.get('timer'):
-                    try:
-                        task_info['timer'].cancel()
-                    except Exception as e:
-                        self.log.write_log(f"取消定时器失败 (taskId={task_id}): {str(e)}", 'warning')
-                
-                task_name = task_info.get('task_name', 'Unknown')
+                task_name = self.tasks[task_id].get('task_name', 'Unknown')
                 del self.tasks[task_id]
-                
-                self.log.write_log(f"任务已停止: {task_name} (ID: {task_id})", 'info')
+                self.log.write_log(f"任务已从调度器移除: {task_name} (ID: {task_id})", 'info')
             else:
-                self.log.write_log(f"任务不存在或已停止 (taskId={task_id})", 'info')
+                self.log.write_log(f"任务不存在 (taskId={task_id})", 'info')
     
     def reload_task(self, task_id):
         """重新加载单个任务(用于更新任务配置)"""
@@ -283,47 +306,6 @@ class TaskScheduler:
         except Exception as e:
             self.log.write_log(f"重新加载任务失败 (taskId={task_id}): {str(e)}", 'error')
     
-    def _schedule_task(self, task_id):
-        """调度任务执行"""
-        if task_id not in self.tasks:
-            return
-        
-        task_info = self.tasks[task_id]
-        
-        # 尝试获取执行锁,如果有其他任务正在执行,则稍后重试
-        lock_acquired = self.execution_lock.acquire(blocking=False)
-        
-        if not lock_acquired:
-            self.log.write_log(f"任务 {task_info['task_name']} (ID: {task_id}) 有其他任务正在运行，30秒后重试", 'warning')
-            # 30秒后重试，而不是等待完整的间隔周期
-            if task_id in self.tasks:
-                timer = threading.Timer(30, lambda: self._schedule_task(task_id))
-                timer.daemon = True
-                timer.start()
-                self.tasks[task_id]['timer'] = timer
-        else:
-            try:
-                # 执行任务
-                self._execute_task(task_info)
-                
-                # 更新最后执行时间
-                self._update_task_execution_time(task_id)
-            except Exception as e:
-                self.log.write_log(f"执行任务失败 ({task_info['task_name']}): {str(e)}", 'error')
-            finally:
-                # 释放执行锁
-                self.execution_lock.release()
-            
-            # 设置下次执行（只有成功执行后才设置）
-            if task_id in self.tasks:  # 确保任务没有被停止
-                interval = task_info['config'].get('interval', 30) * 60  # 转换为秒
-                
-                timer = threading.Timer(interval, lambda: self._schedule_task(task_id))
-                timer.daemon = True
-                timer.start()
-                
-                self.tasks[task_id]['timer'] = timer
-    
     def _update_task_execution_time(self, task_id):
         """更新任务执行时间到数据库(存储在value JSON中)"""
         try:
@@ -331,25 +313,21 @@ class TaskScheduler:
             
             db = Date_base()
             
-            # 获取任务配置
-            if task_id not in self.tasks:
-                return
-            
-            task_info = self.tasks[task_id]
-            interval = task_info['config'].get('interval', 30)
-            
-            # 计算时间
-            now = datetime.now()
-            last_run = now.strftime('%Y-%m-%d %H:%M:%S')
-            next_run = (now + timedelta(minutes=interval)).strftime('%Y-%m-%d %H:%M:%S')
-            
             # 获取当前配置
             query_sql = f"SELECT value FROM config WHERE dataID = {task_id} AND key2 = 'auto_manager'"
             success, result = db.select(query_sql)
             
-            if success and result:
+            if success and result and result[0][0]:
                 # 解析现有配置
-                current_config = json.loads(result[0][0]) if result[0][0] else {}
+                current_config = json.loads(result[0][0])
+                
+                # 获取间隔时间
+                interval = current_config.get('interval', 30)
+                
+                # 计算时间
+                now = datetime.now()
+                last_run = now.strftime('%Y-%m-%d %H:%M:%S')
+                next_run = (now + timedelta(minutes=interval)).strftime('%Y-%m-%d %H:%M:%S')
                 
                 # 更新执行时间
                 current_config['lastRun'] = last_run
@@ -365,9 +343,7 @@ class TaskScheduler:
                 
                 db.update(update_sql)
                 
-                # 同步更新内存中的配置
-                task_info['config']['lastRun'] = last_run
-                task_info['config']['nextRun'] = next_run
+                self.log.write_log(f"任务执行时间已更新 (ID: {task_id}): lastRun={last_run}, nextRun={next_run}", 'info')
             
         except Exception as e:
             self.log.write_log(f"更新任务执行时间失败 (taskId={task_id}): {str(e)}", 'error')
@@ -404,14 +380,37 @@ class TaskScheduler:
         steam_id = config.get('selectedSteamId')  # 兼容旧版本
         
         # 如果有steam_config_id，从数据库查询对应的steamID
+        # 不同的任务类型从不同的数据源获取配置
         if steam_config_id:
             try:
                 db = Date_base()
-                query_sql = f"""
-                SELECT steamID 
-                FROM config 
-                WHERE dataID = {steam_config_id} AND key1 = 'steam' AND key2 = 'config'
-                """
+                
+                # 根据任务类型确定查询条件
+                if selected_task == 'update_steam_inventory':
+                    # 更新Steam库存 - 从 key1='steam' 的配置获取
+                    query_sql = f"""
+                    SELECT steamID 
+                    FROM config 
+                    WHERE dataID = {steam_config_id} AND key1 = 'steam' AND key2 = 'config'
+                    """
+                elif selected_task == 'fetch_yyyp_price':
+                    # 获取悠悠有品价格 - 从 key1='youpin' 的配置获取
+                    query_sql = f"""
+                    SELECT steamID 
+                    FROM config 
+                    WHERE dataID = {steam_config_id} AND key1 = 'youpin' AND key2 = 'config'
+                    """
+                elif selected_task == 'fetch_buff_price':
+                    # 获取BUFF价格 - 从 key1='buff' 的配置获取
+                    query_sql = f"""
+                    SELECT steamID 
+                    FROM config 
+                    WHERE dataID = {steam_config_id} AND key1 = 'buff' AND key2 = 'config'
+                    """
+                else:
+                    self.log.write_log(f"未知的任务类型: {selected_task}", 'error')
+                    return
+                
                 success, result = db.select(query_sql)
                 
                 if success and result and result[0][0]:
@@ -428,7 +427,7 @@ class TaskScheduler:
             self.log.write_log(f"任务 {task_info['task_name']} 缺少 Steam ID", 'error')
             return
         
-        # 根据任务类型调用相应的API
+        # 根据任务类型调用相应的API (与前端 Inventory.vue 保持一致)
         spider_base_url = "http://127.0.0.1:9002"  # Spider服务地址
         
         try:
@@ -451,7 +450,7 @@ class TaskScheduler:
                     self.log.write_log(f"更新Steam库存HTTP错误: {steam_id}, 状态码: {response.status_code}", 'error')
                 
             elif selected_task == 'fetch_yyyp_price':
-                # 获取悠悠有品价格
+                # 获取悠悠有品价格 - 与前端 Inventory.vue 的 fetchYYYPPrice 方法一致
                 self.log.write_log(f"开始获取悠悠有品价格: {steam_id}", 'info')
                 response = requests.post(
                     f"{spider_base_url}/youping898SpiderV1/getYYYPPrice",
@@ -462,14 +461,14 @@ class TaskScheduler:
                 if response.status_code == 200:
                     response_data = response.json()
                     if response_data.get('success'):
-                        self.log.write_log(f"获取悠悠有品价格成功: {steam_id}", 'info')
+                        self.log.write_log(f"获取悠悠有品价格成功: {steam_id}, 消息: {response_data.get('message', '')}", 'info')
                     else:
-                        self.log.write_log(f"获取悠悠有品价格失败: {steam_id}", 'error')
+                        self.log.write_log(f"获取悠悠有品价格失败: {steam_id}, 消息: {response_data.get('message', '')}", 'error')
                 else:
                     self.log.write_log(f"获取悠悠有品价格HTTP错误: {steam_id}, 状态码: {response.status_code}", 'error')
                 
             elif selected_task == 'fetch_buff_price':
-                # 获取BUFF价格
+                # 获取BUFF价格 - 与前端 Inventory.vue 的 fetchBuffPrice 方法一致
                 self.log.write_log(f"开始获取BUFF价格: {steam_id}", 'info')
                 response = requests.post(
                     f"{spider_base_url}/buffSpiderV1/getBUFFPrice",
@@ -480,9 +479,9 @@ class TaskScheduler:
                 if response.status_code == 200:
                     response_data = response.json()
                     if response_data.get('success'):
-                        self.log.write_log(f"获取BUFF价格成功: {steam_id}", 'info')
+                        self.log.write_log(f"获取BUFF价格成功: {steam_id}, 消息: {response_data.get('message', '')}", 'info')
                     else:
-                        self.log.write_log(f"获取BUFF价格失败: {steam_id}", 'error')
+                        self.log.write_log(f"获取BUFF价格失败: {steam_id}, 消息: {response_data.get('message', '')}", 'error')
                 else:
                     self.log.write_log(f"获取BUFF价格HTTP错误: {steam_id}, 状态码: {response.status_code}", 'error')
                 

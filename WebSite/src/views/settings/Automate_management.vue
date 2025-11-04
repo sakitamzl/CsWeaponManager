@@ -40,8 +40,8 @@
           </el-select>
         </el-form-item>
 
-        <!-- Steam账号选择 (仅在自动更新数据时显示) -->
-        <el-form-item v-if="automateForm.automateType === 'auto_update'" label="Steam账号">
+        <!-- Steam账号选择 (仅在自动更新数据时显示，且已选择具体任务) -->
+        <el-form-item v-if="automateForm.automateType === 'auto_update' && automateForm.selectedTask" label="Steam账号">
           <el-select 
             v-model="automateForm.selectedSteamConfig" 
             placeholder="请选择Steam账号"
@@ -49,7 +49,7 @@
             filterable
           >
             <el-option 
-              v-for="config in steamConfigList" 
+              v-for="config in currentSteamConfigList" 
               :key="config.dataID" 
               :label="`${config.dataName} (${config.steamID || '无SteamID'})`" 
               :value="config.dataID" 
@@ -191,8 +191,14 @@ const executing = ref(false)
 const isEditing = ref(false)
 const editingTaskId = ref(null)
 
-// Steam配置列表
+// Steam配置列表（key1='steam' 的配置，用于"更新Steam库存"）
 const steamConfigList = ref([])
+
+// 悠悠有品配置列表（key1='youpin' 的配置，用于"获取悠悠有品价格"）
+const youpinConfigList = ref([])
+
+// BUFF配置列表（key1='buff' 的配置，用于"获取BUFF价格"）
+const buffConfigList = ref([])
 
 // 数据源列表
 const dataSources = ref([])
@@ -218,6 +224,24 @@ const secondSelectLabel = computed(() => {
   return automateForm.value.automateType === 'auto_update' ? '更新任务' : '采集任务'
 })
 
+// 根据所选任务类型返回对应的Steam配置列表
+const currentSteamConfigList = computed(() => {
+  const selectedTask = automateForm.value.selectedTask
+  
+  if (selectedTask === 'update_steam_inventory') {
+    // 更新Steam库存 - 使用 key1='steam' 的配置
+    return steamConfigList.value
+  } else if (selectedTask === 'fetch_yyyp_price') {
+    // 获取悠悠有品价格 - 使用 key1='youpin' 的配置
+    return youpinConfigList.value
+  } else if (selectedTask === 'fetch_buff_price') {
+    // 获取BUFF价格 - 使用 key1='buff' 的配置
+    return buffConfigList.value
+  }
+  
+  return []
+})
+
 // 可用的任务列表
 const availableTasks = computed(() => {
   return automateForm.value.automateType === 'auto_update' ? updateTasks : fetchTasks
@@ -241,7 +265,7 @@ const filteredDataSources = computed(() => {
   return []
 })
 
-// 加载 Steam 配置列表
+// 加载 Steam 配置列表（key1='steam'，用于"更新Steam库存"）
 const loadSteamConfigs = async () => {
   try {
     const response = await axios.get(`${API_CONFIG.BASE_URL}/webInventoryV1/steam_ids`)
@@ -255,6 +279,52 @@ const loadSteamConfigs = async () => {
   } catch (error) {
     console.error('加载Steam配置列表失败:', error)
     ElMessage.error('加载Steam账号列表失败: ' + error.message)
+  }
+}
+
+// 加载悠悠有品配置列表（key1='youpin'）
+const loadYoupinConfigs = async () => {
+  try {
+    const response = await axios.get(`${API_CONFIG.BASE_URL}/dataSourcePageV1/api/datasource`)
+    console.log('数据源API响应:', response.data)
+    
+    if (response.data.success && Array.isArray(response.data.data)) {
+      // 筛选 key1='youpin' 的配置
+      youpinConfigList.value = response.data.data
+        .filter(item => item.type === 'youpin')
+        .map(item => ({
+          dataID: item.dataID,
+          dataName: item.dataName,
+          steamID: item.steamID
+        }))
+      console.log('已加载悠悠有品配置列表:', youpinConfigList.value)
+    }
+  } catch (error) {
+    console.error('加载悠悠有品配置列表失败:', error)
+    ElMessage.error('加载悠悠有品配置列表失败: ' + error.message)
+  }
+}
+
+// 加载BUFF配置列表（key1='buff'）
+const loadBuffConfigs = async () => {
+  try {
+    const response = await axios.get(`${API_CONFIG.BASE_URL}/dataSourcePageV1/api/datasource`)
+    console.log('数据源API响应:', response.data)
+    
+    if (response.data.success && Array.isArray(response.data.data)) {
+      // 筛选 key1='buff' 的配置
+      buffConfigList.value = response.data.data
+        .filter(item => item.type === 'buff')
+        .map(item => ({
+          dataID: item.dataID,
+          dataName: item.dataName,
+          steamID: item.steamID
+        }))
+      console.log('已加载BUFF配置列表:', buffConfigList.value)
+    }
+  } catch (error) {
+    console.error('加载BUFF配置列表失败:', error)
+    ElMessage.error('加载BUFF配置列表失败: ' + error.message)
   }
 }
 
@@ -509,6 +579,28 @@ const collectYoupinData = async (dataSource) => {
 
 // 启动定时任务
 const startScheduledTask = async () => {
+  // 检查是否存在重复任务
+  const isDuplicate = runningTasks.value.some(task => {
+    // 比较自动化类型和具体任务
+    if (task.config.selectedTask !== automateForm.value.selectedTask) {
+      return false
+    }
+    
+    // 比较目标账号/数据源
+    if (automateForm.value.automateType === 'auto_update') {
+      // 更新类型：比较Steam配置ID
+      return task.config.selectedSteamConfig === automateForm.value.selectedSteamConfig
+    } else {
+      // 采集类型：比较数据源ID
+      return task.config.selectedDataSource === automateForm.value.selectedDataSource
+    }
+  })
+  
+  if (isDuplicate) {
+    ElMessage.warning('已存在相同的自动化任务（任务类型和目标账号相同），无法创建重复任务')
+    return
+  }
+  
   // 先保存任务配置到数据库
   try {
     const config = {
@@ -653,6 +745,34 @@ const editTask = (task) => {
 const updateTask = async () => {
   executing.value = true
   
+  // 检查是否存在重复任务（排除当前正在编辑的任务）
+  const isDuplicate = runningTasks.value.some(task => {
+    // 跳过当前正在编辑的任务
+    if (task.id === editingTaskId.value) {
+      return false
+    }
+    
+    // 比较自动化类型和具体任务
+    if (task.config.selectedTask !== automateForm.value.selectedTask) {
+      return false
+    }
+    
+    // 比较目标账号/数据源
+    if (automateForm.value.automateType === 'auto_update') {
+      // 更新类型：比较Steam配置ID
+      return task.config.selectedSteamConfig === automateForm.value.selectedSteamConfig
+    } else {
+      // 采集类型：比较数据源ID
+      return task.config.selectedDataSource === automateForm.value.selectedDataSource
+    }
+  })
+  
+  if (isDuplicate) {
+    ElMessage.warning('已存在相同的自动化任务（任务类型和目标账号相同），无法更新为重复任务')
+    executing.value = false
+    return
+  }
+  
   try {
     const taskConfig = {
       taskName: automateForm.value.taskName,
@@ -755,7 +875,19 @@ const calculateNextRun = (intervalMinutes) => {
 // 获取目标信息
 const getTargetInfo = () => {
   if (automateForm.value.automateType === 'auto_update') {
-    const config = steamConfigList.value.find(c => c.dataID === automateForm.value.selectedSteamConfig)
+    // 根据选择的任务类型从对应的配置列表查找
+    const selectedTask = automateForm.value.selectedTask
+    let configList = []
+    
+    if (selectedTask === 'update_steam_inventory') {
+      configList = steamConfigList.value
+    } else if (selectedTask === 'fetch_yyyp_price') {
+      configList = youpinConfigList.value
+    } else if (selectedTask === 'fetch_buff_price') {
+      configList = buffConfigList.value
+    }
+    
+    const config = configList.find(c => c.dataID === automateForm.value.selectedSteamConfig)
     return config ? `${config.dataName} (${config.steamID || '无SteamID'})` : '-'
   } else {
     const source = dataSources.value.find(s => s.dataID === automateForm.value.selectedDataSource)
@@ -903,13 +1035,23 @@ const getTaskTargetInfo = (savedTask) => {
   if (savedTask.automateType === 'auto_update') {
     // 更新类型:显示Steam配置名称和ID
     const selectedId = savedTask.config.selectedSteamConfig
+    const selectedTask = savedTask.config.selectedTask
     
     if (!selectedId) {
       return '-'
     }
     
-    // 查找Steam配置
-    const config = steamConfigList.value.find(c => c.dataID === selectedId)
+    // 根据任务类型从对应的配置列表查找
+    let configList = []
+    if (selectedTask === 'update_steam_inventory') {
+      configList = steamConfigList.value
+    } else if (selectedTask === 'fetch_yyyp_price') {
+      configList = youpinConfigList.value
+    } else if (selectedTask === 'fetch_buff_price') {
+      configList = buffConfigList.value
+    }
+    
+    const config = configList.find(c => c.dataID === selectedId)
     if (!config) {
       return '-'
     }
@@ -938,6 +1080,8 @@ const getTaskTargetInfo = (savedTask) => {
 // 组件挂载时加载数据
 onMounted(async () => {
   await loadSteamConfigs()
+  await loadYoupinConfigs()
+  await loadBuffConfigs()
   await loadDataSources()
   await loadSavedTasks()
 })
