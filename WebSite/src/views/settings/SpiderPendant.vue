@@ -1466,11 +1466,13 @@ export default {
     const handlePageScroll = () => {
       // 如果没有搜索结果，不处理滚动
       if (weaponSearchResults.value.length === 0) {
+        console.log('❌ 跳过滚动检查：没有搜索结果')
         return
       }
       
       // 如果爬取配置区域是展开状态，不触发自动加载
       if (!isToolSectionCollapsed.value) {
+        console.log('❌ 跳过滚动检查：配置区域展开中')
         return
       }
       
@@ -1485,13 +1487,14 @@ export default {
         const clientHeight = window.innerHeight
         const distanceToBottom = scrollHeight - scrollTop - clientHeight
         
-        console.log('滚动位置检查', {
+        console.log('📏 滚动位置检查', {
           scrollTop: Math.round(scrollTop),
           scrollHeight,
           clientHeight,
           distanceToBottom: Math.round(distanceToBottom),
           hasMore: hasMore.value,
           isLoadingMore: isLoadingMore.value,
+          isToolSectionCollapsed: isToolSectionCollapsed.value,
           currentPage: currentPage.value,
           resultsCount: weaponSearchResults.value.length
         })
@@ -1500,6 +1503,12 @@ export default {
         if (distanceToBottom < 200 && hasMore.value && !isLoadingMore.value) {
           console.log('✅ 触发加载更多数据')
           loadMoreWeapons()
+        } else {
+          console.log('⏸️ 未触发加载', {
+            '距离是否<200': distanceToBottom < 200,
+            '有更多数据': hasMore.value,
+            '未在加载中': !isLoadingMore.value
+          })
         }
       }, 100) // 100ms 防抖延迟
     }
