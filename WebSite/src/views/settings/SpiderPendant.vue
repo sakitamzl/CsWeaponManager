@@ -62,7 +62,6 @@
       <!-- 统一的工具区域 -->
       <div class="unified-tool-section" :class="{ collapsed: isToolSectionCollapsed }">
         <div class="tool-section-header" @click="toggleToolSection">
-          <h2 class="main-section-title">配置区域</h2>
           <el-button type="text" class="collapse-btn">
             <el-icon :size="20">
               <ArrowUp v-if="!isToolSectionCollapsed" />
@@ -72,163 +71,6 @@
         </div>
         
         <div class="tool-section-content" v-show="!isToolSectionCollapsed">
-        <div class="search-section">
-          <h2 class="section-title">搜索饰品</h2>
-        
-        <div class="search-container">
-          <div class="search-filters">
-            <el-select 
-              v-model="weaponSearchFilters.weaponType" 
-              placeholder="选择武器类型"
-              clearable
-              style="width: 200px;"
-              @change="handleWeaponTypeChange"
-            >
-              <el-option label="全部武器" value="" />
-              <el-option label="手枪" value="手枪" />
-              <el-option label="步枪" value="步枪" />
-              <el-option label="狙击步枪" value="狙击步枪" />
-              <el-option label="冲锋枪" value="冲锋枪" />
-              <el-option label="霰弹枪" value="霰弹枪" />
-              <el-option label="机枪" value="机枪" />
-              <el-option label="匕首" value="匕首" />
-              <el-option label="手套" value="手套" />
-              <el-option label="探员" value="探员" />
-              <el-option label="印花" value="印花" />
-              <el-option label="涂鸦" value="涂鸦" />
-              <el-option label="音乐盒" value="音乐盒" />
-              <el-option label="收藏品" value="收藏品" />
-              <el-option label="容器" value="容器" />
-            </el-select>
-            
-            <el-select 
-              v-model="weaponSearchFilters.weaponName" 
-              placeholder="选择武器名称"
-              clearable
-              filterable
-              style="width: 200px;"
-              :loading="isLoadingWeaponNames"
-              :disabled="!weaponSearchFilters.weaponType"
-            >
-              <el-option label="全部" value="" />
-              <el-option 
-                v-for="name in weaponNameList" 
-                :key="name" 
-                :label="name" 
-                :value="name" 
-              />
-            </el-select>
-            
-            <el-select 
-              v-model="weaponSearchFilters.rarity" 
-              placeholder="选择稀有度"
-              clearable
-              style="width: 200px;"
-            >
-              <el-option label="全部稀有度" value="" />
-              <el-option label="隐秘" value="隐秘" />
-              <el-option label="保密" value="保密" />
-              <el-option label="受限" value="受限" />
-              <el-option label="军规级" value="军规级" />
-              <el-option label="工业级" value="工业级" />
-              <el-option label="消费级" value="消费级" />
-              <el-option label="非凡" value="非凡" />
-              <el-option label="奇异" value="奇异" />
-              <el-option label="违禁" value="违禁" />
-            </el-select>
-          </div>
-          
-          <el-input
-            v-model="weaponSearchKeyword"
-            placeholder="搜索饰品名称..."
-            prefix-icon="Search"
-            class="weapon-search-input"
-            @keyup.enter="handleSearchWeapon"
-            clearable
-          >
-            <template #append>
-              <el-button 
-                type="primary" 
-                @click="handleSearchWeapon" 
-                :loading="isSearchingWeapon"
-              >
-                搜索
-              </el-button>
-            </template>
-          </el-input>
-        </div>
-
-        <!-- 搜索结果表格 -->
-        <div v-if="weaponSearchResults.length > 0" class="search-results-table">
-          <div class="results-header">
-            <span class="results-title">
-              搜索结果 ({{ weaponSearchResults.length }} 件)
-            </span>
-            <el-button 
-              type="text" 
-              size="small"
-              @click="clearWeaponSearch"
-            >
-              清除结果
-            </el-button>
-          </div>
-          
-          <el-table 
-            :data="weaponSearchResults" 
-            style="width: 100%"
-            max-height="400"
-            :row-class-name="getRowClassName"
-          >
-            <el-table-column type="index" label="#" width="60" align="center" />
-            
-            <el-table-column label="饰品名称" min-width="250" show-overflow-tooltip>
-              <template #default="{ row }">
-                <span class="weapon-name">{{ row.market_listing_item_name }}</span>
-              </template>
-            </el-table-column>
-            
-            <el-table-column label="Steam Hash Name" min-width="200" show-overflow-tooltip>
-              <template #default="{ row }">
-                <span class="hash-name-text">{{ row.steam_hash_name || '-' }}</span>
-              </template>
-            </el-table-column>
-            
-            <el-table-column label="武器类型" width="120" align="center">
-              <template #default="{ row }">
-                <el-tag size="small" type="info">{{ row.weapon_type || '-' }}</el-tag>
-              </template>
-            </el-table-column>
-            
-            <el-table-column label="悠悠有品ID" width="130" align="center">
-              <template #default="{ row }">
-                <el-tag type="warning" v-if="row.yyyp_id">{{ row.yyyp_id }}</el-tag>
-                <span v-else class="no-data">-</span>
-              </template>
-            </el-table-column>
-            
-            <el-table-column label="BUFF ID" width="110" align="center">
-              <template #default="{ row }">
-                <el-tag type="info" v-if="row.buff_id">{{ row.buff_id }}</el-tag>
-                <span v-else class="no-data">-</span>
-              </template>
-            </el-table-column>
-            
-            <el-table-column label="操作" width="120" align="center" fixed="right">
-              <template #default="{ row }">
-                <el-button 
-                  type="primary" 
-                  size="small"
-                  @click="addWeaponId(row)"
-                  :disabled="!getWeaponIdByPlatform(row)"
-                >
-                  添加ID
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </div>
-        </div>
-
         <div class="tool-section">
         <h2 class="section-title">爬取配置</h2>
         
@@ -346,6 +188,187 @@
           </el-button>
         </div>
         </div>
+
+        <!-- 搜索饰品部分 -->
+        <div class="search-section">
+          <h2 class="section-title">搜索饰品</h2>
+        
+        <div class="search-container">
+          <div class="search-filters">
+            <el-select 
+              v-model="weaponSearchFilters.weaponType" 
+              placeholder="选择武器类型"
+              clearable
+              style="width: 200px;"
+              @change="handleWeaponTypeChange"
+            >
+              <el-option label="全部武器" value="" />
+              <el-option label="手枪" value="手枪" />
+              <el-option label="步枪" value="步枪" />
+              <el-option label="狙击步枪" value="狙击步枪" />
+              <el-option label="冲锋枪" value="冲锋枪" />
+              <el-option label="霰弹枪" value="霰弹枪" />
+              <el-option label="机枪" value="机枪" />
+              <el-option label="匕首" value="匕首" />
+              <el-option label="手套" value="手套" />
+              <el-option label="探员" value="探员" />
+              <el-option label="印花" value="印花" />
+              <el-option label="涂鸦" value="涂鸦" />
+              <el-option label="音乐盒" value="音乐盒" />
+              <el-option label="收藏品" value="收藏品" />
+              <el-option label="容器" value="容器" />
+            </el-select>
+            
+            <el-select 
+              v-model="weaponSearchFilters.weaponName" 
+              placeholder="选择武器名称"
+              clearable
+              filterable
+              style="width: 200px;"
+              :loading="isLoadingWeaponNames"
+              :disabled="!weaponSearchFilters.weaponType"
+            >
+              <el-option label="全部" value="" />
+              <el-option 
+                v-for="name in weaponNameList" 
+                :key="name" 
+                :label="name" 
+                :value="name" 
+              />
+            </el-select>
+            
+            <el-select 
+              v-model="weaponSearchFilters.rarity" 
+              placeholder="选择稀有度"
+              clearable
+              style="width: 200px;"
+            >
+              <el-option label="全部稀有度" value="" />
+              <el-option label="隐秘" value="隐秘" />
+              <el-option label="保密" value="保密" />
+              <el-option label="受限" value="受限" />
+              <el-option label="军规级" value="军规级" />
+              <el-option label="工业级" value="工业级" />
+              <el-option label="消费级" value="消费级" />
+              <el-option label="非凡" value="非凡" />
+              <el-option label="奇异" value="奇异" />
+              <el-option label="违禁" value="违禁" />
+            </el-select>
+            
+            <el-input 
+              v-model.number="weaponSearchFilters.priceMin" 
+              placeholder="最低价格"
+              type="number"
+              clearable
+              style="width: 150px;"
+              class="no-spinner"
+            >
+              <template #prefix>¥</template>
+            </el-input>
+            
+            <el-input 
+              v-model.number="weaponSearchFilters.priceMax" 
+              placeholder="最高价格"
+              type="number"
+              clearable
+              style="width: 150px;"
+              class="no-spinner"
+            >
+              <template #prefix>¥</template>
+            </el-input>
+          </div>
+          
+          <el-input
+            v-model="weaponSearchKeyword"
+            placeholder="搜索饰品名称..."
+            prefix-icon="Search"
+            class="weapon-search-input"
+            @keyup.enter="handleSearchWeapon"
+            clearable
+          >
+            <template #append>
+              <el-button 
+                type="primary" 
+                @click="handleSearchWeapon" 
+                :loading="isSearchingWeapon"
+              >
+                搜索
+              </el-button>
+            </template>
+          </el-input>
+        </div>
+
+        <!-- 搜索结果表格 -->
+        <div v-if="weaponSearchResults.length > 0" class="search-results-table">
+          <div class="results-header">
+            <span class="results-title">
+              搜索结果 ({{ weaponSearchResults.length }} 件)
+            </span>
+            <el-button 
+              type="text" 
+              size="small"
+              @click="clearWeaponSearch"
+            >
+              清除结果
+            </el-button>
+          </div>
+          
+          <el-table 
+            :data="weaponSearchResults" 
+            style="width: 100%"
+            max-height="400"
+            :row-class-name="getRowClassName"
+          >
+            <el-table-column type="index" label="#" width="60" align="center" />
+            
+            <el-table-column label="饰品名称" min-width="250" show-overflow-tooltip>
+              <template #default="{ row }">
+                <span class="weapon-name">{{ row.market_listing_item_name }}</span>
+              </template>
+            </el-table-column>
+            
+            <el-table-column label="Steam Hash Name" min-width="200" show-overflow-tooltip>
+              <template #default="{ row }">
+                <span class="hash-name-text">{{ row.steam_hash_name || '-' }}</span>
+              </template>
+            </el-table-column>
+            
+            <el-table-column label="武器类型" width="120" align="center">
+              <template #default="{ row }">
+                <el-tag size="small" type="info">{{ row.weapon_type || '-' }}</el-tag>
+              </template>
+            </el-table-column>
+            
+            <el-table-column label="悠悠有品ID" width="130" align="center">
+              <template #default="{ row }">
+                <el-tag type="warning" v-if="row.yyyp_id">{{ row.yyyp_id }}</el-tag>
+                <span v-else class="no-data">-</span>
+              </template>
+            </el-table-column>
+            
+            <el-table-column label="BUFF ID" width="110" align="center">
+              <template #default="{ row }">
+                <el-tag type="info" v-if="row.buff_id">{{ row.buff_id }}</el-tag>
+                <span v-else class="no-data">-</span>
+              </template>
+            </el-table-column>
+            
+            <el-table-column label="操作" width="120" align="center" fixed="right">
+              <template #default="{ row }">
+                <el-button 
+                  type="primary" 
+                  size="small"
+                  @click="addWeaponId(row)"
+                  :disabled="!getWeaponIdByPlatform(row)"
+                >
+                  添加ID
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+        </div>
+
         </div>
         <!-- 结束 tool-section-content -->
       </div>
@@ -480,7 +503,9 @@ export default {
     const weaponSearchFilters = ref({
       weaponType: '',  // 武器类型筛选
       weaponName: '',  // 武器名称筛选
-      rarity: ''       // 稀有度筛选
+      rarity: '',      // 稀有度筛选
+      priceMin: null,  // 最低价格
+      priceMax: null   // 最高价格
     })
     const weaponNameList = ref([])  // 武器名称列表
     const isLoadingWeaponNames = ref(false)  // 加载武器名称中
@@ -1109,10 +1134,21 @@ export default {
 
     // 搜索饰品
     const handleSearchWeapon = async () => {
+      // 验证价格区间
+      if (weaponSearchFilters.value.priceMin !== null && 
+          weaponSearchFilters.value.priceMax !== null &&
+          weaponSearchFilters.value.priceMin > weaponSearchFilters.value.priceMax) {
+        ElMessage.warning('最低价格不能大于最高价格')
+        return
+      }
+      
       isSearchingWeapon.value = true
       
       try {
         const params = {}
+        
+        // 使用爬取配置中的平台类型
+        params.platformType = crawlForm.value.platformType
         
         // 添加关键词（如果有）
         if (weaponSearchKeyword.value.trim()) {
@@ -1132,6 +1168,16 @@ export default {
         // 如果选择了稀有度，添加到查询参数
         if (weaponSearchFilters.value.rarity) {
           params.rarity = weaponSearchFilters.value.rarity
+        }
+        
+        // 如果设置了最低价格，添加到查询参数
+        if (weaponSearchFilters.value.priceMin !== null && weaponSearchFilters.value.priceMin !== '') {
+          params.priceMin = weaponSearchFilters.value.priceMin
+        }
+        
+        // 如果设置了最高价格，添加到查询参数
+        if (weaponSearchFilters.value.priceMax !== null && weaponSearchFilters.value.priceMax !== '') {
+          params.priceMax = weaponSearchFilters.value.priceMax
         }
         
         const response = await axios.get(`${API_CONFIG.BASE_URL}/webSelectWeaponV1/searchWeaponDetail`, {
@@ -1165,6 +1211,8 @@ export default {
       weaponSearchFilters.value.weaponType = ''
       weaponSearchFilters.value.weaponName = ''
       weaponSearchFilters.value.rarity = ''
+      weaponSearchFilters.value.priceMin = null
+      weaponSearchFilters.value.priceMax = null
       weaponNameList.value = []
     }
 

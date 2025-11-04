@@ -110,18 +110,24 @@ def searchWeaponDetail():
     """
     根据market_listing_item_name模糊搜索武器详细信息（用于表格展示）
     参数: 
+        platformType - 平台类型：youpin 或 buff（必填）
         keyword - 搜索关键词（可选）
         weaponType - 武器类型筛选（可选）
         weaponName - 武器名称筛选（可选）
         rarity - 稀有度筛选（可选）
+        priceMin - 最低价格（可选）
+        priceMax - 最高价格（可选）
         如果所有参数都为空，则返回全部数据
     返回: 匹配的武器完整信息列表（所有字段，不限制数量，不去重）
     """
     try:
+        platform_type = request.args.get('platformType', 'youpin')
         keyword = request.args.get('keyword', '')
         weapon_type = request.args.get('weaponType', '')
         weapon_name = request.args.get('weaponName', '')
         rarity = request.args.get('rarity', '')
+        price_min = request.args.get('priceMin', '')
+        price_max = request.args.get('priceMax', '')
         
         # 构建查询条件
         where_clauses = []
@@ -155,6 +161,36 @@ def searchWeaponDetail():
             where=where_clause, 
             params=tuple(params) if params else None
         )
+        
+        # 如果有价格筛选，在Python层面进行过滤
+        # 根据平台类型选择对应的价格字段
+        if price_min or price_max:
+            # 根据平台类型确定价格字段
+            price_field = 'yyyp_Price' if platform_type == 'youpin' else 'buff_Price'
+            
+            filtered_records = []
+            for record in records:
+                # 获取对应平台的价格
+                price_str = getattr(record, price_field, None)
+                
+                if not price_str:
+                    continue
+                
+                try:
+                    price = float(price_str)
+                    
+                    # 检查价格区间
+                    if price_min and price < float(price_min):
+                        continue
+                    if price_max and price > float(price_max):
+                        continue
+                    
+                    filtered_records.append(record)
+                except (ValueError, TypeError):
+                    # 价格转换失败，跳过
+                    continue
+            
+            records = filtered_records
         
         # 返回完整的武器信息
         results = []
