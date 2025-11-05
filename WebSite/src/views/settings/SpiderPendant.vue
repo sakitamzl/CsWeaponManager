@@ -506,7 +506,7 @@
         <!-- 统一商品列表 -->
         <el-table 
           :data="allCrawlItems" 
-          style="width: 100%"
+          style="width: 100%; min-width: max(1200px, 100%);"
           stripe
         >
           <el-table-column label="图标" width="80" fixed="left" align="center">
@@ -2204,11 +2204,14 @@ export default {
   display: flex;
   gap: 1.5rem;
   min-height: calc(100vh - 150px);
+  max-width: 100%;
 }
 
 /* 左侧配置管理栏 */
 .config-sidebar {
-  width: 320px;
+  width: 280px;
+  min-width: 280px;
+  flex-shrink: 0;
   background-color: #1e1e1e;
   border-radius: 1rem;
   padding: 1.5rem;
@@ -2322,6 +2325,8 @@ export default {
 .main-content-area {
   flex: 1;
   min-width: 0;
+  max-width: calc(100% - 280px - 1.5rem);
+  overflow-x: hidden;
 }
 
 /* 统一工具区域容器 */
@@ -2677,6 +2682,7 @@ export default {
   padding: 1.5rem;
   border-radius: 0.75rem;
   margin-bottom: 1.5rem;
+  overflow-x: auto;
 }
 
 .result-header {
@@ -3002,6 +3008,32 @@ export default {
 }
 
 /* 响应式设计 */
+/* 大屏幕优化 */
+@media (min-width: 1920px) {
+  .config-sidebar {
+    width: 320px;
+    min-width: 320px;
+  }
+  
+  .main-content-area {
+    max-width: calc(100% - 320px - 1.5rem);
+  }
+}
+
+/* 中等屏幕 */
+@media (max-width: 1440px) {
+  .config-sidebar {
+    width: 260px;
+    min-width: 260px;
+    padding: 1rem;
+  }
+  
+  .main-content-area {
+    max-width: calc(100% - 260px - 1.5rem);
+  }
+}
+
+/* 小屏幕 - 切换为垂直布局 */
 @media (max-width: 1024px) {
   .page-layout {
     flex-direction: column;
@@ -3009,9 +3041,15 @@ export default {
 
   .config-sidebar {
     width: 100%;
+    min-width: 100%;
+    max-width: 100%;
     max-height: 400px;
     position: static;
     margin-bottom: 1rem;
+  }
+  
+  .main-content-area {
+    max-width: 100%;
   }
 
   .config-list {

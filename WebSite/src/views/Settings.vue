@@ -163,7 +163,7 @@ onUnmounted(() => {
   left: var(--main-sidebar-width, max(15rem, min(18vw, 20rem)));
   top: 0;
   bottom: 0;
-  width: 240px;
+  width: 220px;
   background: linear-gradient(135deg, rgba(26, 26, 26, 0.98) 0%, rgba(35, 35, 35, 0.95) 100%);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -190,7 +190,7 @@ onUnmounted(() => {
 /* 折叠/展开按钮 */
 .toggle-button {
   position: fixed;
-  left: calc(var(--main-sidebar-width, max(15rem, min(18vw, 20rem))) + 240px + 2px);
+  left: calc(var(--main-sidebar-width, max(15rem, min(18vw, 20rem))) + 220px + 2px);
   top: 50%;
   transform: translateY(-50%);
   width: 36px;
@@ -215,7 +215,7 @@ onUnmounted(() => {
 
 /* 当主侧边栏收缩时 */
 .settings-container.main-sidebar-collapsed .toggle-button {
-  left: calc(4rem + 240px + 2px);
+  left: calc(4rem + 220px + 2px);
 }
 
 .settings-container.main-sidebar-collapsed .toggle-button.collapsed {
@@ -304,7 +304,7 @@ onUnmounted(() => {
 /* 主内容区域包装器 */
 .main-wrapper {
   flex: 1;
-  margin-left: 240px;
+  margin-left: 220px;
   overflow-y: auto;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -314,9 +314,53 @@ onUnmounted(() => {
 }
 
 /* 响应式设计 */
-@media (max-width: 768px) {
+/* 大屏幕优化 */
+@media (min-width: 1920px) {
+  .secondary-sidebar {
+    width: 240px;
+  }
+
+  .toggle-button {
+    left: calc(var(--main-sidebar-width, max(15rem, min(18vw, 20rem))) + 240px + 2px);
+  }
+
+  .settings-container.main-sidebar-collapsed .toggle-button {
+    left: calc(4rem + 240px + 2px);
+  }
+
+  .main-wrapper {
+    margin-left: 240px;
+  }
+}
+
+/* 中等屏幕 */
+@media (max-width: 1440px) {
   .secondary-sidebar {
     width: 200px;
+  }
+
+  .toggle-button {
+    left: calc(var(--main-sidebar-width, max(15rem, min(18vw, 20rem))) + 200px + 2px);
+  }
+
+  .settings-container.main-sidebar-collapsed .toggle-button {
+    left: calc(4rem + 200px + 2px);
+  }
+
+  .main-wrapper {
+    margin-left: 200px;
+  }
+
+  .category-list li {
+    padding: 0.875rem 1.25rem;
+    font-size: 0.9375rem;
+  }
+}
+
+/* 小屏幕 */
+@media (max-width: 768px) {
+  .secondary-sidebar {
+    width: 180px;
   }
 
   .secondary-sidebar.collapsed {
@@ -333,17 +377,25 @@ onUnmounted(() => {
   }
 
   .toggle-button {
-    left: calc(3rem + 200px - 36px);
+    left: calc(3rem + 180px - 36px);
   }
 
   .secondary-sidebar.collapsed .toggle-button {
     left: 3rem;
   }
+
+  .main-wrapper {
+    margin-left: 180px;
+  }
+
+  .main-wrapper.expanded {
+    margin-left: 0;
+  }
 }
 
-@media (min-width: 1200px) {
+@media (min-width: 1200px) and (max-width: 1919px) {
   .toggle-button {
-    left: calc(max(18rem, 16vw) + 240px - 36px);
+    left: calc(max(18rem, 16vw) + 220px - 36px);
   }
 
   .secondary-sidebar.collapsed .toggle-button {
@@ -351,9 +403,9 @@ onUnmounted(() => {
   }
 }
 
-@media (min-width: 1600px) {
+@media (min-width: 1600px) and (max-width: 1919px) {
   .toggle-button {
-    left: calc(max(20rem, 14vw) + 240px - 36px);
+    left: calc(max(20rem, 14vw) + 220px - 36px);
   }
 
   .secondary-sidebar.collapsed .toggle-button {
