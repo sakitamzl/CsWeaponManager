@@ -3,6 +3,48 @@ from src.db_manager.index.weapon_classID import WeaponClassIDModel
 
 webSelectWeaponV1 = Blueprint('webSelectWeaponV1', __name__)
 
+@webSelectWeaponV1.route('/getAllPendants', methods=['GET'])
+def getAllPendants():
+    """
+    获取所有挂件数据（用于预加载到内存字典）
+    返回: 所有 weapon_type='挂件' 的数据，包含 steam_hash_name, weapon_name, yyyp_Price, yyyp_Rent
+    """
+    try:
+        # 查询所有挂件数据
+        where_clause = "[weapon_type] = ?"
+        params = ('挂件',)
+        
+        records = WeaponClassIDModel.find_all(
+            where=where_clause, 
+            params=params
+        )
+        
+        # 构建返回数据
+        results = []
+        for record in records:
+            if record.steam_hash_name:  # 必须有 steam_hash_name
+                results.append({
+                    'steam_hash_name': record.steam_hash_name,
+                    'weapon_name': record.weapon_name,
+                    'yyyp_Price': record.yyyp_Price,
+                    'yyyp_Rent': record.yyyp_Rent
+                })
+        
+        return jsonify({
+            "success": True,
+            "data": results,
+            "count": len(results)
+        }), 200
+        
+    except Exception as e:
+        print(f"获取挂件数据失败: {e}")
+        import traceback
+        print(f"错误堆栈: {traceback.format_exc()}")
+        return jsonify({
+            "success": False,
+            "message": f"获取挂件数据失败: {str(e)}"
+        }), 500
+
 @webSelectWeaponV1.route('/searchWeapon', methods=['GET'])
 def searchWeapon():
     """
