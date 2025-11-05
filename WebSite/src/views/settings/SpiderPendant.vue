@@ -593,13 +593,13 @@
             <el-table-column label="操作" width="100" fixed="right">
               <template #default="scope">
                 <el-button 
-                  :type="purchasedItems.has(scope.row.id) ? 'success' : (scope.row.priceDiff < 0 ? 'info' : (scope.row.priceDiff < 3 ? 'warning' : 'success'))"
+                  :type="purchasedItems.has(scope.row.id) ? 'success' : (scope.row.priceDiff < 0 ? 'danger' : (scope.row.priceDiff < 3 ? 'warning' : 'success'))"
                   size="small"
                   @click="handleBuyWeapon(scope.row)"
                   :loading="buyingItems[scope.row.id]"
-                  :disabled="scope.row.priceDiff < 0 || purchasedItems.has(scope.row.id)"
+                  :disabled="purchasedItems.has(scope.row.id)"
                 >
-                  {{ purchasedItems.has(scope.row.id) ? '已购买' : (scope.row.priceDiff < 0 ? '亏损' : '购买') }}
+                  {{ purchasedItems.has(scope.row.id) ? '已购买' : '购买' }}
                 </el-button>
               </template>
             </el-table-column>
