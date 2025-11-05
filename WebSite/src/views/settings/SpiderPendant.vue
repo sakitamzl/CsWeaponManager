@@ -502,7 +502,7 @@
               </template>
             </el-table-column>
             
-            <el-table-column label="差价" width="120" align="center">
+            <el-table-column label="收益" width="120" align="center">
               <template #default="scope">
                 <el-tag 
                   :type="scope.row.priceDiff < 0 ? 'danger' : (scope.row.priceDiff < 3 ? 'warning' : 'success')" 
@@ -1714,7 +1714,7 @@ export default {
         const pendantNames = item.pendants ? item.pendants.map(p => p.name).join(', ') : '无'
         const priceDiffText = item.priceDiff >= 0 ? `+${item.priceDiff.toFixed(2)}` : `${item.priceDiff.toFixed(2)}`
         await ElMessageBox.confirm(
-          `确认购买该商品吗？\n\n挂件：${pendantNames}\n价格：¥${item.price}\n磨损：${item.abrade || '-'}\n溢价：${item.spread.toFixed(2)}\n差价：${priceDiffText}`,
+          `确认购买该商品吗？\n\n挂件：${pendantNames}\n价格：¥${item.price}\n磨损：${item.abrade || '-'}\n溢价：${item.spread.toFixed(2)}\n收益：${priceDiffText}`,
           '确认购买',
           {
             confirmButtonText: '确认购买',
