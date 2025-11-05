@@ -474,7 +474,18 @@
 
       <!-- 查询结果区域 -->
       <div v-if="allCrawlItems && allCrawlItems.length > 0" class="result-section">
-        <h2 class="section-title">查询结果 ({{ allCrawlItems.length }} 件)</h2>
+        <div class="result-header">
+          <h2 class="section-title">查询结果 ({{ allCrawlItems.length }} 件)</h2>
+          <el-button 
+            type="danger" 
+            size="small"
+            @click="clearCrawlHistory"
+            :disabled="isCrawling"
+          >
+            <el-icon><Delete /></el-icon>
+            清空列表
+          </el-button>
+        </div>
         
         <!-- 统一商品列表 -->
         <el-table 
@@ -482,6 +493,18 @@
           style="width: 100%"
           stripe
         >
+          <el-table-column label="图标" width="80" fixed="left" align="center">
+            <template #default="scope">
+              <img 
+                v-if="scope.row.iconUrl" 
+                :src="scope.row.iconUrl" 
+                class="weapon-icon"
+                :alt="scope.row.weapon_name"
+              />
+              <span v-else class="no-icon">-</span>
+            </template>
+          </el-table-column>
+          
           <el-table-column label="武器名称" width="200" fixed="left">
             <template #default="scope">
               <div class="weapon-name-cell">{{ scope.row.weapon_name }}</div>
@@ -499,6 +522,12 @@
                 <el-tag type="danger" size="small">
                   {{ scope.row.spread.toFixed(2) }}
                 </el-tag>
+              </template>
+            </el-table-column>
+            
+            <el-table-column label="手续费" width="100" align="center">
+              <template #default="scope">
+                <span class="commission-fee">¥{{ scope.row.commissionFee ? scope.row.commissionFee.toFixed(2) : '0.00' }}</span>
               </template>
             </el-table-column>
             
@@ -596,6 +625,59 @@ export default {
     const steamIdList = ref([])
     const isCrawling = ref(false)
     const crawlResult = ref(null)
+    
+    // localStorage 键名
+    const STORAGE_KEY = 'spider_pendant_crawl_result'
+    
+    // 保存爬虫结果到 localStorage
+    const saveCrawlResultToStorage = (result) => {
+      try {
+        if (result && result.weapons) {
+          const dataToSave = {
+            result: result,
+            timestamp: Date.now(),
+            configName: crawlForm.value.configName || '未命名配置'
+          }
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave))
+          console.log('✅ 爬虫结果已保存到本地存储')
+        }
+      } catch (error) {
+        console.error('保存爬虫结果失败:', error)
+      }
+    }
+    
+    // 从 localStorage 恢复爬虫结果
+    const loadCrawlResultFromStorage = () => {
+      try {
+        const savedData = localStorage.getItem(STORAGE_KEY)
+        if (savedData) {
+          const parsed = JSON.parse(savedData)
+          crawlResult.value = parsed.result
+          console.log('✅ 已恢复历史爬虫结果')
+          console.log(`📅 保存时间: ${new Date(parsed.timestamp).toLocaleString()}`)
+          console.log(`📝 配置名称: ${parsed.configName}`)
+          
+          // 显示提示信息
+          ElMessage.info(`已恢复上次查询结果 (${new Date(parsed.timestamp).toLocaleString()})`)
+          return true
+        }
+        return false
+      } catch (error) {
+        console.error('恢复爬虫结果失败:', error)
+        return false
+      }
+    }
+    
+    // 清空历史结果
+    const clearCrawlHistory = () => {
+      try {
+        localStorage.removeItem(STORAGE_KEY)
+        crawlResult.value = null
+        ElMessage.success('已清空历史结果')
+      } catch (error) {
+        console.error('清空历史失败:', error)
+      }
+    }
     
     // 合并所有武器的items到一个统一列表，并按差价从高到低排序
     const allCrawlItems = computed(() => {
@@ -786,7 +868,8 @@ export default {
       }
 
       isCrawling.value = true
-      crawlResult.value = null
+      // 不再清空 crawlResult，保留历史数据
+      // crawlResult.value = null
       ElMessage.info('正在启动查询任务...')
 
       try {
@@ -920,6 +1003,9 @@ export default {
                     }))
                   }
                   
+                  // 保存到本地存储
+                  saveCrawlResultToStorage(crawlResult.value)
+                  
                   console.log(`[前端] 🔄 触发响应式更新`)
                   console.log(`[前端] ✅ 新增商品，${eventData.weapon_name} 当前共 ${weaponData.items.length} 个`)
                   console.log(`[前端] 📊 当前 crawlResult.value:`, crawlResult.value)
@@ -953,6 +1039,9 @@ export default {
                       items: [...w.items]
                     }))
                   }
+                  
+                  // 保存到本地存储
+                  saveCrawlResultToStorage(crawlResult.value)
 
                   console.log(`饰品 ${eventData.weapon_name} 查询完成`)
                   break
@@ -988,11 +1077,12 @@ export default {
           errorMessage = error.message
         }
 
-        crawlResult.value = {
-          success: false,
-          message: errorMessage
-        }
-        ElMessage.error(errorMessage)
+        // 不清空已有结果，只显示错误提示
+        // crawlResult.value = {
+        //   success: false,
+        //   message: errorMessage
+        // }
+        ElMessage.error(`${errorMessage} - 已保留当前结果`)
       } finally {
         isCrawling.value = false
       }
@@ -1948,6 +2038,9 @@ export default {
       loadSteamIdList()
       loadConfigList()
       
+      // 恢复历史爬虫结果
+      loadCrawlResultFromStorage()
+      
       // 添加页面滚动监听
       window.addEventListener('scroll', handlePageScroll)
     })
@@ -2005,6 +2098,8 @@ export default {
       // 购买相关
       buyingItems,
       handleBuyWeapon,
+      // 历史结果管理
+      clearCrawlHistory,
       // 工具区域折叠
       isToolSectionCollapsed,
       toggleToolSection,
@@ -2322,6 +2417,27 @@ export default {
   text-overflow: ellipsis;
 }
 
+.weapon-icon {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 4px;
+  transition: all 0.3s ease;
+}
+
+.weapon-icon:hover {
+  transform: scale(1.1);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.3);
+}
+
+.no-icon {
+  color: #666;
+  font-size: 0.875rem;
+}
+
 .hash-name-text {
   color: #aaa;
   font-size: 0.875rem;
@@ -2466,6 +2582,17 @@ export default {
   margin-bottom: 1.5rem;
 }
 
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.result-header .section-title {
+  margin: 0;
+}
+
 .weapon-result-card {
   background-color: #1e1e1e;
   border-radius: 0.5rem;
@@ -2496,6 +2623,12 @@ export default {
 .price {
   font-weight: 600;
   color: #ffa500;
+}
+
+.commission-fee {
+  font-size: 0.875rem;
+  color: #909399;
+  font-weight: 500;
 }
 
 /* 挂件样式 */
