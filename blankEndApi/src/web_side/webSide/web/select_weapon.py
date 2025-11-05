@@ -115,26 +115,25 @@ def searchWeapon():
 def getWeaponNames():
     """
     根据武器类型获取该类型下的所有武器名称（去重）
-    参数: weaponType - 武器类型
+    参数: weaponType - 武器类型（可选，不传则返回所有武器名称）
     返回: 武器名称列表
     """
     try:
         weapon_type = request.args.get('weaponType', '')
         
-        if not weapon_type or len(weapon_type.strip()) == 0:
-            return jsonify({
-                "success": True,
-                "data": []
-            }), 200
-        
-        # 查询该武器类型下的所有记录
-        where_clause = "[weapon_type] = ?"
-        params = (weapon_type.strip(),)
-        
-        records = WeaponClassIDModel.find_all(
-            where=where_clause, 
-            params=params
-        )
+        # 如果指定了武器类型，查询该类型；否则查询所有
+        if weapon_type and len(weapon_type.strip()) > 0:
+            # 查询该武器类型下的所有记录
+            where_clause = "[weapon_type] = ?"
+            params = (weapon_type.strip(),)
+            
+            records = WeaponClassIDModel.find_all(
+                where=where_clause, 
+                params=params
+            )
+        else:
+            # 查询所有武器名称
+            records = WeaponClassIDModel.find_all()
         
         # 提取并去重武器名称
         weapon_names = set()
@@ -144,6 +143,8 @@ def getWeaponNames():
         
         # 转换为排序列表
         weapon_names_list = sorted(list(weapon_names))
+        
+        print(f"[getWeaponNames] 武器类型: {weapon_type or '全部'}, 返回 {len(weapon_names_list)} 个武器名称")
         
         return jsonify({
             "success": True,

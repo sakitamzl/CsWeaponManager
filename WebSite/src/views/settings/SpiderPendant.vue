@@ -239,14 +239,14 @@
               filterable
               style="width: 200px;"
               :loading="isLoadingWeaponNames"
-              :disabled="!weaponSearchFilters.weaponType"
+              @focus="loadWeaponNamesIfNeeded"
             >
               <el-option label="全部" value="" />
               <el-option 
                 v-for="name in weaponNameList" 
                 :key="name" 
                 :label="name" 
-                :value="name" 
+                :value="name"
               />
             </el-select>
             
@@ -1312,21 +1312,29 @@ export default {
       weaponSearchFilters.value.weaponName = ''
       weaponNameList.value = []
       
-      if (!weaponType) {
-        return
-      }
-      
+      // 无论是否选择武器类型，都加载武器名称列表
+      await loadWeaponNames(weaponType)
+    }
+    
+    // 加载武器名称列表
+    const loadWeaponNames = async (weaponType) => {
       isLoadingWeaponNames.value = true
       
       try {
+        const params = {}
+        
+        // 如果指定了武器类型，添加到参数中；否则获取全部
+        if (weaponType) {
+          params.weaponType = weaponType
+        }
+        
         const response = await axios.get(`${API_CONFIG.BASE_URL}/webSelectWeaponV1/getWeaponNames`, {
-          params: {
-            weaponType: weaponType
-          }
+          params: params
         })
         
         if (response.data.success) {
           weaponNameList.value = response.data.data || []
+          console.log(`✅ 加载武器名称列表: ${weaponNameList.value.length} 个`, weaponType ? `(类型: ${weaponType})` : '(全部)')
         } else {
           ElMessage.error('获取武器名称失败')
         }
@@ -1335,6 +1343,19 @@ export default {
         ElMessage.error('获取武器名称失败')
       } finally {
         isLoadingWeaponNames.value = false
+      }
+    }
+    
+    // 武器名称下拉框聚焦时，如果列表为空且没有选择武器类型，加载全部武器名称
+    const loadWeaponNamesIfNeeded = async () => {
+      // 如果已经有数据，不重复加载
+      if (weaponNameList.value.length > 0) {
+        return
+      }
+      
+      // 如果没有选择武器类型，加载全部武器名称
+      if (!weaponSearchFilters.value.weaponType) {
+        await loadWeaponNames(null)
       }
     }
 
@@ -1970,6 +1991,8 @@ export default {
       weaponNameList,
       isLoadingWeaponNames,
       handleWeaponTypeChange,
+      loadWeaponNames,
+      loadWeaponNamesIfNeeded,
       handleSearchWeapon,
       loadMoreWeapons,
       clearWeaponSearch,
