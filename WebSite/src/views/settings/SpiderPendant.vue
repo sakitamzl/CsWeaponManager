@@ -756,13 +756,11 @@ export default {
 
       // 确认对话框
       try {
-        const weaponNames = crawlForm.value.weaponId.map(w => w.name).join('、')
         let confirmMessage = `确定要开始查询带挂件饰品吗？\n\n`
         confirmMessage += `配置名称: ${crawlForm.value.configName}\n`
         confirmMessage += `Steam ID: ${crawlForm.value.steamId}\n`
         confirmMessage += `平台类型: ${crawlForm.value.platformType === 'buff' ? 'BUFF' : '悠悠有品'}\n`
-        confirmMessage += `监控饰品: ${weaponNames}\n`
-        confirmMessage += `饰品数量: ${crawlForm.value.weaponId.length} 个`
+        confirmMessage += `监控饰品数量: ${crawlForm.value.weaponId.length} 个`
         
         if (jsonValidation.config) {
           const config = jsonValidation.config
