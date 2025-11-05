@@ -523,7 +523,13 @@
           
           <el-table-column label="武器名称" width="200" fixed="left">
             <template #default="scope">
-              <div class="weapon-name-cell">{{ scope.row.weapon_name }}</div>
+              <el-tooltip 
+                :content="scope.row.weapon_name" 
+                placement="top"
+                :disabled="!scope.row.weapon_name || scope.row.weapon_name.length <= 20"
+              >
+                <div class="weapon-name-cell">{{ scope.row.weapon_name }}</div>
+              </el-tooltip>
             </template>
           </el-table-column>
           
@@ -595,7 +601,7 @@
             <el-table-column label="操作" width="100" fixed="right">
               <template #default="scope">
                 <el-button 
-                  :type="purchasedItems.has(scope.row.id) ? 'success' : (scope.row.priceDiff < 0 ? 'danger' : (scope.row.priceDiff < 3 ? 'warning' : 'success'))"
+                  :type="getBuyButtonType(scope.row)"
                   size="small"
                   @click="handleBuyWeapon(scope.row)"
                   :loading="buyingItems[scope.row.id]"
@@ -1965,6 +1971,34 @@ export default {
       return 'weapon-row'
     }
 
+    // 判断挂件是否包含"高光时刻"
+    const hasHighlightMoment = (item) => {
+      if (!item.pendants || item.pendants.length === 0) {
+        return false
+      }
+      // 检查任意一个挂件名称是否包含"高光时刻"
+      return item.pendants.some(pendant => 
+        pendant.name && pendant.name.includes('高光时刻')
+      )
+    }
+    
+    // 获取购买按钮类型
+    const getBuyButtonType = (item) => {
+      if (purchasedItems.value.has(item.id)) {
+        return 'success'  // 已购买：绿色
+      }
+      if (hasHighlightMoment(item)) {
+        return 'warning'  // 包含高光时刻：黄色
+      }
+      if (item.priceDiff < 0) {
+        return 'danger'   // 亏损：红色
+      }
+      if (item.priceDiff < 3) {
+        return 'warning'  // 低收益：黄色
+      }
+      return 'success'    // 高收益：绿色
+    }
+    
     // 获取稀有度颜色样式（与ItemSearch保持一致）
     const getRarityColor = (rarity) => {
       if (!rarity) return ''
@@ -2126,6 +2160,8 @@ export default {
       buyingItems,
       purchasedItems,
       handleBuyWeapon,
+      hasHighlightMoment,
+      getBuyButtonType,
       // 历史结果管理
       clearCrawlHistory,
       // 工具区域折叠
