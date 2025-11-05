@@ -579,13 +579,13 @@
             <el-table-column label="操作" width="100" fixed="right">
               <template #default="scope">
                 <el-button 
-                  :type="scope.row.priceDiff < 0 ? 'info' : (scope.row.priceDiff < 3 ? 'warning' : 'success')"
+                  :type="purchasedItems.has(scope.row.id) ? 'success' : (scope.row.priceDiff < 0 ? 'info' : (scope.row.priceDiff < 3 ? 'warning' : 'success'))"
                   size="small"
                   @click="handleBuyWeapon(scope.row)"
                   :loading="buyingItems[scope.row.id]"
-                  :disabled="scope.row.priceDiff < 0"
+                  :disabled="scope.row.priceDiff < 0 || purchasedItems.has(scope.row.id)"
                 >
-                  {{ scope.row.priceDiff < 0 ? '亏损' : '购买' }}
+                  {{ purchasedItems.has(scope.row.id) ? '已购买' : (scope.row.priceDiff < 0 ? '亏损' : '购买') }}
                 </el-button>
               </template>
             </el-table-column>
@@ -673,6 +673,7 @@ export default {
       try {
         localStorage.removeItem(STORAGE_KEY)
         crawlResult.value = null
+        purchasedItems.value.clear()  // 清空已购买记录
         ElMessage.success('已清空历史结果')
       } catch (error) {
         console.error('清空历史失败:', error)
@@ -732,7 +733,8 @@ export default {
     const isLoadingWeaponNames = ref(false)  // 加载武器名称中
     
     // 购买相关
-    const buyingItems = ref({})
+    const buyingItems = ref({})  // 正在购买的商品 {itemId: true/false}
+    const purchasedItems = ref(new Set())  // 已成功购买的商品ID集合
     
     // 工具区域折叠状态
     const isToolSectionCollapsed = ref(false)
@@ -813,6 +815,8 @@ export default {
     const startCrawl = async () => {
       // 开始搜索时自动折叠工具区域
       isToolSectionCollapsed.value = true
+      // 清空已购买记录
+      purchasedItems.value.clear()
       // 验证基本配置
       if (!crawlForm.value.configName) {
         ElMessage.warning('请输入配置名称')
@@ -1881,7 +1885,8 @@ export default {
           let message = ''
           
           if (payStatus === 2) {
-            // 支付成功
+            // 支付成功 - 标记为已购买
+            purchasedItems.value.add(item.id)
             message = `购买成功！\n\n商品：挂件饰品\n订单号：${orderNo}\n金额：¥${paymentAmount}\n状态：支付成功✅\n\n饰品将发送至您的库存。`
           } else if (payStatus === 1) {
             // 支付处理中
@@ -2097,6 +2102,7 @@ export default {
       getRarityColor,
       // 购买相关
       buyingItems,
+      purchasedItems,
       handleBuyWeapon,
       // 历史结果管理
       clearCrawlHistory,
