@@ -115,8 +115,22 @@
               </el-form-item>
             </div>
 
-            <el-form-item label="饰品列表">
-              <div class="weapon-id-section">
+            <el-form-item>
+              <template #label>
+                <div class="collapsible-label">
+                  <span class="label-text" @click="toggleWeaponList">
+                    饰品列表 ({{ weaponIdList.length }})
+                    <el-icon 
+                      class="collapse-icon-inline" 
+                      :class="{ 'is-collapsed': isWeaponListCollapsed }"
+                    >
+                      <ArrowUp v-if="!isWeaponListCollapsed" />
+                      <ArrowDown v-else />
+                    </el-icon>
+                  </span>
+                </div>
+              </template>
+              <div class="weapon-id-section" v-show="!isWeaponListCollapsed">
                 <div class="weapon-id-tags">
                   <el-tag
                     v-for="weapon in weaponIdList"
@@ -739,6 +753,7 @@ export default {
     // 工具区域折叠状态
     const isToolSectionCollapsed = ref(false)
     const isSearchResultsCollapsed = ref(false)  // 搜索结果列表折叠状态
+    const isWeaponListCollapsed = ref(true)  // 饰品列表折叠状态（默认折叠）
     
     // JSON 验证相关
     const jsonValidationMessage = ref('')
@@ -809,6 +824,11 @@ export default {
     // 切换搜索结果列表显示/隐藏
     const toggleSearchResults = () => {
       isSearchResultsCollapsed.value = !isSearchResultsCollapsed.value
+    }
+    
+    // 切换饰品列表显示/隐藏
+    const toggleWeaponList = () => {
+      isWeaponListCollapsed.value = !isWeaponListCollapsed.value
     }
 
     // 开始爬取（流式接收）
@@ -2111,6 +2131,8 @@ export default {
       toggleToolSection,
       isSearchResultsCollapsed,
       toggleSearchResults,
+      isWeaponListCollapsed,
+      toggleWeaponList,
       // JSON 编辑器
       jsonValidationMessage,
       jsonValidationStatus,
@@ -2407,6 +2429,37 @@ export default {
   display: flex;
   gap: 0.5rem;
   align-items: center;
+}
+
+/* 可折叠标签样式 */
+.collapsible-label {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.collapsible-label .label-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s ease;
+}
+
+.collapsible-label .label-text:hover {
+  color: #409EFF;
+}
+
+.collapsible-label .collapse-icon-inline {
+  font-size: 0.875rem;
+  transition: transform 0.3s ease;
+  color: inherit;
+}
+
+.collapsible-label .collapse-icon-inline.is-collapsed {
+  transform: rotate(0deg);
 }
 
 .weapon-name {
