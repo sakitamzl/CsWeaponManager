@@ -14,13 +14,19 @@ def getAllPendants():
         where_clause = "[weapon_type] = ?"
         params = ('挂件',)
         
+        print(f"[getAllPendants] 开始查询挂件数据: where={where_clause}, params={params}")
+        
         records = WeaponClassIDModel.find_all(
             where=where_clause, 
             params=params
         )
         
+        print(f"[getAllPendants] 查询到 {len(records)} 条记录")
+        
         # 构建返回数据
         results = []
+        filtered_count = 0
+        
         for record in records:
             if record.steam_hash_name:  # 必须有 steam_hash_name
                 results.append({
@@ -29,6 +35,14 @@ def getAllPendants():
                     'yyyp_Price': record.yyyp_Price,
                     'yyyp_Rent': record.yyyp_Rent
                 })
+            else:
+                filtered_count += 1
+        
+        print(f"[getAllPendants] 返回 {len(results)} 条数据，过滤掉 {filtered_count} 条无 steam_hash_name 的数据")
+        
+        # 打印前3条数据作为示例
+        for i, item in enumerate(results[:3]):
+            print(f"[getAllPendants] 示例 {i+1}: {item}")
         
         return jsonify({
             "success": True,
