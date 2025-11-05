@@ -5,7 +5,11 @@ module.exports = defineConfig({
   transpileDependencies: true,
   devServer: {
     port: 9003,
-    historyApiFallback: true,  // 添加 HTML5 History 模式支持，解决刷新404问题
+    historyApiFallback: {
+      index: '/index.html',
+      disableDotRule: true,
+      verbose: true
+    },
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:9001',
