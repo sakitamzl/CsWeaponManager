@@ -236,6 +236,8 @@
               <el-option label="冲锋枪" value="冲锋枪" />
               <el-option label="霰弹枪" value="霰弹枪" />
               <el-option label="机枪" value="机枪" />
+              <el-option label="挂件" value="挂件" />
+              <el-option label="挂件（纪念品）" value="挂件（纪念品）" />
               <el-option label="匕首" value="匕首" />
               <el-option label="手套" value="手套" />
               <el-option label="探员" value="探员" />

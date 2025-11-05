@@ -7,7 +7,15 @@ module.exports = defineConfig({
     port: 9003,
     historyApiFallback: {
       index: '/index.html',
-      disableDotRule: true,
+      rewrites: [
+        // 不重写静态资源请求
+        { from: /\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/i, to: context => context.parsedUrl.pathname },
+        // API 请求不重写
+        { from: /^\/api/, to: context => context.parsedUrl.pathname },
+        { from: /^\/spider/, to: context => context.parsedUrl.pathname },
+        // 其他所有请求重写到 index.html
+        { from: /./, to: '/index.html' }
+      ],
       verbose: true
     },
     proxy: {

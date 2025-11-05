@@ -7,12 +7,12 @@ webSelectWeaponV1 = Blueprint('webSelectWeaponV1', __name__)
 def getAllPendants():
     """
     获取所有挂件数据（用于预加载到内存字典）
-    返回: 所有 weapon_type='挂件' 的数据，包含 steam_hash_name, weapon_name, yyyp_Price, yyyp_Rent
+    返回: 所有 weapon_type='挂件' 或 '挂件（纪念品）' 的数据，包含 steam_hash_name, weapon_name, yyyp_Price, yyyp_Rent
     """
     try:
-        # 查询所有挂件数据
-        where_clause = "[weapon_type] = ?"
-        params = ('挂件',)
+        # 查询所有挂件数据（包括普通挂件和纪念品挂件）
+        where_clause = "[weapon_type] IN (?, ?)"
+        params = ('挂件', '挂件（纪念品）')
         
         print(f"[getAllPendants] 开始查询挂件数据: where={where_clause}, params={params}")
         
@@ -21,7 +21,7 @@ def getAllPendants():
             params=params
         )
         
-        print(f"[getAllPendants] 查询到 {len(records)} 条记录")
+        print(f"[getAllPendants] 查询到 {len(records)} 条记录（包含普通挂件和纪念品挂件）")
         
         # 构建返回数据
         results = []

@@ -9,7 +9,6 @@ import Inventory from '@/views/Inventory.vue'
 import Setting from '@/views/Setting.vue'
 import StockComponents from '@/views/StockComponents.vue'
 import Settings from '@/views/Settings.vue'
-import SpiderPendant from '@/views/settings/SpiderPendant.vue'
 
 const routes = [
   {
@@ -93,7 +92,7 @@ const routes = [
           {
             path: 'spider-pendant',
             name: 'SpiderPendant',
-            component: SpiderPendant,
+            component: () => import('@/views/settings/SpiderPendant.vue'),
             meta: { title: '爬取挂件' }
           },
           {
