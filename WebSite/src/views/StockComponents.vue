@@ -833,6 +833,42 @@ export default {
   .grid-5 {
     grid-template-columns: 1fr;
   }
+  
+  .steam-id-select,
+  .component-select,
+  .search-input {
+    min-width: unset;
+    width: 100%;
+    max-width: none;
+  }
+  
+  .search-section :deep(.el-button) {
+    flex: 1 1 calc(50% - 0.5rem);
+    min-width: unset;
+  }
+  
+  :deep(.el-table) {
+    font-size: 0.75rem;
+  }
+  
+  :deep(.el-table th),
+  :deep(.el-table td) {
+    padding: 0.5rem 0.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .search-section :deep(.el-button) {
+    flex: 1 1 100%;
+  }
+  
+  .stat-number {
+    font-size: 1.25rem;
+  }
+  
+  .stat-diff-right {
+    font-size: 0.875rem;
+  }
 }
 
 .stat-number {

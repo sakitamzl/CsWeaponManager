@@ -136,7 +136,7 @@ export default {
         const response = await axios.get(`${API_CONFIG.BASE_URL}/webInventoryV1/steam_ids`)
         if (response.data.success && response.data.data.length > 0) {
           steamIdList.value = response.data.data
-          selectedSteamId.value = steamIdList.value[0].steam_id
+          selectedSteamId.value = steamIdList.value[0].steamID
         }
       } catch (error) {
         console.error('加载Steam ID列表失败:', error)
