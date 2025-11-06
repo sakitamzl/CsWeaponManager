@@ -112,8 +112,8 @@ start.bat
 
 ```bash
 # 1. 启动后端API服务
-cd blankEndApi
-python blankEndApi.py
+cd backEndApi
+python backEndApi.py
 # 服务将运行在 http://0.0.0.0:9001
 
 # 2. 启动前端服务（新终端）
