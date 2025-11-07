@@ -514,6 +514,7 @@ export default {
     const selectedSteamId = ref('')
     const selectedExterior = ref('') // 选择的外观筛选
     const selectedStatTrak = ref('normal') // 选择的StatTrak筛选，默认非StatTrak™
+    const showSearchResults = ref(false) // 是否展开搜索结果
     
     // BUFF商品列表
     const buffCommodities = ref([])
@@ -534,7 +535,6 @@ export default {
     const showYYYPTable = ref(true)  // 控制悠悠有品表格的展开/折叠
     const yyypCurrentPage = ref(1)  // 悠悠有品分页当前页
     const yyypPageSize = ref(5)  // 悠悠有品每页显示5条
-    const showSearchResults = ref(false)  // 控制搜索结果的展开/折叠，默认折叠
     
     // 图片缓存 - 存储已加载的图片URL
     const imageCache = new Set()
@@ -707,6 +707,89 @@ export default {
       await handleSearchWeapon()
     }
 
+    // 加载Steam ID列表
+    const loadSteamIdList = async () => {
+      try {
+        const response = await axios.get(`${API_BASE}/steam_ids`)
+        console.log('Steam ID列表响应:', response.data)
+        if (response.data.success) {
+          steamIdList.value = response.data.data
+          if (steamIdList.value.length > 0) {
+            // 默认选择第一个 - 使用新格式 steamID（大写）
+            selectedSteamId.value = steamIdList.value[0].steamID
+            console.log('默认选择Steam ID:', selectedSteamId.value)
+          } else {
+            ElMessage.warning('没有找到库存数据，请先获取Steam库存')
+          }
+        }
+      } catch (error) {
+        console.error('加载Steam ID列表失败:', error)
+        ElMessage.error('加载Steam ID列表失败: ' + (error.response?.data?.error || error.message))
+      }
+    }
+
+    // Steam ID 改变处理
+    const handleSteamIdChange = (value) => {
+      console.log('Steam ID已改变:', value)
+      selectedSteamId.value = value
+    }
+
+    // 外观筛选改变处理
+    const handleExteriorChange = (value) => {
+      console.log('外观筛选已改变:', value)
+      selectedExterior.value = value
+      currentPage.value = 1 // 重置到第一页
+    }
+
+    // StatTrak筛选改变处理
+    const handleStatTrakChange = (value) => {
+      console.log('StatTrak筛选已改变:', value)
+      selectedStatTrak.value = value
+      currentPage.value = 1 // 重置到第一页
+    }
+
+    // 处理从高级搜索组件选择单个武器
+    const handleSelectWeaponFromSearch = (weapon) => {
+      console.log('从高级搜索选择武器:', weapon)
+      // 将选中的武器添加到搜索结果中
+      const exists = searchResults.value.some(item => 
+        item.market_listing_item_name === weapon.market_listing_item_name
+      )
+      
+      if (!exists) {
+        searchResults.value.push(weapon)
+        ElMessage.success(`已添加: ${weapon.market_listing_item_name}`)
+      } else {
+        ElMessage.warning('该武器已在列表中')
+      }
+      
+      showSearchResults.value = true
+    }
+
+    // 处理从高级搜索组件选择全部武器
+    const handleSelectAllWeaponsFromSearch = (weapons) => {
+      console.log('从高级搜索添加全部武器:', weapons.length)
+      let addedCount = 0
+      
+      weapons.forEach(weapon => {
+        const exists = searchResults.value.some(item => 
+          item.market_listing_item_name === weapon.market_listing_item_name
+        )
+        
+        if (!exists) {
+          searchResults.value.push(weapon)
+          addedCount++
+        }
+      })
+      
+      if (addedCount > 0) {
+        ElMessage.success(`成功添加 ${addedCount} 件武器`)
+        showSearchResults.value = true
+      } else {
+        ElMessage.info('所有武器已在列表中')
+      }
+    }
+
     // 刷新悠悠有品商品列表
     const handleRefreshYYYP = async () => {
       if (!yyypCurrentWeapon.value) {
@@ -786,47 +869,6 @@ export default {
       }
       
       return '#fff' // 默认白色
-    }
-
-    // 加载Steam ID列表
-    const loadSteamIdList = async () => {
-      try {
-        const response = await axios.get(`${API_BASE}/steam_ids`)
-        console.log('Steam ID列表响应:', response.data)
-        if (response.data.success) {
-          steamIdList.value = response.data.data
-          if (steamIdList.value.length > 0) {
-            // 默认选择第一个 - 使用新格式 steamID（大写）
-            selectedSteamId.value = steamIdList.value[0].steamID
-            console.log('默认选择Steam ID:', selectedSteamId.value)
-          } else {
-            ElMessage.warning('没有找到库存数据，请先获取Steam库存')
-          }
-        }
-      } catch (error) {
-        console.error('加载Steam ID列表失败:', error)
-        ElMessage.error('加载Steam ID列表失败: ' + (error.response?.data?.error || error.message))
-      }
-    }
-
-    // Steam ID 改变处理
-    const handleSteamIdChange = (value) => {
-      console.log('Steam ID已改变:', value)
-      selectedSteamId.value = value
-    }
-
-    // 外观筛选改变处理
-    const handleExteriorChange = (value) => {
-      console.log('外观筛选已改变:', value)
-      selectedExterior.value = value
-      currentPage.value = 1 // 重置到第一页
-    }
-
-    // StatTrak筛选改变处理
-    const handleStatTrakChange = (value) => {
-      console.log('StatTrak筛选已改变:', value)
-      selectedStatTrak.value = value
-      currentPage.value = 1 // 重置到第一页
     }
 
     // 通过行数据搜索悠悠有品
@@ -1556,6 +1598,15 @@ export default {
       selectedSteamId,
       selectedExterior,
       selectedStatTrak,
+      showSearchResults,
+      toggleSearchResults,
+      handleSearchWeapon,
+      handleRefreshSearch,
+      handleSteamIdChange,
+      handleExteriorChange,
+      handleStatTrakChange,
+      querySearchAsync,
+      handleSelect,
       // BUFF商品列表
       buffCommodities,
       buffCurrentWeapon,
@@ -1588,8 +1639,6 @@ export default {
       showStickersDialog,
       closeYYYPList,
       handleYYYPPageChange,
-      handleSearchWeapon,
-      handleRefreshSearch,
       handleRefreshYYYP,
       handleSearchYYYPByRow,
       handleSearchBuffByRow,
@@ -1601,13 +1650,6 @@ export default {
       handleClearSearch,
       handleImageError,
       handleViewDetails,
-      handleSizeChange,
-      handleCurrentChange,
-      handleSteamIdChange,
-      handleExteriorChange,
-      handleStatTrakChange,
-      querySearchAsync,
-      handleSelect,
       getRarityType,
       getRarityColor,
       getExteriorColor
