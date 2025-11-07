@@ -149,19 +149,19 @@ div, section, article, aside, main, header, footer, nav {
 
 /* 主内容区域 */
 .main-content {
-    margin-left: 18vw;
+    margin-left: calc(18vw + 25px);
     margin-right: 10px;
-    width: calc(100vw - 18vw - 10px);
-    padding: clamp(1rem, 3vw, 2.5rem);
+    width: calc(100vw - 18vw - 25px - 10px);
+    padding: clamp(1rem, 2vw, 1.5rem);
     background-color: var(--bg-primary);
     overflow-y: auto;
-    transition: margin-left 0.3s ease;
+    transition: margin-left 0.3s ease, width 0.3s ease;
 }
 
 .sidebar.collapsed + .main-content {
-    margin-left: 4rem;
+    margin-left: calc(4rem + 25px);
     margin-right: 10px;
-    width: calc(100vw - 4rem - 10px);
+    width: calc(100vw - 4rem - 25px - 10px);
 }
 
 /* 表格样式 */
@@ -371,6 +371,7 @@ div, section, article, aside, main, header, footer, nav {
         margin-right: 10px; /* 移动端也使用10px右边距 */
         margin-top: 120px; /* 为移动端侧边栏留出空间 */
         width: calc(100vw - 10px);
+        padding: 1rem;
     }
     
     .sidebar ul {
@@ -396,10 +397,6 @@ div, section, article, aside, main, header, footer, nav {
         flex: 0 0 auto;
         min-width: auto;
         width: 2.5rem;
-    }
-    
-    .main-content {
-        padding: 1rem;
     }
     
     .table-container {
@@ -441,15 +438,15 @@ div, section, article, aside, main, header, footer, nav {
     }
     
     .main-content {
-        margin-left: 16vw;
+        margin-left: calc(16vw + 25px);
         margin-right: 10px;
-        width: calc(100vw - 16vw - 10px);
+        width: calc(100vw - 16vw - 25px - 10px);
     }
     
     .sidebar.collapsed + .main-content {
-        margin-left: 4rem;
+        margin-left: calc(4rem + 25px);
         margin-right: 10px;
-        width: calc(100vw - 4rem - 10px);
+        width: calc(100vw - 4rem - 25px - 10px);
     }
 }
 
@@ -460,15 +457,15 @@ div, section, article, aside, main, header, footer, nav {
     }
     
     .main-content {
-        margin-left: 14vw;
+        margin-left: calc(14vw + 25px);
         margin-right: 10px;
-        width: calc(100vw - 14vw - 10px);
+        width: calc(100vw - 14vw - 25px - 10px);
     }
     
     .sidebar.collapsed + .main-content {
-        margin-left: 4rem;
+        margin-left: calc(4rem + 25px);
         margin-right: 10px;
-        width: calc(100vw - 4rem - 10px);
+        width: calc(100vw - 4rem - 25px - 10px);
     }
 }
 
