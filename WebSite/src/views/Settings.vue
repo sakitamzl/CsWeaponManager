@@ -67,9 +67,18 @@
             @click="navigateTo('/settings/dev-tools')"
           >
             <el-icon :size="18">
-              <Tools />
+              <SetUp />
             </el-icon>
             <span>开荒工具</span>
+          </li>
+          <li 
+            :class="{ active: $route.name === 'SystemSettings' }"
+            @click="navigateTo('/settings/system-settings')"
+          >
+            <el-icon :size="18">
+              <Setting />
+            </el-icon>
+            <span>系统设置</span>
           </li>
         </ul>
       </div>
@@ -93,7 +102,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { EditPen, Tools, ShoppingCart, Box, Timer, DataBoard, ArrowLeft, ArrowRight, PriceTag } from '@element-plus/icons-vue'
+import { EditPen, SetUp, Setting, ShoppingCart, Box, Timer, DataBoard, ArrowLeft, ArrowRight, PriceTag } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const sidebarCollapsed = ref(false)

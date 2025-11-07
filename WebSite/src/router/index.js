@@ -112,6 +112,12 @@ const routes = [
             name: 'DevTools',
             component: () => import('@/views/settings/DevTool.vue'),
             meta: { title: '开荒工具' }
+          },
+          {
+            path: 'system-settings',
+            name: 'SystemSettings',
+            component: () => import('@/views/settings/SystemSettings.vue'),
+            meta: { title: '系统设置' }
           }
         ]
       }
