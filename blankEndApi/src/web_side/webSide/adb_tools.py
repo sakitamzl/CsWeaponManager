@@ -9,6 +9,18 @@ import traceback
 
 adbToolsPage = Blueprint('adbToolsPage', __name__)
 
+# 全局ADB管理器实例（避免每次请求都创建新实例导致连接断开）
+_global_adb_manager = None
+
+def get_adb_manager():
+    """获取全局ADB管理器实例"""
+    global _global_adb_manager
+    if _global_adb_manager is None:
+        from src.Unites.auto_process.ADB import ADBManager
+        _global_adb_manager = ADBManager()
+        _global_adb_manager.connect()
+    return _global_adb_manager
+
 
 @adbToolsPage.route('/api/adb/scan', methods=['POST'])
 def scan_lan_devices():
@@ -52,8 +64,6 @@ def scan_lan_devices():
 def connect_device():
     """连接到指定地址的设备"""
     try:
-        from src.Unites.auto_process.ADB import ADBManager
-        
         data = request.get_json()
         address = data.get('address')
         
@@ -63,13 +73,7 @@ def connect_device():
                 'message': '设备地址不能为空'
             }), 400
         
-        adb = ADBManager()
-        
-        if not adb.connect():
-            return jsonify({
-                'success': False,
-                'message': 'ADB服务器连接失败'
-            }), 500
+        adb = get_adb_manager()
         
         # 连接设备
         if adb.connect_device(address):
@@ -96,19 +100,10 @@ def connect_device():
 def get_adb_devices():
     """获取所有已连接的ADB设备"""
     try:
-        from src.Unites.auto_process.ADB import ADBManager
-        
         # 获取查询参数
         auto_scan = request.args.get('auto_scan', 'false').lower() == 'true'
         
-        adb = ADBManager()
-        
-        # 连接ADB服务器
-        if not adb.connect():
-            return jsonify({
-                'success': False,
-                'message': 'ADB服务器连接失败，请确保ADB服务器正在运行'
-            }), 500
+        adb = get_adb_manager()
         
         # 获取设备列表（可选自动扫描）
         devices = adb.get_devices(auto_scan=auto_scan)
@@ -120,22 +115,34 @@ def get_adb_devices():
                 'message': '未找到任何设备'
             }), 200
         
-        # 选择第一个设备并获取详细信息
+        # 获取设备详细信息
         device_list = []
-        for device in devices:
-            try:
-                adb.device = device
-                device_info = adb.get_device_info()
-                # 确保包含完整的设备信息
-                device_info['serial'] = device.serial  # 网络地址，如 192.168.1.100:5555
-                device_info['is_root'] = adb.is_root()
-                device_list.append(device_info)
-            except Exception as e:
-                Log().write_log(f"获取设备 {device.serial} 信息失败: {str(e)}", 'warning')
+        for device_dict in devices:
+            serial = device_dict.get('serial')
+            state = device_dict.get('state', 'unknown')
+            
+            if state == 'device' and adb.device and adb.device_address == serial:
+                # 当前连接的设备，获取详细信息
+                try:
+                    device_info = adb.get_device_info()
+                    device_list.append(device_info)
+                except Exception as e:
+                    Log().write_log(f"获取设备 {serial} 信息失败: {str(e)}", 'warning')
+                    device_list.append({
+                        'serial': serial,
+                        'connection': serial,
+                        'android_version': '未知',
+                        'model': '未知',
+                        'sdk_version': '未知',
+                        'is_root': False
+                    })
+            else:
+                # 未连接的设备，只显示基本信息
                 device_list.append({
-                    'serial': device.serial,
-                    'android_version': '未知',
-                    'model': '未知',
+                    'serial': serial,
+                    'connection': serial,
+                    'android_version': '未连接',
+                    'model': '未连接',
                     'sdk_version': '未知',
                     'is_root': False
                 })
@@ -161,19 +168,36 @@ def get_adb_devices():
         }), 500
 
 
+@adbToolsPage.route('/api/adb/disconnect', methods=['POST'])
+def disconnect_device():
+    """断开当前设备连接"""
+    try:
+        adb = get_adb_manager()
+        
+        if adb.disconnect():
+            return jsonify({
+                'success': True,
+                'message': '设备已断开连接'
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'message': '断开连接失败'
+            }), 500
+            
+    except Exception as e:
+        Log().write_log(f"断开设备连接失败: {str(e)}", 'error')
+        return jsonify({
+            'success': False,
+            'message': f'断开连接失败: {str(e)}'
+        }), 500
+
+
 @adbToolsPage.route('/api/adb/device/<serial>/info', methods=['GET'])
 def get_device_info(serial):
     """获取指定设备的详细信息"""
     try:
-        from src.Unites.auto_process.ADB import ADBManager
-        
-        adb = ADBManager()
-        
-        if not adb.connect():
-            return jsonify({
-                'success': False,
-                'message': 'ADB服务器连接失败'
-            }), 500
+        adb = get_adb_manager()
         
         if not adb.select_device(serial):
             return jsonify({
@@ -182,7 +206,6 @@ def get_device_info(serial):
             }), 404
         
         device_info = adb.get_device_info()
-        device_info['is_root'] = adb.is_root()
         
         return jsonify({
             'success': True,
@@ -211,15 +234,9 @@ def check_cert_status():
                 'message': '设备序列号不能为空'
             }), 400
         
-        from src.Unites.auto_process.ADB import ADBManager, CharlesCertManager
+        from src.Unites.auto_process.ADB import CharlesCertManager
         
-        adb = ADBManager()
-        
-        if not adb.connect():
-            return jsonify({
-                'success': False,
-                'message': 'ADB服务器连接失败'
-            }), 500
+        adb = get_adb_manager()
         
         if not adb.select_device(serial):
             return jsonify({
@@ -266,21 +283,19 @@ def install_cert():
                 'message': '设备序列号不能为空'
             }), 400
         
-        from src.Unites.auto_process.ADB import ADBManager, CharlesCertManager
+        from src.Unites.auto_process.ADB import CharlesCertManager
         
-        adb = ADBManager()
+        adb = get_adb_manager()
         
-        if not adb.connect():
+        # 先断开连接
+        adb.disconnect()
+        
+        # 重新连接设备
+        if not adb.connect_device(serial):
             return jsonify({
                 'success': False,
-                'message': 'ADB服务器连接失败'
+                'message': f'无法连接到设备: {serial}'
             }), 500
-        
-        if not adb.select_device(serial):
-            return jsonify({
-                'success': False,
-                'message': f'未找到设备: {serial}'
-            }), 404
         
         # 检查root权限
         if not adb.is_root():
@@ -298,10 +313,14 @@ def install_cert():
         success = cert_manager.install_cert(force=force)
         
         if success:
-            Log().write_log(f"Charles证书安装成功: {serial}", 'info')
+            Log().write_log(f"Charles证书安装成功: {serial}，准备重新连接", 'info')
+            
+            # 断开连接，准备重启
+            adb.disconnect()
+            
             return jsonify({
                 'success': True,
-                'message': 'Charles证书安装成功！请重启模拟器/设备以使证书生效'
+                'message': 'Charles证书安装成功！请重启模拟器/设备以使证书生效，然后重新连接设备'
             }), 200
         else:
             Log().write_log(f"Charles证书安装失败: {serial}", 'error')
@@ -332,15 +351,9 @@ def uninstall_cert():
                 'message': '设备序列号不能为空'
             }), 400
         
-        from src.Unites.auto_process.ADB import ADBManager, CharlesCertManager
+        from src.Unites.auto_process.ADB import CharlesCertManager
         
-        adb = ADBManager()
-        
-        if not adb.connect():
-            return jsonify({
-                'success': False,
-                'message': 'ADB服务器连接失败'
-            }), 500
+        adb = get_adb_manager()
         
         if not adb.select_device(serial):
             return jsonify({
