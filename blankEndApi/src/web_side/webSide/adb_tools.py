@@ -292,7 +292,7 @@ def install_cert():
         # 创建证书管理器
         cert_manager = CharlesCertManager(adb)
         
-        Log().write_log(f"开始安装Charles证书到设备: {serial}", 'info')
+        Log().write_log(f"开始安装Charles证书到设备: {serial}, force={force}", 'info')
         
         # 安装证书
         success = cert_manager.install_cert(force=force)

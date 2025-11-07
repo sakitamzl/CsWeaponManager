@@ -143,9 +143,12 @@ YST/MxU4rvsps28Vt8SCSPLYx8jlF9WbZOik4wlYN33qXlVMjTdvmYjAb7Ws4P3YkrYcLMFS5UJL
         print(f"设备信息: {device_info}")
         
         # 检查是否已安装
-        if not force and self.check_cert_installed():
-            print("证书已存在，跳过安装。如需重新安装，请使用 force=True")
-            return True
+        if self.check_cert_installed():
+            if not force:
+                print("证书已存在，跳过安装。如需重新安装，请使用 force=True")
+                return True
+            else:
+                print("证书已存在，但设置了force=True，将强制重新安装...")
         
         try:
             # 1. 创建临时证书文件
