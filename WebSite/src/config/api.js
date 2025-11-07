@@ -106,6 +106,15 @@ export const API_CONFIG = {
     GET_APP_TOKEN_CLEAR_PERFECTWORLD_DATA: '/getAppTokenV1/clear_perfectworld_data',  // 清除完美世界APP数据
     GET_APP_TOKEN_PROXY_STATUS: '/getAppTokenV1/proxy_status',  // 查询代理状态
     GET_APP_TOKEN_HELP: '/getAppTokenV1/help',  // 获取帮助信息
+    
+    // ADB工具相关
+    ADB_DEVICES: '/adbToolsV1/api/adb/devices',  // 获取ADB设备列表
+    ADB_DEVICE_INFO: (serial) => `/adbToolsV1/api/adb/device/${serial}/info`,  // 获取设备信息
+    ADB_CERT_STATUS: '/adbToolsV1/api/adb/cert/status',  // 检查证书状态
+    ADB_CERT_INSTALL: '/adbToolsV1/api/adb/cert/install',  // 安装证书
+    ADB_CERT_UNINSTALL: '/adbToolsV1/api/adb/cert/uninstall',  // 卸载证书
+    ADB_CERT_INFO: '/adbToolsV1/api/adb/cert/info',  // 获取证书信息
+    ADB_SHELL: (serial) => `/adbToolsV1/api/adb/device/${serial}/shell`,  // 执行Shell命令
   }
 }
 
@@ -221,4 +230,13 @@ export const apiUrls = {
   getAppTokenClearPerfectWorldData: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.GET_APP_TOKEN_CLEAR_PERFECTWORLD_DATA),
   getAppTokenProxyStatus: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.GET_APP_TOKEN_PROXY_STATUS),
   getAppTokenHelp: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.GET_APP_TOKEN_HELP),
+  
+  // ADB工具API
+  adbDevices: () => getApiUrl(API_CONFIG.ENDPOINTS.ADB_DEVICES),
+  adbDeviceInfo: (serial) => getApiUrl(API_CONFIG.ENDPOINTS.ADB_DEVICE_INFO(serial)),
+  adbCertStatus: () => getApiUrl(API_CONFIG.ENDPOINTS.ADB_CERT_STATUS),
+  adbCertInstall: () => getApiUrl(API_CONFIG.ENDPOINTS.ADB_CERT_INSTALL),
+  adbCertUninstall: () => getApiUrl(API_CONFIG.ENDPOINTS.ADB_CERT_UNINSTALL),
+  adbCertInfo: () => getApiUrl(API_CONFIG.ENDPOINTS.ADB_CERT_INFO),
+  adbShell: (serial) => getApiUrl(API_CONFIG.ENDPOINTS.ADB_SHELL(serial)),
 }

@@ -1,5 +1,113 @@
 <template>
   <div class="dev-tool-container">
+    <!-- ADB证书管理区域 -->
+    <div class="sync-section">
+      <h2 class="section-title">ADB 设备管理 & Charles 证书安装</h2>
+      
+      <div class="sync-controls">
+        <el-button 
+          type="primary" 
+          @click="loadDevices"
+          :loading="isLoadingDevices"
+        >
+          {{ isLoadingDevices ? '刷新中...' : '刷新设备列表' }}
+        </el-button>
+
+        <el-select 
+          v-model="selectedDevice" 
+          placeholder="选择设备" 
+          class="device-select"
+          :disabled="devices.length === 0"
+        >
+          <el-option 
+            v-for="device in devices" 
+            :key="device.serial" 
+            :label="`${device.model || '未知设备'} (${device.serial})`" 
+            :value="device.serial"
+          />
+        </el-select>
+
+        <el-button 
+          type="success" 
+          @click="checkCertStatus"
+          :disabled="!selectedDevice"
+          :loading="isCheckingCert"
+        >
+          {{ isCheckingCert ? '检查中...' : '检查证书状态' }}
+        </el-button>
+
+        <el-button 
+          type="warning" 
+          @click="installCert"
+          :disabled="!selectedDevice || isInstallingCert"
+          :loading="isInstallingCert"
+        >
+          {{ isInstallingCert ? '安装中...' : '安装证书' }}
+        </el-button>
+
+        <el-button 
+          type="danger" 
+          @click="uninstallCert"
+          :disabled="!selectedDevice || isUninstallingCert"
+          :loading="isUninstallingCert"
+        >
+          {{ isUninstallingCert ? '卸载中...' : '卸载证书' }}
+        </el-button>
+      </div>
+
+      <div v-if="deviceInfo && selectedDevice" class="device-info">
+        <h3 class="info-title">设备信息</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">设备序列号:</span>
+            <span class="info-value">{{ deviceInfo.serial || '未知' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">设备型号:</span>
+            <span class="info-value">{{ deviceInfo.model || '未知' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Android版本:</span>
+            <span class="info-value">{{ deviceInfo.android_version || '未知' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">SDK版本:</span>
+            <span class="info-value">{{ deviceInfo.sdk_version || '未知' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Root权限:</span>
+            <span class="info-value" :class="deviceInfo.is_root ? 'success-text' : 'error-text'">
+              {{ deviceInfo.is_root ? '✓ 已获取' : '✗ 未获取' }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="certStatus" class="cert-status-info">
+        <h3 class="info-title">证书状态</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">证书状态:</span>
+            <span class="info-value" :class="certStatus.installed ? 'success-text' : 'warning-text'">
+              {{ certStatus.installed ? '✓ 已安装' : '✗ 未安装' }}
+            </span>
+          </div>
+          <div class="info-item" v-if="certStatus.cert_info">
+            <span class="info-label">证书Hash:</span>
+            <span class="info-value">{{ certStatus.cert_info.cert_hash || '未知' }}</span>
+          </div>
+          <div class="info-item" v-if="certStatus.cert_info">
+            <span class="info-label">证书文件名:</span>
+            <span class="info-value">{{ certStatus.cert_info.cert_filename || '未知' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="adbMessage" class="sync-info" :class="adbMessageType">
+        <span class="sync-time">{{ adbMessage }}</span>
+      </div>
+    </div>
+
     <!-- 饰品映射同步区域 -->
     <div class="sync-section">
         <h2 class="section-title">平台饰品映射</h2>
@@ -108,6 +216,18 @@ import { API_CONFIG, apiUrls } from '@/config/api.js'
 export default {
   name: 'DevTool',
   setup() {
+    // ADB设备管理相关状态
+    const devices = ref([])
+    const selectedDevice = ref('')
+    const deviceInfo = ref(null)
+    const certStatus = ref(null)
+    const isLoadingDevices = ref(false)
+    const isCheckingCert = ref(false)
+    const isInstallingCert = ref(false)
+    const isUninstallingCert = ref(false)
+    const adbMessage = ref('')
+    const adbMessageType = ref('info')
+
     const selectedSteamId = ref('')
     const steamIdList = ref([])
     const isSyncing = ref(false)
@@ -128,6 +248,229 @@ export default {
       duration: null
     })
     const lastCsqaqTime = ref('')
+
+    // ========== ADB设备管理功能 ==========
+    
+    // 加载ADB设备列表
+    const loadDevices = async () => {
+      isLoadingDevices.value = true
+      adbMessage.value = ''
+      
+      try {
+        const response = await axios.get(apiUrls.adbDevices())
+        
+        if (response.data.success) {
+          devices.value = response.data.data
+          
+          if (devices.value.length > 0) {
+            // 默认选择第一个设备
+            if (!selectedDevice.value) {
+              selectedDevice.value = devices.value[0].serial
+              deviceInfo.value = devices.value[0]
+            } else {
+              // 更新已选设备的信息
+              const selected = devices.value.find(d => d.serial === selectedDevice.value)
+              if (selected) {
+                deviceInfo.value = selected
+              }
+            }
+            
+            adbMessage.value = `找到 ${devices.value.length} 个设备`
+            adbMessageType.value = 'success'
+            ElMessage.success(response.data.message)
+          } else {
+            adbMessage.value = '未找到任何设备，请检查设备连接和ADB服务器'
+            adbMessageType.value = 'warning'
+            ElMessage.warning('未找到任何设备')
+          }
+        } else {
+          adbMessage.value = `获取设备失败: ${response.data.message}`
+          adbMessageType.value = 'error'
+          ElMessage.error(response.data.message)
+        }
+      } catch (error) {
+        console.error('加载设备列表失败:', error)
+        adbMessage.value = '获取设备列表失败，请确保后端服务正在运行'
+        adbMessageType.value = 'error'
+        
+        let errorMessage = '加载设备列表失败'
+        if (error.response) {
+          errorMessage = error.response.data?.message || errorMessage
+        } else if (error.request) {
+          errorMessage = '无法连接到后端服务器'
+        }
+        ElMessage.error(errorMessage)
+      } finally {
+        isLoadingDevices.value = false
+      }
+    }
+
+    // 检查证书状态
+    const checkCertStatus = async () => {
+      if (!selectedDevice.value) {
+        ElMessage.warning('请先选择设备')
+        return
+      }
+
+      isCheckingCert.value = true
+      adbMessage.value = ''
+
+      try {
+        const response = await axios.post(apiUrls.adbCertStatus(), {
+          serial: selectedDevice.value
+        })
+
+        if (response.data.success) {
+          certStatus.value = response.data.data
+          adbMessage.value = response.data.message
+          adbMessageType.value = certStatus.value.installed ? 'success' : 'warning'
+          ElMessage.success(response.data.message)
+        } else {
+          adbMessage.value = `检查失败: ${response.data.message}`
+          adbMessageType.value = 'error'
+          ElMessage.error(response.data.message)
+        }
+      } catch (error) {
+        console.error('检查证书状态失败:', error)
+        adbMessage.value = '检查证书状态失败'
+        adbMessageType.value = 'error'
+        
+        let errorMessage = '检查证书状态失败'
+        if (error.response) {
+          errorMessage = error.response.data?.message || errorMessage
+        }
+        ElMessage.error(errorMessage)
+      } finally {
+        isCheckingCert.value = false
+      }
+    }
+
+    // 安装证书
+    const installCert = async () => {
+      if (!selectedDevice.value) {
+        ElMessage.warning('请先选择设备')
+        return
+      }
+
+      // 检查设备是否有root权限
+      if (deviceInfo.value && !deviceInfo.value.is_root) {
+        ElMessage.error('设备没有root权限，无法安装系统证书')
+        return
+      }
+
+      try {
+        await ElMessageBox.confirm(
+          '确定要安装Charles证书到设备吗？此操作需要root权限。',
+          '确认安装',
+          {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        )
+      } catch {
+        return
+      }
+
+      isInstallingCert.value = true
+      adbMessage.value = ''
+      ElMessage.info('开始安装证书...')
+
+      try {
+        const response = await axios.post(apiUrls.adbCertInstall(), {
+          serial: selectedDevice.value,
+          force: false
+        })
+
+        if (response.data.success) {
+          adbMessage.value = '证书安装成功！建议重启设备以确保证书生效'
+          adbMessageType.value = 'success'
+          ElMessage.success(response.data.message)
+          
+          // 刷新证书状态
+          setTimeout(() => {
+            checkCertStatus()
+          }, 1000)
+        } else {
+          adbMessage.value = `安装失败: ${response.data.message}`
+          adbMessageType.value = 'error'
+          ElMessage.error(response.data.message)
+        }
+      } catch (error) {
+        console.error('安装证书失败:', error)
+        adbMessage.value = '安装证书失败'
+        adbMessageType.value = 'error'
+        
+        let errorMessage = '安装证书失败'
+        if (error.response) {
+          errorMessage = error.response.data?.message || errorMessage
+        }
+        ElMessage.error(errorMessage)
+      } finally {
+        isInstallingCert.value = false
+      }
+    }
+
+    // 卸载证书
+    const uninstallCert = async () => {
+      if (!selectedDevice.value) {
+        ElMessage.warning('请先选择设备')
+        return
+      }
+
+      try {
+        await ElMessageBox.confirm(
+          '确定要卸载Charles证书吗？',
+          '确认卸载',
+          {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        )
+      } catch {
+        return
+      }
+
+      isUninstallingCert.value = true
+      adbMessage.value = ''
+      ElMessage.info('开始卸载证书...')
+
+      try {
+        const response = await axios.post(apiUrls.adbCertUninstall(), {
+          serial: selectedDevice.value
+        })
+
+        if (response.data.success) {
+          adbMessage.value = '证书卸载成功'
+          adbMessageType.value = 'success'
+          ElMessage.success(response.data.message)
+          
+          // 刷新证书状态
+          setTimeout(() => {
+            checkCertStatus()
+          }, 1000)
+        } else {
+          adbMessage.value = `卸载失败: ${response.data.message}`
+          adbMessageType.value = 'error'
+          ElMessage.error(response.data.message)
+        }
+      } catch (error) {
+        console.error('卸载证书失败:', error)
+        adbMessage.value = '卸载证书失败'
+        adbMessageType.value = 'error'
+        
+        let errorMessage = '卸载证书失败'
+        if (error.response) {
+          errorMessage = error.response.data?.message || errorMessage
+        }
+        ElMessage.error(errorMessage)
+      } finally {
+        isUninstallingCert.value = false
+      }
+    }
+
+    // ========== Steam ID 和饰品映射功能 ==========
 
     // 加载Steam ID列表
     const loadSteamIdList = async () => {
