@@ -25,6 +25,19 @@
           <span v-if="!isCollapsed" class="menu-text">{{ item.title }}</span>
         </li>
       </ul>
+      
+      <!-- 用户信息和退出按钮 -->
+      <div class="sidebar-footer" v-if="isLoggedIn">
+        <div class="user-info" v-if="!isCollapsed">
+          <span class="username">{{ username }}</span>
+          <button @click="handleLogout" class="logout-btn" title="退出登录">
+            退出
+          </button>
+        </div>
+        <button v-else @click="handleLogout" class="logout-btn-icon" title="退出登录">
+          🚪
+        </button>
+      </div>
     </aside>
 
     <main class="main-content">
@@ -34,11 +47,15 @@
 </template>
 
 <script>
+import { ElMessageBox, ElMessage } from 'element-plus'
+
 export default {
   name: 'Layout',
   data() {
     return {
       isCollapsed: false,
+      isLoggedIn: false,
+      username: '',
       menuItems: [
         {
           path: '/home',
@@ -98,12 +115,40 @@ export default {
       ]
     }
   },
+  mounted() {
+    // 检查登录状态
+    this.isLoggedIn = localStorage.getItem('isLoggedIn') === 'true'
+    this.username = localStorage.getItem('username') || '用户'
+  },
   methods: {
     handleMenuClick(path) {
       this.$router.push(path)
     },
     toggleSidebar() {
       this.isCollapsed = !this.isCollapsed
+    },
+    handleLogout() {
+      ElMessageBox.confirm(
+        '确定要退出登录吗？',
+        '确认退出',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      ).then(() => {
+        // 清除登录状态
+        localStorage.removeItem('isLoggedIn')
+        localStorage.removeItem('username')
+        localStorage.removeItem('loginTime')
+        
+        ElMessage.success('已退出登录')
+        
+        // 跳转到登录页
+        this.$router.push('/login')
+      }).catch(() => {
+        // 取消退出
+      })
     }
   }
 }
@@ -216,6 +261,61 @@ export default {
 /* 过渡动画 */
 .sidebar {
   transition: all 0.3s ease;
+}
+
+/* 侧边栏底部用户信息 */
+.sidebar-footer {
+  margin-top: auto;
+  padding: 1rem;
+  border-top: 1px solid #333;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.username {
+  color: #4CAF50;
+  font-size: 0.875rem;
+  font-weight: 500;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.logout-btn {
+  padding: 0.375rem 0.75rem;
+  background-color: #f56c6c;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.logout-btn:hover {
+  background-color: #f54545;
+}
+
+.logout-btn-icon {
+  width: 100%;
+  padding: 0.5rem;
+  background-color: #f56c6c;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.logout-btn-icon:hover {
+  background-color: #f54545;
 }
 
 /* 移动端适配 */

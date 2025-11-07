@@ -118,6 +118,10 @@ export const API_CONFIG = {
     ADB_CERT_UNINSTALL: '/adbToolsV1/api/adb/cert/uninstall',  // 卸载证书
     ADB_CERT_INFO: '/adbToolsV1/api/adb/cert/info',  // 获取证书信息
     ADB_SHELL: (serial) => `/adbToolsV1/api/adb/device/${serial}/shell`,  // 执行Shell命令
+    
+    // 登录设置相关
+    LOGIN_SETTINGS: '/loginSettingsV1/api/login-settings',  // 获取/保存登录设置
+    LOGIN_VERIFY: '/loginSettingsV1/api/login-settings/verify',  // 验证登录
   }
 }
 
@@ -245,4 +249,8 @@ export const apiUrls = {
   adbCertUninstall: () => getApiUrl(API_CONFIG.ENDPOINTS.ADB_CERT_UNINSTALL),
   adbCertInfo: () => getApiUrl(API_CONFIG.ENDPOINTS.ADB_CERT_INFO),
   adbShell: (serial) => getApiUrl(API_CONFIG.ENDPOINTS.ADB_SHELL(serial)),
+  
+  // 登录设置API
+  loginSettings: () => getApiUrl(API_CONFIG.ENDPOINTS.LOGIN_SETTINGS),
+  loginVerify: () => getApiUrl(API_CONFIG.ENDPOINTS.LOGIN_VERIFY),
 }

@@ -9,8 +9,17 @@ import Inventory from '@/views/Inventory.vue'
 import Setting from '@/views/Setting.vue'
 import StockComponents from '@/views/StockComponents.vue'
 import Settings from '@/views/Settings.vue'
+import Login from '@/views/Login.vue'
+import axios from 'axios'
+import { apiUrls } from '@/config/api'
 
 const routes = [
+  {
+    path: '/login',
+    name: 'Login',
+    component: Login,
+    meta: { title: '登录', requiresAuth: false }
+  },
   {
     path: '/',
     component: Layout,
@@ -128,6 +137,66 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),
   routes
+})
+
+// 检查登录状态
+async function checkLoginRequired() {
+  try {
+    const response = await axios.get(apiUrls.loginSettings())
+    if (response.data.success) {
+      return response.data.data.enableLogin || false
+    }
+    return false
+  } catch (error) {
+    console.error('检查登录状态失败:', error)
+    return false
+  }
+}
+
+// 全局路由守卫
+router.beforeEach(async (to, from, next) => {
+  // 如果是登录页面，直接通过
+  if (to.path === '/login') {
+    next()
+    return
+  }
+  
+  // 检查是否需要登录验证
+  const loginRequired = await checkLoginRequired()
+  
+  if (!loginRequired) {
+    // 不需要登录，直接通过
+    next()
+    return
+  }
+  
+  // 需要登录，检查是否已登录
+  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true'
+  const loginTime = localStorage.getItem('loginTime')
+  
+  // 检查登录是否过期（24小时）
+  if (isLoggedIn && loginTime) {
+    const now = new Date().getTime()
+    const elapsed = now - parseInt(loginTime)
+    const maxAge = 24 * 60 * 60 * 1000 // 24小时
+    
+    if (elapsed > maxAge) {
+      // 登录已过期
+      localStorage.removeItem('isLoggedIn')
+      localStorage.removeItem('username')
+      localStorage.removeItem('loginTime')
+      next('/login')
+      return
+    }
+  }
+  
+  if (isLoggedIn) {
+    // 已登录，允许访问
+    next()
+  } else {
+    // 未登录，跳转到登录页
+    next('/login')
+  }
 })
 
 export default router
