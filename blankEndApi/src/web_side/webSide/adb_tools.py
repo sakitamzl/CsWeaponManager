@@ -462,3 +462,88 @@ def get_cert_info():
             'message': f'获取证书信息失败: {str(e)}'
         }), 500
 
+
+@adbToolsPage.route('/api/adb/cert/verify', methods=['POST'])
+def verify_cert_installation():
+    """验证证书安装情况（调试用）"""
+    try:
+        data = request.get_json()
+        serial = data.get('serial')
+        
+        if not serial:
+            return jsonify({
+                'success': False,
+                'message': '设备序列号不能为空'
+            }), 400
+        
+        from src.Unites.auto_process.ADB import ADBManager, CharlesCertManager
+        
+        adb = ADBManager()
+        
+        if not adb.connect():
+            return jsonify({
+                'success': False,
+                'message': 'ADB服务器连接失败'
+            }), 500
+        
+        if not adb.select_device(serial):
+            return jsonify({
+                'success': False,
+                'message': f'未找到设备: {serial}'
+            }), 404
+        
+        # 创建证书管理器
+        cert_manager = CharlesCertManager(adb)
+        cert_hash = cert_manager._calculate_cert_hash()
+        cert_filename = f"{cert_hash}.0"
+        
+        # 检查所有可能的位置
+        cert_locations = [
+            "/system/etc/security/cacerts/",
+            "/apex/com.android.conscrypt/cacerts/",
+            "/data/misc/user/0/cacerts-added/",
+        ]
+        
+        verification_result = {
+            "cert_hash": cert_hash,
+            "cert_filename": cert_filename,
+            "locations": []
+        }
+        
+        for location in cert_locations:
+            cert_path = f"{location}{cert_filename}"
+            success, result = adb.execute_shell(f"ls -la {cert_path}")
+            
+            location_info = {
+                "path": cert_path,
+                "exists": success and "No such file" not in result,
+                "details": result.strip() if success else ""
+            }
+            
+            verification_result["locations"].append(location_info)
+        
+        # 列出系统证书目录的所有证书
+        success, result = adb.execute_shell("ls /system/etc/security/cacerts/ | head -10")
+        verification_result["system_certs_sample"] = result.strip() if success else ""
+        
+        # 检查证书内容的前几行
+        for location_info in verification_result["locations"]:
+            if location_info["exists"]:
+                cert_path = location_info["path"]
+                success, content = adb.execute_shell(f"head -3 {cert_path}")
+                location_info["content_preview"] = content.strip() if success else ""
+        
+        return jsonify({
+            'success': True,
+            'data': verification_result,
+            'message': '证书验证完成'
+        }), 200
+        
+    except Exception as e:
+        Log().write_log(f"验证证书失败: {str(e)}", 'error')
+        Log().write_log(traceback.format_exc(), 'error')
+        return jsonify({
+            'success': False,
+            'message': f'验证失败: {str(e)}'
+        }), 500
+
