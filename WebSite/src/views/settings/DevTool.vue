@@ -7,10 +7,10 @@
       <div class="sync-controls">
         <el-button 
           type="primary" 
-          @click="loadDevices"
+          @click="scanAndLoadDevices"
           :loading="isLoadingDevices"
         >
-          {{ isLoadingDevices ? '刷新中...' : '刷新设备列表' }}
+          {{ isLoadingDevices ? '扫描中...' : '扫描局域网设备' }}
         </el-button>
 
         <el-select 
@@ -28,21 +28,12 @@
         </el-select>
 
         <el-button 
-          type="success" 
-          @click="checkCertStatus"
-          :disabled="!selectedDevice"
-          :loading="isCheckingCert"
-        >
-          {{ isCheckingCert ? '检查中...' : '检查证书状态' }}
-        </el-button>
-
-        <el-button 
           type="warning" 
           @click="installCert"
           :disabled="!selectedDevice || isInstallingCert"
           :loading="isInstallingCert"
         >
-          {{ isInstallingCert ? '安装中...' : '安装证书' }}
+          {{ isInstallingCert ? '安装中...' : '重新安装证书' }}
         </el-button>
 
         <el-button 
@@ -61,6 +52,10 @@
           <div class="info-item">
             <span class="info-label">设备序列号:</span>
             <span class="info-value">{{ deviceInfo.serial || '未知' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">连接地址:</span>
+            <span class="info-value">{{ deviceInfo.connection || deviceInfo.serial || '未知' }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">设备型号:</span>
@@ -251,12 +246,39 @@ export default {
 
     // ========== ADB设备管理功能 ==========
     
-    // 加载ADB设备列表
-    const loadDevices = async () => {
+    // 扫描并加载设备
+    const scanAndLoadDevices = async () => {
       isLoadingDevices.value = true
       adbMessage.value = ''
       
       try {
+        // 1. 先扫描局域网设备
+        adbMessage.value = '正在扫描局域网设备...'
+        adbMessageType.value = 'info'
+        
+        const scanResponse = await axios.post(apiUrls.adbScan(), {
+          timeout: 0.5,
+          max_workers: 50
+        })
+        
+        if (scanResponse.data.success && scanResponse.data.data.length > 0) {
+          const discovered = scanResponse.data.data
+          ElMessage.success(`发现 ${discovered.length} 个设备，正在连接...`)
+          
+          // 2. 连接发现的设备
+          for (const address of discovered.slice(0, 3)) {  // 最多连接3个
+            try {
+              await axios.post(apiUrls.adbConnect(), { address })
+            } catch (e) {
+              console.warn(`连接设备 ${address} 失败:`, e)
+            }
+          }
+          
+          // 等待连接完成
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        }
+        
+        // 3. 获取设备列表
         const response = await axios.get(apiUrls.adbDevices())
         
         if (response.data.success) {
@@ -278,8 +300,11 @@ export default {
             adbMessage.value = `找到 ${devices.value.length} 个设备`
             adbMessageType.value = 'success'
             ElMessage.success(response.data.message)
+            
+            // 自动检测证书状态
+            await checkCertStatus()
           } else {
-            adbMessage.value = '未找到任何设备，请检查设备连接和ADB服务器'
+            adbMessage.value = '未找到任何设备。请确保：\n1. 设备已开启ADB调试\n2. MuMu模拟器已启动'
             adbMessageType.value = 'warning'
             ElMessage.warning('未找到任何设备')
           }
@@ -289,11 +314,11 @@ export default {
           ElMessage.error(response.data.message)
         }
       } catch (error) {
-        console.error('加载设备列表失败:', error)
-        adbMessage.value = '获取设备列表失败，请确保后端服务正在运行'
+        console.error('扫描设备失败:', error)
+        adbMessage.value = '扫描设备失败，请确保后端服务正在运行'
         adbMessageType.value = 'error'
         
-        let errorMessage = '加载设备列表失败'
+        let errorMessage = '扫描设备失败'
         if (error.response) {
           errorMessage = error.response.data?.message || errorMessage
         } else if (error.request) {
@@ -305,15 +330,19 @@ export default {
       }
     }
 
-    // 检查证书状态
-    const checkCertStatus = async () => {
+    // 检查证书状态（静默模式，不显示成功消息）
+    const checkCertStatus = async (silent = false) => {
       if (!selectedDevice.value) {
-        ElMessage.warning('请先选择设备')
+        if (!silent) {
+          ElMessage.warning('请先选择设备')
+        }
         return
       }
 
       isCheckingCert.value = true
-      adbMessage.value = ''
+      if (!silent) {
+        adbMessage.value = ''
+      }
 
       try {
         const response = await axios.post(apiUrls.adbCertStatus(), {
@@ -322,30 +351,36 @@ export default {
 
         if (response.data.success) {
           certStatus.value = response.data.data
-          adbMessage.value = response.data.message
-          adbMessageType.value = certStatus.value.installed ? 'success' : 'warning'
-          ElMessage.success(response.data.message)
+          if (!silent) {
+            adbMessage.value = response.data.message
+            adbMessageType.value = certStatus.value.installed ? 'success' : 'warning'
+            ElMessage.success(response.data.message)
+          }
         } else {
-          adbMessage.value = `检查失败: ${response.data.message}`
-          adbMessageType.value = 'error'
-          ElMessage.error(response.data.message)
+          if (!silent) {
+            adbMessage.value = `检查失败: ${response.data.message}`
+            adbMessageType.value = 'error'
+            ElMessage.error(response.data.message)
+          }
         }
       } catch (error) {
         console.error('检查证书状态失败:', error)
-        adbMessage.value = '检查证书状态失败'
-        adbMessageType.value = 'error'
-        
-        let errorMessage = '检查证书状态失败'
-        if (error.response) {
-          errorMessage = error.response.data?.message || errorMessage
+        if (!silent) {
+          adbMessage.value = '检查证书状态失败'
+          adbMessageType.value = 'error'
+          
+          let errorMessage = '检查证书状态失败'
+          if (error.response) {
+            errorMessage = error.response.data?.message || errorMessage
+          }
+          ElMessage.error(errorMessage)
         }
-        ElMessage.error(errorMessage)
       } finally {
         isCheckingCert.value = false
       }
     }
 
-    // 安装证书
+    // 安装证书（强制重新安装）
     const installCert = async () => {
       if (!selectedDevice.value) {
         ElMessage.warning('请先选择设备')
@@ -359,15 +394,15 @@ export default {
       }
 
       try {
-        await ElMessageBox.confirm(
-          '确定要安装Charles证书到设备吗？此操作需要root权限。',
-          '确认安装',
-          {
-            confirmButtonText: '确定',
-            cancelButtonText: '取消',
-            type: 'warning'
-          }
-        )
+        const message = certStatus.value?.installed 
+          ? '证书已安装，确定要重新安装Charles证书吗？此操作将覆盖现有证书。'
+          : '确定要安装Charles证书到设备吗？此操作需要root权限。'
+        
+        await ElMessageBox.confirm(message, '确认安装', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        })
       } catch {
         return
       }
@@ -379,7 +414,7 @@ export default {
       try {
         const response = await axios.post(apiUrls.adbCertInstall(), {
           serial: selectedDevice.value,
-          force: false
+          force: true  // 强制重新安装
         })
 
         if (response.data.success) {
@@ -389,7 +424,7 @@ export default {
           
           // 刷新证书状态
           setTimeout(() => {
-            checkCertStatus()
+            checkCertStatus(true)  // 静默检查
           }, 1000)
         } else {
           adbMessage.value = `安装失败: ${response.data.message}`
@@ -448,7 +483,7 @@ export default {
           
           // 刷新证书状态
           setTimeout(() => {
-            checkCertStatus()
+            checkCertStatus(true)  // 静默检查
           }, 1000)
         } else {
           adbMessage.value = `卸载失败: ${response.data.message}`
@@ -789,6 +824,22 @@ export default {
     })
 
     return {
+      // ADB设备管理
+      devices,
+      selectedDevice,
+      deviceInfo,
+      certStatus,
+      isLoadingDevices,
+      isCheckingCert,
+      isInstallingCert,
+      isUninstallingCert,
+      adbMessage,
+      adbMessageType,
+      scanAndLoadDevices,
+      checkCertStatus,
+      installCert,
+      uninstallCert,
+      // Steam ID 和饰品映射
       selectedSteamId,
       steamIdList,
       isSyncing,
@@ -863,12 +914,94 @@ export default {
   min-width: 180px;
 }
 
+.device-select {
+  width: 300px;
+  min-width: 280px;
+}
+
 .sync-info {
   margin-top: 1rem;
   padding: 0.75rem;
   background-color: rgba(76, 175, 80, 0.1);
   border-radius: 0.5rem;
   border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.sync-info.success {
+  background-color: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.sync-info.warning {
+  background-color: rgba(230, 162, 60, 0.1);
+  border: 1px solid rgba(230, 162, 60, 0.3);
+}
+
+.sync-info.error {
+  background-color: rgba(245, 108, 108, 0.1);
+  border: 1px solid rgba(245, 108, 108, 0.3);
+}
+
+.sync-info.info {
+  background-color: rgba(64, 158, 255, 0.1);
+  border: 1px solid rgba(64, 158, 255, 0.3);
+}
+
+.device-info,
+.cert-status-info {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background-color: #1e1e1e;
+  border-radius: 0.5rem;
+  border: 1px solid #444;
+}
+
+.info-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #4CAF50;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #444;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 0.75rem;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  background-color: #2a2a2a;
+  border-radius: 0.25rem;
+}
+
+.info-label {
+  color: #888;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.info-value {
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.info-value.success-text {
+  color: #4CAF50;
+}
+
+.info-value.error-text {
+  color: #F56C6C;
+}
+
+.info-value.warning-text {
+  color: #E6A23C;
 }
 
 .sync-time {

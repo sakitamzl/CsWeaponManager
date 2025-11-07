@@ -4,7 +4,11 @@ ADB管理器
 """
 
 import time
-from typing import List, Optional, Tuple
+import subprocess
+import os
+import socket
+import concurrent.futures
+from typing import List, Optional, Tuple, Set
 from ppadb.client import Client as AdbClient
 from ppadb.device import Device
 
@@ -25,23 +29,68 @@ class ADBManager:
         self.client = None
         self.device = None
         
+    def _start_adb_server(self) -> bool:
+        """
+        尝试启动ADB服务器
+        
+        Returns:
+            bool: 是否成功启动
+        """
+        try:
+            # 尝试通过命令启动ADB服务器
+            result = subprocess.run(
+                ['adb', 'start-server'],
+                capture_output=True,
+                timeout=10,
+                creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
+            )
+            if result.returncode == 0:
+                print("ADB服务器已启动")
+                time.sleep(2)  # 等待服务器启动
+                return True
+        except (FileNotFoundError, subprocess.TimeoutExpired) as e:
+            print(f"无法启动ADB服务器: {e}")
+        return False
+    
     def connect(self) -> bool:
         """
-        连接到ADB服务器
+        连接到ADB服务器，如果连接失败会尝试启动服务器
         
         Returns:
             bool: 连接是否成功
         """
         try:
             self.client = AdbClient(host=self.host, port=self.port)
-            return True
+            # 测试连接
+            try:
+                self.client.version()
+                return True
+            except:
+                # 连接失败，尝试启动ADB服务器
+                print("ADB服务器未响应，尝试启动...")
+                if self._start_adb_server():
+                    self.client = AdbClient(host=self.host, port=self.port)
+                    self.client.version()
+                    return True
+                return False
         except Exception as e:
             print(f"连接ADB服务器失败: {e}")
+            # 最后尝试启动服务器
+            if self._start_adb_server():
+                try:
+                    self.client = AdbClient(host=self.host, port=self.port)
+                    self.client.version()
+                    return True
+                except:
+                    pass
             return False
     
-    def get_devices(self) -> List[Device]:
+    def get_devices(self, auto_scan: bool = False) -> List[Device]:
         """
         获取所有已连接的设备
+        
+        Args:
+            auto_scan: 是否在没有设备时自动扫描局域网
         
         Returns:
             List[Device]: 设备列表
@@ -52,6 +101,20 @@ class ADBManager:
         
         try:
             devices = self.client.devices()
+            
+            # 如果没有设备且开启了自动扫描
+            if not devices and auto_scan:
+                print("未发现已连接设备，开始扫描局域网...")
+                discovered = self.scan_lan_devices()
+                
+                # 尝试连接发现的设备
+                for address in discovered[:3]:  # 限制最多连接3个设备
+                    self.connect_device(address)
+                
+                # 重新获取设备列表
+                time.sleep(1)
+                devices = self.client.devices()
+            
             return devices
         except Exception as e:
             print(f"获取设备列表失败: {e}")
@@ -162,8 +225,16 @@ class ADBManager:
             return {}
         
         info = {
-            "serial": self.device.serial,
+            "connection": self.device.serial,  # 连接地址（IP:端口）
         }
+        
+        # 获取真实设备序列号
+        success, result = self.execute_shell("getprop ro.serialno")
+        if success and result.strip():
+            info["serial"] = result.strip()
+        else:
+            # 如果获取不到，使用连接地址作为序列号
+            info["serial"] = self.device.serial
         
         # 获取Android版本
         success, result = self.execute_shell("getprop ro.build.version.release")
@@ -206,4 +277,203 @@ class ADBManager:
         else:
             print("设备没有root权限或root失败")
             return False
+    
+    @staticmethod
+    def _check_adb_port(ip: str, port: int = 5555, timeout: float = 0.5) -> bool:
+        """
+        检查指定IP和端口是否有ADB服务
+        
+        Args:
+            ip: IP地址
+            port: 端口号，默认5555
+            timeout: 超时时间（秒）
+            
+        Returns:
+            bool: 是否有ADB服务
+        """
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(timeout)
+            result = sock.connect_ex((ip, port))
+            sock.close()
+            return result == 0
+        except:
+            return False
+    
+    @staticmethod
+    def scan_lan_devices(timeout: float = 0.5, max_workers: int = 50) -> List[str]:
+        """
+        扫描局域网内开启ADB的设备
+        
+        Args:
+            timeout: 每个IP的扫描超时时间
+            max_workers: 最大并发扫描线程数
+            
+        Returns:
+            List[str]: 发现的设备IP地址列表
+        """
+        devices = []
+        
+        # 获取本机IP
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            local_ip = s.getsockname()[0]
+            s.close()
+        except:
+            local_ip = "192.168.1.1"  # 默认值
+        
+        # 解析网络段
+        ip_parts = local_ip.split('.')
+        network = f"{ip_parts[0]}.{ip_parts[1]}.{ip_parts[2]}"
+        
+        print(f"开始扫描局域网: {network}.0/24")
+        
+        # 常见的ADB端口
+        common_ports = [5555, 5556, 5557, 16384, 7555]  # 包括MuMu模拟器的16384端口
+        
+        # 要扫描的IP列表
+        ips_to_scan = []
+        
+        # 优先扫描常见端口和本机
+        for port in common_ports:
+            # 本机
+            if ADBManager._check_adb_port("127.0.0.1", port, timeout):
+                address = f"127.0.0.1:{port}"
+                if address not in devices:
+                    devices.append(address)
+                    print(f"✓ 发现设备: {address}")
+        
+        # 扫描局域网其他设备（仅5555端口）
+        for i in range(1, 255):
+            ip = f"{network}.{i}"
+            if ip != local_ip and ip != "127.0.0.1":
+                ips_to_scan.append(ip)
+        
+        # 并发扫描
+        def scan_ip(ip):
+            if ADBManager._check_adb_port(ip, 5555, timeout):
+                return f"{ip}:5555"
+            return None
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = [executor.submit(scan_ip, ip) for ip in ips_to_scan]
+            for future in concurrent.futures.as_completed(futures):
+                result = future.result()
+                if result:
+                    devices.append(result)
+                    print(f"✓ 发现设备: {result}")
+        
+        print(f"扫描完成，共发现 {len(devices)} 个设备")
+        return devices
+    
+    def connect_device(self, address: str) -> bool:
+        """
+        连接到指定地址的设备
+        
+        Args:
+            address: 设备地址，格式为 "ip:port"
+            
+        Returns:
+            bool: 是否成功连接
+        """
+        try:
+            result = subprocess.run(
+                ['adb', 'connect', address],
+                capture_output=True,
+                timeout=10,
+                creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
+            )
+            if result.returncode == 0:
+                print(f"已连接到设备: {address}")
+                time.sleep(1)
+                return True
+        except Exception as e:
+            print(f"连接设备失败 {address}: {e}")
+        return False
+    
+    def connect_mumu_emulator(self, port: int = 16384) -> bool:
+        """
+        连接到MuMu模拟器
+        
+        Args:
+            port: MuMu模拟器的ADB端口，默认16384
+            
+        Returns:
+            bool: 是否成功连接
+        """
+        try:
+            # 尝试使用ADB命令连接
+            result = subprocess.run(
+                ['adb', 'connect', f'127.0.0.1:{port}'],
+                capture_output=True,
+                timeout=10,
+                creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
+            )
+            if result.returncode == 0:
+                print(f"已连接到MuMu模拟器 (端口:{port})")
+                time.sleep(1)
+                return True
+        except Exception as e:
+            print(f"连接MuMu模拟器失败: {e}")
+        return False
+    
+    @staticmethod
+    def get_adb_download_info() -> dict:
+        """
+        获取ADB下载信息
+        
+        Returns:
+            dict: 包含下载链接和说明的字典
+        """
+        import platform
+        system = platform.system()
+        
+        info = {
+            "required": True,
+            "message": "需要安装ADB工具",
+            "downloads": {}
+        }
+        
+        if system == "Windows":
+            info["downloads"] = {
+                "platform_tools": {
+                    "name": "Android SDK Platform-Tools (Windows)",
+                    "url": "https://dl.google.com/android/repository/platform-tools-latest-windows.zip",
+                    "description": "官方ADB工具包，解压后将platform-tools目录添加到系统PATH"
+                },
+                "mumu": {
+                    "name": "使用MuMu模拟器自带的ADB",
+                    "path": "C:\\Program Files\\Netease\\MuMu Player 12\\shell\\adb.exe",
+                    "description": "如果已安装MuMu模拟器，可以使用其自带的ADB工具"
+                }
+            }
+        elif system == "Darwin":  # macOS
+            info["downloads"] = {
+                "platform_tools": {
+                    "name": "Android SDK Platform-Tools (Mac)",
+                    "url": "https://dl.google.com/android/repository/platform-tools-latest-darwin.zip",
+                    "description": "官方ADB工具包"
+                },
+                "homebrew": {
+                    "name": "通过Homebrew安装",
+                    "command": "brew install android-platform-tools",
+                    "description": "推荐使用Homebrew安装"
+                }
+            }
+        else:  # Linux
+            info["downloads"] = {
+                "platform_tools": {
+                    "name": "Android SDK Platform-Tools (Linux)",
+                    "url": "https://dl.google.com/android/repository/platform-tools-latest-linux.zip",
+                    "description": "官方ADB工具包"
+                },
+                "apt": {
+                    "name": "通过APT安装",
+                    "command": "sudo apt-get install adb",
+                    "description": "Debian/Ubuntu系统推荐"
+                }
+            }
+        
+        return info
 

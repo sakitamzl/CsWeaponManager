@@ -10,11 +10,96 @@ import traceback
 adbToolsPage = Blueprint('adbToolsPage', __name__)
 
 
+@adbToolsPage.route('/api/adb/scan', methods=['POST'])
+def scan_lan_devices():
+    """扫描局域网内的ADB设备"""
+    try:
+        from src.Unites.auto_process.ADB import ADBManager
+        
+        data = request.get_json() or {}
+        timeout = data.get('timeout', 0.5)
+        max_workers = data.get('max_workers', 50)
+        
+        Log().write_log(f"开始扫描局域网ADB设备，超时: {timeout}s", 'info')
+        
+        # 扫描设备
+        discovered = ADBManager.scan_lan_devices(timeout=timeout, max_workers=max_workers)
+        
+        if discovered:
+            Log().write_log(f"扫描完成，发现 {len(discovered)} 个设备: {discovered}", 'info')
+            return jsonify({
+                'success': True,
+                'data': discovered,
+                'message': f'发现 {len(discovered)} 个设备'
+            }), 200
+        else:
+            return jsonify({
+                'success': True,
+                'data': [],
+                'message': '未发现任何设备'
+            }), 200
+            
+    except Exception as e:
+        Log().write_log(f"扫描局域网设备失败: {str(e)}", 'error')
+        Log().write_log(traceback.format_exc(), 'error')
+        return jsonify({
+            'success': False,
+            'message': f'扫描失败: {str(e)}'
+        }), 500
+
+
+@adbToolsPage.route('/api/adb/connect', methods=['POST'])
+def connect_device():
+    """连接到指定地址的设备"""
+    try:
+        from src.Unites.auto_process.ADB import ADBManager
+        
+        data = request.get_json()
+        address = data.get('address')
+        
+        if not address:
+            return jsonify({
+                'success': False,
+                'message': '设备地址不能为空'
+            }), 400
+        
+        adb = ADBManager()
+        
+        if not adb.connect():
+            return jsonify({
+                'success': False,
+                'message': 'ADB服务器连接失败'
+            }), 500
+        
+        # 连接设备
+        if adb.connect_device(address):
+            Log().write_log(f"成功连接到设备: {address}", 'info')
+            return jsonify({
+                'success': True,
+                'message': f'已连接到设备: {address}'
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'message': f'连接设备失败: {address}'
+            }), 500
+            
+    except Exception as e:
+        Log().write_log(f"连接设备失败: {str(e)}", 'error')
+        return jsonify({
+            'success': False,
+            'message': f'连接失败: {str(e)}'
+        }), 500
+
+
 @adbToolsPage.route('/api/adb/devices', methods=['GET'])
 def get_adb_devices():
     """获取所有已连接的ADB设备"""
     try:
         from src.Unites.auto_process.ADB import ADBManager
+        
+        # 获取查询参数
+        auto_scan = request.args.get('auto_scan', 'false').lower() == 'true'
         
         adb = ADBManager()
         
@@ -25,8 +110,8 @@ def get_adb_devices():
                 'message': 'ADB服务器连接失败，请确保ADB服务器正在运行'
             }), 500
         
-        # 获取设备列表
-        devices = adb.get_devices()
+        # 获取设备列表（可选自动扫描）
+        devices = adb.get_devices(auto_scan=auto_scan)
         
         if not devices:
             return jsonify({
@@ -41,7 +126,8 @@ def get_adb_devices():
             try:
                 adb.device = device
                 device_info = adb.get_device_info()
-                device_info['serial'] = device.serial
+                # 确保包含完整的设备信息
+                device_info['serial'] = device.serial  # 网络地址，如 192.168.1.100:5555
                 device_info['is_root'] = adb.is_root()
                 device_list.append(device_info)
             except Exception as e:

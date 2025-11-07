@@ -227,6 +227,7 @@ YST/MxU4rvsps28Vt8SCSPLYx8jlF9WbZOik4wlYN33qXlVMjTdvmYjAb7Ws4P3YkrYcLMFS5UJL
         
         try:
             cert_filename = f"{self.cert_hash}.0"
+            cert_path = f"/system/etc/security/cacerts/{cert_filename}"
             
             # 1. 挂载系统分区为可写
             print("重新挂载系统分区为可写...")
@@ -235,30 +236,58 @@ YST/MxU4rvsps28Vt8SCSPLYx8jlF9WbZOik4wlYN33qXlVMjTdvmYjAb7Ws4P3YkrYcLMFS5UJL
                 print(f"挂载失败: {result}")
                 return False
             
-            # 2. 删除证书文件
+            # 2. 检查文件是否存在
+            success, result = self.adb.execute_shell(f"su -c 'ls -la {cert_path}'")
+            print(f"删除前文件状态: {result}")
+            
+            # 3. 删除证书文件（使用 -f 参数强制删除）
             print("删除证书文件...")
             success, result = self.adb.execute_shell(
-                f"su -c 'rm /system/etc/security/cacerts/{cert_filename}'"
+                f"su -c 'rm -f {cert_path}'"
             )
-            if not success:
-                print(f"删除证书失败: {result}")
-                return False
+            print(f"删除命令执行结果: success={success}, output={result}")
             
-            # 3. 重新挂载系统分区为只读
+            # 4. 再次检查文件是否还存在
+            success, result = self.adb.execute_shell(f"su -c 'ls -la {cert_path}'")
+            print(f"删除后文件状态: {result}")
+            
+            # 如果文件仍然存在，说明删除失败
+            if "No such file" not in result and cert_filename in result:
+                print(f"警告: 文件仍然存在，尝试其他删除方式")
+                # 尝试使用 busybox rm
+                self.adb.execute_shell(f"su -c 'busybox rm -f {cert_path}'")
+                # 或者直接清空文件
+                self.adb.execute_shell(f"su -c 'echo \"\" > {cert_path}'")
+                self.adb.execute_shell(f"su -c 'rm -f {cert_path}'")
+            
+            # 5. 重新挂载系统分区为只读
             print("重新挂载系统分区为只读...")
             self.adb.execute_shell("su -c 'mount -o remount,ro /system'")
             
-            # 4. 验证卸载
+            # 6. 等待一下确保操作生效
+            import time
+            time.sleep(1)
+            
+            # 7. 验证卸载
             if not self.check_cert_installed():
                 print("✓ Charles证书卸载成功!")
                 return True
             else:
                 print("✗ 证书卸载验证失败")
+                print(f"提示: 某些设备可能需要重启才能完全删除证书")
                 return False
                 
         except Exception as e:
             print(f"卸载证书时发生错误: {e}")
+            import traceback
+            traceback.print_exc()
             return False
+        finally:
+            # 确保系统分区恢复为只读
+            try:
+                self.adb.execute_shell("su -c 'mount -o remount,ro /system'")
+            except:
+                pass
     
     def get_cert_info(self) -> dict:
         """

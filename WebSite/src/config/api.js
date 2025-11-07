@@ -108,6 +108,8 @@ export const API_CONFIG = {
     GET_APP_TOKEN_HELP: '/getAppTokenV1/help',  // 获取帮助信息
     
     // ADB工具相关
+    ADB_SCAN: '/adbToolsV1/api/adb/scan',  // 扫描局域网设备
+    ADB_CONNECT: '/adbToolsV1/api/adb/connect',  // 连接设备
     ADB_DEVICES: '/adbToolsV1/api/adb/devices',  // 获取ADB设备列表
     ADB_DEVICE_INFO: (serial) => `/adbToolsV1/api/adb/device/${serial}/info`,  // 获取设备信息
     ADB_CERT_STATUS: '/adbToolsV1/api/adb/cert/status',  // 检查证书状态
@@ -232,6 +234,8 @@ export const apiUrls = {
   getAppTokenHelp: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.GET_APP_TOKEN_HELP),
   
   // ADB工具API
+  adbScan: () => getApiUrl(API_CONFIG.ENDPOINTS.ADB_SCAN),
+  adbConnect: () => getApiUrl(API_CONFIG.ENDPOINTS.ADB_CONNECT),
   adbDevices: () => getApiUrl(API_CONFIG.ENDPOINTS.ADB_DEVICES),
   adbDeviceInfo: (serial) => getApiUrl(API_CONFIG.ENDPOINTS.ADB_DEVICE_INFO(serial)),
   adbCertStatus: () => getApiUrl(API_CONFIG.ENDPOINTS.ADB_CERT_STATUS),
