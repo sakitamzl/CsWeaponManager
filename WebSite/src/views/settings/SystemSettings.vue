@@ -3,11 +3,26 @@
     <div class="settings-container">
       <div class="settings-section">
         <h3>登录设置</h3>
-        <el-form :model="basicSettings" label-width="120px">
-          <el-form-item label="用户名">
-            <el-input v-model="basicSettings.username" style="width: 300px;" />
+        <el-form :model="basicSettings" label-width="150px">
+          <el-form-item label="启用登录验证">
+            <el-switch 
+              v-model="basicSettings.enableLogin" 
+              active-text="开启"
+              inactive-text="关闭"
+              @change="handleLoginToggle"
+            />
+            <div class="form-tip">开启后需要用户名和密码才能访问系统</div>
           </el-form-item>
-          <el-form-item label="密码">
+          
+          <el-form-item label="用户名" v-if="basicSettings.enableLogin">
+            <el-input 
+              v-model="basicSettings.username" 
+              style="width: 300px;" 
+              placeholder="请输入用户名"
+            />
+          </el-form-item>
+          
+          <el-form-item label="密码" v-if="basicSettings.enableLogin">
             <el-input 
               v-model="basicSettings.password" 
               type="password" 
@@ -15,6 +30,16 @@
               style="width: 300px;" 
               placeholder="请输入密码"
             />
+          </el-form-item>
+          
+          <el-form-item label="允许外网访问">
+            <el-switch 
+              v-model="basicSettings.allowExternalAccess" 
+              active-text="开启"
+              inactive-text="关闭"
+              @change="handleExternalAccessToggle"
+            />
+            <div class="form-tip">开启后可以从外网访问系统（需要配置防火墙和端口转发）</div>
           </el-form-item>
         </el-form>
       </div>
@@ -36,8 +61,10 @@ export default {
   name: 'SystemSettings',
   setup() {
     const basicSettings = ref({
+      enableLogin: false,
       username: '',
-      password: ''
+      password: '',
+      allowExternalAccess: false
     })
 
     const loadSettings = async () => {
@@ -48,12 +75,42 @@ export default {
         
         // 临时模拟数据
         basicSettings.value = {
+          enableLogin: false,
           username: '',
-          password: ''
+          password: '',
+          allowExternalAccess: false
         }
       } catch (error) {
         console.error('加载设置失败:', error)
         ElMessage.error('加载设置失败')
+      }
+    }
+
+    const handleLoginToggle = (value) => {
+      if (value) {
+        ElMessage.info('已开启登录验证，请设置用户名和密码')
+      } else {
+        ElMessage.warning('已关闭登录验证，系统将无需登录即可访问')
+      }
+    }
+
+    const handleExternalAccessToggle = (value) => {
+      if (value) {
+        ElMessageBox.confirm(
+          '开启外网访问可能存在安全风险，建议同时开启登录验证。确定要开启吗？',
+          '安全提示',
+          {
+            confirmButtonText: '确定开启',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        ).then(() => {
+          ElMessage.success('已开启外网访问')
+        }).catch(() => {
+          basicSettings.value.allowExternalAccess = false
+        })
+      } else {
+        ElMessage.info('已关闭外网访问，仅允许局域网访问')
       }
     }
 
@@ -92,7 +149,9 @@ export default {
     return {
       basicSettings,
       saveSettings,
-      resetForm
+      resetForm,
+      handleLoginToggle,
+      handleExternalAccessToggle
     }
   }
 }
@@ -146,6 +205,22 @@ export default {
 
 :deep(.el-form-item) {
   margin-bottom: clamp(1rem, 2.5vw, 1.125rem);
+}
+
+.form-tip {
+  margin-top: 0.5rem;
+  font-size: clamp(0.625rem, 1vw, 0.75rem);
+  color: #999;
+  line-height: 1.5;
+}
+
+:deep(.el-switch__label) {
+  color: #ccc;
+  font-size: clamp(0.75rem, 1.2vw, 0.875rem);
+}
+
+:deep(.el-switch__label.is-active) {
+  color: #4CAF50;
 }
 
 @media (max-width: 768px) {
