@@ -3,8 +3,8 @@ export const API_CONFIG = {
   // API 基础地址
   BASE_URL: '/api',
   
-  // 爬虫服务器地址
-  SPIDER_BASE_URL: 'http://127.0.0.1:9002',
+  // 爬虫服务器地址（使用相对路径，通过代理访问）
+  SPIDER_BASE_URL: '/spider',
   
   // API 端点
   ENDPOINTS: {

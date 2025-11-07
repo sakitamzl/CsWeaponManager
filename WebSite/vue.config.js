@@ -19,6 +19,7 @@ module.exports = defineConfig({
       verbose: true
     },
     proxy: {
+      // 后端API服务器（9001端口） - 统一使用 /api 前缀
       '/api': {
         target: 'http://127.0.0.1:9001',
         changeOrigin: true,
@@ -26,6 +27,7 @@ module.exports = defineConfig({
           '^/api': ''
         }
       },
+      // Spider API服务器（9002端口） - 统一使用 /spider 前缀
       '/spider': {
         target: 'http://127.0.0.1:9002',
         changeOrigin: true,
