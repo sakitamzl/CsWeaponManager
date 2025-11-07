@@ -73,108 +73,13 @@
         </div>
         
         <div class="tool-section-content" v-show="!isToolSectionCollapsed">
-        <div class="search-section">
-          <h2 class="section-title">搜索饰品</h2>
-        
-        <div class="search-container">
-          <el-input
-            v-model="weaponSearchKeyword"
-            placeholder="搜索饰品名称..."
-            prefix-icon="Search"
-            class="weapon-search-input"
-            @keyup.enter="handleSearchWeapon"
-            clearable
-          >
-            <template #append>
-              <el-button 
-                type="primary" 
-                @click="handleSearchWeapon" 
-                :loading="isSearchingWeapon"
-              >
-                搜索
-              </el-button>
-            </template>
-          </el-input>
-        </div>
-
-        <!-- 搜索结果表格 -->
-        <div v-if="weaponSearchResults.length > 0" class="search-results-table">
-          <div class="results-header">
-            <span class="results-title">
-              搜索结果 ({{ weaponSearchResults.length }} 件)
-            </span>
-            <el-button 
-              type="text" 
-              size="small"
-              @click="clearWeaponSearch"
-            >
-              清除结果
-            </el-button>
-          </div>
-          
-          <el-table 
-            :data="weaponSearchResults" 
-            style="width: 100%"
-            max-height="400"
-            :row-class-name="getRowClassName"
-          >
-            <el-table-column type="index" label="#" width="60" align="center" />
-            
-            <el-table-column label="饰品名称" min-width="250" show-overflow-tooltip>
-              <template #default="{ row }">
-                <span class="weapon-name">{{ row.market_listing_item_name }}</span>
-              </template>
-            </el-table-column>
-            
-            <el-table-column label="Steam Hash Name" min-width="200" show-overflow-tooltip>
-              <template #default="{ row }">
-                <span class="hash-name-text">{{ row.steam_hash_name || '-' }}</span>
-              </template>
-            </el-table-column>
-            
-            <el-table-column label="武器类型" width="120" align="center">
-              <template #default="{ row }">
-                <el-tag size="small" type="info">{{ row.weapon_type || '-' }}</el-tag>
-              </template>
-            </el-table-column>
-            
-            <el-table-column label="悠悠有品ID" width="130" align="center">
-              <template #default="{ row }">
-                <el-tag type="warning" v-if="row.yyyp_id">{{ row.yyyp_id }}</el-tag>
-                <span v-else class="no-data">-</span>
-              </template>
-            </el-table-column>
-            
-            <el-table-column label="BUFF ID" width="110" align="center">
-              <template #default="{ row }">
-                <el-tag type="info" v-if="row.buff_id">{{ row.buff_id }}</el-tag>
-                <span v-else class="no-data">-</span>
-              </template>
-            </el-table-column>
-            
-            <el-table-column label="操作" width="120" align="center" fixed="right">
-              <template #default="{ row }">
-                <el-button 
-                  type="primary" 
-                  size="small"
-                  @click="addWeaponId(row)"
-                  :disabled="!getWeaponIdByPlatform(row)"
-                >
-                  添加ID
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </div>
-        </div>
-
         <div class="tool-section">
         <h2 class="section-title">爬取配置</h2>
         
         <div class="form-container">
           <el-form :model="crawlForm" label-width="120px" ref="crawlFormRef">
             <div class="form-row">
-              <el-form-item label="配置名称" required class="form-item-third">
+              <el-form-item label="配置名称" required class="form-item-quarter">
                 <el-input 
                   v-model="crawlForm.configName" 
                   placeholder="请输入配置名称"
@@ -182,15 +87,28 @@
                 />
               </el-form-item>
 
-              <el-form-item label="Steam ID" required class="form-item-third">
+              <el-form-item label="平台类型" required class="form-item-quarter">
                 <el-select 
-                  v-model="crawlForm.steamId" 
-                  placeholder="选择 Steam ID"
+                  v-model="crawlForm.platformType" 
+                  placeholder="选择平台类型"
+                  style="width: 100%;"
+                  :disabled="!!selectedConfigId"
+                  @change="handlePlatformTypeChange"
+                >
+                  <el-option label="悠悠有品" value="youpin" />
+                  <el-option label="BUFF" value="buff" />
+                </el-select>
+              </el-form-item>
+
+              <el-form-item label="爬取账号" required class="form-item-quarter">
+                <el-select 
+                  v-model="crawlForm.crawlAccountId" 
+                  placeholder="选择爬取账号"
                   style="width: 100%;"
                   filterable
                 >
                   <el-option 
-                    v-for="item in steamIdList" 
+                    v-for="item in filteredSteamIdList" 
                     :key="item.steamID || item.steam_id" 
                     :label="`${item.dataName || '未命名'} (${item.steamID || item.steam_id || '无ID'})`" 
                     :value="item.steamID || item.steam_id"
@@ -198,15 +116,19 @@
                 </el-select>
               </el-form-item>
 
-              <el-form-item label="平台类型" required class="form-item-third">
+              <el-form-item label="购买账号" required class="form-item-quarter">
                 <el-select 
-                  v-model="crawlForm.platformType" 
-                  placeholder="选择平台类型"
+                  v-model="crawlForm.steamId" 
+                  placeholder="选择购买账号"
                   style="width: 100%;"
-                  :disabled="!!selectedConfigId"
+                  filterable
                 >
-                  <el-option label="悠悠有品" value="youpin" />
-                  <el-option label="BUFF" value="buff" />
+                  <el-option 
+                    v-for="item in filteredSteamIdList" 
+                    :key="item.steamID || item.steam_id" 
+                    :label="`${item.dataName || '未命名'} (${item.steamID || item.steam_id || '无ID'})`" 
+                    :value="item.steamID || item.steam_id"
+                  />
                 </el-select>
               </el-form-item>
             </div>
@@ -285,6 +207,261 @@
           </el-button>
         </div>
         </div>
+
+        <!-- 搜索饰品部分 -->
+        <div class="search-section">
+          <h2 class="section-title">搜索饰品</h2>
+        
+        <div class="search-container">
+          <div class="search-filters">
+            <el-select 
+              v-model="weaponSearchFilters.weaponType" 
+              placeholder="选择武器类型"
+              clearable
+              style="width: 200px;"
+              @change="handleWeaponTypeChange"
+            >
+              <el-option label="全部武器" value="" />
+              <el-option label="手枪" value="手枪" />
+              <el-option label="步枪" value="步枪" />
+              <el-option label="狙击步枪" value="狙击步枪" />
+              <el-option label="冲锋枪" value="冲锋枪" />
+              <el-option label="霰弹枪" value="霰弹枪" />
+              <el-option label="机枪" value="机枪" />
+              <el-option label="挂件" value="挂件" />
+              <el-option label="挂件（纪念品）" value="挂件（纪念品）" />
+              <el-option label="匕首" value="匕首" />
+              <el-option label="手套" value="手套" />
+              <el-option label="探员" value="探员" />
+              <el-option label="印花" value="印花" />
+              <el-option label="涂鸦" value="涂鸦" />
+              <el-option label="音乐盒" value="音乐盒" />
+              <el-option label="收藏品" value="收藏品" />
+              <el-option label="容器" value="容器" />
+            </el-select>
+            
+            <el-select 
+              v-model="weaponSearchFilters.weaponName" 
+              placeholder="选择武器名称"
+              clearable
+              filterable
+              style="width: 200px;"
+              :loading="isLoadingWeaponNames"
+              @focus="loadWeaponNamesIfNeeded"
+            >
+              <el-option label="全部" value="" />
+              <el-option 
+                v-for="name in weaponNameList" 
+                :key="name" 
+                :label="name" 
+                :value="name"
+              />
+            </el-select>
+            
+            <el-select 
+              v-model="weaponSearchFilters.rarity" 
+              placeholder="选择稀有度"
+              clearable
+              style="width: 200px;"
+            >
+              <el-option label="全部稀有度" value="" />
+              <el-option label="违禁" value="违禁">
+                <span :style="{ color: getRarityColor('违禁'), fontWeight: 600 }">违禁</span>
+              </el-option>
+              <el-option label="隐秘" value="隐秘">
+                <span :style="{ color: getRarityColor('隐秘'), fontWeight: 600 }">隐秘</span>
+              </el-option>
+              <el-option label="保密" value="保密">
+                <span :style="{ color: getRarityColor('保密'), fontWeight: 600 }">保密</span>
+              </el-option>
+              <el-option label="受限" value="受限">
+                <span :style="{ color: getRarityColor('受限'), fontWeight: 600 }">受限</span>
+              </el-option>
+              <el-option label="军规级" value="军规级">
+                <span :style="{ color: getRarityColor('军规级'), fontWeight: 600 }">军规级</span>
+              </el-option>
+              <el-option label="工业级" value="工业级">
+                <span :style="{ color: getRarityColor('工业级'), fontWeight: 600 }">工业级</span>
+              </el-option>
+              <el-option label="消费级" value="消费级">
+                <span :style="{ color: getRarityColor('消费级'), fontWeight: 600 }">消费级</span>
+              </el-option>
+              <el-option label="普通级" value="普通级">
+                <span :style="{ color: getRarityColor('普通级'), fontWeight: 600 }">普通级</span>
+              </el-option>
+            </el-select>
+            
+            <el-input 
+              v-model.number="weaponSearchFilters.priceMin" 
+              placeholder="最低价格"
+              type="number"
+              clearable
+              style="width: 150px;"
+              class="no-spinner"
+            />
+            
+            <el-input 
+              v-model.number="weaponSearchFilters.priceMax" 
+              placeholder="最高价格"
+              type="number"
+              clearable
+              style="width: 150px;"
+              class="no-spinner"
+            />
+            
+            <el-input 
+              v-model.number="weaponSearchFilters.minOnSaleCount" 
+              placeholder="最小在售数量"
+              type="number"
+              clearable
+              style="width: 150px;"
+              class="no-spinner"
+            />
+          </div>
+          
+          <el-input
+            v-model="weaponSearchKeyword"
+            placeholder="搜索饰品名称..."
+            prefix-icon="Search"
+            class="weapon-search-input"
+            @keyup.enter="handleSearchWeapon"
+            clearable
+          >
+            <template #append>
+              <el-button 
+                type="primary" 
+                @click="handleSearchWeapon" 
+                :loading="isSearchingWeapon"
+              >
+                搜索
+              </el-button>
+            </template>
+          </el-input>
+        </div>
+
+        <!-- 搜索结果表格 -->
+        <div v-if="weaponSearchResults.length > 0" class="search-results-table">
+          <div class="results-header" @click="toggleSearchResults">
+            <span class="results-title">
+              搜索结果 ({{ weaponSearchResults.length }} 件)
+            </span>
+            <div class="results-actions" @click.stop>
+              <el-button 
+                type="success" 
+                size="small"
+                @click="addAllWeaponIds"
+                :disabled="weaponSearchResults.length === 0"
+              >
+                <el-icon><Document /></el-icon>
+                一键添加全部
+              </el-button>
+              <el-button 
+                type="text" 
+                size="small"
+                @click="clearWeaponSearch"
+              >
+                清除结果
+              </el-button>
+              <el-button 
+                type="text" 
+                class="collapse-indicator"
+              >
+                <el-icon :size="16">
+                  <ArrowUp v-if="!isSearchResultsCollapsed" />
+                  <ArrowDown v-else />
+                </el-icon>
+              </el-button>
+            </div>
+          </div>
+          
+          <div v-show="!isSearchResultsCollapsed">
+          <el-table 
+            :data="weaponSearchResults" 
+            style="width: 100%"
+            :row-class-name="getRowClassName"
+          >
+            <el-table-column type="index" label="#" width="60" align="center" />
+            
+            <el-table-column label="饰品名称" min-width="250" show-overflow-tooltip>
+              <template #default="{ row }">
+                <span class="weapon-name">{{ row.market_listing_item_name }}</span>
+              </template>
+            </el-table-column>
+            
+            <el-table-column label="武器类型" width="120" align="center">
+              <template #default="{ row }">
+                <el-tag size="small" type="info">{{ row.weapon_type || '-' }}</el-tag>
+              </template>
+            </el-table-column>
+            
+            <el-table-column label="稀有度" width="100" align="center">
+              <template #default="{ row }">
+                <span 
+                  v-if="row.rarity"
+                  class="rarity-tag"
+                  :style="{ color: getRarityColor(row.rarity), fontWeight: 600 }"
+                >
+                  {{ row.rarity }}
+                </span>
+                <span v-else class="no-data">-</span>
+              </template>
+            </el-table-column>
+            
+            <el-table-column label="价格" width="100" align="center">
+              <template #default="{ row }">
+                <span class="price-text" v-if="crawlForm.platformType === 'youpin' && row.yyyp_Price">
+                  ¥{{ row.yyyp_Price }}
+                </span>
+                <span class="price-text" v-else-if="crawlForm.platformType === 'buff' && row.buff_Price">
+                  ¥{{ row.buff_Price }}
+                </span>
+                <span v-else class="no-data">-</span>
+              </template>
+            </el-table-column>
+            
+            <el-table-column label="在售数量" width="100" align="center">
+              <template #default="{ row }">
+                <span class="count-text" v-if="crawlForm.platformType === 'youpin' && row.yyyp_OnSaleCount">
+                  {{ row.yyyp_OnSaleCount }}
+                </span>
+                <span class="count-text" v-else-if="crawlForm.platformType === 'buff' && row.buff_OnSaleCount">
+                  {{ row.buff_OnSaleCount }}
+                </span>
+                <span v-else class="no-data">-</span>
+              </template>
+            </el-table-column>
+            
+            <el-table-column v-if="crawlForm.platformType === 'youpin'" label="悠悠有品ID" width="130" align="center">
+              <template #default="{ row }">
+                <el-tag type="warning" v-if="row.yyyp_id">{{ row.yyyp_id }}</el-tag>
+                <span v-else class="no-data">-</span>
+              </template>
+            </el-table-column>
+            
+            <el-table-column v-if="crawlForm.platformType === 'buff'" label="BUFF ID" width="110" align="center">
+              <template #default="{ row }">
+                <el-tag type="info" v-if="row.buff_id">{{ row.buff_id }}</el-tag>
+                <span v-else class="no-data">-</span>
+              </template>
+            </el-table-column>
+            
+            <el-table-column label="操作" width="120" align="center" fixed="right">
+              <template #default="{ row }">
+                <el-button 
+                  type="primary" 
+                  size="small"
+                  @click="addWeaponId(row)"
+                  :disabled="!getWeaponIdByPlatform(row)"
+                >
+                  添加ID
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+          </div>
+        </div>
+        </div>
+
         </div>
         <!-- 结束 tool-section-content -->
       </div>
@@ -400,6 +577,21 @@ export default {
     const weaponSearchKeyword = ref('')
     const weaponSearchResults = ref([])
     const isSearchingWeapon = ref(false)
+    const weaponSearchFilters = ref({
+      weaponType: '',
+      weaponName: '',
+      rarity: '',
+      priceMin: null,
+      priceMax: null,
+      minOnSaleCount: null
+    })
+    const weaponNameList = ref([])
+    const isLoadingWeaponNames = ref(false)
+    const isSearchResultsCollapsed = ref(false)
+    const currentPage = ref(1)
+    const pageSize = ref(50)
+    const hasMore = ref(true)
+    const isLoadingMore = ref(false)
     
     // 购买相关
     const buyingItems = ref({})
@@ -414,7 +606,8 @@ export default {
 
     const crawlForm = ref({
       configName: '',      // 对应 dataName
-      steamId: '',
+      steamId: '',         // 购买账号
+      crawlAccountId: '',  // 爬取账号
       platformType: 'youpin',  // 平台类型：youpin 或 buff
       weaponId: [],        // 改为数组，存储 {id, name} 对象
       customConfig: ''     // 对应 value，JSON字符串
@@ -423,6 +616,32 @@ export default {
     // 计算属性：获取饰品列表
     const weaponIdList = computed(() => {
       return crawlForm.value.weaponId || []
+    })
+
+    // 根据平台类型过滤Steam ID列表
+    const filteredSteamIdList = computed(() => {
+      console.log('原始Steam ID列表:', steamIdList.value)
+      console.log('当前平台类型:', crawlForm.value.platformType)
+      
+      if (!crawlForm.value.platformType) {
+        return steamIdList.value
+      }
+      
+      // 根据平台类型过滤
+      const filtered = steamIdList.value.filter(item => {
+        console.log(`检查账号: ${item.dataName}, key1=${item.key1}, 平台=${crawlForm.value.platformType}`)
+        return item.key1 === crawlForm.value.platformType
+      })
+      
+      console.log(`过滤后的Steam ID列表 (${crawlForm.value.platformType}):`, filtered)
+      
+      // 如果过滤后为空，返回所有账号
+      if (filtered.length === 0) {
+        console.warn(`没有找到 key1='${crawlForm.value.platformType}' 的账号，显示所有账号`)
+        return steamIdList.value
+      }
+      
+      return filtered
     })
 
     // 计算是否可以开始爬取
@@ -442,11 +661,8 @@ export default {
         if (response.data.success && response.data.data.length > 0) {
           steamIdList.value = response.data.data
           console.log('已加载 Steam ID 列表:', steamIdList.value)
-          // 默认选择第一个
-          if (!crawlForm.value.steamId && steamIdList.value.length > 0) {
-            const firstItem = steamIdList.value[0]
-            crawlForm.value.steamId = firstItem.steamID || firstItem.steam_id || ''
-          }
+          // 默认选择第一个符合平台类型的
+          updateDefaultSteamId()
         }
       } catch (error) {
         console.error('加载Steam ID列表失败:', error)
@@ -454,6 +670,32 @@ export default {
         // 暂时不显示错误提示，避免干扰用户
         // ElMessage.error('加载Steam ID列表失败')
       }
+    }
+    
+    // 更新默认Steam ID（根据当前平台类型）
+    const updateDefaultSteamId = () => {
+      if (filteredSteamIdList.value.length > 0) {
+        const firstItem = filteredSteamIdList.value[0]
+        const steamId = firstItem.steamID || firstItem.steam_id || ''
+        
+        // 设置爬取账号和购买账号为同一个账号
+        crawlForm.value.crawlAccountId = steamId
+        crawlForm.value.steamId = steamId
+        
+        console.log(`已设置默认账号: ${steamId}`)
+        console.log(`  - 爬取账号: ${crawlForm.value.crawlAccountId}`)
+        console.log(`  - 购买账号: ${crawlForm.value.steamId}`)
+      } else {
+        crawlForm.value.crawlAccountId = ''
+        crawlForm.value.steamId = ''
+        console.warn(`没有找到平台类型为 ${crawlForm.value.platformType} 的Steam ID`)
+      }
+    }
+    
+    // 平台类型改变处理
+    const handlePlatformTypeChange = () => {
+      // 切换平台类型时，自动更新Steam ID为该平台的第一个
+      updateDefaultSteamId()
     }
 
     // 验证JSON配置
@@ -485,8 +727,13 @@ export default {
         return
       }
       
+      if (!crawlForm.value.crawlAccountId) {
+        ElMessage.warning('请选择爬取账号')
+        return
+      }
+      
       if (!crawlForm.value.steamId) {
-        ElMessage.warning('请选择 Steam ID')
+        ElMessage.warning('请选择购买账号')
         return
       }
       
@@ -507,7 +754,8 @@ export default {
         const weaponNames = crawlForm.value.weaponId.map(w => w.name).join('、')
         let confirmMessage = `确定要开始查询改名饰品吗？\n\n`
         confirmMessage += `配置名称: ${crawlForm.value.configName}\n`
-        confirmMessage += `Steam ID: ${crawlForm.value.steamId}\n`
+        confirmMessage += `爬取账号: ${crawlForm.value.crawlAccountId}\n`
+        confirmMessage += `购买账号: ${crawlForm.value.steamId}\n`
         confirmMessage += `平台类型: ${crawlForm.value.platformType === 'buff' ? 'BUFF' : '悠悠有品'}\n`
         confirmMessage += `监控饰品: ${weaponNames}\n`
         confirmMessage += `饰品数量: ${crawlForm.value.weaponId.length} 个`
@@ -543,18 +791,20 @@ export default {
         // 构建爬虫配置
         const spiderConfig = {
           weapon_id: crawlForm.value.weaponId,  // [{"id": "61490", "name": "..."}]
-          steam_id: crawlForm.value.steamId,
+          steam_id: crawlForm.value.crawlAccountId,  // ✅ 使用爬取账号
           最大差价: 5,
           饰品自动查询间隔: 3,
           ...jsonValidation.config  // 合并自定义配置
         }
         
         const requestData = {
-          steamId: crawlForm.value.steamId,
+          steamId: crawlForm.value.crawlAccountId,  // ✅ 使用爬取账号
           spider_config: spiderConfig
         }
         
-        console.log('发送流式请求到后端:', requestData)
+        console.log('发送流式请求到后端 (使用爬取账号):', requestData)
+        console.log('  - 爬取账号:', crawlForm.value.crawlAccountId)
+        console.log('  - 购买账号:', crawlForm.value.steamId)
 
         // 使用 fetch 进行流式请求
         const response = await fetch(
@@ -1016,30 +1266,160 @@ export default {
       })
     }
 
-    // 搜索饰品
-    const handleSearchWeapon = async () => {
-      if (!weaponSearchKeyword.value.trim()) {
-        ElMessage.warning('请输入搜索关键词')
-        return
-      }
-
-      isSearchingWeapon.value = true
+    // 切换搜索结果折叠
+    const toggleSearchResults = () => {
+      isSearchResultsCollapsed.value = !isSearchResultsCollapsed.value
+    }
+    
+    // 武器类型改变时的处理
+    const handleWeaponTypeChange = async (value) => {
+      // 清空武器名称选择
+      weaponSearchFilters.value.weaponName = ''
+      // 清空武器名称列表
+      weaponNameList.value = []
+      // 加载对应类型的武器名称
+      await loadWeaponNames(value)
+    }
+    
+    // 加载武器名称列表
+    const loadWeaponNames = async (weaponType) => {
+      isLoadingWeaponNames.value = true
       
       try {
-        const response = await axios.get(`${API_CONFIG.BASE_URL}/webSelectWeaponV1/searchWeaponDetail`, {
-          params: {
-            keyword: weaponSearchKeyword.value.trim()
-          }
+        const params = {}
+        
+        // 如果指定了武器类型，添加到参数中；否则获取全部
+        if (weaponType) {
+          params.weaponType = weaponType
+        }
+        
+        const response = await axios.get(`${API_CONFIG.BASE_URL}/webSelectWeaponV1/getWeaponNames`, {
+          params: params
         })
         
         if (response.data.success) {
-          weaponSearchResults.value = response.data.data || []
+          weaponNameList.value = response.data.data || []
+          console.log(`✅ 加载武器名称列表: ${weaponNameList.value.length} 个`, weaponType ? `(类型: ${weaponType})` : '(全部)')
+        } else {
+          ElMessage.error('获取武器名称失败')
+        }
+      } catch (error) {
+        console.error('获取武器名称失败:', error)
+        ElMessage.error('获取武器名称失败')
+      } finally {
+        isLoadingWeaponNames.value = false
+      }
+    }
+    
+    // 武器名称下拉框聚焦时，如果列表为空且没有选择武器类型，加载全部武器名称
+    const loadWeaponNamesIfNeeded = async () => {
+      // 如果已经有数据，不重复加载
+      if (weaponNameList.value.length > 0) {
+        return
+      }
+      
+      // 如果没有选择武器类型，加载全部武器名称
+      if (!weaponSearchFilters.value.weaponType) {
+        await loadWeaponNames(null)
+      }
+    }
+
+    // 搜索饰品（重置并开始新搜索）
+    const handleSearchWeapon = async () => {
+      // 验证价格区间
+      if (weaponSearchFilters.value.priceMin !== null && 
+          weaponSearchFilters.value.priceMax !== null &&
+          weaponSearchFilters.value.priceMin > weaponSearchFilters.value.priceMax) {
+        ElMessage.warning('最低价格不能大于最高价格')
+        return
+      }
+      
+      // 重置分页状态
+      currentPage.value = 1
+      weaponSearchResults.value = []
+      hasMore.value = true
+      
+      // 执行搜索
+      await loadWeaponData()
+    }
+
+    // 加载饰品数据
+    const loadWeaponData = async () => {
+      if (!hasMore.value && currentPage.value > 1) {
+        return
+      }
+      
+      const loading = currentPage.value === 1
+      if (loading) {
+        isSearchingWeapon.value = true
+      } else {
+        isLoadingMore.value = true
+      }
+      
+      try {
+        const params = {
+          page: currentPage.value,
+          limit: pageSize.value
+        }
+        
+        // 使用爬取配置中的平台类型
+        params.platformType = crawlForm.value.platformType
+        
+        // 添加关键词（如果有）
+        if (weaponSearchKeyword.value && weaponSearchKeyword.value.trim()) {
+          params.keyword = weaponSearchKeyword.value.trim()
+        }
+        
+        // 添加武器类型过滤（如果有）
+        if (weaponSearchFilters.value.weaponType) {
+          params.weaponType = weaponSearchFilters.value.weaponType
+        }
+        
+        // 添加武器名称过滤（如果有）
+        if (weaponSearchFilters.value.weaponName) {
+          params.weaponName = weaponSearchFilters.value.weaponName
+        }
+        
+        // 添加稀有度过滤（如果有）
+        if (weaponSearchFilters.value.rarity) {
+          params.rarity = weaponSearchFilters.value.rarity
+        }
+        
+        // 添加价格过滤
+        if (weaponSearchFilters.value.priceMin !== null && weaponSearchFilters.value.priceMin !== '') {
+          params.priceMin = weaponSearchFilters.value.priceMin
+        }
+        if (weaponSearchFilters.value.priceMax !== null && weaponSearchFilters.value.priceMax !== '') {
+          params.priceMax = weaponSearchFilters.value.priceMax
+        }
+        
+        // 添加最小在售数量过滤
+        if (weaponSearchFilters.value.minOnSaleCount !== null && weaponSearchFilters.value.minOnSaleCount !== '') {
+          params.minOnSaleCount = weaponSearchFilters.value.minOnSaleCount
+        }
+        
+        const response = await axios.get(`${API_CONFIG.BASE_URL}/webSelectWeaponV1/searchWeaponDetail`, {
+          params: params
+        })
+        
+        if (response.data.success) {
+          const newData = response.data.data || []
           
-          if (weaponSearchResults.value.length === 0) {
-            ElMessage.info('未找到匹配的饰品')
+          if (currentPage.value === 1) {
+            // 首次搜索，替换数据
+            weaponSearchResults.value = newData
+            if (newData.length === 0) {
+              ElMessage.info('未找到匹配的饰品')
+            } else {
+              ElMessage.success(`找到 ${newData.length} 件饰品`)
+            }
           } else {
-            ElMessage.success(`找到 ${weaponSearchResults.value.length} 件饰品`)
+            // 追加数据
+            weaponSearchResults.value.push(...newData)
           }
+          
+          // 判断是否还有更多数据
+          hasMore.value = newData.length >= pageSize.value
         } else {
           ElMessage.error(response.data.message || '搜索失败')
         }
@@ -1049,6 +1429,7 @@ export default {
         ElMessage.error(errorMessage)
       } finally {
         isSearchingWeapon.value = false
+        isLoadingMore.value = false
       }
     }
 
@@ -1056,6 +1437,67 @@ export default {
     const clearWeaponSearch = () => {
       weaponSearchResults.value = []
       weaponSearchKeyword.value = ''
+      weaponSearchFilters.value = {
+        weaponType: '',
+        weaponName: '',
+        rarity: '',
+        priceMin: null,
+        priceMax: null,
+        minOnSaleCount: null
+      }
+      weaponNameList.value = []
+      currentPage.value = 1
+      hasMore.value = true
+    }
+    
+    // 一键添加全部饰品ID
+    const addAllWeaponIds = () => {
+      if (!weaponSearchResults.value || weaponSearchResults.value.length === 0) {
+        ElMessage.warning('没有可添加的饰品')
+        return
+      }
+      
+      let addedCount = 0
+      weaponSearchResults.value.forEach(row => {
+        const id = getWeaponIdByPlatform(row)
+        const name = row.market_listing_item_name
+        
+        if (id && name) {
+          // 检查是否已存在
+          const exists = crawlForm.value.weaponId.some(w => w.id === id)
+          if (!exists) {
+            crawlForm.value.weaponId.push({ id, name })
+            addedCount++
+          }
+        }
+      })
+      
+      if (addedCount > 0) {
+        ElMessage.success(`成功添加 ${addedCount} 个饰品ID`)
+        
+        // 自动保存配置
+        if (selectedConfigId.value) {
+          autoSaveConfig()
+        }
+      } else {
+        ElMessage.info('所有饰品ID已存在')
+      }
+    }
+    
+    // 获取稀有度颜色
+    const getRarityColor = (rarity) => {
+      if (!rarity) return ''
+      const rarityColorMap = {
+        '违禁': '#e4ae39',      // 金色
+        '隐秘': '#eb4b4b',      // 红色
+        '保密': '#d32ce6',      // 紫色/粉色
+        '受限': '#8847ff',      // 紫色
+        '军规级': '#4b69ff',    // 蓝色
+        '工业级': '#5e98d9',    // 浅蓝色
+        '消费级': '#b0c3d9',    // 灰蓝色
+        '普通级': '#b0c3d9'     // 灰蓝色
+      }
+      return rarityColorMap[rarity] || '#fff'
     }
 
     // 根据平台类型获取对应的饰品ID
@@ -1133,7 +1575,7 @@ export default {
       
       try {
         const requestData = {
-          steamId: crawlForm.value.steamId,
+          steamId: crawlForm.value.steamId,  // ✅ 使用购买账号
           commodityId: item.id,
           buyQuantity: 1,
           price: item.price,
@@ -1141,7 +1583,9 @@ export default {
           pollPayment: true  // 轮询支付状态
         }
         
-        console.log('购买请求数据:', requestData)
+        console.log('购买请求数据 (使用购买账号):', requestData)
+        console.log('  - 购买账号:', crawlForm.value.steamId)
+        console.log('  - 爬取账号:', crawlForm.value.crawlAccountId)
         
         // 调用完整购买接口（创建订单+自动支付）
         const response = await axios.post(
@@ -1309,6 +1753,7 @@ export default {
     return {
       crawlFormRef,
       steamIdList,
+      filteredSteamIdList,
       isCrawling,
       crawlForm,
       crawlResult,
@@ -1317,6 +1762,7 @@ export default {
       resetForm,
       getModeLabel,
       getSourceLabel,
+      handlePlatformTypeChange,
       // 配置管理
       savedConfigs,
       selectedConfigId,
@@ -1331,8 +1777,23 @@ export default {
       weaponSearchKeyword,
       weaponSearchResults,
       isSearchingWeapon,
+      weaponSearchFilters,
+      weaponNameList,
+      isLoadingWeaponNames,
+      isSearchResultsCollapsed,
+      currentPage,
+      pageSize,
+      hasMore,
+      isLoadingMore,
       handleSearchWeapon,
+      handleWeaponTypeChange,
+      loadWeaponNames,
+      loadWeaponNamesIfNeeded,
+      loadWeaponData,
       clearWeaponSearch,
+      toggleSearchResults,
+      addAllWeaponIds,
+      getRarityColor,
       getWeaponIdByPlatform,
       addWeaponId,
       removeWeaponId,
@@ -1586,8 +2047,25 @@ export default {
   margin-bottom: 1.5rem;
 }
 
+.search-filters {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
 .weapon-search-input {
   width: 100%;
+}
+
+.no-spinner :deep(input[type="number"]::-webkit-outer-spin-button),
+.no-spinner :deep(input[type="number"]::-webkit-inner-spin-button) {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.no-spinner :deep(input[type="number"]) {
+  -moz-appearance: textfield;
 }
 
 .search-results-table {
@@ -1603,12 +2081,46 @@ export default {
   border-radius: 0.5rem 0.5rem 0 0;
   border: 1px solid #333;
   border-bottom: none;
+  cursor: pointer;
+}
+
+.results-header:hover {
+  background-color: rgba(255, 255, 255, 0.03);
 }
 
 .results-title {
   font-size: 1rem;
   font-weight: 600;
   color: #4CAF50;
+}
+
+.results-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.collapse-indicator {
+  padding: 0;
+  margin-left: 0.5rem;
+}
+
+.price-text {
+  color: #67C23A;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.count-text {
+  color: #409EFF;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.rarity-tag {
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
 }
 
 .weapon-name {
@@ -1666,6 +2178,11 @@ export default {
 }
 
 .form-item-third {
+  flex: 1;
+  margin-bottom: 18px;
+}
+
+.form-item-quarter {
   flex: 1;
   margin-bottom: 18px;
 }
@@ -2005,6 +2522,10 @@ export default {
   }
 
   .form-item-third {
+    width: 100%;
+  }
+
+  .form-item-quarter {
     width: 100%;
   }
 

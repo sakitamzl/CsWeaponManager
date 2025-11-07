@@ -247,9 +247,10 @@
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
+import { API_CONFIG } from '@/config/api'
 
 // 配置
-const API_BASE_URL = 'http://127.0.0.1:9001'
+const API_BASE_URL = API_CONFIG.BASE_URL
 const API_PREFIX = '/webSteamInventoryHistoryV1' // 使用变量统一管理API前缀
 
 // 数据

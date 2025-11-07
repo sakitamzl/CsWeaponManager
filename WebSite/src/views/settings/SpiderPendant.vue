@@ -77,7 +77,7 @@
         <div class="form-container">
           <el-form :model="crawlForm" label-width="120px" ref="crawlFormRef">
             <div class="form-row">
-              <el-form-item label="配置名称" required class="form-item-third">
+              <el-form-item label="配置名称" required class="form-item-quarter">
                 <el-input 
                   v-model="crawlForm.configName" 
                   placeholder="请输入配置名称"
@@ -85,23 +85,7 @@
                 />
               </el-form-item>
 
-              <el-form-item label="Steam ID" required class="form-item-third">
-                <el-select 
-                  v-model="crawlForm.steamId" 
-                  placeholder="选择 Steam ID"
-                  style="width: 100%;"
-                  filterable
-                >
-                  <el-option 
-                    v-for="item in steamIdList" 
-                    :key="item.steamID || item.steam_id" 
-                    :label="`${item.dataName || '未命名'} (${item.steamID || item.steam_id || '无ID'})`" 
-                    :value="item.steamID || item.steam_id"
-                  />
-                </el-select>
-              </el-form-item>
-
-              <el-form-item label="平台类型" required class="form-item-third">
+              <el-form-item label="平台类型" required class="form-item-quarter">
                 <el-select 
                   v-model="crawlForm.platformType" 
                   placeholder="选择平台类型"
@@ -111,6 +95,38 @@
                 >
                   <el-option label="悠悠有品" value="youpin" />
                   <el-option label="BUFF" value="buff" />
+                </el-select>
+              </el-form-item>
+
+              <el-form-item label="爬取账号" required class="form-item-quarter">
+                <el-select 
+                  v-model="crawlForm.crawlAccountId" 
+                  placeholder="选择爬取账号"
+                  style="width: 100%;"
+                  filterable
+                >
+                  <el-option 
+                    v-for="item in filteredSteamIdList" 
+                    :key="item.steamID || item.steam_id" 
+                    :label="`${item.dataName || '未命名'} (${item.steamID || item.steam_id || '无ID'})`" 
+                    :value="item.steamID || item.steam_id"
+                  />
+                </el-select>
+              </el-form-item>
+
+              <el-form-item label="购买账号" required class="form-item-quarter">
+                <el-select 
+                  v-model="crawlForm.steamId" 
+                  placeholder="选择购买账号"
+                  style="width: 100%;"
+                  filterable
+                >
+                  <el-option 
+                    v-for="item in filteredSteamIdList" 
+                    :key="item.steamID || item.steam_id" 
+                    :label="`${item.dataName || '未命名'} (${item.steamID || item.steam_id || '无ID'})`" 
+                    :value="item.steamID || item.steam_id"
+                  />
                 </el-select>
               </el-form-item>
             </div>
@@ -770,7 +786,8 @@ export default {
 
     const crawlForm = ref({
       configName: '',      // 对应 dataName
-      steamId: '',
+      steamId: '',         // 购买账号
+      crawlAccountId: '',  // 爬取账号
       platformType: 'youpin',  // 平台类型：youpin 或 buff
       weaponId: [],        // 改为数组，存储 {id, name} 对象
       customConfig: ''     // 对应 value，JSON字符串
@@ -790,6 +807,32 @@ export default {
       return true
     })
 
+    // 根据平台类型过滤Steam ID列表
+    const filteredSteamIdList = computed(() => {
+      console.log('原始Steam ID列表:', steamIdList.value)
+      console.log('当前平台类型:', crawlForm.value.platformType)
+      
+      if (!crawlForm.value.platformType) {
+        return steamIdList.value
+      }
+      
+      // 根据平台类型过滤
+      const filtered = steamIdList.value.filter(item => {
+        console.log(`检查账号: ${item.dataName}, key1=${item.key1}, 平台=${crawlForm.value.platformType}`)
+        return item.key1 === crawlForm.value.platformType
+      })
+      
+      console.log(`过滤后的Steam ID列表 (${crawlForm.value.platformType}):`, filtered)
+      
+      // 如果过滤后为空，返回所有账号
+      if (filtered.length === 0) {
+        console.warn(`没有找到 key1='${crawlForm.value.platformType}' 的账号，显示所有账号`)
+        return steamIdList.value
+      }
+      
+      return filtered
+    })
+
     // 加载Steam ID列表
     const loadSteamIdList = async () => {
       try {
@@ -798,15 +841,32 @@ export default {
         if (response.data.success && response.data.data.length > 0) {
           steamIdList.value = response.data.data
           console.log('已加载 Steam ID 列表:', steamIdList.value)
-          // 默认选择第一个
-          if (!crawlForm.value.steamId && steamIdList.value.length > 0) {
-            const firstItem = steamIdList.value[0]
-            crawlForm.value.steamId = firstItem.steamID || firstItem.steam_id || ''
-          }
+          // 默认选择第一个符合平台类型的
+          updateDefaultSteamId()
         }
       } catch (error) {
         console.error('加载Steam ID列表失败:', error)
         console.error('错误详情:', error.response)
+      }
+    }
+    
+    // 更新默认Steam ID（根据当前平台类型）
+    const updateDefaultSteamId = () => {
+      if (filteredSteamIdList.value.length > 0) {
+        const firstItem = filteredSteamIdList.value[0]
+        const steamId = firstItem.steamID || firstItem.steam_id || ''
+        
+        // 设置爬取账号和购买账号为同一个账号
+        crawlForm.value.crawlAccountId = steamId
+        crawlForm.value.steamId = steamId
+        
+        console.log(`已设置默认账号: ${steamId}`)
+        console.log(`  - 爬取账号: ${crawlForm.value.crawlAccountId}`)
+        console.log(`  - 购买账号: ${crawlForm.value.steamId}`)
+      } else {
+        crawlForm.value.crawlAccountId = ''
+        crawlForm.value.steamId = ''
+        console.warn(`没有找到平台类型为 ${crawlForm.value.platformType} 的Steam ID`)
       }
     }
 
@@ -851,8 +911,13 @@ export default {
         return
       }
       
+      if (!crawlForm.value.crawlAccountId) {
+        ElMessage.warning('请选择爬取账号')
+        return
+      }
+      
       if (!crawlForm.value.steamId) {
-        ElMessage.warning('请选择 Steam ID')
+        ElMessage.warning('请选择购买账号')
         return
       }
       
@@ -872,7 +937,8 @@ export default {
       try {
         let confirmMessage = `确定要开始查询带挂件饰品吗？\n\n`
         confirmMessage += `配置名称: ${crawlForm.value.configName}\n`
-        confirmMessage += `Steam ID: ${crawlForm.value.steamId}\n`
+        confirmMessage += `爬取账号: ${crawlForm.value.crawlAccountId}\n`
+        confirmMessage += `购买账号: ${crawlForm.value.steamId}\n`
         confirmMessage += `平台类型: ${crawlForm.value.platformType === 'buff' ? 'BUFF' : '悠悠有品'}\n`
         confirmMessage += `监控饰品数量: ${crawlForm.value.weaponId.length} 个`
         
@@ -908,18 +974,20 @@ export default {
         // 构建爬虫配置
         const spiderConfig = {
           weapon_id: crawlForm.value.weaponId,  // [{"id": "61490", "name": "..."}]
-          steam_id: crawlForm.value.steamId,
+          steam_id: crawlForm.value.crawlAccountId,  // ✅ 使用爬取账号
           最大差价: 5,
           饰品自动查询间隔: 3,
           ...jsonValidation.config  // 合并自定义配置
         }
         
         const requestData = {
-          steamId: crawlForm.value.steamId,
+          steamId: crawlForm.value.crawlAccountId,  // ✅ 使用爬取账号
           spider_config: spiderConfig
         }
         
-        console.log('发送流式请求到后端:', requestData)
+        console.log('发送流式请求到后端 (使用爬取账号):', requestData)
+        console.log('  - 爬取账号:', crawlForm.value.crawlAccountId)
+        console.log('  - 购买账号:', crawlForm.value.steamId)
 
         // 使用 fetch 进行流式请求
         const response = await fetch(
@@ -1122,13 +1190,14 @@ export default {
 
     // 重置表单
     const resetForm = () => {
-      const defaultSteamId = steamIdList.value.length > 0 
-        ? (steamIdList.value[0].steamID || steamIdList.value[0].steam_id || '') 
+      const defaultSteamId = filteredSteamIdList.value.length > 0 
+        ? (filteredSteamIdList.value[0].steamID || filteredSteamIdList.value[0].steam_id || '') 
         : ''
       
       crawlForm.value = {
         configName: '',
         steamId: defaultSteamId,
+        crawlAccountId: defaultSteamId,
         platformType: 'youpin',
         weaponId: [],
         customConfig: ''
@@ -1252,6 +1321,9 @@ export default {
 
     // 平台类型改变处理
     const handlePlatformTypeChange = () => {
+      // 切换平台类型时，自动更新Steam ID为该平台的第一个
+      updateDefaultSteamId()
+      
       // 实时保存配置
       if (selectedConfigId.value) {
         autoSaveConfig()
@@ -1882,7 +1954,7 @@ export default {
       
       try {
         const requestData = {
-          steamId: crawlForm.value.steamId,
+          steamId: crawlForm.value.steamId,  // ✅ 使用购买账号
           commodityId: item.id,
           buyQuantity: 1,
           price: item.price,
@@ -1890,7 +1962,9 @@ export default {
           pollPayment: true  // 轮询支付状态
         }
         
-        console.log('购买请求数据:', requestData)
+        console.log('购买请求数据 (使用购买账号):', requestData)
+        console.log('  - 购买账号:', crawlForm.value.steamId)
+        console.log('  - 爬取账号:', crawlForm.value.crawlAccountId)
         
         // 调用完整购买接口（创建订单+自动支付）
         const response = await axios.post(
@@ -2114,6 +2188,7 @@ export default {
     return {
       crawlFormRef,
       steamIdList,
+      filteredSteamIdList,
       isCrawling,
       crawlForm,
       crawlResult,
@@ -2634,12 +2709,28 @@ export default {
   margin-bottom: 0;
 }
 
+/* 垂直堆叠的表单行 */
+.form-row-stacked {
+  flex-direction: column;
+  gap: 0;
+}
+
+.form-item-full {
+  width: 100%;
+  margin-bottom: 18px;
+}
+
 .form-item-half {
   flex: 1;
   margin-bottom: 18px;
 }
 
 .form-item-third {
+  flex: 1;
+  margin-bottom: 18px;
+}
+
+.form-item-quarter {
   flex: 1;
   margin-bottom: 18px;
 }
@@ -3098,6 +3189,10 @@ export default {
   }
 
   .form-item-third {
+    width: 100%;
+  }
+
+  .form-item-quarter {
     width: 100%;
   }
 
