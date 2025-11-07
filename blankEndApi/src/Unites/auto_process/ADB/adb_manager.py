@@ -1,131 +1,149 @@
 """
 ADB管理器
-使用pure-python-adb库进行ADB操作，无需外部ADB程序
+使用adb-shell库直接通过TCP连接设备，无需ADB服务器
 """
 
 import time
-import subprocess
-import os
 import socket
 import concurrent.futures
-from typing import List, Optional, Tuple, Set
-from ppadb.client import Client as AdbClient
-from ppadb.device import Device
+from typing import List, Optional, Tuple
+from adb_shell.adb_device import AdbDeviceTcp
+from adb_shell.auth.sign_pythonrsa import PythonRSASigner
 
 
 class ADBManager:
-    """ADB管理器类"""
+    """ADB管理器类 - 使用adb-shell直接连接设备"""
     
-    def __init__(self, host: str = "127.0.0.1", port: int = 5037):
+    def __init__(self):
         """
         初始化ADB管理器
-        
-        Args:
-            host: ADB服务器地址
-            port: ADB服务器端口
         """
-        self.host = host
-        self.port = port
-        self.client = None
         self.device = None
+        self.device_address = None  # 当前连接的设备地址
+        self.signer = None
+        
+    def _get_signer(self):
+        """
+        获取RSA签名器（用于ADB认证）
+        如果没有密钥，会自动生成
+        """
+        if self.signer is None:
+            try:
+                from adb_shell.auth.keygen import keygen
+                import os
+                import tempfile
+                
+                # 在临时目录生成密钥
+                temp_dir = tempfile.gettempdir()
+                adbkey_path = os.path.join(temp_dir, 'adbkey')
+                
+                # 如果密钥不存在，生成新的
+                if not os.path.exists(adbkey_path):
+                    keygen(adbkey_path)
+                
+                # 加载密钥
+                with open(adbkey_path, 'rb') as f:
+                    priv_key = f.read()
+                with open(adbkey_path + '.pub', 'rb') as f:
+                    pub_key = f.read()
+                
+                self.signer = PythonRSASigner(pub_key, priv_key)
+                print("✓ ADB密钥已加载")
+            except Exception as e:
+                print(f"⚠ 加载ADB密钥失败: {e}，将尝试无认证连接")
+                self.signer = None
+        
+        return self.signer
     
     def connect(self) -> bool:
         """
-        连接到ADB服务器
-        注意：pure-python-adb不需要外部ADB程序，直接通过网络连接设备
+        初始化连接（adb-shell不需要连接到服务器）
         
         Returns:
-            bool: 连接是否成功
+            bool: 始终返回True
         """
-        try:
-            self.client = AdbClient(host=self.host, port=self.port)
-            return True
-        except Exception as e:
-            print(f"初始化ADB客户端失败: {e}")
-            return False
+        return True
     
-    def get_devices(self, auto_scan: bool = False) -> List[Device]:
+    def get_devices(self, auto_scan: bool = False) -> List[dict]:
         """
         获取所有已连接的设备
+        注意：adb-shell需要手动扫描或连接，不能像传统ADB那样列出所有设备
         
         Args:
-            auto_scan: 是否在没有设备时自动扫描局域网
+            auto_scan: 是否自动扫描局域网
         
         Returns:
-            List[Device]: 设备列表
+            List[dict]: 设备列表（仅包含当前连接的设备）
         """
-        if not self.client:
-            if not self.connect():
-                return []
+        devices = []
         
-        try:
-            devices = self.client.devices()
-            
-            # 如果没有设备且开启了自动扫描
-            if not devices and auto_scan:
-                print("未发现已连接设备，开始扫描局域网...")
-                discovered = self.scan_lan_devices()
-                
-                # 尝试连接发现的设备
-                for address in discovered[:3]:  # 限制最多连接3个设备
-                    self.connect_device(address)
-                
-                # 重新获取设备列表
-                time.sleep(1)
-                devices = self.client.devices()
-            
-            return devices
-        except Exception as e:
-            print(f"获取设备列表失败: {e}")
-            return []
+        # 如果有当前连接的设备，返回它
+        if self.device and self.device_address:
+            try:
+                # 测试连接是否还活着
+                self.device.shell("echo test")
+                devices.append({
+                    'serial': self.device_address,
+                    'state': 'device'
+                })
+            except:
+                # 连接已断开
+                self.device = None
+                self.device_address = None
+        
+        # 如果需要自动扫描且没有设备
+        if auto_scan and not devices:
+            print("自动扫描局域网设备...")
+            found_devices = self.scan_lan_devices()
+            for addr in found_devices:
+                devices.append({
+                    'serial': addr,
+                    'state': 'offline'  # 未连接状态
+                })
+        
+        return devices
     
-    def select_device(self, serial: Optional[str] = None) -> bool:
+    def select_device(self, serial: str) -> bool:
         """
         选择要操作的设备
         
         Args:
-            serial: 设备序列号，如果为None则选择第一个设备
+            serial: 设备序列号或地址（IP:端口）
             
         Returns:
-            bool: 是否成功选择设备
+            bool: 是否成功选择
         """
-        devices = self.get_devices()
+        # 如果已经连接到这个设备，直接返回
+        if self.device and self.device_address == serial:
+            try:
+                # 测试连接
+                self.device.shell("echo test")
+                return True
+            except:
+                # 连接已断开，需要重新连接
+                pass
         
-        if not devices:
-            print("未找到任何设备")
-            return False
-        
-        if serial:
-            for device in devices:
-                if device.serial == serial:
-                    self.device = device
-                    print(f"已选择设备: {device.serial}")
-                    return True
-            print(f"未找到序列号为 {serial} 的设备")
-            return False
-        else:
-            self.device = devices[0]
-            print(f"已选择设备: {self.device.serial}")
-            return True
+        # 连接到指定设备
+        return self.connect_device(serial)
     
     def execute_shell(self, command: str) -> Tuple[bool, str]:
         """
         执行shell命令
         
         Args:
-            command: 要执行的shell命令
+            command: 要执行的命令
             
         Returns:
-            Tuple[bool, str]: (是否成功, 命令输出)
+            Tuple[bool, str]: (是否成功, 输出结果)
         """
         if not self.device:
-            return False, "未选择设备"
+            return False, "未连接设备"
         
         try:
             result = self.device.shell(command)
             return True, result
         except Exception as e:
-            return False, f"执行命令失败: {e}"
+            return False, str(e)
     
     def push_file(self, local_path: str, remote_path: str) -> bool:
         """
@@ -139,11 +157,14 @@ class ADBManager:
             bool: 是否成功
         """
         if not self.device:
-            print("未选择设备")
+            print("未连接设备")
             return False
         
         try:
-            self.device.push(local_path, remote_path)
+            with open(local_path, 'rb') as f:
+                file_data = f.read()
+            
+            self.device.push(file_data, remote_path)
             print(f"文件已推送: {local_path} -> {remote_path}")
             return True
         except Exception as e:
@@ -162,11 +183,13 @@ class ADBManager:
             bool: 是否成功
         """
         if not self.device:
-            print("未选择设备")
+            print("未连接设备")
             return False
         
         try:
-            self.device.pull(remote_path, local_path)
+            file_data = self.device.pull(remote_path)
+            with open(local_path, 'wb') as f:
+                f.write(file_data)
             print(f"文件已拉取: {remote_path} -> {local_path}")
             return True
         except Exception as e:
@@ -184,7 +207,7 @@ class ADBManager:
             return {}
         
         info = {
-            "connection": self.device.serial,  # 连接地址（IP:端口）
+            "connection": self.device_address,  # 连接地址（IP:端口）
         }
         
         # 获取真实设备序列号
@@ -193,7 +216,7 @@ class ADBManager:
             info["serial"] = result.strip()
         else:
             # 如果获取不到，使用连接地址作为序列号
-            info["serial"] = self.device.serial
+            info["serial"] = self.device_address
         
         # 获取Android版本
         success, result = self.execute_shell("getprop ro.build.version.release")
@@ -210,6 +233,9 @@ class ADBManager:
         if success:
             info["sdk_version"] = result.strip()
         
+        # 检查root权限
+        info["is_root"] = self.is_root()
+        
         return info
     
     def is_root(self) -> bool:
@@ -224,56 +250,12 @@ class ADBManager:
     
     def restart_as_root(self) -> bool:
         """
-        以root权限重启adb
+        以root权限重启adb（对于adb-shell，不需要此操作）
         
         Returns:
-            bool: 是否成功
+            bool: 始终返回当前root状态
         """
-        success, result = self.execute_shell("su -c 'id'")
-        if success and "uid=0" in result:
-            print("设备已具有root权限")
-            return True
-        else:
-            print("设备没有root权限或root失败")
-            return False
-    
-    def restart_network(self) -> bool:
-        """
-        重启网络连接，使证书生效
-        
-        Returns:
-            bool: 是否成功
-        """
-        if not self.device:
-            print("未选择设备")
-            return False
-        
-        try:
-            print("正在重启网络...")
-            
-            # 方法1: 切换飞行模式
-            # 开启飞行模式
-            success1, result1 = self.execute_shell("su -c 'settings put global airplane_mode_on 1'")
-            self.execute_shell("su -c 'am broadcast -a android.intent.action.AIRPLANE_MODE --ez state true'")
-            
-            # 等待1秒
-            import time
-            time.sleep(1)
-            
-            # 关闭飞行模式
-            success2, result2 = self.execute_shell("su -c 'settings put global airplane_mode_on 0'")
-            self.execute_shell("su -c 'am broadcast -a android.intent.action.AIRPLANE_MODE --ez state false'")
-            
-            if success1 and success2:
-                print("✓ 网络重启成功")
-                return True
-            else:
-                print("⚠ 网络重启可能不完整，建议手动重启设备")
-                return False
-                
-        except Exception as e:
-            print(f"重启网络失败: {e}")
-            return False
+        return self.is_root()
     
     @staticmethod
     def _check_adb_port(ip: str, port: int = 5555, timeout: float = 0.5) -> bool:
@@ -307,7 +289,7 @@ class ADBManager:
             max_workers: 最大并发扫描线程数
             
         Returns:
-            List[str]: 发现的设备IP地址列表
+            List[str]: 发现的设备地址列表（格式：IP:端口）
         """
         devices = []
         
@@ -330,23 +312,19 @@ class ADBManager:
         # 常见的ADB端口
         common_ports = [5555, 5556, 5557, 16384, 7555]  # 包括MuMu模拟器的16384端口
         
-        # 要扫描的IP列表
-        ips_to_scan = []
-        
-        # 优先扫描常见端口和本机
+        # 优先扫描本机常见端口
         for port in common_ports:
-            # 本机
             if ADBManager._check_adb_port("127.0.0.1", port, timeout):
                 address = f"127.0.0.1:{port}"
                 if address not in devices:
                     devices.append(address)
                     print(f"✓ 发现设备: {address}")
         
-        # 扫描局域网其他设备（多个常见端口）
+        # 扫描局域网其他设备
         scan_targets = []
         for i in range(1, 255):
             ip = f"{network}.{i}"
-            if ip != local_ip and ip != "127.0.0.1":
+            if ip != local_ip:
                 # 为每个IP创建多个端口扫描任务
                 for port in [5555, 16384]:  # 主要端口
                     scan_targets.append((ip, port))
@@ -371,7 +349,7 @@ class ADBManager:
     
     def connect_device(self, address: str) -> bool:
         """
-        连接到指定地址的设备
+        连接到指定地址的设备（使用adb-shell直接TCP连接）
         
         Args:
             address: 设备地址，格式为 "ip:port"
@@ -380,19 +358,59 @@ class ADBManager:
             bool: 是否成功连接
         """
         try:
-            result = subprocess.run(
-                ['adb', 'connect', address],
-                capture_output=True,
-                timeout=10,
-                creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
-            )
-            if result.returncode == 0:
-                print(f"已连接到设备: {address}")
-                time.sleep(1)
-                return True
+            # 解析地址
+            if ':' in address:
+                ip, port = address.split(':')
+                port = int(port)
+            else:
+                ip = address
+                port = 5555
+            
+            print(f"正在连接到设备: {ip}:{port}")
+            
+            # 创建设备连接
+            device = AdbDeviceTcp(ip, port, default_transport_timeout_s=9.0)
+            
+            # 尝试连接（先不用认证）
+            try:
+                device.connect(rsa_keys=[], auth_timeout_s=10.0)
+                print(f"✓ 已连接到设备: {address} (无需认证)")
+            except Exception as e:
+                # 如果需要认证，使用签名器
+                print(f"需要认证，尝试使用密钥连接...")
+                device.close()
+                device = AdbDeviceTcp(ip, port, default_transport_timeout_s=9.0)
+                
+                signer = self._get_signer()
+                if signer:
+                    device.connect(rsa_keys=[signer], auth_timeout_s=10.0)
+                    print(f"✓ 已连接到设备: {address} (已认证)")
+                else:
+                    raise Exception("无法进行ADB认证")
+            
+            # 测试连接
+            test_result = device.shell("echo test")
+            if "test" not in test_result:
+                raise Exception("设备响应异常")
+            
+            # 保存设备连接
+            if self.device:
+                try:
+                    self.device.close()
+                except:
+                    pass
+            
+            self.device = device
+            self.device_address = address
+            
+            print(f"✓ 设备连接成功: {address}")
+            return True
+            
         except Exception as e:
             print(f"连接设备失败 {address}: {e}")
-        return False
+            import traceback
+            print(traceback.format_exc())
+            return False
     
     def connect_mumu_emulator(self, port: int = 16384) -> bool:
         """
@@ -404,78 +422,27 @@ class ADBManager:
         Returns:
             bool: 是否成功连接
         """
-        try:
-            # 尝试使用ADB命令连接
-            result = subprocess.run(
-                ['adb', 'connect', f'127.0.0.1:{port}'],
-                capture_output=True,
-                timeout=10,
-                creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
-            )
-            if result.returncode == 0:
-                print(f"已连接到MuMu模拟器 (端口:{port})")
-                time.sleep(1)
-                return True
-        except Exception as e:
-            print(f"连接MuMu模拟器失败: {e}")
-        return False
+        return self.connect_device(f"127.0.0.1:{port}")
     
-    @staticmethod
-    def get_adb_download_info() -> dict:
+    def disconnect(self) -> bool:
         """
-        获取ADB下载信息
+        断开设备连接
         
         Returns:
-            dict: 包含下载链接和说明的字典
+            bool: 是否成功断开
         """
-        import platform
-        system = platform.system()
-        
-        info = {
-            "required": True,
-            "message": "需要安装ADB工具",
-            "downloads": {}
-        }
-        
-        if system == "Windows":
-            info["downloads"] = {
-                "platform_tools": {
-                    "name": "Android SDK Platform-Tools (Windows)",
-                    "url": "https://dl.google.com/android/repository/platform-tools-latest-windows.zip",
-                    "description": "官方ADB工具包，解压后将platform-tools目录添加到系统PATH"
-                },
-                "mumu": {
-                    "name": "使用MuMu模拟器自带的ADB",
-                    "path": "C:\\Program Files\\Netease\\MuMu Player 12\\shell\\adb.exe",
-                    "description": "如果已安装MuMu模拟器，可以使用其自带的ADB工具"
-                }
-            }
-        elif system == "Darwin":  # macOS
-            info["downloads"] = {
-                "platform_tools": {
-                    "name": "Android SDK Platform-Tools (Mac)",
-                    "url": "https://dl.google.com/android/repository/platform-tools-latest-darwin.zip",
-                    "description": "官方ADB工具包"
-                },
-                "homebrew": {
-                    "name": "通过Homebrew安装",
-                    "command": "brew install android-platform-tools",
-                    "description": "推荐使用Homebrew安装"
-                }
-            }
-        else:  # Linux
-            info["downloads"] = {
-                "platform_tools": {
-                    "name": "Android SDK Platform-Tools (Linux)",
-                    "url": "https://dl.google.com/android/repository/platform-tools-latest-linux.zip",
-                    "description": "官方ADB工具包"
-                },
-                "apt": {
-                    "name": "通过APT安装",
-                    "command": "sudo apt-get install adb",
-                    "description": "Debian/Ubuntu系统推荐"
-                }
-            }
-        
-        return info
-
+        if self.device:
+            try:
+                self.device.close()
+                print(f"已断开设备连接: {self.device_address}")
+                self.device = None
+                self.device_address = None
+                return True
+            except Exception as e:
+                print(f"断开连接失败: {e}")
+                return False
+        return True
+    
+    def __del__(self):
+        """析构函数，自动断开连接"""
+        self.disconnect()
