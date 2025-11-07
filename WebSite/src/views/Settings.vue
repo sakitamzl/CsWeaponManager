@@ -78,7 +78,7 @@
             <el-icon :size="18">
               <Setting />
             </el-icon>
-            <span>系统设置</span>
+            <span>登录设置</span>
           </li>
         </ul>
       </div>

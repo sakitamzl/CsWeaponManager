@@ -117,7 +117,7 @@ const routes = [
             path: 'system-settings',
             name: 'SystemSettings',
             component: () => import('@/views/settings/SystemSettings.vue'),
-            meta: { title: '系统设置' }
+            meta: { title: '登录设置' }
           }
         ]
       }
