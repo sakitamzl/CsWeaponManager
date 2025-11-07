@@ -55,54 +55,43 @@ YST/MxU4rvsps28Vt8SCSPLYx8jlF9WbZOik4wlYN33qXlVMjTdvmYjAb7Ws4P3YkrYcLMFS5UJL
     def _calculate_cert_hash(self) -> str:
         """
         计算证书的hash值（Android系统证书命名规则）
-        使用OpenSSL的subject_hash_old算法
+        使用OpenSSL的subject_hash_old算法（纯Python实现）
         
         Returns:
             str: 证书hash值
             
         Raises:
-            Exception: 如果OpenSSL不可用或计算失败
+            Exception: 如果计算失败
         """
-        import subprocess
-        import tempfile
-        
-        # 创建临时证书文件
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.pem', delete=False) as f:
-            f.write(self.CHARLES_CERT)
-            temp_cert_path = f.name
-        
         try:
-            # 使用OpenSSL命令计算hash
-            result = subprocess.run(
-                ['openssl', 'x509', '-subject_hash_old', '-noout', '-in', temp_cert_path],
-                capture_output=True,
-                text=True,
-                timeout=5,
-                creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
+            from cryptography import x509
+            from cryptography.hazmat.backends import default_backend
+            import hashlib
+            
+            # 解析证书
+            cert = x509.load_pem_x509_certificate(
+                self.CHARLES_CERT.encode(),
+                default_backend()
             )
             
-            if result.returncode == 0 and result.stdout.strip():
-                hash_value = result.stdout.strip()
-                print(f"✓ 使用OpenSSL计算的证书hash: {hash_value}")
-                return hash_value
-            else:
-                error_msg = result.stderr if result.stderr else "未知错误"
-                raise Exception(f"OpenSSL命令执行失败: {error_msg}")
-                
-        except FileNotFoundError:
-            raise Exception(
-                "未找到OpenSSL命令。请安装OpenSSL:\n"
-                "  Windows: https://slproweb.com/products/Win32OpenSSL.html\n"
-                "  或确保OpenSSL已添加到系统PATH"
-            )
+            # 获取Subject的DER编码（这是OpenSSL subject_hash_old使用的）
+            subject_der = cert.subject.public_bytes(default_backend())
+            
+            # 使用MD5计算hash（OpenSSL subject_hash_old使用MD5）
+            md5_hash = hashlib.md5(subject_der).digest()
+            
+            # 转换为OpenSSL格式的hash（取前4字节，小端序）
+            hash_value = int.from_bytes(md5_hash[:4], byteorder='little')
+            hash_str = f"{hash_value:08x}"
+            
+            print(f"✓ 计算的证书hash: {hash_str}")
+            return hash_str
+            
         except Exception as e:
+            print(f"计算证书hash失败: {e}")
+            import traceback
+            print(traceback.format_exc())
             raise Exception(f"计算证书hash失败: {str(e)}")
-        finally:
-            # 清理临时文件
-            try:
-                os.unlink(temp_cert_path)
-            except:
-                pass
     
     def _create_temp_cert_file(self) -> str:
         """
