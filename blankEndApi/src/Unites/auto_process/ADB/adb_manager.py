@@ -161,14 +161,15 @@ class ADBManager:
             return False
         
         try:
-            with open(local_path, 'rb') as f:
-                file_data = f.read()
-            
-            self.device.push(file_data, remote_path)
+            # adb-shell的push方法签名：push(local_path, remote_path, mode=...)
+            # 直接传文件路径，不需要先读取内容
+            self.device.push(local_path, remote_path)
             print(f"文件已推送: {local_path} -> {remote_path}")
             return True
         except Exception as e:
             print(f"推送文件失败: {e}")
+            import traceback
+            print(traceback.format_exc())
             return False
     
     def pull_file(self, remote_path: str, local_path: str) -> bool:
