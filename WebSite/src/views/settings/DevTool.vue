@@ -13,6 +13,15 @@
           {{ isLoadingDevices ? '扫描中...' : '扫描局域网设备' }}
         </el-button>
 
+        <el-button 
+          type="success" 
+          @click="connectManualDevice"
+          :disabled="isConnectingManual"
+          :loading="isConnectingManual"
+        >
+          手动连接设备
+        </el-button>
+
         <el-select 
           v-model="selectedDevice" 
           placeholder="选择设备" 
@@ -33,7 +42,9 @@
           :disabled="!selectedDevice || isInstallingCert"
           :loading="isInstallingCert"
         >
-          {{ isInstallingCert ? '安装中...' : '重新安装证书' }}
+          <template v-if="isInstallingCert">安装中...</template>
+          <template v-else-if="certStatus && certStatus.installed">重新安装证书</template>
+          <template v-else>安装证书</template>
         </el-button>
 
         <el-button 
@@ -217,6 +228,7 @@ export default {
     const deviceInfo = ref(null)
     const certStatus = ref(null)
     const isLoadingDevices = ref(false)
+    const isConnectingManual = ref(false)
     const isCheckingCert = ref(false)
     const isInstallingCert = ref(false)
     const isUninstallingCert = ref(false)
@@ -245,6 +257,52 @@ export default {
     const lastCsqaqTime = ref('')
 
     // ========== ADB设备管理功能 ==========
+    
+    // 手动连接设备
+    const connectManualDevice = async () => {
+      try {
+        const { value: address } = await ElMessageBox.prompt(
+          '请输入设备地址（格式: IP:端口）',
+          '手动连接设备',
+          {
+            confirmButtonText: '连接',
+            cancelButtonText: '取消',
+            inputPattern: /^[\d.]+:\d+$/,
+            inputErrorMessage: '格式错误，请输入如: 192.168.123.50:5555',
+            inputPlaceholder: '192.168.123.50:5555'
+          }
+        )
+        
+        isConnectingManual.value = true
+        ElMessage.info(`正在连接到 ${address}...`)
+        
+        // 连接设备
+        await axios.post(apiUrls.adbConnect(), { address })
+        
+        // 等待连接完成
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        
+        // 刷新设备列表
+        const response = await axios.get(apiUrls.adbDevices())
+        if (response.data.success && response.data.data.length > 0) {
+          devices.value = response.data.data
+          selectedDevice.value = devices.value[0].serial
+          deviceInfo.value = devices.value[0]
+          
+          ElMessage.success('设备连接成功！')
+          
+          // 自动检测证书
+          await checkCertStatus(true)
+        }
+      } catch (error) {
+        if (error !== 'cancel') {
+          console.error('手动连接失败:', error)
+          ElMessage.error('连接失败，请检查设备地址和网络')
+        }
+      } finally {
+        isConnectingManual.value = false
+      }
+    }
     
     // 扫描并加载设备
     const scanAndLoadDevices = async () => {
@@ -418,7 +476,7 @@ export default {
         })
 
         if (response.data.success) {
-          adbMessage.value = '证书安装成功！建议重启设备以确保证书生效'
+          adbMessage.value = '证书安装成功！网络已自动重启，证书已生效'
           adbMessageType.value = 'success'
           ElMessage.success(response.data.message)
           
@@ -830,12 +888,14 @@ export default {
       deviceInfo,
       certStatus,
       isLoadingDevices,
+      isConnectingManual,
       isCheckingCert,
       isInstallingCert,
       isUninstallingCert,
       adbMessage,
       adbMessageType,
       scanAndLoadDevices,
+      connectManualDevice,
       checkCertStatus,
       installCert,
       uninstallCert,

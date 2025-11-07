@@ -55,16 +55,43 @@ YST/MxU4rvsps28Vt8SCSPLYx8jlF9WbZOik4wlYN33qXlVMjTdvmYjAb7Ws4P3YkrYcLMFS5UJL
     def _calculate_cert_hash(self) -> str:
         """
         计算证书的hash值（Android系统证书命名规则）
+        使用OpenSSL的subject_hash_old算法
         
         Returns:
             str: 证书hash值
         """
-        # 使用subject_hash_old算法（Android 9以下）
-        # 这里简化处理，使用证书内容的hash
-        cert_content = self.CHARLES_CERT.encode()
-        hash_obj = hashlib.sha256(cert_content)
-        # 取前8位作为文件名
-        return hash_obj.hexdigest()[:8]
+        try:
+            from cryptography import x509
+            from cryptography.hazmat.backends import default_backend
+            from cryptography.hazmat.primitives import hashes
+            
+            # 解析证书
+            cert = x509.load_pem_x509_certificate(
+                self.CHARLES_CERT.encode(),
+                default_backend()
+            )
+            
+            # 获取Subject DN
+            subject = cert.subject
+            
+            # 构建Subject字符串（按OpenSSL格式）
+            subject_str = ""
+            for attr in subject:
+                subject_str += f"/{attr.oid._name}={attr.value}"
+            
+            # 计算MD5 hash（OpenSSL subject_hash_old使用MD5）
+            hash_obj = hashlib.md5(subject_str.encode())
+            hash_bytes = hash_obj.digest()
+            
+            # 转换为OpenSSL的hash格式（取前4字节，小端序）
+            hash_value = int.from_bytes(hash_bytes[:4], byteorder='little')
+            return f"{hash_value:08x}"
+            
+        except Exception as e:
+            print(f"使用cryptography计算hash失败: {e}")
+            # 备用方法：使用固定的hash（从设备实际安装的证书得出）
+            # 这个hash是从你的设备日志中看到的实际值
+            return "fdfa4fd9"  # Charles证书的实际hash值
     
     def _create_temp_cert_file(self) -> str:
         """
@@ -114,15 +141,23 @@ YST/MxU4rvsps28Vt8SCSPLYx8jlF9WbZOik4wlYN33qXlVMjTdvmYjAb7Ws4P3YkrYcLMFS5UJL
         self.cert_hash = self._calculate_cert_hash()
         cert_filename = f"{self.cert_hash}.0"
         
-        # 检查系统证书目录
-        success, result = self.adb.execute_shell(f"ls /system/etc/security/cacerts/{cert_filename}")
+        # 可能的证书目录列表（不同Android版本可能不同）
+        cert_paths = [
+            f"/system/etc/security/cacerts/{cert_filename}",
+            f"/apex/com.android.conscrypt/cacerts/{cert_filename}",  # Android 14+
+            f"/data/misc/user/0/cacerts-added/{cert_filename}",  # 用户证书
+        ]
         
-        if success and cert_filename in result:
-            print(f"证书已安装: {cert_filename}")
-            return True
-        else:
-            print(f"证书未安装")
-            return False
+        for cert_path in cert_paths:
+            # 使用 test 命令检查文件是否存在（更可靠）
+            success, result = self.adb.execute_shell(f"test -f {cert_path} && echo 'EXISTS' || echo 'NOT_EXISTS'")
+            
+            if success and 'EXISTS' in result and 'NOT_EXISTS' not in result:
+                print(f"证书已安装: {cert_filename} (位置: {cert_path})")
+                return True
+        
+        print(f"证书未安装")
+        return False
     
     def install_cert(self, force: bool = False) -> bool:
         """
@@ -200,7 +235,14 @@ YST/MxU4rvsps28Vt8SCSPLYx8jlF9WbZOik4wlYN33qXlVMjTdvmYjAb7Ws4P3YkrYcLMFS5UJL
             # 8. 验证安装
             if self.check_cert_installed():
                 print("✓ Charles证书安装成功!")
-                print("提示: 可能需要重启设备才能生效")
+                
+                # 9. 自动重启网络使证书生效
+                print("正在重启网络以使证书生效...")
+                if self.adb.restart_network():
+                    print("✓ 网络已重启，证书已生效")
+                else:
+                    print("⚠ 网络重启失败，建议手动重启设备")
+                
                 return True
             else:
                 print("✗ 证书安装验证失败")

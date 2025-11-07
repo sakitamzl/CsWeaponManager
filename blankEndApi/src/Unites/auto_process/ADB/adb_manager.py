@@ -278,6 +278,44 @@ class ADBManager:
             print("设备没有root权限或root失败")
             return False
     
+    def restart_network(self) -> bool:
+        """
+        重启网络连接，使证书生效
+        
+        Returns:
+            bool: 是否成功
+        """
+        if not self.device:
+            print("未选择设备")
+            return False
+        
+        try:
+            print("正在重启网络...")
+            
+            # 方法1: 切换飞行模式
+            # 开启飞行模式
+            success1, result1 = self.execute_shell("su -c 'settings put global airplane_mode_on 1'")
+            self.execute_shell("su -c 'am broadcast -a android.intent.action.AIRPLANE_MODE --ez state true'")
+            
+            # 等待1秒
+            import time
+            time.sleep(1)
+            
+            # 关闭飞行模式
+            success2, result2 = self.execute_shell("su -c 'settings put global airplane_mode_on 0'")
+            self.execute_shell("su -c 'am broadcast -a android.intent.action.AIRPLANE_MODE --ez state false'")
+            
+            if success1 and success2:
+                print("✓ 网络重启成功")
+                return True
+            else:
+                print("⚠ 网络重启可能不完整，建议手动重启设备")
+                return False
+                
+        except Exception as e:
+            print(f"重启网络失败: {e}")
+            return False
+    
     @staticmethod
     def _check_adb_port(ip: str, port: int = 5555, timeout: float = 0.5) -> bool:
         """
@@ -328,6 +366,7 @@ class ADBManager:
         network = f"{ip_parts[0]}.{ip_parts[1]}.{ip_parts[2]}"
         
         print(f"开始扫描局域网: {network}.0/24")
+        print(f"本机IP: {local_ip}")
         
         # 常见的ADB端口
         common_ports = [5555, 5556, 5557, 16384, 7555]  # 包括MuMu模拟器的16384端口
@@ -344,23 +383,27 @@ class ADBManager:
                     devices.append(address)
                     print(f"✓ 发现设备: {address}")
         
-        # 扫描局域网其他设备（仅5555端口）
+        # 扫描局域网其他设备（多个常见端口）
+        scan_targets = []
         for i in range(1, 255):
             ip = f"{network}.{i}"
             if ip != local_ip and ip != "127.0.0.1":
-                ips_to_scan.append(ip)
+                # 为每个IP创建多个端口扫描任务
+                for port in [5555, 16384]:  # 主要端口
+                    scan_targets.append((ip, port))
         
         # 并发扫描
-        def scan_ip(ip):
-            if ADBManager._check_adb_port(ip, 5555, timeout):
-                return f"{ip}:5555"
+        def scan_ip_port(target):
+            ip, port = target
+            if ADBManager._check_adb_port(ip, port, timeout):
+                return f"{ip}:{port}"
             return None
         
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = [executor.submit(scan_ip, ip) for ip in ips_to_scan]
+            futures = [executor.submit(scan_ip_port, target) for target in scan_targets]
             for future in concurrent.futures.as_completed(futures):
                 result = future.result()
-                if result:
+                if result and result not in devices:
                     devices.append(result)
                     print(f"✓ 发现设备: {result}")
         
