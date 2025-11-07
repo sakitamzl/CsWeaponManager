@@ -28,61 +28,20 @@ class ADBManager:
         self.port = port
         self.client = None
         self.device = None
-        
-    def _start_adb_server(self) -> bool:
-        """
-        尝试启动ADB服务器
-        
-        Returns:
-            bool: 是否成功启动
-        """
-        try:
-            # 尝试通过命令启动ADB服务器
-            result = subprocess.run(
-                ['adb', 'start-server'],
-                capture_output=True,
-                timeout=10,
-                creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
-            )
-            if result.returncode == 0:
-                print("ADB服务器已启动")
-                time.sleep(2)  # 等待服务器启动
-                return True
-        except (FileNotFoundError, subprocess.TimeoutExpired) as e:
-            print(f"无法启动ADB服务器: {e}")
-        return False
     
     def connect(self) -> bool:
         """
-        连接到ADB服务器，如果连接失败会尝试启动服务器
+        连接到ADB服务器
+        注意：pure-python-adb不需要外部ADB程序，直接通过网络连接设备
         
         Returns:
             bool: 连接是否成功
         """
         try:
             self.client = AdbClient(host=self.host, port=self.port)
-            # 测试连接
-            try:
-                self.client.version()
-                return True
-            except:
-                # 连接失败，尝试启动ADB服务器
-                print("ADB服务器未响应，尝试启动...")
-                if self._start_adb_server():
-                    self.client = AdbClient(host=self.host, port=self.port)
-                    self.client.version()
-                    return True
-                return False
+            return True
         except Exception as e:
-            print(f"连接ADB服务器失败: {e}")
-            # 最后尝试启动服务器
-            if self._start_adb_server():
-                try:
-                    self.client = AdbClient(host=self.host, port=self.port)
-                    self.client.version()
-                    return True
-                except:
-                    pass
+            print(f"初始化ADB客户端失败: {e}")
             return False
     
     def get_devices(self, auto_scan: bool = False) -> List[Device]:
