@@ -476,9 +476,19 @@ export default {
         })
 
         if (response.data.success) {
-          adbMessage.value = '证书安装成功！网络已自动重启，证书已生效'
+          adbMessage.value = '证书安装成功！请重启模拟器/设备以使证书生效'
           adbMessageType.value = 'success'
           ElMessage.success(response.data.message)
+          
+          // 显示重启提示
+          ElMessageBox.alert(
+            '证书已成功安装到设备！\n\n请手动重启模拟器或设备，以确保证书完全生效。',
+            '安装成功 - 需要重启',
+            {
+              confirmButtonText: '知道了',
+              type: 'success'
+            }
+          )
           
           // 刷新证书状态
           setTimeout(() => {

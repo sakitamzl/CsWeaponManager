@@ -301,7 +301,7 @@ def install_cert():
             Log().write_log(f"Charles证书安装成功: {serial}", 'info')
             return jsonify({
                 'success': True,
-                'message': 'Charles证书安装成功，网络已自动重启，证书已生效'
+                'message': 'Charles证书安装成功！请重启模拟器/设备以使证书生效'
             }), 200
         else:
             Log().write_log(f"Charles证书安装失败: {serial}", 'error')

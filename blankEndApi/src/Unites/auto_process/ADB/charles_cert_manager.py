@@ -235,14 +235,7 @@ YST/MxU4rvsps28Vt8SCSPLYx8jlF9WbZOik4wlYN33qXlVMjTdvmYjAb7Ws4P3YkrYcLMFS5UJL
             # 8. 验证安装
             if self.check_cert_installed():
                 print("✓ Charles证书安装成功!")
-                
-                # 9. 自动重启网络使证书生效
-                print("正在重启网络以使证书生效...")
-                if self.adb.restart_network():
-                    print("✓ 网络已重启，证书已生效")
-                else:
-                    print("⚠ 网络重启失败，建议手动重启设备")
-                
+                print("提示: 请重启模拟器/设备以使证书生效")
                 return True
             else:
                 print("✗ 证书安装验证失败")
