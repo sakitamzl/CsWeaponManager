@@ -133,6 +133,12 @@ const routes = [
             name: 'DatabaseManager',
             component: () => import('@/views/settings/DatabaseManager.vue'),
             meta: { title: '数据库管理' }
+          },
+          {
+            path: 'message-box',
+            name: 'MessageBox',
+            component: () => import('@/views/MessageBox.vue'),
+            meta: { title: '悠悠有品消息' }
           }
         ]
       }

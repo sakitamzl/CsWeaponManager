@@ -87,6 +87,15 @@
             <img src="/icons/database.png" class="menu-icon" alt="database" />
             <span>数据库管理</span>
           </li>
+          <li 
+            :class="{ active: $route.name === 'MessageBox' }"
+            @click="navigateTo('/settings/message-box')"
+          >
+            <el-icon :size="18">
+              <ChatLineRound />
+            </el-icon>
+            <span>悠悠有品消息</span>
+          </li>
         </ul>
       </div>
     </aside>
@@ -109,7 +118,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { EditPen, SetUp, Setting, ShoppingCart, Box, Timer, DataBoard, ArrowLeft, ArrowRight, PriceTag } from '@element-plus/icons-vue'
+import { EditPen, SetUp, Setting, ShoppingCart, Box, Timer, DataBoard, ArrowLeft, ArrowRight, PriceTag, ChatLineRound } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const sidebarCollapsed = ref(false)

@@ -23,6 +23,14 @@ export const API_CONFIG = {
     SELL_DATA: (page, limit) => `/webSellV1/getSellData/${page}/${limit}`,
     SELL_STATS: '/webSellV1/getSellStats',
     
+    // 消息数据相关
+    MESSAGE_DATA: (page, limit) => `/webMessageBoxPageV1/getMessageData/${page}/${limit}`,
+    MESSAGE_STATS: '/webMessageBoxPageV1/getMessageStats',
+    MESSAGE_TYPES: '/webMessageBoxPageV1/getMessageTypes',
+    MESSAGE_SEARCH_BY_KEYWORD: '/webMessageBoxPageV1/searchMessageByKeyword',
+    MESSAGE_SEARCH_BY_TIME: '/webMessageBoxPageV1/searchMessageByTime',
+    MESSAGE_SEARCH_BY_TYPE: '/webMessageBoxPageV1/searchMessageByType',
+    
     // Steam市场数据相关
     STEAM_BUY_DATA: (page, limit) => `/webSteamMarketV1/getSteamBuyData/${page}/${limit}`,
     STEAM_BUY_STATS: '/webSteamMarketV1/getSteamBuyStats',
@@ -152,6 +160,14 @@ export const apiUrls = {
   // 销售数据
   sellData: (page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.SELL_DATA(page, limit)),
   sellStats: () => getApiUrl(API_CONFIG.ENDPOINTS.SELL_STATS),
+  
+  // 消息数据
+  messageData: (page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.MESSAGE_DATA(page, limit)),
+  messageStats: () => getApiUrl(API_CONFIG.ENDPOINTS.MESSAGE_STATS),
+  messageTypes: () => getApiUrl(API_CONFIG.ENDPOINTS.MESSAGE_TYPES),
+  searchMessageByKeyword: () => getApiUrl(API_CONFIG.ENDPOINTS.MESSAGE_SEARCH_BY_KEYWORD),
+  searchMessageByTime: () => getApiUrl(API_CONFIG.ENDPOINTS.MESSAGE_SEARCH_BY_TIME),
+  searchMessageByType: () => getApiUrl(API_CONFIG.ENDPOINTS.MESSAGE_SEARCH_BY_TYPE),
   
   // Steam购买数据
   steamBuyData: (page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.STEAM_BUY_DATA(page, limit)),

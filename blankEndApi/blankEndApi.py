@@ -26,6 +26,7 @@ from src.web_side.webSide.steamInventoryHistory import webSteamInventoryHistoryV
 from src.web_side.webSide.buy_page import webBuyPageV1
 from src.web_side.webSide.sell_page import webSellPageV1
 from src.web_side.webSide.lent_page import webLentPageV1
+from src.web_side.webSide.message_box_page import webMessageBoxPageV1
 from src.web_side.webSide.inventory import webInventoryV1
 from src.web_side.webSide.stock_components import webStockComponentsV1
 from src.web_side.prefectWorld.prefectworld_config import prefectWorldConfigV1
@@ -73,6 +74,7 @@ def blankEndApi():
     app.register_blueprint(webBuyPageV1, url_prefix = '/webBuyPageV1')
     app.register_blueprint(webSellPageV1, url_prefix = '/webSellPageV1')
     app.register_blueprint(webLentPageV1, url_prefix = '/webLentPageV1')
+    app.register_blueprint(webMessageBoxPageV1, url_prefix = '/webMessageBoxPageV1')
     app.register_blueprint(webInventoryV1, url_prefix = '/webInventoryV1')
     app.register_blueprint(webStockComponentsV1, url_prefix = '/webStockComponentsV1')
     app.register_blueprint(prefectWorldConfigV1, url_prefix = '/prefectWorldConfigV1')

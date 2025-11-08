@@ -71,5 +71,15 @@ class YyypMessageboxModel(BaseModel):
                 'type': 'TEXT',
                 'not_null': False,
                 'default': None
+            },
+            'status': {
+                'type': 'INTEGER',
+                'not_null': False,
+                'default': 0
+            },
+            'data_user': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None
             }
         }
