@@ -15,6 +15,12 @@ def getMessageData(page, limit):
         db = Date_base()
         offset = (page - 1) * limit
         
+        # 获取总记录数
+        sql_count = "SELECT COUNT(*) FROM yyyp_messagebox"
+        success_count, result_count = db.select(sql_count)
+        total_count = result_count[0][0] if success_count and result_count else 0
+        logger.info(f"获取消息总数: {total_count}, success: {success_count}, result: {result_count}")
+        
         sql = f"""
         SELECT 
             message_id,
@@ -41,7 +47,8 @@ def getMessageData(page, limit):
             return jsonify({
                 'success': False,
                 'message': '查询失败',
-                'data': []
+                'data': [],
+                'total': 0
             }), 500
         
         messages = []
@@ -64,9 +71,11 @@ def getMessageData(page, limit):
                 }
                 messages.append(message)
         
+        logger.info(f"返回数据: 共 {len(messages)} 条消息, 总数: {total_count}")
         return jsonify({
             'success': True,
-            'data': messages
+            'data': messages,
+            'total': total_count
         }), 200
         
     except Exception as e:
@@ -74,7 +83,8 @@ def getMessageData(page, limit):
         return jsonify({
             'success': False,
             'message': str(e),
-            'data': []
+            'data': [],
+            'total': 0
         }), 500
 
 
@@ -173,6 +183,18 @@ def searchMessageByKeyword():
         offset = (page - 1) * page_size
         db = Date_base()
         
+        # 获取符合条件的总记录数
+        sql_count = f"""
+        SELECT COUNT(*)
+        FROM yyyp_messagebox
+        WHERE title LIKE '%{keyword}%' 
+           OR message_text LIKE '%{keyword}%'
+           OR orderNo LIKE '%{keyword}%'
+           OR sentName LIKE '%{keyword}%'
+        """
+        success_count, result_count = db.select(sql_count)
+        total_count = result_count[0][0] if success_count and result_count else 0
+        
         sql = f"""
         SELECT 
             message_id,
@@ -203,7 +225,8 @@ def searchMessageByKeyword():
             return jsonify({
                 'success': False,
                 'message': '搜索失败',
-                'data': []
+                'data': [],
+                'total': 0
             }), 500
         
         messages = []
@@ -228,7 +251,8 @@ def searchMessageByKeyword():
         
         return jsonify({
             'success': True,
-            'data': messages
+            'data': messages,
+            'total': total_count
         }), 200
         
     except Exception as e:
@@ -260,6 +284,15 @@ def searchMessageByTime():
         offset = (page - 1) * page_size
         db = Date_base()
         
+        # 获取符合条件的总记录数
+        sql_count = f"""
+        SELECT COUNT(*)
+        FROM yyyp_messagebox
+        WHERE DATE(createTime) BETWEEN '{start_date}' AND '{end_date}'
+        """
+        success_count, result_count = db.select(sql_count)
+        total_count = result_count[0][0] if success_count and result_count else 0
+        
         sql = f"""
         SELECT 
             message_id,
@@ -287,7 +320,8 @@ def searchMessageByTime():
             return jsonify({
                 'success': False,
                 'message': '搜索失败',
-                'data': []
+                'data': [],
+                'total': 0
             }), 500
         
         messages = []
@@ -312,7 +346,8 @@ def searchMessageByTime():
         
         return jsonify({
             'success': True,
-            'data': messages
+            'data': messages,
+            'total': total_count
         }), 200
         
     except Exception as e:
@@ -379,6 +414,15 @@ def searchMessageByType():
         # 构建IN条件
         types_str = "', '".join(message_types)
         
+        # 获取符合条件的总记录数
+        sql_count = f"""
+        SELECT COUNT(*)
+        FROM yyyp_messagebox
+        WHERE sentName IN ('{types_str}')
+        """
+        success_count, result_count = db.select(sql_count)
+        total_count = result_count[0][0] if success_count and result_count else 0
+        
         sql = f"""
         SELECT 
             message_id,
@@ -406,7 +450,8 @@ def searchMessageByType():
             return jsonify({
                 'success': False,
                 'message': '搜索失败',
-                'data': []
+                'data': [],
+                'total': 0
             }), 500
         
         messages = []
@@ -431,7 +476,8 @@ def searchMessageByType():
         
         return jsonify({
             'success': True,
-            'data': messages
+            'data': messages,
+            'total': total_count
         }), 200
         
     except Exception as e:

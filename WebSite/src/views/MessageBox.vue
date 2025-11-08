@@ -131,7 +131,7 @@ export default {
         const response = await axios.get(apiUrls.messageData(currentPage.value, pageSize.value))
         if (response.data.success) {
           messageData.value = response.data.data
-          totalItems.value = response.data.total || response.data.data.length
+          totalItems.value = response.data.total || 0
         } else {
           ElMessage.error(response.data.message || '获取消息列表失败')
         }
@@ -158,7 +158,7 @@ export default {
         })
         if (response.data.success) {
           messageData.value = response.data.data
-          totalItems.value = response.data.data.length
+          totalItems.value = response.data.total || 0
         } else {
           ElMessage.error(response.data.message || '搜索失败')
         }
@@ -193,7 +193,7 @@ export default {
         })
         if (response.data.success) {
           messageData.value = response.data.data
-          totalItems.value = response.data.data.length
+          totalItems.value = response.data.total || 0
         } else {
           ElMessage.error(response.data.message || '搜索失败')
         }
@@ -221,7 +221,7 @@ export default {
         })
         if (response.data.success) {
           messageData.value = response.data.data
-          totalItems.value = response.data.data.length
+          totalItems.value = response.data.total || 0
         } else {
           ElMessage.error(response.data.message || '搜索失败')
         }
