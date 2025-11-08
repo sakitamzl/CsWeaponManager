@@ -42,20 +42,6 @@
             <el-button type="success" @click="handleTimeSearch" :loading="loading">按时间搜索</el-button>
           </div>
         </div>
-        
-        <div class="search-stats-divider"></div>
-        
-        <div class="stats-container">
-          <div class="stats-section">
-            <h3>消息统计</h3>
-            <div class="stats-grid">
-              <div class="stat-item">
-                <span class="stat-label">总消息数:</span>
-                <span class="stat-value">{{ totalStats.totalCount }} 条</span>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -127,11 +113,6 @@ export default {
     const totalItems = ref(0)
     const messageData = ref([])
     const messageTypes = ref([])
-    const totalStats = ref({
-      totalCount: 0,
-      readCount: 0,
-      unreadCount: 0
-    })
 
     const fetchMessageTypes = async () => {
       try {
@@ -144,30 +125,13 @@ export default {
       }
     }
 
-    const fetchMessageStats = async () => {
-      try {
-        const response = await axios.get(apiUrls.messageStats())
-        if (response.data.success) {
-          const stats = response.data.data
-          totalStats.value = {
-            totalCount: stats.totalCount || 0,
-            readCount: stats.readCount || 0,
-            unreadCount: stats.unreadCount || 0
-          }
-        }
-      } catch (error) {
-        console.error('获取消息统计失败:', error)
-      }
-    }
-
     const fetchMessages = async () => {
       loading.value = true
       try {
         const response = await axios.get(apiUrls.messageData(currentPage.value, pageSize.value))
         if (response.data.success) {
           messageData.value = response.data.data
-          await fetchMessageStats()
-          totalItems.value = totalStats.value.totalCount
+          totalItems.value = response.data.total || response.data.data.length
         } else {
           ElMessage.error(response.data.message || '获取消息列表失败')
         }
@@ -314,7 +278,6 @@ export default {
       totalItems,
       messageData,
       messageTypes,
-      totalStats,
       filteredMessageData,
       handleSearch,
       handleClearSearch,
@@ -371,51 +334,6 @@ export default {
 
 .date-picker {
   width: 280px;
-}
-
-.search-stats-divider {
-  height: 1px;
-  background: var(--border-color);
-  margin: 20px 0;
-}
-
-.stats-container {
-  display: flex;
-  gap: 30px;
-}
-
-.stats-section {
-  flex: 1;
-}
-
-.stats-section h3 {
-  margin-bottom: 15px;
-  color: var(--text-primary);
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(1, 1fr);
-  gap: 15px;
-}
-
-.stat-item {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.stat-label {
-  color: var(--text-secondary);
-  font-size: 14px;
-}
-
-.stat-value {
-  color: var(--text-primary);
-  font-size: 18px;
-  font-weight: 600;
 }
 
 .table-container {
