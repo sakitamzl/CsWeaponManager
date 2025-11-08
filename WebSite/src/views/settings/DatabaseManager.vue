@@ -23,11 +23,8 @@
               :class="['table-item', { active: selectedTable === table.name }]"
               @click="selectTable(table.name)"
             >
-              <el-icon class="table-icon"><Grid /></el-icon>
-              <div class="table-info">
-                <div class="table-name">{{ table.name }}</div>
-                <div class="table-count">{{ table.rowCount }} 行</div>
-              </div>
+              <div class="table-name">{{ table.name }}</div>
+              <div class="table-count">{{ table.rowCount }}</div>
             </div>
           </div>
         </div>
@@ -48,29 +45,27 @@
               <el-tag type="info">{{ tableData.length }} 行</el-tag>
             </div>
             <div class="toolbar-right">
-              <el-button-group>
-                <el-button 
-                  :type="activeTab === 'data' ? 'primary' : ''"
-                  @click="activeTab = 'data'"
-                >
-                  <el-icon><Grid /></el-icon>
-                  数据
-                </el-button>
-                <el-button 
-                  :type="activeTab === 'structure' ? 'primary' : ''"
-                  @click="activeTab = 'structure'"
-                >
-                  <el-icon><List /></el-icon>
-                  结构
-                </el-button>
-                <el-button 
-                  :type="activeTab === 'query' ? 'primary' : ''"
-                  @click="activeTab = 'query'"
-                >
-                  <el-icon><EditPen /></el-icon>
-                  查询
-                </el-button>
-              </el-button-group>
+              <el-button 
+                :type="activeTab === 'data' ? 'primary' : ''"
+                @click="activeTab = 'data'"
+              >
+                <el-icon><Grid /></el-icon>
+                数据
+              </el-button>
+              <el-button 
+                :type="activeTab === 'structure' ? 'primary' : ''"
+                @click="activeTab = 'structure'"
+              >
+                <el-icon><List /></el-icon>
+                结构
+              </el-button>
+              <el-button 
+                :type="activeTab === 'query' ? 'primary' : ''"
+                @click="activeTab = 'query'"
+              >
+                <el-icon><EditPen /></el-icon>
+                查询
+              </el-button>
             </div>
           </div>
 
@@ -95,14 +90,12 @@
               </el-button>
               
               <div class="data-toolbar-right">
-                <el-input
-                  v-model="dataSearchQuery"
-                  placeholder="搜索数据..."
-                  :prefix-icon="Search"
-                  size="small"
-                  clearable
-                  style="width: 200px;"
-                />
+                <el-button size="small" @click="showFilterDialog">
+                  <el-icon><Filter /></el-icon>
+                  筛选
+                  <el-badge v-if="activeFilters.length > 0" :value="activeFilters.length" class="filter-badge" />
+                </el-button>
+                <span class="row-count-info">共 {{ filteredTableData.length }} 行</span>
                 <el-pagination
                   v-model:current-page="currentPage"
                   v-model:page-size="pageSize"
@@ -122,6 +115,7 @@
               border
               stripe
               @selection-change="handleSelectionChange"
+              @sort-change="handleSortChange"
               v-loading="tableLoading"
             >
               <el-table-column type="selection" width="55" fixed="left" />
@@ -141,6 +135,7 @@
                 :prop="column.name"
                 :label="column.name"
                 :width="column.width || 150"
+                sortable="custom"
                 show-overflow-tooltip
               >
                 <template #default="{ row }">
@@ -322,6 +317,61 @@
         <el-button type="primary" @click="confirmSaveQuery">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 筛选对话框 -->
+    <el-dialog v-model="filterDialogVisible" title="数据筛选" width="600px">
+      <div class="filter-container">
+        <div v-for="(filter, index) in filters" :key="index" class="filter-row">
+          <el-select v-model="filter.field" placeholder="选择字段" style="width: 150px;">
+            <el-option
+              v-for="column in tableColumns"
+              :key="column.name"
+              :label="column.name"
+              :value="column.name"
+            />
+          </el-select>
+          
+          <el-select v-model="filter.operator" placeholder="条件" style="width: 120px;">
+            <el-option label="等于" value="=" />
+            <el-option label="不等于" value="!=" />
+            <el-option label="包含" value="LIKE" />
+            <el-option label="不包含" value="NOT LIKE" />
+            <el-option label="大于" value=">" />
+            <el-option label="小于" value="<" />
+            <el-option label="大于等于" value=">=" />
+            <el-option label="小于等于" value="<=" />
+            <el-option label="为空" value="IS NULL" />
+            <el-option label="不为空" value="IS NOT NULL" />
+          </el-select>
+          
+          <el-input 
+            v-if="!['IS NULL', 'IS NOT NULL'].includes(filter.operator)"
+            v-model="filter.value" 
+            placeholder="筛选值" 
+            style="flex: 1;"
+          />
+          
+          <el-button 
+            type="danger" 
+            :icon="Delete" 
+            circle 
+            size="small"
+            @click="removeFilter(index)"
+          />
+        </div>
+        
+        <el-button type="primary" @click="addFilter" style="width: 100%; margin-top: 10px;">
+          <el-icon><Plus /></el-icon>
+          添加筛选条件
+        </el-button>
+      </div>
+      
+      <template #footer>
+        <el-button @click="clearFilters">清空</el-button>
+        <el-button @click="filterDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="applyFilters">应用筛选</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -355,6 +405,15 @@ const selectedRows = ref([]);
 const currentPage = ref(1);
 const pageSize = ref(20);
 
+// 筛选功能
+const filterDialogVisible = ref(false);
+const filters = ref([]);
+const activeFilters = ref([]);
+
+// 排序功能
+const sortColumn = ref('');
+const sortOrder = ref(''); // 'ascending' or 'descending'
+
 // 编辑对话框
 const editDialogVisible = ref(false);
 const editMode = ref('add'); // 'add' or 'edit'
@@ -384,12 +443,72 @@ const filteredTables = computed(() => {
 });
 
 const filteredTableData = computed(() => {
-  if (!dataSearchQuery.value) return tableData.value;
-  return tableData.value.filter(row => {
-    return Object.values(row).some(value => 
-      String(value).toLowerCase().includes(dataSearchQuery.value.toLowerCase())
-    );
-  });
+  let data = [...tableData.value];
+  
+  // 应用筛选条件
+  if (activeFilters.value.length > 0) {
+    data = data.filter(row => {
+      return activeFilters.value.every(filter => {
+        const cellValue = String(row[filter.field] || '');
+        const filterValue = String(filter.value || '');
+        
+        switch (filter.operator) {
+          case '=':
+            return cellValue === filterValue;
+          case '!=':
+            return cellValue !== filterValue;
+          case 'LIKE':
+            return cellValue.toLowerCase().includes(filterValue.toLowerCase());
+          case 'NOT LIKE':
+            return !cellValue.toLowerCase().includes(filterValue.toLowerCase());
+          case '>':
+            return parseFloat(cellValue) > parseFloat(filterValue);
+          case '<':
+            return parseFloat(cellValue) < parseFloat(filterValue);
+          case '>=':
+            return parseFloat(cellValue) >= parseFloat(filterValue);
+          case '<=':
+            return parseFloat(cellValue) <= parseFloat(filterValue);
+          case 'IS NULL':
+            return !cellValue || cellValue === 'NULL' || cellValue === 'null';
+          case 'IS NOT NULL':
+            return cellValue && cellValue !== 'NULL' && cellValue !== 'null';
+          default:
+            return true;
+        }
+      });
+    });
+  }
+  
+  // 应用排序
+  if (sortColumn.value && sortOrder.value) {
+    data.sort((a, b) => {
+      const aValue = a[sortColumn.value];
+      const bValue = b[sortColumn.value];
+      
+      // 处理 null/undefined
+      if (aValue === null || aValue === undefined) return sortOrder.value === 'ascending' ? 1 : -1;
+      if (bValue === null || bValue === undefined) return sortOrder.value === 'ascending' ? -1 : 1;
+      
+      // 尝试数字比较
+      const aNum = parseFloat(aValue);
+      const bNum = parseFloat(bValue);
+      if (!isNaN(aNum) && !isNaN(bNum)) {
+        return sortOrder.value === 'ascending' ? aNum - bNum : bNum - aNum;
+      }
+      
+      // 字符串比较
+      const aStr = String(aValue).toLowerCase();
+      const bStr = String(bValue).toLowerCase();
+      if (sortOrder.value === 'ascending') {
+        return aStr.localeCompare(bStr);
+      } else {
+        return bStr.localeCompare(aStr);
+      }
+    });
+  }
+  
+  return data;
 });
 
 const paginatedData = computed(() => {
@@ -674,6 +793,47 @@ const confirmSaveQuery = async () => {
   }
 };
 
+// 筛选功能
+const showFilterDialog = () => {
+  if (filters.value.length === 0) {
+    addFilter();
+  }
+  filterDialogVisible.value = true;
+};
+
+const addFilter = () => {
+  filters.value.push({
+    field: '',
+    operator: '=',
+    value: ''
+  });
+};
+
+const removeFilter = (index) => {
+  filters.value.splice(index, 1);
+};
+
+const applyFilters = () => {
+  activeFilters.value = filters.value.filter(f => f.field && f.operator);
+  filterDialogVisible.value = false;
+  currentPage.value = 1; // 重置到第一页
+  ElMessage.success(`已应用 ${activeFilters.value.length} 个筛选条件`);
+};
+
+const clearFilters = () => {
+  filters.value = [];
+  activeFilters.value = [];
+  currentPage.value = 1;
+  ElMessage.success('已清空筛选条件');
+};
+
+// 排序处理
+const handleSortChange = ({ column, prop, order }) => {
+  sortColumn.value = prop || '';
+  sortOrder.value = order || '';
+  currentPage.value = 1; // 重置到第一页
+};
+
 // 加载已保存的查询
 const loadSavedQueries = async () => {
   try {
@@ -758,7 +918,7 @@ onMounted(() => {
 .table-item {
   display: flex;
   align-items: center;
-  padding: 10px 20px;
+  padding: 12px 16px;
   cursor: pointer;
   transition: all 0.2s;
   border-left: 3px solid transparent;
@@ -773,29 +933,15 @@ onMounted(() => {
   border-left-color: #409eff;
 }
 
-.table-icon {
-  font-size: 18px;
-  color: #909399;
-  margin-right: 12px;
-  flex-shrink: 0;
-}
-
-.table-item.active .table-icon {
-  color: #fff;
-}
-
-.table-info {
-  flex: 1;
-  min-width: 0;
-}
-
 .table-name {
+  flex: 1;
   font-size: 14px;
   color: #e0e0e0;
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .table-item.active .table-name {
@@ -805,11 +951,16 @@ onMounted(() => {
 .table-count {
   font-size: 12px;
   color: #909399;
-  margin-top: 2px;
+  margin-left: 8px;
+  flex-shrink: 0;
+  padding: 2px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
 }
 
 .table-item.active .table-count {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* 右侧内容区 */
@@ -855,6 +1006,11 @@ onMounted(() => {
   color: #e0e0e0;
 }
 
+.toolbar-right {
+  display: flex;
+  gap: 10px;
+}
+
 /* 数据视图 */
 .data-view {
   flex: 1;
@@ -897,6 +1053,29 @@ onMounted(() => {
   font-size: 16px;
   color: #e0e0e0;
   margin: 0 0 15px 0;
+}
+
+/* 筛选功能 */
+.filter-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.filter-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.filter-badge {
+  margin-left: 5px;
+}
+
+.row-count-info {
+  font-size: 14px;
+  color: #909399;
+  padding: 0 10px;
 }
 
 /* 查询视图 */

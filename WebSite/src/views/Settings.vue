@@ -84,9 +84,7 @@
             :class="{ active: $route.name === 'DatabaseManager' }"
             @click="navigateTo('/settings/database-manager')"
           >
-            <el-icon :size="18">
-              <Coin />
-            </el-icon>
+            <img src="/icons/database.png" class="menu-icon" alt="database" />
             <span>数据库管理</span>
           </li>
         </ul>
@@ -317,6 +315,12 @@ onUnmounted(() => {
 
 .category-list li span {
   flex: 1;
+}
+
+.category-list li .menu-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
 }
 
 /* 主内容区域包装器 */
