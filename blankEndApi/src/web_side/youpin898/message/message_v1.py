@@ -10,7 +10,13 @@ def get_database_name():
     return db_instance.get_database_name()
 
 
-@youpin898MessageBoxV1.route('/insert_message_data', methods=['post'])
+@youpin898MessageBoxV1.route('/test', methods=['GET'])
+def test():
+    """测试端点"""
+    return jsonify({'success': True, 'message': 'Message API is working!'}), 200
+
+
+@youpin898MessageBoxV1.route('/insert_message_data', methods=['POST'])
 def insert_message_data():
     """插入消息数据"""
     data = request.get_json()

@@ -53,14 +53,6 @@
                 <span class="stat-label">总消息数:</span>
                 <span class="stat-value">{{ totalStats.totalCount }} 条</span>
               </div>
-              <div class="stat-item">
-                <span class="stat-label">未读消息:</span>
-                <span class="stat-value">{{ totalStats.unreadCount }} 条</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">已读消息:</span>
-                <span class="stat-value">{{ totalStats.readCount }} 条</span>
-              </div>
             </div>
           </div>
         </div>
@@ -99,13 +91,6 @@
         </el-table-column>
         <el-table-column prop="message_text" label="消息内容" min-width="300" show-overflow-tooltip align="left" />
         <el-table-column prop="orderNo" label="订单号" width="180" show-overflow-tooltip align="left" />
-        <el-table-column prop="readStatus" label="阅读状态" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.readStatus === 1 ? 'success' : 'info'" size="small">
-              {{ row.readStatus === 1 ? '已读' : '未读' }}
-            </el-tag>
-          </template>
-        </el-table-column>
         <el-table-column prop="createTime" label="创建时间" width="180" align="center" />
       </el-table>
 
@@ -412,7 +397,7 @@ export default {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(1, 1fr);
   gap: 15px;
 }
 
