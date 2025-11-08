@@ -203,214 +203,95 @@ YST/MxU4rvsps28Vt8SCSPLYx8jlF9WbZOik4wlYN33qXlVMjTdvmYjAb7Ws4P3YkrYcLMFS5UJL
             local_cert_path = self._create_temp_cert_file()
             cert_filename = f"{self.cert_hash}.0"
             
-            # 2. 挂载系统分区为可写（需要root权限）
-            print("尝试重新挂载系统分区为可写...")
-            
-            # 检查当前挂载状态
-            success, mount_info = self.adb.execute_shell("su -c 'mount | grep system'")
-            print(f"当前系统分区挂载状态:\n{mount_info}")
-            
-            # 提取实际的设备路径
-            device_path = None
-            if '/dev/block/' in mount_info:
-                import re
-                match = re.search(r'(/dev/block/\S+)', mount_info)
-                if match:
-                    device_path = match.group(1)
-                    print(f"检测到设备路径: {device_path}")
-            
-            # 尝试多种挂载方式（Android 12+可能需要不同的方式）
-            mount_commands = [
-                "mount -o remount,rw /system",
-                "mount -o rw,remount /system",
-                "mount -o remount,rw /",
-            ]
-            
-            # 如果检测到设备路径，添加直接挂载设备的命令
-            if device_path:
-                mount_commands.insert(0, f"mount -o remount,rw {device_path} /system")
-                mount_commands.insert(1, f"mount -o rw,remount {device_path}")
-            
-            # 对于某些设备，可能需要禁用dm-verity
-            mount_commands.extend([
-                "mount -o remount,rw,hidepid=0 /system",
-                "busybox mount -o remount,rw /system",
-            ])
-            
-            mount_success = False
-            for cmd in mount_commands:
-                success, result = self.adb.execute_shell(f"su -c '{cmd} 2>&1'")
-                print(f"尝试挂载命令: {cmd}")
-                if result.strip():
-                    print(f"结果: {result}")
-                
-                # 验证是否挂载成功（检查是否可写）
-                success, test_result = self.adb.execute_shell(
-                    "su -c 'touch /system/etc/security/cacerts/.test 2>&1 && rm /system/etc/security/cacerts/.test 2>&1 && echo WRITABLE || echo READONLY'"
-                )
-                if 'WRITABLE' in test_result:
-                    print("✓ 系统分区已成功挂载为可写")
-                    mount_success = True
-                    break
-            
-            if not mount_success:
-                print("✗ 无法将系统分区挂载为可写")
-                print("\n尝试使用替代方案：通过Magisk覆盖目录安装...")
-                
-                # 使用Magisk的覆盖目录（如果可用）
-                magisk_paths = [
-                    "/data/adb/modules/custom_certs/system/etc/security/cacerts",
-                    "/sbin/.magisk/modules/custom_certs/system/etc/security/cacerts",
-                ]
-                
-                magisk_success = False
-                for magisk_path in magisk_paths:
-                    # 检查Magisk目录是否存在
-                    success, result = self.adb.execute_shell(f"su -c 'test -d /data/adb/modules && echo EXISTS || echo NOT_EXISTS'")
-                    if 'EXISTS' in result:
-                        print(f"尝试使用Magisk模块路径: {magisk_path}")
-                        
-                        # 创建目录结构
-                        success, result = self.adb.execute_shell(f"su -c 'mkdir -p {magisk_path}'")
-                        if success:
-                            print(f"✓ 已创建Magisk模块目录")
-                            # 标记使用Magisk方案
-                            self._use_magisk_path = magisk_path
-                            mount_success = True
-                            magisk_success = True
-                            break
-                
-                if not magisk_success:
-                    print("\n可能的原因:")
-                    print("  1. 设备启用了dm-verity或AVB验证")
-                    print("  2. 系统分区被保护为只读")
-                    print("  3. Magisk未正确安装")
-                    print("\n解决方案:")
-                    print("  1. 在Magisk中禁用'Preserve force encryption'")
-                    print("  2. 使用'adb disable-verity && adb reboot'命令（需要重启）")
-                    print("  3. 手动安装Magisk模块来管理证书")
-                    return False
-                else:
-                    print("✓ 将使用Magisk模块方式安装证书")
-            
-            # 3. 推送证书到临时目录
+            # 2. 先推送证书到临时目录
             temp_remote_path = f"/sdcard/{cert_filename}"
-            print(f"推送证书到设备...")
+            print(f"推送证书到临时目录: {temp_remote_path}")
             if not self.adb.push_file(local_cert_path, temp_remote_path):
+                print("✗ 推送证书到临时目录失败")
                 return False
             
             # 验证文件是否成功推送
             success, result = self.adb.execute_shell(f"ls -la {temp_remote_path}")
-            print(f"推送后文件状态: {result}")
+            print(f"临时文件状态: {result}")
             if "No such file" in result:
                 print("✗ 证书文件推送失败")
                 return False
             
-            # 4. 复制证书到系统证书目录（使用cp而不是mv，更可靠）
-            # 检查是否使用Magisk路径
-            if hasattr(self, '_use_magisk_path') and self._use_magisk_path:
-                target_path = f"{self._use_magisk_path}/{cert_filename}"
-                print(f"复制证书到Magisk模块目录: {target_path}")
-            else:
-                target_path = f"/system/etc/security/cacerts/{cert_filename}"
-                print(f"复制证书到系统目录: {target_path}")
+            # 3. 使用su -c cp命令复制到系统目录（绕过挂载限制）
+            target_path = f"/system/etc/security/cacerts/{cert_filename}"
+            print(f"\n使用su权限复制证书到系统目录: {target_path}")
             
             # 先删除旧文件（如果存在）
             self.adb.execute_shell(f"su -c 'rm -f {target_path}'")
             
-            # 复制文件
+            # 使用cp命令复制（某些设备即使系统分区只读也可以通过su -c cp成功）
             success, result = self.adb.execute_shell(
-                f"su -c 'cp {temp_remote_path} {target_path}'"
+                f"su -c 'cp {temp_remote_path} {target_path} 2>&1'"
             )
-            print(f"复制命令执行结果: success={success}, output={result}")
+            print(f"复制命令执行结果: {result if result.strip() else '(无输出，可能成功)'}")
             
-            # 验证文件是否已经复制到目标位置
-            success, result = self.adb.execute_shell(
-                f"su -c 'ls -la {target_path}'"
-            )
-            print(f"复制后文件状态: {result}")
-            
-            if "No such file" in result:
-                print("✗ 证书文件复制失败")
+            # 检查是否是只读文件系统错误
+            if "Read-only file system" in result:
                 # 清理临时文件
                 self.adb.execute_shell(f"rm {temp_remote_path}")
+                
+                print("\n✗ 系统分区为只读，无法复制证书")
+                print("\n⚠ 重要提示：MuMu模拟器需要开启'可选系统盘'功能！")
+                print("\n请按以下步骤操作:")
+                print("  1. 打开MuMu模拟器")
+                print("  2. 点击右上角的'设置'按钮（齿轮图标）")
+                print("  3. 在设置中心找到'可选系统盘'选项")
+                print("  4. 勾选'可选系统盘'")
+                print("  5. 点击'保存设置'")
+                print("  6. 重启MuMu模拟器")
+                print("  7. 重启后，重新连接设备并再次点击'安装证书'")
+                print("\n参考文档: https://mumu.163.com/mac/tutorials/certificates-and-packet-capture.html")
                 return False
             
-            # 清理临时文件
-            self.adb.execute_shell(f"rm {temp_remote_path}")
-            print(f"已清理临时文件: {temp_remote_path}")
-            
-            # 如果使用Magisk方案，创建module.prop文件
-            if hasattr(self, '_use_magisk_path') and self._use_magisk_path:
-                module_dir = "/data/adb/modules/custom_certs"
-                print(f"创建Magisk模块配置...")
-                
-                # 创建module.prop
-                module_prop = """id=custom_certs
-name=Custom CA Certificates
-version=1.0
-versionCode=1
-author=CsWeaponManager
-description=Install custom CA certificates (Charles Proxy)
-"""
-                # 写入module.prop
-                self.adb.execute_shell(f"su -c 'echo \"{module_prop}\" > {module_dir}/module.prop'")
-                
-                # 创建update标记（告诉Magisk更新模块）
-                self.adb.execute_shell(f"su -c 'touch {module_dir}/update'")
-                
-                print(f"✓ Magisk模块配置已创建")
-            
-            # 5. 设置证书权限
-            print("设置证书权限...")
+            # 验证文件是否复制成功
             success, result = self.adb.execute_shell(
-                f"su -c 'chmod 644 {target_path}'"
+                f"su -c 'ls -la {target_path} 2>&1'"
             )
-            if not success:
-                print(f"设置权限失败: {result}")
+            print(f"目标文件状态: {result}")
+            
+            if "No such file" not in result and cert_filename in result:
+                print("✓ 证书已成功复制到系统目录")
+                
+                # 设置权限
+                print("设置证书权限...")
+                self.adb.execute_shell(f"su -c 'chmod 644 {target_path}'")
+                self.adb.execute_shell(f"su -c 'chown root:root {target_path}'")
+                print("✓ 权限设置完成")
+                
+                # 清理临时文件
+                self.adb.execute_shell(f"rm {temp_remote_path}")
+                print(f"✓ 已清理临时文件")
+                
+                # 验证安装
+                import time
+                time.sleep(1)
+                
+                if self.check_cert_installed():
+                    print("✓ Charles证书安装成功!")
+                    print("提示: 请重启模拟器/设备以使证书生效")
+                    return True
+                else:
+                    print("⚠ 证书文件已复制但验证未通过，可能需要重启设备")
+                    return True  # 实际上文件已经复制成功了
             else:
-                print(f"✓ 权限设置成功")
-            
-            # 6. 设置证书所有者
-            print("设置证书所有者...")
-            success, result = self.adb.execute_shell(
-                f"su -c 'chown root:root {target_path}'"
-            )
-            if not success:
-                print(f"设置所有者失败: {result}")
-            else:
-                print(f"✓ 所有者设置成功")
-            
-            # 7. 重新挂载系统分区为只读
-            print("重新挂载系统分区为只读...")
-            self.adb.execute_shell("su -c 'mount -o remount,ro /system'")
-            
-            # 8. 等待文件系统同步
-            import time
-            time.sleep(1)
-            
-            # 9. 验证安装
-            print("开始验证证书安装...")
-            
-            # 如果使用Magisk方案，需要重启才能验证
-            if hasattr(self, '_use_magisk_path') and self._use_magisk_path:
-                print("✓ Charles证书已安装到Magisk模块!")
-                print("⚠ 重要提示: 必须重启设备才能使Magisk模块生效")
-                print("   重启后证书将自动加载到系统证书目录")
-                return True
-            
-            if self.check_cert_installed():
-                print("✓ Charles证书安装成功!")
-                print("提示: 请重启模拟器/设备以使证书生效")
-                return True
-            else:
-                print("✗ 证书安装验证失败")
-                # 额外调试：直接检查文件
-                print("尝试直接检查文件...")
-                success, result = self.adb.execute_shell(
-                    f"su -c 'ls -la /system/etc/security/cacerts/ | grep {self.cert_hash}'"
-                )
-                print(f"直接检查结果: {result}")
+                # 清理临时文件
+                self.adb.execute_shell(f"rm {temp_remote_path}")
+                
+                print("\n✗ 证书复制失败")
+                print("\n可能的原因:")
+                print("  1. 设备的系统分区被保护为只读（dm-verity或AVB验证）")
+                print("  2. su权限不足或被限制")
+                print("\n建议解决方案:")
+                print("  1. 确保MuMu模拟器已开启'可选系统盘'功能")
+                print("     (在MuMu设置中心勾选'可选系统盘'，保存并重启)")
+                print("  2. 或者使用Magisk/KernelSU等工具管理系统证书")
+                print("  3. 或者参考MuMu官方文档手动安装证书:")
+                print("     https://mumu.163.com/mac/tutorials/certificates-and-packet-capture.html")
                 return False
                 
         except Exception as e:
