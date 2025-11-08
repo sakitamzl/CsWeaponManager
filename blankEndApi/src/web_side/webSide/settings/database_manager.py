@@ -11,30 +11,41 @@ import json
 import io
 from datetime import datetime
 
-database_manager_bp = Blueprint('database_manager', __name__, url_prefix='/api/database')
+database_manager_bp = Blueprint('database_manager', __name__, url_prefix='/database')
 
 # 数据库路径
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'csweaponmanager.db')
+DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))), 'csweaponmanager.db')
+
+print("✅ 数据库管理蓝图已加载")
+print(f"📁 数据库路径: {DB_PATH}")
 
 
 def get_db_connection():
     """获取数据库连接"""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        return conn
+    except Exception as e:
+        Log().write_log(f"数据库连接失败: {str(e)}", 'ERROR')
+        raise
 
 
 def get_db_size():
     """获取数据库文件大小"""
-    if os.path.exists(DB_PATH):
-        size_bytes = os.path.getsize(DB_PATH)
-        if size_bytes < 1024:
-            return f"{size_bytes} B"
-        elif size_bytes < 1024 * 1024:
-            return f"{size_bytes / 1024:.2f} KB"
-        else:
-            return f"{size_bytes / (1024 * 1024):.2f} MB"
-    return "0 B"
+    try:
+        if os.path.exists(DB_PATH):
+            size_bytes = os.path.getsize(DB_PATH)
+            if size_bytes < 1024:
+                return f"{size_bytes} B"
+            elif size_bytes < 1024 * 1024:
+                return f"{size_bytes / 1024:.2f} KB"
+            else:
+                return f"{size_bytes / (1024 * 1024):.2f} MB"
+        return "0 B"
+    except Exception as e:
+        Log().write_log(f"获取数据库大小失败: {str(e)}", 'ERROR')
+        return "未知"
 
 
 @database_manager_bp.route('/tables', methods=['GET'])
@@ -54,9 +65,12 @@ def get_tables():
         tables = []
         for row in cursor.fetchall():
             table_name = row['name']
-            # 获取表的行数
-            cursor.execute(f"SELECT COUNT(*) as count FROM {table_name}")
-            count = cursor.fetchone()['count']
+            try:
+                # 获取表的行数
+                cursor.execute(f"SELECT COUNT(*) as count FROM `{table_name}`")
+                count = cursor.fetchone()['count']
+            except:
+                count = 0
             
             tables.append({
                 'name': table_name,
@@ -64,6 +78,7 @@ def get_tables():
             })
         
         conn.close()
+        Log().write_log(f"获取表列表成功，共 {len(tables)} 个表", 'INFO')
         return jsonify(tables)
     
     except Exception as e:
@@ -79,7 +94,7 @@ def get_table_data(table_name):
         cursor = conn.cursor()
         
         # 获取表数据
-        cursor.execute(f"SELECT * FROM {table_name}")
+        cursor.execute(f"SELECT * FROM `{table_name}`")
         rows = cursor.fetchall()
         
         # 获取列名
@@ -88,10 +103,21 @@ def get_table_data(table_name):
         # 转换为字典列表
         data = []
         for row in rows:
-            data.append(dict(row))
+            row_dict = {}
+            for key in row.keys():
+                value = row[key]
+                # 处理特殊类型
+                if value is None:
+                    row_dict[key] = None
+                elif isinstance(value, bytes):
+                    row_dict[key] = value.decode('utf-8', errors='ignore')
+                else:
+                    row_dict[key] = value
+            data.append(row_dict)
         
         conn.close()
         
+        Log().write_log(f"获取表 {table_name} 数据成功，共 {len(data)} 行", 'INFO')
         return jsonify({
             'columns': columns,
             'rows': data
@@ -110,7 +136,7 @@ def get_table_structure(table_name):
         cursor = conn.cursor()
         
         # 获取表结构
-        cursor.execute(f"PRAGMA table_info({table_name})")
+        cursor.execute(f"PRAGMA table_info(`{table_name}`)")
         structure = []
         for row in cursor.fetchall():
             structure.append(dict(row))
@@ -124,11 +150,12 @@ def get_table_structure(table_name):
         create_sql = sql_result['sql'] if sql_result else ''
         
         # 获取表信息
-        cursor.execute(f"SELECT COUNT(*) as count FROM {table_name}")
+        cursor.execute(f"SELECT COUNT(*) as count FROM `{table_name}`")
         row_count = cursor.fetchone()['count']
         
         conn.close()
         
+        Log().write_log(f"获取表 {table_name} 结构成功", 'INFO')
         return jsonify({
             'structure': structure,
             'sql': create_sql,
@@ -149,20 +176,30 @@ def add_row(table_name):
     try:
         data = request.json
         
+        if not data:
+            return jsonify({'error': '数据不能为空'}), 400
+        
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # 构建INSERT语句
-        columns = ', '.join(data.keys())
-        placeholders = ', '.join(['?' for _ in data.keys()])
-        values = list(data.values())
+        # 过滤掉空值的字段
+        filtered_data = {k: v for k, v in data.items() if v is not None and v != ''}
         
-        sql = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})"
+        if not filtered_data:
+            return jsonify({'error': '没有有效的数据'}), 400
+        
+        # 构建INSERT语句
+        columns = ', '.join([f'`{k}`' for k in filtered_data.keys()])
+        placeholders = ', '.join(['?' for _ in filtered_data.keys()])
+        values = list(filtered_data.values())
+        
+        sql = f"INSERT INTO `{table_name}` ({columns}) VALUES ({placeholders})"
         cursor.execute(sql, values)
         
         conn.commit()
         conn.close()
         
+        Log().write_log(f"新增数据到表 {table_name} 成功", 'INFO')
         return jsonify({'success': True, 'message': '新增成功'})
     
     except Exception as e:
@@ -176,34 +213,56 @@ def update_row(table_name):
     try:
         request_data = request.json
         data = request_data.get('data', {})
-        index = request_data.get('index', -1)
+        
+        if not data:
+            return jsonify({'error': '数据不能为空'}), 400
         
         conn = get_db_connection()
         cursor = conn.cursor()
         
         # 获取主键
-        cursor.execute(f"PRAGMA table_info({table_name})")
-        primary_key = None
+        cursor.execute(f"PRAGMA table_info(`{table_name}`)")
+        primary_keys = []
         for row in cursor.fetchall():
-            if row['pk'] == 1:
-                primary_key = row['name']
-                break
+            if row['pk'] > 0:
+                primary_keys.append(row['name'])
         
-        if not primary_key:
+        if not primary_keys:
+            conn.close()
             return jsonify({'error': '表没有主键，无法更新'}), 400
         
-        # 构建UPDATE语句
-        set_clause = ', '.join([f"{k} = ?" for k in data.keys() if k != primary_key])
-        values = [v for k, v in data.items() if k != primary_key]
-        values.append(data[primary_key])
+        # 构建WHERE条件
+        where_conditions = []
+        where_values = []
+        for pk in primary_keys:
+            if pk in data:
+                where_conditions.append(f"`{pk}` = ?")
+                where_values.append(data[pk])
         
-        sql = f"UPDATE {table_name} SET {set_clause} WHERE {primary_key} = ?"
-        cursor.execute(sql, values)
+        if not where_conditions:
+            conn.close()
+            return jsonify({'error': '缺少主键值'}), 400
+        
+        # 构建UPDATE语句
+        update_fields = [k for k in data.keys() if k not in primary_keys]
+        if not update_fields:
+            conn.close()
+            return jsonify({'error': '没有要更新的字段'}), 400
+        
+        set_clause = ', '.join([f"`{k}` = ?" for k in update_fields])
+        set_values = [data[k] for k in update_fields]
+        
+        where_clause = ' AND '.join(where_conditions)
+        
+        sql = f"UPDATE `{table_name}` SET {set_clause} WHERE {where_clause}"
+        cursor.execute(sql, set_values + where_values)
         
         conn.commit()
+        affected_rows = cursor.rowcount
         conn.close()
         
-        return jsonify({'success': True, 'message': '更新成功'})
+        Log().write_log(f"更新表 {table_name} 数据成功，影响 {affected_rows} 行", 'INFO')
+        return jsonify({'success': True, 'message': f'更新成功，影响 {affected_rows} 行'})
     
     except Exception as e:
         Log().write_log(f"更新数据失败: {str(e)}", 'ERROR')
@@ -217,28 +276,47 @@ def delete_row(table_name):
         request_data = request.json
         row = request_data.get('row', {})
         
+        if not row:
+            return jsonify({'error': '数据不能为空'}), 400
+        
         conn = get_db_connection()
         cursor = conn.cursor()
         
         # 获取主键
-        cursor.execute(f"PRAGMA table_info({table_name})")
-        primary_key = None
+        cursor.execute(f"PRAGMA table_info(`{table_name}`)")
+        primary_keys = []
         for r in cursor.fetchall():
-            if r['pk'] == 1:
-                primary_key = r['name']
-                break
+            if r['pk'] > 0:
+                primary_keys.append(r['name'])
         
-        if not primary_key:
+        if not primary_keys:
+            conn.close()
             return jsonify({'error': '表没有主键，无法删除'}), 400
         
+        # 构建WHERE条件
+        where_conditions = []
+        where_values = []
+        for pk in primary_keys:
+            if pk in row:
+                where_conditions.append(f"`{pk}` = ?")
+                where_values.append(row[pk])
+        
+        if not where_conditions:
+            conn.close()
+            return jsonify({'error': '缺少主键值'}), 400
+        
+        where_clause = ' AND '.join(where_conditions)
+        
         # 删除数据
-        sql = f"DELETE FROM {table_name} WHERE {primary_key} = ?"
-        cursor.execute(sql, [row[primary_key]])
+        sql = f"DELETE FROM `{table_name}` WHERE {where_clause}"
+        cursor.execute(sql, where_values)
         
         conn.commit()
+        affected_rows = cursor.rowcount
         conn.close()
         
-        return jsonify({'success': True, 'message': '删除成功'})
+        Log().write_log(f"删除表 {table_name} 数据成功，影响 {affected_rows} 行", 'INFO')
+        return jsonify({'success': True, 'message': f'删除成功，影响 {affected_rows} 行'})
     
     except Exception as e:
         Log().write_log(f"删除数据失败: {str(e)}", 'ERROR')
@@ -259,25 +337,37 @@ def delete_batch(table_name):
         cursor = conn.cursor()
         
         # 获取主键
-        cursor.execute(f"PRAGMA table_info({table_name})")
-        primary_key = None
+        cursor.execute(f"PRAGMA table_info(`{table_name}`)")
+        primary_keys = []
         for r in cursor.fetchall():
-            if r['pk'] == 1:
-                primary_key = r['name']
-                break
+            if r['pk'] > 0:
+                primary_keys.append(r['name'])
         
-        if not primary_key:
+        if not primary_keys:
+            conn.close()
             return jsonify({'error': '表没有主键，无法删除'}), 400
         
         # 批量删除
+        deleted_count = 0
         for row in rows:
-            sql = f"DELETE FROM {table_name} WHERE {primary_key} = ?"
-            cursor.execute(sql, [row[primary_key]])
+            where_conditions = []
+            where_values = []
+            for pk in primary_keys:
+                if pk in row:
+                    where_conditions.append(f"`{pk}` = ?")
+                    where_values.append(row[pk])
+            
+            if where_conditions:
+                where_clause = ' AND '.join(where_conditions)
+                sql = f"DELETE FROM `{table_name}` WHERE {where_clause}"
+                cursor.execute(sql, where_values)
+                deleted_count += cursor.rowcount
         
         conn.commit()
         conn.close()
         
-        return jsonify({'success': True, 'message': f'成功删除 {len(rows)} 条数据'})
+        Log().write_log(f"批量删除表 {table_name} 数据成功，删除 {deleted_count} 行", 'INFO')
+        return jsonify({'success': True, 'message': f'成功删除 {deleted_count} 条数据'})
     
     except Exception as e:
         Log().write_log(f"批量删除失败: {str(e)}", 'ERROR')
@@ -294,7 +384,7 @@ def export_table(table_name):
         cursor = conn.cursor()
         
         # 获取数据
-        cursor.execute(f"SELECT * FROM {table_name}")
+        cursor.execute(f"SELECT * FROM `{table_name}`")
         rows = cursor.fetchall()
         columns = [description[0] for description in cursor.description]
         
@@ -306,9 +396,11 @@ def export_table(table_name):
             writer = csv.writer(output)
             writer.writerow(columns)
             for row in rows:
-                writer.writerow(row)
+                writer.writerow([str(v) if v is not None else '' for v in row])
             
             output.seek(0)
+            
+            Log().write_log(f"导出表 {table_name} 为CSV成功", 'INFO')
             return send_file(
                 io.BytesIO(output.getvalue().encode('utf-8-sig')),
                 mimetype='text/csv',
@@ -320,8 +412,12 @@ def export_table(table_name):
             # 导出为JSON
             data = []
             for row in rows:
-                data.append(dict(row))
+                row_dict = {}
+                for i, col in enumerate(columns):
+                    row_dict[col] = row[i]
+                data.append(row_dict)
             
+            Log().write_log(f"导出表 {table_name} 为JSON成功", 'INFO')
             return send_file(
                 io.BytesIO(json.dumps(data, ensure_ascii=False, indent=2).encode('utf-8')),
                 mimetype='application/json',
@@ -356,14 +452,24 @@ def execute_query():
         # 如果是SELECT查询，返回结果
         if sql.upper().startswith('SELECT'):
             rows = cursor.fetchall()
-            columns = [description[0] for description in cursor.description]
+            columns = [description[0] for description in cursor.description] if cursor.description else []
             
             data = []
             for row in rows:
-                data.append(dict(row))
+                row_dict = {}
+                for key in row.keys():
+                    value = row[key]
+                    if value is None:
+                        row_dict[key] = None
+                    elif isinstance(value, bytes):
+                        row_dict[key] = value.decode('utf-8', errors='ignore')
+                    else:
+                        row_dict[key] = value
+                data.append(row_dict)
             
             conn.close()
             
+            Log().write_log(f"执行查询成功，返回 {len(data)} 行", 'INFO')
             return jsonify({
                 'rows': data,
                 'columns': columns
@@ -374,6 +480,7 @@ def execute_query():
             affected_rows = cursor.rowcount
             conn.close()
             
+            Log().write_log(f"执行SQL成功，影响 {affected_rows} 行", 'INFO')
             return jsonify({
                 'rows': [],
                 'columns': [],
@@ -389,7 +496,7 @@ def execute_query():
 def get_saved_queries():
     """获取已保存的查询"""
     try:
-        # 这里可以从数据库或文件中读取已保存的查询
+        # TODO: 从数据库或配置文件中读取已保存的查询
         # 暂时返回空列表
         return jsonify([])
     
@@ -409,8 +516,9 @@ def save_query():
         if not name or not sql:
             return jsonify({'error': '查询名称和SQL不能为空'}), 400
         
-        # 这里可以将查询保存到数据库或文件
+        # TODO: 将查询保存到数据库或配置文件
         # 暂时只返回成功
+        Log().write_log(f"保存查询 {name} 成功", 'INFO')
         return jsonify({'success': True, 'message': '查询已保存'})
     
     except Exception as e:
@@ -439,8 +547,11 @@ def get_database_stats():
         """)
         total_records = 0
         for row in cursor.fetchall():
-            cursor.execute(f"SELECT COUNT(*) as count FROM {row['name']}")
-            total_records += cursor.fetchone()['count']
+            try:
+                cursor.execute(f"SELECT COUNT(*) as count FROM `{row['name']}`")
+                total_records += cursor.fetchone()['count']
+            except:
+                pass
         
         conn.close()
         
@@ -453,6 +564,7 @@ def get_database_stats():
         else:
             last_update = '-'
         
+        Log().write_log("获取数据库统计信息成功", 'INFO')
         return jsonify({
             'size': db_size,
             'tables': table_count,

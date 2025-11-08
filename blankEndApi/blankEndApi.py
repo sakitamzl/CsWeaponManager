@@ -32,7 +32,7 @@ from src.web_side.prefectWorld.prefectworld_config import prefectWorldConfigV1
 from src.web_side.prefectWorld.stock_components_api import prefectWorldStockComponentsV1
 from src.web_side.webSide.adb_tools import adbToolsPage
 from src.web_side.webSide.login_settings import loginSettingsPage
-from src.web_side.webSide.database_manager import database_manager_bp
+from src.web_side.webSide.settings.database_manager import database_manager_bp
 from src.db_manager import init_database
 from src.Unites.auto_process.task_scheduler import get_scheduler
 
