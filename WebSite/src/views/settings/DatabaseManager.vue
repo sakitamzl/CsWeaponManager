@@ -1,11 +1,12 @@
 <template>
-  <div class="database-manager-container">
-    <div class="page-header">
-      <h2>数据库管理器</h2>
-      <p class="description">类似Navicat的数据库管理工具，支持查看表结构、编辑数据、执行SQL查询</p>
-    </div>
+  <div class="database-manager-wrapper">
+    <div class="database-manager-container">
+      <div class="page-header">
+        <h2>数据库管理器</h2>
+        <p class="description">类似Navicat的数据库管理工具，支持查看表结构、编辑数据、执行SQL查询</p>
+      </div>
 
-    <div class="manager-layout">
+      <div class="manager-layout">
       <!-- 左侧：表列表 -->
       <div class="sidebar" :class="{ collapsed: sidebarCollapsed }">
         <div class="sidebar-header">
@@ -67,9 +68,7 @@
       <div class="main-content">
         <!-- 空状态 -->
         <div v-if="!selectedTable" class="empty-state">
-          <el-empty description="请从左侧选择一个数据表">
-            <el-icon :size="64" style="color: #909399;"><Folder /></el-icon>
-          </el-empty>
+          <el-empty description="请从左侧选择一个数据表" />
         </div>
 
         <!-- 表详情 -->
@@ -315,6 +314,7 @@
               <el-empty v-else-if="!queryError" description="执行查询以查看结果" />
             </div>
           </div>
+        </div>
         </div>
       </div>
     </div>
@@ -724,17 +724,26 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.database-manager-wrapper {
+  width: 100%;
+  height: 100%;
+  background: #f5f7fa;
+  overflow: hidden;
+}
+
 .database-manager-container {
-  height: calc(100vh - 60px);
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  background: #f5f7fa;
+  overflow: hidden;
 }
 
 .page-header {
   padding: 20px;
   background: white;
   border-bottom: 1px solid #ebeef5;
+  flex-shrink: 0;
 }
 
 .page-header h2 {
@@ -753,6 +762,7 @@ onMounted(() => {
   display: flex;
   flex: 1;
   overflow: hidden;
+  min-height: 0;
 }
 
 /* 侧边栏 */

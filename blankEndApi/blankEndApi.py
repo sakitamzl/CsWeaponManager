@@ -32,6 +32,7 @@ from src.web_side.prefectWorld.prefectworld_config import prefectWorldConfigV1
 from src.web_side.prefectWorld.stock_components_api import prefectWorldStockComponentsV1
 from src.web_side.webSide.adb_tools import adbToolsPage
 from src.web_side.webSide.login_settings import loginSettingsPage
+from src.web_side.webSide.database_manager import database_manager_bp
 from src.db_manager import init_database
 from src.Unites.auto_process.task_scheduler import get_scheduler
 
@@ -78,6 +79,7 @@ def blankEndApi():
     app.register_blueprint(prefectWorldStockComponentsV1, url_prefix = '/prefectWorldStockComponentsV1')
     app.register_blueprint(adbToolsPage, url_prefix = '/adbToolsV1')
     app.register_blueprint(loginSettingsPage, url_prefix = '/loginSettingsV1')
+    app.register_blueprint(database_manager_bp)
     
     # 启动任务调度器 (只在主进程中启动)
     if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
