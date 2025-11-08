@@ -786,3 +786,78 @@ def vacuum_database():
         Log().write_log(f"清理数据库失败: {str(e)}", 'ERROR')
         return jsonify({'error': str(e)}), 500
 
+
+@database_manager_bp.route('/truncate', methods=['POST'])
+def truncate_table():
+    """清空表（删除所有数据但保留表结构）"""
+    try:
+        data = request.get_json()
+        table_name = data.get('tableName')
+        
+        if not table_name:
+            return jsonify({'error': '缺少表名参数'}), 400
+        
+        # 验证表名是否存在
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+            (table_name,)
+        )
+        
+        if not cursor.fetchone():
+            conn.close()
+            return jsonify({'error': f'表 {table_name} 不存在'}), 404
+        
+        # 清空表数据
+        cursor.execute(f'DELETE FROM "{table_name}"')
+        conn.commit()
+        
+        # 重置自增ID（如果有的话）
+        cursor.execute(f'DELETE FROM sqlite_sequence WHERE name=?', (table_name,))
+        conn.commit()
+        
+        conn.close()
+        
+        Log().write_log(f"清空表成功: {table_name}", 'INFO')
+        return jsonify({'message': f'表 {table_name} 已清空'})
+    
+    except Exception as e:
+        Log().write_log(f"清空表失败: {str(e)}", 'ERROR')
+        return jsonify({'error': str(e)}), 500
+
+
+@database_manager_bp.route('/drop', methods=['POST'])
+def drop_table():
+    """删除表（永久删除表及其所有数据）"""
+    try:
+        data = request.get_json()
+        table_name = data.get('tableName')
+        
+        if not table_name:
+            return jsonify({'error': '缺少表名参数'}), 400
+        
+        # 验证表名是否存在
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+            (table_name,)
+        )
+        
+        if not cursor.fetchone():
+            conn.close()
+            return jsonify({'error': f'表 {table_name} 不存在'}), 404
+        
+        # 删除表
+        cursor.execute(f'DROP TABLE "{table_name}"')
+        conn.commit()
+        conn.close()
+        
+        Log().write_log(f"删除表成功: {table_name}", 'INFO')
+        return jsonify({'message': f'表 {table_name} 已删除'})
+    
+    except Exception as e:
+        Log().write_log(f"删除表失败: {str(e)}", 'ERROR')
+        return jsonify({'error': str(e)}), 500
+

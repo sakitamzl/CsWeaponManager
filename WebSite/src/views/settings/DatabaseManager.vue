@@ -93,10 +93,16 @@
               <el-table :data="tables" style="width: 100%" border max-height="400">
                 <el-table-column prop="name" label="表名" />
                 <el-table-column prop="rowCount" label="行数" width="120" sortable />
-                <el-table-column label="操作" width="100">
+                <el-table-column label="操作" width="260">
                   <template #default="{ row }">
                     <el-button type="primary" size="small" link @click="selectTable(row.name)">
                       查看
+                    </el-button>
+                    <el-button type="warning" size="small" link @click="truncateTable(row.name)">
+                      清空表
+                    </el-button>
+                    <el-button type="danger" size="small" link @click="dropTable(row.name)">
+                      删除表
                     </el-button>
                   </template>
                 </el-table-column>
@@ -1152,6 +1158,84 @@ const vacuumDatabase = async () => {
     }
   } finally {
     vacuumLoading.value = false;
+  }
+};
+
+const truncateTable = async (tableName) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要清空表 "${tableName}" 吗？此操作将删除表中所有数据，但保留表结构。`,
+      '警告',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    );
+    
+    tableLoading.value = true;
+    await axios.post('/api/database/truncate', { tableName });
+    ElMessage.success(`表 "${tableName}" 已清空`);
+    
+    // 刷新表列表和数据库信息
+    await loadTables();
+    await refreshDatabaseInfo();
+    
+    // 如果当前选中的就是这个表，刷新数据
+    if (selectedTable.value === tableName) {
+      await loadTableData();
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('清空表失败：' + (error.response?.data?.message || error.message));
+    }
+  } finally {
+    tableLoading.value = false;
+  }
+};
+
+const dropTable = async (tableName) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除表 "${tableName}" 吗？此操作将永久删除表及其所有数据，且无法恢复！`,
+      '危险操作',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'error',
+        confirmButtonClass: 'el-button--danger',
+      }
+    );
+    
+    // 二次确认
+    await ElMessageBox.confirm(
+      `请再次确认：您真的要删除表 "${tableName}" 吗？`,
+      '最终确认',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'error',
+      }
+    );
+    
+    tableLoading.value = true;
+    await axios.post('/api/database/drop', { tableName });
+    ElMessage.success(`表 "${tableName}" 已删除`);
+    
+    // 如果删除的是当前选中的表，返回数据库首页
+    if (selectedTable.value === tableName) {
+      selectedTable.value = null;
+    }
+    
+    // 刷新表列表和数据库信息
+    await loadTables();
+    await refreshDatabaseInfo();
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('删除表失败：' + (error.response?.data?.message || error.message));
+    }
+  } finally {
+    tableLoading.value = false;
   }
 };
 
