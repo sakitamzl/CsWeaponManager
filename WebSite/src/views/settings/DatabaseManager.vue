@@ -1,47 +1,42 @@
 <template>
   <div class="database-manager-wrapper">
     <div class="database-manager-container">
-      <div class="page-header">
-        <h2>数据库管理器</h2>
-        <p class="description">类似Navicat的数据库管理工具，支持查看表结构、编辑数据、执行SQL查询</p>
-      </div>
-
-      <div class="manager-layout">
-        <!-- 表选择区域 -->
-        <div class="table-selector">
-          <div class="selector-left">
-            <el-select 
-              v-model="selectedTable" 
-              placeholder="选择数据表" 
-              filterable
-              @change="onTableChange"
-              style="width: 300px;"
+      <!-- Navicat 风格布局：左侧表列表 + 右侧内容 -->
+      <div class="navicat-layout">
+        <!-- 左侧表列表 -->
+        <div class="left-sidebar">
+          <div class="sidebar-header">
+            <h3>数据表</h3>
+            <el-button 
+              size="small" 
+              @click="refreshTables" 
+              :loading="tablesLoading"
+              :icon="Refresh"
+              circle
+            />
+          </div>
+          
+          <div class="tables-list">
+            <div 
+              v-for="table in tables" 
+              :key="table.name"
+              :class="['table-item', { active: selectedTable === table.name }]"
+              @click="selectTable(table.name)"
             >
-              <el-option
-                v-for="table in tables"
-                :key="table.name"
-                :label="`${table.name} (${table.rowCount}行)`"
-                :value="table.name"
-              >
-                <span style="float: left">{{ table.name }}</span>
-                <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">
-                  {{ table.rowCount }} 行
-                </span>
-              </el-option>
-            </el-select>
-            
-            <el-button @click="refreshTables" :loading="tablesLoading">
-              <el-icon><Refresh /></el-icon>
-              刷新
-            </el-button>
+              <el-icon class="table-icon"><Grid /></el-icon>
+              <div class="table-info">
+                <div class="table-name">{{ table.name }}</div>
+                <div class="table-count">{{ table.rowCount }} 行</div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- 主内容区 -->
-        <div class="main-content">
+        <!-- 右侧内容区 -->
+        <div class="right-content">
           <!-- 空状态 -->
           <div v-if="!selectedTable" class="empty-state">
-            <el-empty description="请选择一个数据表" />
+            <el-empty description="请从左侧选择一个数据表" />
           </div>
 
         <!-- 表详情 -->
@@ -124,13 +119,22 @@
             <el-table
               :data="paginatedData"
               style="width: 100%"
-              max-height="600"
               border
               stripe
               @selection-change="handleSelectionChange"
               v-loading="tableLoading"
             >
-              <el-table-column type="selection" width="55" fixed />
+              <el-table-column type="selection" width="55" fixed="left" />
+              <el-table-column label="操作" width="150" fixed="left">
+                <template #default="{ row, $index }">
+                  <el-button type="primary" size="small" @click="editRow(row, $index)">
+                    编辑
+                  </el-button>
+                  <el-button type="danger" size="small" @click="deleteRow(row, $index)">
+                    删除
+                  </el-button>
+                </template>
+              </el-table-column>
               <el-table-column 
                 v-for="column in tableColumns" 
                 :key="column.name"
@@ -141,16 +145,6 @@
               >
                 <template #default="{ row }">
                   <span>{{ formatCellValue(row[column.name]) }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column label="操作" width="150" fixed="right">
-                <template #default="{ row, $index }">
-                  <el-button type="primary" size="small" @click="editRow(row, $index)">
-                    编辑
-                  </el-button>
-                  <el-button type="danger" size="small" @click="deleteRow(row, $index)">
-                    删除
-                  </el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -721,52 +715,110 @@ onMounted(() => {
   overflow: hidden;
 }
 
-.page-header {
-  padding: 20px;
-  background: #2a2a2a;
-  border-bottom: 1px solid #3a3a3a;
-  flex-shrink: 0;
-}
-
-.page-header h2 {
-  font-size: 24px;
-  color: #e0e0e0;
-  margin: 0 0 8px 0;
-}
-
-.description {
-  color: #a0a0a0;
-  font-size: 14px;
-  margin: 0;
-}
-
-.manager-layout {
+/* Navicat 风格布局 */
+.navicat-layout {
   display: flex;
-  flex-direction: column;
   flex: 1;
   overflow: hidden;
   min-height: 0;
 }
 
-/* 表选择区域 */
-.table-selector {
-  padding: 15px 20px;
+/* 左侧表列表 */
+.left-sidebar {
+  width: 280px;
   background: #2a2a2a;
-  border-bottom: 1px solid #3a3a3a;
+  border-right: 1px solid #3a3a3a;
+  display: flex;
+  flex-direction: column;
   flex-shrink: 0;
 }
 
-.selector-left {
+.sidebar-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #3a3a3a;
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 10px;
+  background: #252525;
 }
 
-/* 主内容区 */
-.main-content {
+.sidebar-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #e0e0e0;
+  font-weight: 600;
+}
+
+.tables-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.table-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
+}
+
+.table-item:hover {
+  background: #333;
+}
+
+.table-item.active {
+  background: #1e5fa8;
+  border-left-color: #409eff;
+}
+
+.table-icon {
+  font-size: 18px;
+  color: #909399;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.table-item.active .table-icon {
+  color: #fff;
+}
+
+.table-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.table-name {
+  font-size: 14px;
+  color: #e0e0e0;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.table-item.active .table-name {
+  color: #fff;
+}
+
+.table-count {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 2px;
+}
+
+.table-item.active .table-count {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* 右侧内容区 */
+.right-content {
   flex: 1;
   overflow: auto;
   background: #1a1a1a;
+  display: flex;
+  flex-direction: column;
 }
 
 .empty-state {
