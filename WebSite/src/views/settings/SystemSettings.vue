@@ -11,7 +11,6 @@
               inactive-text="关闭"
               @change="handleLoginToggle"
             />
-            <div class="form-tip">开启后需要用户名和密码才能访问系统</div>
           </el-form-item>
           
           <el-form-item label="用户名" v-if="basicSettings.enableLogin">
@@ -39,7 +38,6 @@
               inactive-text="关闭"
               @change="handleExternalAccessToggle"
             />
-            <div class="form-tip">开启后可以从外网访问系统（需要配置防火墙和端口转发）</div>
           </el-form-item>
         </el-form>
       </div>

@@ -2,7 +2,7 @@
   <div class="dev-tool-container">
     <!-- ADB证书管理区域 -->
     <div class="sync-section">
-      <h2 class="section-title">ADB 设备管理 & Charles 证书安装</h2>
+      <h2 class="section-title">ADB 与网络证书安装</h2>
       
       <div class="sync-controls">
         <el-button 

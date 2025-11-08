@@ -249,6 +249,40 @@ class ADBManager:
         success, result = self.execute_shell("su -c 'id'")
         return success and "uid=0" in result
     
+    def request_root(self) -> bool:
+        """
+        主动请求root权限（会触发设备上的授权提示）
+        
+        Returns:
+            bool: 是否成功获取root权限
+        """
+        if not self.device:
+            print("✗ 未连接设备")
+            return False
+        
+        print("正在请求root权限...")
+        print("提示: 如果设备屏幕上弹出授权请求，请点击'允许'")
+        
+        # 尝试多次执行su命令，给用户时间授权
+        for i in range(3):
+            success, result = self.execute_shell("su -c 'id'")
+            
+            if success and "uid=0" in result:
+                print("✓ 成功获取root权限")
+                return True
+            
+            if i < 2:
+                print(f"等待授权... ({i+1}/3)")
+                import time
+                time.sleep(2)
+        
+        print("✗ 未能获取root权限")
+        print("可能的原因:")
+        print("  1. 设备未root")
+        print("  2. 用户拒绝了授权请求")
+        print("  3. Root管理应用（如Magisk）未正确配置")
+        return False
+    
     def restart_as_root(self) -> bool:
         """
         以root权限重启adb（对于adb-shell，不需要此操作）

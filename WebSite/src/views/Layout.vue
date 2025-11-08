@@ -65,7 +65,7 @@ export default {
         {
           path: '/item-search',
           title: '饰品搜索',
-          icon: '/icons/Stock_components.png'
+          icon: '/icons/search.png'
         },
         {
           path: '/buy',
@@ -104,7 +104,7 @@ export default {
         },
         {
           path: '/settings',
-          title: '系统设置',
+          title: '其他功能',
           icon: '/icons/setting.png'
         }
         // {

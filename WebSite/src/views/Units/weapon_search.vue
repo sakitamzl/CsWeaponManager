@@ -257,7 +257,7 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits } from 'vue'
+import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Document, ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import axios from 'axios'
