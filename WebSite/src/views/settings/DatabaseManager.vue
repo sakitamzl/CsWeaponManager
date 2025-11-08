@@ -5,11 +5,15 @@
       <div class="navicat-layout">
         <!-- 左侧表列表 -->
         <div class="left-sidebar">
-          <div class="sidebar-header">
-            <h3>数据库</h3>
+          <!-- 数据库信息项 -->
+          <div 
+            :class="['sidebar-header', 'database-info-header', { active: !selectedTable }]"
+            @click="showDatabaseInfo"
+          >
+            <h3>📊 数据库信息</h3>
             <el-button 
               size="small" 
-              @click="refreshTables" 
+              @click.stop="refreshTables" 
               :loading="tablesLoading"
               :icon="Refresh"
               circle
@@ -17,6 +21,7 @@
           </div>
           
           <div class="tables-list">
+            <!-- 表列表 -->
             <div 
               v-for="table in tables" 
               :key="table.name"
@@ -31,53 +36,10 @@
 
         <!-- 右侧内容区 -->
         <div class="right-content">
-          <!-- 空状态 -->
-          <div v-if="!selectedTable" class="empty-state">
-            <el-empty description="请从左侧选择一个数据表" />
-          </div>
-
-        <!-- 表详情 -->
-        <div v-else class="table-detail">
-          <!-- 工具栏 -->
-          <div class="toolbar">
-            <div class="toolbar-left">
-              <h3>{{ selectedTable }}</h3>
-              <el-tag type="info">{{ tableData.length }} 行</el-tag>
-            </div>
-            <div class="toolbar-right">
-              <el-button 
-                :type="activeTab === 'info' ? 'primary' : ''"
-                @click="activeTab = 'info'"
-              >
-                <el-icon><InfoFilled /></el-icon>
-                信息
-              </el-button>
-              <el-button 
-                :type="activeTab === 'data' ? 'primary' : ''"
-                @click="activeTab = 'data'"
-              >
-                <el-icon><Grid /></el-icon>
-                数据
-              </el-button>
-              <el-button 
-                :type="activeTab === 'structure' ? 'primary' : ''"
-                @click="activeTab = 'structure'"
-              >
-                <el-icon><List /></el-icon>
-                结构
-              </el-button>
-              <el-button 
-                :type="activeTab === 'query' ? 'primary' : ''"
-                @click="activeTab = 'query'"
-              >
-                <el-icon><EditPen /></el-icon>
-                查询
-              </el-button>
-            </div>
-          </div>
-
-          <!-- 信息视图 -->
-          <div v-show="activeTab === 'info'" class="info-view">
+          <!-- 数据库首页 - 未选择表时显示 -->
+          <div v-if="!selectedTable" class="database-home">
+            <!-- 数据库信息 -->
+            <div class="info-view">
             <el-card class="info-card">
               <template #header>
                 <div class="card-header">
@@ -107,18 +69,22 @@
               </template>
               <div class="database-actions">
                 <el-button type="success" @click="backupDatabase" :loading="backupLoading">
-                  <el-icon><Download /></el-icon>
+                  <el-icon><FolderAdd /></el-icon>
                   备份数据库
+                </el-button>
+                <el-button type="primary" @click="downloadDatabase" :loading="downloadLoading">
+                  <el-icon><Download /></el-icon>
+                  下载数据库
                 </el-button>
                 <el-button type="warning" @click="showRestoreDialog">
                   <el-icon><Upload /></el-icon>
                   恢复数据库
                 </el-button>
-                <el-button type="primary" @click="optimizeDatabase" :loading="optimizeLoading">
+                <el-button type="info" @click="optimizeDatabase" :loading="optimizeLoading">
                   <el-icon><Tools /></el-icon>
                   优化数据库
                 </el-button>
-                <el-button type="info" @click="vacuumDatabase" :loading="vacuumLoading">
+                <el-button type="danger" @click="vacuumDatabase" :loading="vacuumLoading">
                   <el-icon><MagicStick /></el-icon>
                   清理数据库
                 </el-button>
@@ -143,7 +109,41 @@
                 </el-table-column>
               </el-table>
             </el-card>
+            </div>
           </div>
+
+          <!-- 表详情 - 选择表后显示 -->
+          <div v-else class="table-detail">
+            <!-- 工具栏 -->
+            <div class="toolbar">
+              <div class="toolbar-left">
+                <h3>{{ selectedTable }}</h3>
+                <el-tag type="info">{{ tableData.length }} 行</el-tag>
+              </div>
+              <div class="toolbar-right">
+                <el-button 
+                  :type="activeTab === 'data' ? 'primary' : ''"
+                  @click="activeTab = 'data'"
+                >
+                  <el-icon><Grid /></el-icon>
+                  数据
+                </el-button>
+                <el-button 
+                  :type="activeTab === 'structure' ? 'primary' : ''"
+                  @click="activeTab = 'structure'"
+                >
+                  <el-icon><List /></el-icon>
+                  结构
+                </el-button>
+                <el-button 
+                  :type="activeTab === 'query' ? 'primary' : ''"
+                  @click="activeTab = 'query'"
+                >
+                  <el-icon><EditPen /></el-icon>
+                  查询
+                </el-button>
+              </div>
+            </div>
 
           <!-- 数据视图 -->
           <div v-show="activeTab === 'data'" class="data-view">
@@ -511,6 +511,7 @@ const activeTab = ref('info'); // 默认显示信息页
 const databaseInfo = ref({});
 const databaseInfoLoading = ref(false);
 const backupLoading = ref(false);
+const downloadLoading = ref(false);
 const restoreLoading = ref(false);
 const optimizeLoading = ref(false);
 const vacuumLoading = ref(false);
@@ -654,6 +655,12 @@ const refreshTables = async () => {
   } finally {
     tablesLoading.value = false;
   }
+};
+
+// 显示数据库信息
+const showDatabaseInfo = () => {
+  selectedTable.value = '';
+  refreshDatabaseInfo();
 };
 
 // 选择表
@@ -992,9 +999,34 @@ const refreshDatabaseInfo = async () => {
 };
 
 const backupDatabase = async () => {
-  backupLoading.value = true;
   try {
-    const response = await axios.get('/api/database/backup', {
+    await ElMessageBox.confirm(
+      '将在数据库目录下创建备份文件，是否继续？',
+      '确认',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'info',
+      }
+    );
+    
+    backupLoading.value = true;
+    const response = await axios.post('/api/database/backup');
+    ElMessage.success(response.data.message || '数据库备份成功');
+    await refreshDatabaseInfo();
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('备份失败：' + (error.response?.data?.message || error.message));
+    }
+  } finally {
+    backupLoading.value = false;
+  }
+};
+
+const downloadDatabase = async () => {
+  downloadLoading.value = true;
+  try {
+    const response = await axios.get('/api/database/download', {
       responseType: 'blob'
     });
     
@@ -1003,17 +1035,17 @@ const backupDatabase = async () => {
     const link = document.createElement('a');
     link.href = url;
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-    link.setAttribute('download', `csweaponmanager_backup_${timestamp}.db`);
+    link.setAttribute('download', `csweaponmanager_${timestamp}.db`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
     
-    ElMessage.success('数据库备份成功');
+    ElMessage.success('数据库下载成功');
   } catch (error) {
-    ElMessage.error('备份失败：' + (error.response?.data?.message || error.message));
+    ElMessage.error('下载失败：' + (error.response?.data?.message || error.message));
   } finally {
-    backupLoading.value = false;
+    downloadLoading.value = false;
   }
 };
 
@@ -1072,7 +1104,7 @@ const confirmRestore = async () => {
 const optimizeDatabase = async () => {
   try {
     await ElMessageBox.confirm(
-      '优化数据库将重新组织数据结构，提高查询效率。是否继续？',
+      '优化数据库将执行以下操作：\n1. 收集统计信息优化查询计划\n2. 重建所有索引提高效率\n3. 检查数据库完整性\n\n是否继续？',
       '确认',
       {
         confirmButtonText: '确定',
@@ -1082,8 +1114,19 @@ const optimizeDatabase = async () => {
     );
     
     optimizeLoading.value = true;
-    await axios.post('/api/database/optimize');
-    ElMessage.success('数据库优化成功');
+    const response = await axios.post('/api/database/optimize');
+    
+    // 显示优化操作详情
+    if (response.data.operations && response.data.operations.length > 0) {
+      const operations = response.data.operations.join('\n');
+      await ElMessageBox.alert(operations, '优化完成', {
+        confirmButtonText: '确定',
+        type: 'success',
+      });
+    } else {
+      ElMessage.success('数据库优化成功');
+    }
+    
     await refreshDatabaseInfo();
   } catch (error) {
     if (error !== 'cancel') {
@@ -1183,6 +1226,25 @@ onMounted(() => {
   font-size: 16px;
   color: #e0e0e0;
   font-weight: 600;
+}
+
+.database-info-header {
+  cursor: pointer;
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
+}
+
+.database-info-header:hover {
+  background: #2d2d2d;
+}
+
+.database-info-header.active {
+  background: #1e5fa8;
+  border-left-color: #409eff;
+}
+
+.database-info-header.active h3 {
+  color: #fff;
 }
 
 .tables-list {
@@ -1329,6 +1391,32 @@ onMounted(() => {
   font-size: 16px;
   color: #e0e0e0;
   margin: 0 0 15px 0;
+}
+
+/* 数据库首页 */
+.database-home {
+  flex: 1;
+  overflow: auto;
+  background: #1a1a1a;
+}
+
+.home-header {
+  padding: 30px 20px 20px;
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.home-header h2 {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  color: #e0e0e0;
+  font-weight: 600;
+}
+
+.home-header p {
+  margin: 0;
+  font-size: 14px;
+  color: #909399;
 }
 
 /* 信息视图 */

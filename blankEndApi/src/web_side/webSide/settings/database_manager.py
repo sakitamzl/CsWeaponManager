@@ -624,23 +624,48 @@ def get_database_info():
         return jsonify({'error': str(e)}), 500
 
 
-@database_manager_bp.route('/backup', methods=['GET'])
+@database_manager_bp.route('/backup', methods=['POST'])
 def backup_database():
-    """备份数据库"""
+    """备份数据库到服务器目录"""
     try:
         if not os.path.exists(DB_PATH):
             return jsonify({'error': '数据库文件不存在'}), 404
         
-        Log().write_log("开始备份数据库", 'INFO')
+        # 创建备份文件
+        import shutil
+        backup_filename = f'csweaponmanager_backup_{datetime.now().strftime("%Y%m%d_%H%M%S")}.db'
+        backup_path = os.path.join(os.path.dirname(DB_PATH), backup_filename)
+        
+        shutil.copy2(DB_PATH, backup_path)
+        
+        Log().write_log(f"数据库备份成功: {backup_path}", 'INFO')
+        return jsonify({
+            'message': f'数据库已备份到: {backup_filename}',
+            'path': backup_path
+        })
+    
+    except Exception as e:
+        Log().write_log(f"备份数据库失败: {str(e)}", 'ERROR')
+        return jsonify({'error': str(e)}), 500
+
+
+@database_manager_bp.route('/download', methods=['GET'])
+def download_database():
+    """下载数据库文件"""
+    try:
+        if not os.path.exists(DB_PATH):
+            return jsonify({'error': '数据库文件不存在'}), 404
+        
+        Log().write_log("开始下载数据库", 'INFO')
         return send_file(
             DB_PATH,
             as_attachment=True,
-            download_name=f'csweaponmanager_backup_{datetime.now().strftime("%Y%m%d_%H%M%S")}.db',
+            download_name=f'csweaponmanager_{datetime.now().strftime("%Y%m%d_%H%M%S")}.db',
             mimetype='application/x-sqlite3'
         )
     
     except Exception as e:
-        Log().write_log(f"备份数据库失败: {str(e)}", 'ERROR')
+        Log().write_log(f"下载数据库失败: {str(e)}", 'ERROR')
         return jsonify({'error': str(e)}), 500
 
 
@@ -681,18 +706,49 @@ def restore_database():
 
 @database_manager_bp.route('/optimize', methods=['POST'])
 def optimize_database():
-    """优化数据库"""
+    """优化数据库
+    
+    执行以下操作：
+    1. ANALYZE - 收集统计信息，优化查询计划
+    2. REINDEX - 重建所有索引，提高索引效率
+    3. 检查数据库完整性
+    """
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # 执行ANALYZE命令
+        operations = []
+        
+        # 1. 执行ANALYZE命令 - 收集统计信息
         cursor.execute('ANALYZE')
+        operations.append('✓ 已收集数据库统计信息')
+        
+        # 2. 重建索引 - 提高索引效率
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='index' AND name NOT LIKE 'sqlite_%'")
+        indexes = cursor.fetchall()
+        for idx in indexes:
+            try:
+                cursor.execute(f'REINDEX `{idx[0]}`')
+                operations.append(f'✓ 已重建索引: {idx[0]}')
+            except Exception as e:
+                operations.append(f'✗ 重建索引失败 {idx[0]}: {str(e)}')
+        
+        # 3. 检查数据库完整性
+        cursor.execute('PRAGMA integrity_check')
+        integrity_result = cursor.fetchone()[0]
+        if integrity_result == 'ok':
+            operations.append('✓ 数据库完整性检查通过')
+        else:
+            operations.append(f'⚠ 数据库完整性检查: {integrity_result}')
+        
         conn.commit()
         conn.close()
         
-        Log().write_log("数据库优化成功", 'INFO')
-        return jsonify({'message': '数据库优化成功'})
+        Log().write_log(f"数据库优化成功: {', '.join(operations)}", 'INFO')
+        return jsonify({
+            'message': '数据库优化成功',
+            'operations': operations
+        })
     
     except Exception as e:
         Log().write_log(f"优化数据库失败: {str(e)}", 'ERROR')
