@@ -80,6 +80,15 @@
             </el-icon>
             <span>登录设置</span>
           </li>
+          <li 
+            :class="{ active: $route.name === 'DatabaseManager' }"
+            @click="navigateTo('/settings/database-manager')"
+          >
+            <el-icon :size="18">
+              <Coin />
+            </el-icon>
+            <span>数据库管理</span>
+          </li>
         </ul>
       </div>
     </aside>

@@ -127,6 +127,12 @@ const routes = [
             name: 'SystemSettings',
             component: () => import('@/views/settings/SystemSettings.vue'),
             meta: { title: '登录设置' }
+          },
+          {
+            path: 'database-manager',
+            name: 'DatabaseManager',
+            component: () => import('@/views/settings/DatabaseManager.vue'),
+            meta: { title: '数据库管理' }
           }
         ]
       }
