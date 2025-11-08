@@ -522,13 +522,9 @@ def collect_datasource(data_id):
         # 模拟采集结果
         collected_count = random.randint(50, 500)
         
-        # 更新数据源的最后更新时间（可选）
+        # 不再更新config表的最后更新时间
+        # 采集操作不应修改数据源配置
         from datetime import datetime
-        update_sql = f"""
-        UPDATE config SET value = CONCAT(IFNULL(value, ''), 
-        ', last_collect: {datetime.now().isoformat()}') 
-        WHERE dataID = {data_id} AND key2 = 'last_collect'
-        """
         
         Log().write_log(f"采集完成: {data_name}, 采集到 {collected_count} 条数据", 'info')
         

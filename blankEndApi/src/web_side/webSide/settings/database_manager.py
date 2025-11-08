@@ -6,6 +6,7 @@ from flask import Blueprint, request, jsonify, send_file
 from src.log import Log
 import sqlite3
 import os
+import sys
 import csv
 import json
 import io
@@ -14,10 +15,21 @@ from datetime import datetime
 database_manager_bp = Blueprint('database_manager', __name__, url_prefix='/database')
 
 # 数据库路径
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))), 'csweaponmanager.db')
+# 支持PyInstaller打包后的路径
+def get_base_path():
+    """获取应用程序的基础路径"""
+    if getattr(sys, 'frozen', False):
+        # 如果是打包后的exe
+        return os.path.dirname(sys.executable)
+    else:
+        # 如果是开发环境
+        return os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
+
+DB_PATH = os.path.join(get_base_path(), 'csweaponmanager.db')
 
 print("✅ 数据库管理蓝图已加载")
 print(f"📁 数据库路径: {DB_PATH}")
+print(f"🔧 运行模式: {'打包exe' if getattr(sys, 'frozen', False) else '开发环境'}")
 
 
 def get_db_connection():
