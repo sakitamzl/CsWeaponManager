@@ -93,15 +93,15 @@ const routes = [
             meta: { title: '自动化管理' }
           },
           {
-            path: 'spider-rename',
-            name: 'SpiderRename',
-            component: () => import('@/views/settings/SpiderWeaponRename.vue'),
+            path: 'search-rename',
+            name: 'SearchRename',
+            component: () => import('@/views/settings/SearchWeaponRename.vue'),
             meta: { title: '爬取改名' }
           },
           {
-            path: 'spider-pendant',
-            name: 'SpiderPendant',
-            component: () => import('@/views/settings/SpiderPendant.vue'),
+            path: 'search-pendant',
+            name: 'SearchPendant',
+            component: () => import('@/views/settings/SearchPendant.vue'),
             meta: { title: '爬取挂件' }
           },
           {

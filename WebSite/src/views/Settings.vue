@@ -27,8 +27,8 @@
             <span>自动化管理</span>
           </li>
           <li 
-            :class="{ active: $route.name === 'SpiderRename' }"
-            @click="navigateTo('/settings/spider-rename')"
+            :class="{ active: $route.name === 'SearchRename' }"
+            @click="navigateTo('/settings/search-rename')"
           >
             <el-icon :size="18">
               <EditPen />
@@ -36,8 +36,8 @@
             <span>爬取改名</span>
           </li>
           <li 
-            :class="{ active: $route.name === 'SpiderPendant' }"
-            @click="navigateTo('/settings/spider-pendant')"
+            :class="{ active: $route.name === 'SearchPendant' }"
+            @click="navigateTo('/settings/search-pendant')"
           >
             <el-icon :size="18">
               <PriceTag />
