@@ -11,13 +11,6 @@
             @click="showDatabaseInfo"
           >
             <h3>📊 数据库信息</h3>
-            <el-button 
-              size="small" 
-              @click.stop="refreshTables" 
-              :loading="tablesLoading"
-              :icon="Refresh"
-              circle
-            />
           </div>
           
           <div class="tables-list">
