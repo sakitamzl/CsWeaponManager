@@ -7,69 +7,42 @@
       </div>
 
       <div class="manager-layout">
-      <!-- 左侧：表列表 -->
-      <div class="sidebar" :class="{ collapsed: sidebarCollapsed }">
-        <div class="sidebar-header">
-          <el-icon><Files /></el-icon>
-          <span v-if="!sidebarCollapsed">数据表</span>
-          <el-button 
-            v-if="!sidebarCollapsed"
-            type="primary" 
-            size="small" 
-            @click="refreshTables"
-            :loading="tablesLoading"
-          >
-            <el-icon><Refresh /></el-icon>
-          </el-button>
-        </div>
-        
-        <div class="sidebar-content">
-          <el-input
-            v-if="!sidebarCollapsed"
-            v-model="tableSearchQuery"
-            placeholder="搜索表名..."
-            :prefix-icon="Search"
-            size="small"
-            clearable
-            style="margin-bottom: 10px;"
-          />
-          
-          <div class="table-list">
-            <div 
-              v-for="table in filteredTables" 
-              :key="table.name"
-              class="table-item"
-              :class="{ active: selectedTable === table.name }"
-              @click="selectTable(table.name)"
-              :title="table.name"
+        <!-- 表选择区域 -->
+        <div class="table-selector">
+          <div class="selector-left">
+            <el-select 
+              v-model="selectedTable" 
+              placeholder="选择数据表" 
+              filterable
+              @change="onTableChange"
+              style="width: 300px;"
             >
-              <el-icon><Document /></el-icon>
-              <span v-if="!sidebarCollapsed" class="table-name">{{ table.name }}</span>
-              <el-tag v-if="!sidebarCollapsed" size="small" type="info">{{ table.rowCount }}</el-tag>
-            </div>
+              <el-option
+                v-for="table in tables"
+                :key="table.name"
+                :label="`${table.name} (${table.rowCount}行)`"
+                :value="table.name"
+              >
+                <span style="float: left">{{ table.name }}</span>
+                <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">
+                  {{ table.rowCount }} 行
+                </span>
+              </el-option>
+            </el-select>
+            
+            <el-button @click="refreshTables" :loading="tablesLoading">
+              <el-icon><Refresh /></el-icon>
+              刷新
+            </el-button>
           </div>
         </div>
-        
-        <div class="sidebar-footer">
-          <el-button 
-            text 
-            @click="sidebarCollapsed = !sidebarCollapsed"
-            style="width: 100%;"
-          >
-            <el-icon>
-              <DArrowLeft v-if="!sidebarCollapsed" />
-              <DArrowRight v-else />
-            </el-icon>
-          </el-button>
-        </div>
-      </div>
 
-      <!-- 右侧：主内容区 -->
-      <div class="main-content">
-        <!-- 空状态 -->
-        <div v-if="!selectedTable" class="empty-state">
-          <el-empty description="请从左侧选择一个数据表" />
-        </div>
+        <!-- 主内容区 -->
+        <div class="main-content">
+          <!-- 空状态 -->
+          <div v-if="!selectedTable" class="empty-state">
+            <el-empty description="请选择一个数据表" />
+          </div>
 
         <!-- 表详情 -->
         <div v-else class="table-detail">
@@ -452,6 +425,15 @@ const selectTable = async (tableName) => {
   await loadTableStructure();
 };
 
+// 表选择变化
+const onTableChange = async () => {
+  if (selectedTable.value) {
+    activeTab.value = 'data';
+    await loadTableData();
+    await loadTableStructure();
+  }
+};
+
 // 加载表数据
 const loadTableData = async () => {
   if (!selectedTable.value) return;
@@ -727,7 +709,7 @@ onMounted(() => {
 .database-manager-wrapper {
   width: 100%;
   height: 100%;
-  background: #f5f7fa;
+  background: #1a1a1a;
   overflow: hidden;
 }
 
@@ -741,101 +723,50 @@ onMounted(() => {
 
 .page-header {
   padding: 20px;
-  background: white;
-  border-bottom: 1px solid #ebeef5;
+  background: #2a2a2a;
+  border-bottom: 1px solid #3a3a3a;
   flex-shrink: 0;
 }
 
 .page-header h2 {
   font-size: 24px;
-  color: #303133;
+  color: #e0e0e0;
   margin: 0 0 8px 0;
 }
 
 .description {
-  color: #606266;
+  color: #a0a0a0;
   font-size: 14px;
   margin: 0;
 }
 
 .manager-layout {
   display: flex;
+  flex-direction: column;
   flex: 1;
   overflow: hidden;
   min-height: 0;
 }
 
-/* 侧边栏 */
-.sidebar {
-  width: 280px;
-  background: white;
-  border-right: 1px solid #ebeef5;
-  display: flex;
-  flex-direction: column;
-  transition: width 0.3s;
+/* 表选择区域 */
+.table-selector {
+  padding: 15px 20px;
+  background: #2a2a2a;
+  border-bottom: 1px solid #3a3a3a;
+  flex-shrink: 0;
 }
 
-.sidebar.collapsed {
-  width: 60px;
-}
-
-.sidebar-header {
-  padding: 15px;
-  border-bottom: 1px solid #ebeef5;
+.selector-left {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-weight: 600;
-}
-
-.sidebar-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 10px;
-}
-
-.table-list {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.table-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.table-item:hover {
-  background: #f5f7fa;
-}
-
-.table-item.active {
-  background: #ecf5ff;
-  color: #409eff;
-}
-
-.table-name {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sidebar-footer {
-  padding: 10px;
-  border-top: 1px solid #ebeef5;
 }
 
 /* 主内容区 */
 .main-content {
   flex: 1;
   overflow: auto;
-  background: white;
+  background: #1a1a1a;
 }
 
 .empty-state {
@@ -853,7 +784,8 @@ onMounted(() => {
 
 .toolbar {
   padding: 15px 20px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid #3a3a3a;
+  background: #2a2a2a;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -868,7 +800,7 @@ onMounted(() => {
 .toolbar-left h3 {
   margin: 0;
   font-size: 18px;
-  color: #303133;
+  color: #e0e0e0;
 }
 
 /* 数据视图 */
@@ -881,7 +813,8 @@ onMounted(() => {
 
 .data-toolbar {
   padding: 15px 20px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid #3a3a3a;
+  background: #2a2a2a;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -899,6 +832,7 @@ onMounted(() => {
   flex: 1;
   overflow: auto;
   padding: 20px;
+  background: #1a1a1a;
 }
 
 .structure-info,
@@ -909,7 +843,7 @@ onMounted(() => {
 .structure-info h4,
 .structure-sql h4 {
   font-size: 16px;
-  color: #303133;
+  color: #e0e0e0;
   margin: 0 0 15px 0;
 }
 
@@ -921,6 +855,7 @@ onMounted(() => {
   overflow: hidden;
   padding: 20px;
   gap: 20px;
+  background: #1a1a1a;
 }
 
 .query-editor {
@@ -938,9 +873,10 @@ onMounted(() => {
 .query-result {
   flex: 1;
   overflow: auto;
-  border: 1px solid #ebeef5;
+  border: 1px solid #3a3a3a;
   border-radius: 4px;
   padding: 15px;
+  background: #2a2a2a;
 }
 
 .result-header {
@@ -953,6 +889,6 @@ onMounted(() => {
 .result-header h4 {
   margin: 0;
   font-size: 16px;
-  color: #303133;
+  color: #e0e0e0;
 }
 </style>
