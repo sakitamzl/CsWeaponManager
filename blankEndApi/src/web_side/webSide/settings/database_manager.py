@@ -576,3 +576,145 @@ def get_database_stats():
         Log().write_log(f"获取数据库统计失败: {str(e)}", 'ERROR')
         return jsonify({'error': str(e)}), 500
 
+
+@database_manager_bp.route('/info', methods=['GET'])
+def get_database_info():
+    """获取数据库详细信息"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # 获取表数量和总行数
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        tables = cursor.fetchall()
+        table_count = len(tables)
+        
+        total_rows = 0
+        for row in tables:
+            try:
+                cursor.execute(f"SELECT COUNT(*) as count FROM `{row['name']}`")
+                total_rows += cursor.fetchone()['count']
+            except:
+                pass
+        
+        conn.close()
+        
+        # 获取文件信息
+        file_size = 0
+        create_time = 'N/A'
+        modify_time = 'N/A'
+        
+        if os.path.exists(DB_PATH):
+            file_size = os.path.getsize(DB_PATH)
+            create_time = datetime.fromtimestamp(os.path.getctime(DB_PATH)).strftime('%Y-%m-%d %H:%M:%S')
+            modify_time = datetime.fromtimestamp(os.path.getmtime(DB_PATH)).strftime('%Y-%m-%d %H:%M:%S')
+        
+        Log().write_log("获取数据库信息成功", 'INFO')
+        return jsonify({
+            'name': os.path.basename(DB_PATH),
+            'path': DB_PATH,
+            'size': file_size,
+            'totalRows': total_rows,
+            'createTime': create_time,
+            'modifyTime': modify_time
+        })
+    
+    except Exception as e:
+        Log().write_log(f"获取数据库信息失败: {str(e)}", 'ERROR')
+        return jsonify({'error': str(e)}), 500
+
+
+@database_manager_bp.route('/backup', methods=['GET'])
+def backup_database():
+    """备份数据库"""
+    try:
+        if not os.path.exists(DB_PATH):
+            return jsonify({'error': '数据库文件不存在'}), 404
+        
+        Log().write_log("开始备份数据库", 'INFO')
+        return send_file(
+            DB_PATH,
+            as_attachment=True,
+            download_name=f'csweaponmanager_backup_{datetime.now().strftime("%Y%m%d_%H%M%S")}.db',
+            mimetype='application/x-sqlite3'
+        )
+    
+    except Exception as e:
+        Log().write_log(f"备份数据库失败: {str(e)}", 'ERROR')
+        return jsonify({'error': str(e)}), 500
+
+
+@database_manager_bp.route('/restore', methods=['POST'])
+def restore_database():
+    """恢复数据库"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': '没有上传文件'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': '文件名为空'}), 400
+        
+        # 验证文件扩展名
+        allowed_extensions = {'.db', '.sqlite', '.sqlite3'}
+        file_ext = os.path.splitext(file.filename)[1].lower()
+        if file_ext not in allowed_extensions:
+            return jsonify({'error': '不支持的文件格式'}), 400
+        
+        # 备份当前数据库
+        backup_path = DB_PATH + f'.backup_{datetime.now().strftime("%Y%m%d_%H%M%S")}'
+        if os.path.exists(DB_PATH):
+            import shutil
+            shutil.copy2(DB_PATH, backup_path)
+            Log().write_log(f"当前数据库已备份到: {backup_path}", 'INFO')
+        
+        # 保存上传的文件
+        file.save(DB_PATH)
+        
+        Log().write_log("数据库恢复成功", 'INFO')
+        return jsonify({'message': '数据库恢复成功'})
+    
+    except Exception as e:
+        Log().write_log(f"恢复数据库失败: {str(e)}", 'ERROR')
+        return jsonify({'error': str(e)}), 500
+
+
+@database_manager_bp.route('/optimize', methods=['POST'])
+def optimize_database():
+    """优化数据库"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # 执行ANALYZE命令
+        cursor.execute('ANALYZE')
+        conn.commit()
+        conn.close()
+        
+        Log().write_log("数据库优化成功", 'INFO')
+        return jsonify({'message': '数据库优化成功'})
+    
+    except Exception as e:
+        Log().write_log(f"优化数据库失败: {str(e)}", 'ERROR')
+        return jsonify({'error': str(e)}), 500
+
+
+@database_manager_bp.route('/vacuum', methods=['POST'])
+def vacuum_database():
+    """清理数据库（VACUUM）"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # 执行VACUUM命令
+        cursor.execute('VACUUM')
+        conn.commit()
+        conn.close()
+        
+        Log().write_log("数据库清理成功", 'INFO')
+        return jsonify({'message': '数据库清理成功'})
+    
+    except Exception as e:
+        Log().write_log(f"清理数据库失败: {str(e)}", 'ERROR')
+        return jsonify({'error': str(e)}), 500
+

@@ -6,7 +6,7 @@
         <!-- 左侧表列表 -->
         <div class="left-sidebar">
           <div class="sidebar-header">
-            <h3>数据表</h3>
+            <h3>数据库</h3>
             <el-button 
               size="small" 
               @click="refreshTables" 
@@ -46,6 +46,13 @@
             </div>
             <div class="toolbar-right">
               <el-button 
+                :type="activeTab === 'info' ? 'primary' : ''"
+                @click="activeTab = 'info'"
+              >
+                <el-icon><InfoFilled /></el-icon>
+                信息
+              </el-button>
+              <el-button 
                 :type="activeTab === 'data' ? 'primary' : ''"
                 @click="activeTab = 'data'"
               >
@@ -67,6 +74,75 @@
                 查询
               </el-button>
             </div>
+          </div>
+
+          <!-- 信息视图 -->
+          <div v-show="activeTab === 'info'" class="info-view">
+            <el-card class="info-card">
+              <template #header>
+                <div class="card-header">
+                  <span>数据库信息</span>
+                  <el-button type="primary" size="small" @click="refreshDatabaseInfo" :loading="databaseInfoLoading">
+                    <el-icon><Refresh /></el-icon>
+                    刷新
+                  </el-button>
+                </div>
+              </template>
+              <el-descriptions :column="2" border>
+                <el-descriptions-item label="数据库文件">{{ databaseInfo.name || 'csweaponmanager.db' }}</el-descriptions-item>
+                <el-descriptions-item label="文件大小">{{ formatSize(databaseInfo.size) }}</el-descriptions-item>
+                <el-descriptions-item label="表数量">{{ tables.length }}</el-descriptions-item>
+                <el-descriptions-item label="总行数">{{ databaseInfo.totalRows || 0 }}</el-descriptions-item>
+                <el-descriptions-item label="创建时间" :span="2">{{ databaseInfo.createTime || 'N/A' }}</el-descriptions-item>
+                <el-descriptions-item label="最后修改时间" :span="2">{{ databaseInfo.modifyTime || 'N/A' }}</el-descriptions-item>
+                <el-descriptions-item label="文件路径" :span="2">{{ databaseInfo.path || 'N/A' }}</el-descriptions-item>
+              </el-descriptions>
+            </el-card>
+
+            <el-card class="info-card" style="margin-top: 20px;">
+              <template #header>
+                <div class="card-header">
+                  <span>数据库操作</span>
+                </div>
+              </template>
+              <div class="database-actions">
+                <el-button type="success" @click="backupDatabase" :loading="backupLoading">
+                  <el-icon><Download /></el-icon>
+                  备份数据库
+                </el-button>
+                <el-button type="warning" @click="showRestoreDialog">
+                  <el-icon><Upload /></el-icon>
+                  恢复数据库
+                </el-button>
+                <el-button type="primary" @click="optimizeDatabase" :loading="optimizeLoading">
+                  <el-icon><Tools /></el-icon>
+                  优化数据库
+                </el-button>
+                <el-button type="info" @click="vacuumDatabase" :loading="vacuumLoading">
+                  <el-icon><MagicStick /></el-icon>
+                  清理数据库
+                </el-button>
+              </div>
+            </el-card>
+
+            <el-card class="info-card" style="margin-top: 20px;">
+              <template #header>
+                <div class="card-header">
+                  <span>表统计</span>
+                </div>
+              </template>
+              <el-table :data="tables" style="width: 100%" border max-height="400">
+                <el-table-column prop="name" label="表名" />
+                <el-table-column prop="rowCount" label="行数" width="120" sortable />
+                <el-table-column label="操作" width="100">
+                  <template #default="{ row }">
+                    <el-button type="primary" size="small" link @click="selectTable(row.name)">
+                      查看
+                    </el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-card>
           </div>
 
           <!-- 数据视图 -->
@@ -372,6 +448,46 @@
         <el-button type="primary" @click="applyFilters">应用筛选</el-button>
       </template>
     </el-dialog>
+
+    <!-- 恢复数据库对话框 -->
+    <el-dialog v-model="restoreDialogVisible" title="恢复数据库" width="500px">
+      <el-alert
+        title="警告"
+        type="warning"
+        description="恢复数据库将覆盖当前数据库，此操作不可逆！请确保已备份当前数据。"
+        :closable="false"
+        style="margin-bottom: 20px;"
+      />
+      <el-upload
+        ref="uploadRef"
+        :auto-upload="false"
+        :limit="1"
+        accept=".db,.sqlite,.sqlite3"
+        :on-change="handleFileChange"
+      >
+        <el-button type="primary">
+          <el-icon><Upload /></el-icon>
+          选择备份文件
+        </el-button>
+        <template #tip>
+          <div class="el-upload__tip">
+            只能上传 .db / .sqlite / .sqlite3 文件
+          </div>
+        </template>
+      </el-upload>
+      <div v-if="restoreFile" style="margin-top: 15px;">
+        <el-descriptions :column="1" border>
+          <el-descriptions-item label="文件名">{{ restoreFile.name }}</el-descriptions-item>
+          <el-descriptions-item label="文件大小">{{ formatSize(restoreFile.size) }}</el-descriptions-item>
+        </el-descriptions>
+      </div>
+      <template #footer>
+        <el-button @click="restoreDialogVisible = false">取消</el-button>
+        <el-button type="danger" @click="confirmRestore" :disabled="!restoreFile" :loading="restoreLoading">
+          确认恢复
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -389,7 +505,17 @@ const tablesLoading = ref(false);
 
 // 选中的表
 const selectedTable = ref('');
-const activeTab = ref('data');
+const activeTab = ref('info'); // 默认显示信息页
+
+// 数据库信息
+const databaseInfo = ref({});
+const databaseInfoLoading = ref(false);
+const backupLoading = ref(false);
+const restoreLoading = ref(false);
+const optimizeLoading = ref(false);
+const vacuumLoading = ref(false);
+const restoreDialogVisible = ref(false);
+const restoreFile = ref(null);
 
 // 表数据
 const tableData = ref([]);
@@ -852,10 +978,160 @@ const loadSavedQuery = () => {
   }
 };
 
+// 数据库信息和操作
+const refreshDatabaseInfo = async () => {
+  databaseInfoLoading.value = true;
+  try {
+    const response = await axios.get('/api/database/info');
+    databaseInfo.value = response.data;
+  } catch (error) {
+    ElMessage.error('获取数据库信息失败：' + (error.response?.data?.message || error.message));
+  } finally {
+    databaseInfoLoading.value = false;
+  }
+};
+
+const backupDatabase = async () => {
+  backupLoading.value = true;
+  try {
+    const response = await axios.get('/api/database/backup', {
+      responseType: 'blob'
+    });
+    
+    // 创建下载链接
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    link.setAttribute('download', `csweaponmanager_backup_${timestamp}.db`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    ElMessage.success('数据库备份成功');
+  } catch (error) {
+    ElMessage.error('备份失败：' + (error.response?.data?.message || error.message));
+  } finally {
+    backupLoading.value = false;
+  }
+};
+
+const showRestoreDialog = () => {
+  restoreFile.value = null;
+  restoreDialogVisible.value = true;
+};
+
+const handleFileChange = (file) => {
+  restoreFile.value = file.raw;
+};
+
+const confirmRestore = async () => {
+  if (!restoreFile.value) {
+    ElMessage.warning('请选择备份文件');
+    return;
+  }
+  
+  try {
+    await ElMessageBox.confirm(
+      '确定要恢复数据库吗？此操作将覆盖当前所有数据，且不可逆！',
+      '警告',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    );
+    
+    restoreLoading.value = true;
+    const formData = new FormData();
+    formData.append('file', restoreFile.value);
+    
+    await axios.post('/api/database/restore', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    
+    ElMessage.success('数据库恢复成功，页面将刷新');
+    restoreDialogVisible.value = false;
+    
+    // 刷新页面
+    setTimeout(() => {
+      window.location.reload();
+    }, 1500);
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('恢复失败：' + (error.response?.data?.message || error.message));
+    }
+  } finally {
+    restoreLoading.value = false;
+  }
+};
+
+const optimizeDatabase = async () => {
+  try {
+    await ElMessageBox.confirm(
+      '优化数据库将重新组织数据结构，提高查询效率。是否继续？',
+      '确认',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'info',
+      }
+    );
+    
+    optimizeLoading.value = true;
+    await axios.post('/api/database/optimize');
+    ElMessage.success('数据库优化成功');
+    await refreshDatabaseInfo();
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('优化失败：' + (error.response?.data?.message || error.message));
+    }
+  } finally {
+    optimizeLoading.value = false;
+  }
+};
+
+const vacuumDatabase = async () => {
+  try {
+    await ElMessageBox.confirm(
+      '清理数据库将回收未使用的空间，减小文件大小。是否继续？',
+      '确认',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'info',
+      }
+    );
+    
+    vacuumLoading.value = true;
+    await axios.post('/api/database/vacuum');
+    ElMessage.success('数据库清理成功');
+    await refreshDatabaseInfo();
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('清理失败：' + (error.response?.data?.message || error.message));
+    }
+  } finally {
+    vacuumLoading.value = false;
+  }
+};
+
+const formatSize = (bytes) => {
+  if (!bytes || bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+};
+
 // 初始化
 onMounted(() => {
   refreshTables();
   loadSavedQueries();
+  refreshDatabaseInfo();
 });
 </script>
 
@@ -1053,6 +1329,34 @@ onMounted(() => {
   font-size: 16px;
   color: #e0e0e0;
   margin: 0 0 15px 0;
+}
+
+/* 信息视图 */
+.info-view {
+  flex: 1;
+  overflow: auto;
+  padding: 20px;
+  background: #1a1a1a;
+}
+
+.info-card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+}
+
+.info-card .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+.database-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 /* 筛选功能 */
