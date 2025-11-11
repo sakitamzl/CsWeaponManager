@@ -26,14 +26,14 @@ def updateSellData():
         data = request.get_json()
         if not data:
             return jsonify({'success': False, 'error': '无效的JSON数据'}), 400
-            
+
         weapon_ID = data.get('ID')
         weapon_status = data.get('weapon_status')
         weapon_status_sub = data.get('weapon_status_sub')
-        
+
         if not weapon_ID or not weapon_status:
             return jsonify({'success': False, 'error': '缺少必需参数ID或weapon_status'}), 400
-        
+
         # 更新yyyp_sell表
         yyyp_record = YyypSellModel.find_by_id(ID=weapon_ID)
         if yyyp_record:
@@ -45,7 +45,7 @@ def updateSellData():
         else:
             print(f"yyyp_sell表中未找到记录: ID={weapon_ID}")
             return jsonify({'success': False, 'error': 'yyyp_sell表中记录不存在'}), 404
-        
+
         # 更新通用sell表
         sell_records = SellModel.find_all("ID LIKE ? AND \"from\" = 'yyyp'", (f"{weapon_ID}%",))
         sell_updated_count = 0
@@ -56,15 +56,68 @@ def updateSellData():
             sell_record.save()
             sell_updated_count += 1
         print(f"更新通用sell表成功: 共更新{sell_updated_count}条记录")
-        
+
         if yyyp_saved:
             return jsonify({'success': True, 'message': '更新成功'}), 200
         else:
             return jsonify({'success': False, 'error': '更新失败'}), 500
-            
+
     except Exception as e:
         print(f"更新销售数据失败: {e}")
         return jsonify({'success': False, 'error': f'服务器错误: {str(e)}'}), 500
+
+@youpin898SellV1.route('/updateSaleAfterWithdrawal', methods=['post'])
+def updateSaleAfterWithdrawal():
+    """
+    Update order status when buyer quote withdrawal is detected
+    Updates both yyyp_sell (exact match) and sell (fuzzy match with from='yyyp')
+    """
+    try:
+        data = request.get_json()
+        order_no = data.get('orderNo')
+        status = data.get('status', '已取消')
+        status_sub = data.get('status_sub', '买家报价撤回')
+
+        if not order_no:
+            return jsonify({'success': False, 'error': 'orderNo is required'}), 400
+
+        updated_count = 0
+
+        # Update yyyp_sell table (exact match)
+        yyyp_record = YyypSellModel.find_by_id(ID=order_no)
+        if yyyp_record:
+            yyyp_record.status = status
+            yyyp_record.status_sub = status_sub
+            if yyyp_record.save():
+                updated_count += 1
+                print(f"Updated yyyp_sell: {order_no}")
+
+        # Update sell table (fuzzy match: orderNo% + from='yyyp')
+        sell_records = SellModel.find_all("ID LIKE ? AND \"from\" = 'yyyp'", (f"{order_no}%",))
+        for sell_record in sell_records:
+            sell_record.status = status
+            sell_record.status_sub = status_sub
+            if sell_record.save():
+                updated_count += 1
+                print(f"Updated sell: {sell_record.ID}")
+
+        if updated_count > 0:
+            return jsonify({
+                'success': True,
+                'message': f'Successfully updated {updated_count} records',
+                'updated_count': updated_count
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'No records found to update'
+            }), 404
+
+    except Exception as e:
+        print(f"Update sale after withdrawal failed: {e}")
+        import traceback
+        print(f"Detailed error: {traceback.format_exc()}")
+        return jsonify({'success': False, 'error': f'Server error: {str(e)}'}), 500
 
 
 @youpin898SellV1.route('/selectApexTime/<data_user>', methods=['get'])

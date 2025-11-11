@@ -80,29 +80,87 @@ def updateBuyData():
         data = request.get_json()
         weapon_ID = data['ID']
         weapon_status = data['weapon_status']
-        
+        weapon_status_sub = data.get('weapon_status_sub')
+
         # 更新yyyp_buy表
         yyyp_record = YyypBuyModel.find_by_id(ID=weapon_ID)
         if yyyp_record:
             yyyp_record.status = weapon_status
+            if weapon_status_sub:
+                yyyp_record.status_sub = weapon_status_sub
             yyyp_saved = yyyp_record.save()
         else:
             return "记录不存在", 404
-        
+
         # 更新通用buy表
         buy_records = BuyModel.find_all("ID LIKE ? AND [from] = 'yyyp'", (f"{weapon_ID}%",))
         for buy_record in buy_records:
             buy_record.status = weapon_status
+            if weapon_status_sub:
+                buy_record.status_sub = weapon_status_sub
             buy_record.save()
-        
+
         if yyyp_saved:
             return jsonify({'success': True, 'message': '更新成功'}), 200
         else:
             return jsonify({'success': False, 'error': '更新失败'}), 500
-            
+
     except Exception as e:
         print(f"更新购买数据失败: {e}")
         return jsonify({'success': False, 'error': f'服务器错误: {str(e)}'}), 500
+
+@youpin898BuyV1.route('/updateSaleAfterWithdrawal', methods=['post'])
+def updateSaleAfterWithdrawal():
+    """
+    Update order status when seller quote withdrawal is detected
+    Updates both yyyp_buy (exact match) and buy (fuzzy match with from='yyyp')
+    """
+    try:
+        data = request.get_json()
+        order_no = data.get('orderNo')
+        status = data.get('status', '已取消')
+        status_sub = data.get('status_sub', '卖家报价撤回')
+
+        if not order_no:
+            return jsonify({'success': False, 'error': 'orderNo is required'}), 400
+
+        updated_count = 0
+
+        # Update yyyp_buy table (exact match)
+        yyyp_record = YyypBuyModel.find_by_id(ID=order_no)
+        if yyyp_record:
+            yyyp_record.status = status
+            yyyp_record.status_sub = status_sub
+            if yyyp_record.save():
+                updated_count += 1
+                print(f"Updated yyyp_buy: {order_no}")
+
+        # Update buy table (fuzzy match: orderNo% + from='yyyp')
+        buy_records = BuyModel.find_all("ID LIKE ? AND [from] = 'yyyp'", (f"{order_no}%",))
+        for buy_record in buy_records:
+            buy_record.status = status
+            buy_record.status_sub = status_sub
+            if buy_record.save():
+                updated_count += 1
+                print(f"Updated buy: {buy_record.ID}")
+
+        if updated_count > 0:
+            return jsonify({
+                'success': True,
+                'message': f'Successfully updated {updated_count} records',
+                'updated_count': updated_count
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'No records found to update'
+            }), 404
+
+    except Exception as e:
+        print(f"Update sale after withdrawal failed: {e}")
+        import traceback
+        print(f"Detailed error: {traceback.format_exc()}")
+        return jsonify({'success': False, 'error': f'Server error: {str(e)}'}), 500
 
 
 
