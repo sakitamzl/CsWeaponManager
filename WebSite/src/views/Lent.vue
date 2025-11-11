@@ -35,6 +35,16 @@
                 <el-option label="全部" value="all" />
                 <el-option v-for="status in statusList" :key="status" :label="status" :value="status" />
               </el-select>
+              <el-select
+                v-model="statusSubFilter"
+                placeholder="选择子状态"
+                class="status-select"
+                @change="handleStatusSubChange"
+                clearable
+              >
+                <el-option label="全部" value="all" />
+                <el-option v-for="sub in statusSubList" :key="sub" :label="sub" :value="sub" />
+              </el-select>
               <el-select 
                 v-model="weaponTypeFilter" 
                 placeholder="选择武器类型（可多选）" 
@@ -101,6 +111,9 @@
               @close="removeWeaponType(type)"
             >
               类型: {{ type }}
+            </el-tag>
+            <el-tag v-if="statusSubFilter && statusSubFilter !== 'all'" type="success" size="small" closable @close="statusSubFilter = 'all'">
+              子状态: {{ statusSubFilter }}
             </el-tag>
             <el-tag 
               v-for="range in floatRangeFilter" 
@@ -280,6 +293,8 @@ export default {
     const weaponTypes = ref([])
     const floatRanges = ref([])
     const statusList = ref([])
+    const statusSubList = ref([])
+    const statusSubFilter = ref('all')
     const currentPage = ref(1)
     const pageSize = ref(20)
     const totalItems = ref(0)
@@ -290,6 +305,7 @@ export default {
     const hasAdvancedFilters = computed(() => {
       return (searchText.value && searchText.value.trim()) || 
              (statusFilter.value && statusFilter.value !== 'all') ||
+             (statusSubFilter.value && statusSubFilter.value !== 'all') ||
              (weaponTypeFilter.value && weaponTypeFilter.value.length > 0) ||
              (floatRangeFilter.value && floatRangeFilter.value.length > 0) ||
              (dateRange.value && dateRange.value.length === 2)
@@ -360,8 +376,16 @@ export default {
         return filtered.slice(start, end)
       }
 
-      // 非搜索模式直接返回服务器数据（已经分页）
-      return lentData.value
+      // 非搜索模式的筛选
+      let filtered = lentData.value
+      if (statusFilter.value !== 'all') {
+        filtered = filtered.filter(item => item.status === statusFilter.value)
+      }
+      if (statusSubFilter.value && statusSubFilter.value !== 'all') {
+        // 子状态对应 last_status 字段
+        filtered = filtered.filter(item => (item.last_status || '') === statusSubFilter.value)
+      }
+      return filtered
     })
 
     const formatTime = (time) => {
@@ -561,9 +585,11 @@ export default {
         
         console.log(`正在请求数据... 页码: ${currentPage.value}, 每页: ${pageSize.value}, min: ${min}, max: ${max}`)
         
-        // 根据状态筛选选择不同的API
+        // 根据状态/子状态筛选选择不同的API（子状态优先）
         let apiUrl = `/api/webLentV1/getLentData/${min}/${max}`
-        if (statusFilter.value !== 'all') {
+        if (statusSubFilter.value && statusSubFilter.value !== 'all') {
+          apiUrl = `/api/webLentV1/getLentDataByStatusSub/${encodeURIComponent(statusSubFilter.value)}/${min}/${max}`
+        } else if (statusFilter.value !== 'all') {
           apiUrl = `/api/webLentV1/getLentDataByStatus/${statusFilter.value}/${min}/${max}`
         }
         
@@ -679,6 +705,8 @@ export default {
     const handleClearSearch = () => {
       searchText.value = ''
       statusFilter.value = 'all'
+      statusSubFilter.value = 'all'
+      statusSubList.value = []
       weaponTypeFilter.value = []
       floatRangeFilter.value = []
       dateRange.value = null
@@ -686,11 +714,14 @@ export default {
       isSearchMode.value = false
       isTimeSearchMode.value = false
       allSearchResults.value = []
+      loadStatusSubList()
       loadLentData()
     }
 
     const handleStatusChange = () => {
       currentPage.value = 1
+      statusSubFilter.value = 'all'
+      loadStatusSubList()
       
       // 如果是搜索模式，只需要更新分页，不需要重新加载数据
       if (isSearchMode.value && searchText.value.trim()) {
@@ -700,6 +731,10 @@ export default {
         // 非搜索模式，重新加载数据
         loadLentData()
       }
+    }
+    const handleStatusSubChange = () => {
+      currentPage.value = 1
+      loadLentData()
     }
 
     const handleDateRangeChange = (value) => {
@@ -908,6 +943,22 @@ export default {
         console.error('获取状态列表失败:', error)
       }
     }
+    const loadStatusSubList = async () => {
+      try {
+        const response = await fetch(apiUrls.lentStatusSubList(statusFilter.value))
+        const result = await response.json()
+        if (result && result.success && Array.isArray(result.data)) {
+          statusSubList.value = result.data
+        } else if (Array.isArray(result)) {
+          statusSubList.value = result
+        } else {
+          statusSubList.value = []
+        }
+      } catch (error) {
+        console.error('获取子状态列表失败:', error)
+        statusSubList.value = []
+      }
+    }
 
     // 类型筛选处理
     const handleTypeChange = async () => {
@@ -1048,6 +1099,7 @@ export default {
       loadWeaponTypes()
       loadFloatRanges()
       loadStatusList()
+      loadStatusSubList()
     })
 
     return {
@@ -1063,6 +1115,8 @@ export default {
       weaponTypes,
       floatRanges,
       statusList,
+      statusSubList,
+      statusSubFilter,
       dateRange,
       isTimeSearchMode,
       currentPage,
@@ -1081,6 +1135,7 @@ export default {
       handleSearch,
       handleClearSearch,
       handleStatusChange,
+      handleStatusSubChange,
       handleTypeChange,
       handleWearChange,
       removeWeaponType,

@@ -88,6 +88,40 @@ def getStatusList():
             'data': []
         }), 500
 
+@webSellPageV1.route('/getStatusSubList', methods=['GET'])
+def getStatusSubList():
+    """根据指定状态获取对应的子状态唯一值列表（销售表 sell.status_sub）"""
+    try:
+        status = request.args.get('status', '').strip()
+        db = Date_base()
+        if not status or status == 'all':
+            sql = """
+            SELECT DISTINCT status_sub
+            FROM sell
+            WHERE status_sub IS NOT NULL
+              AND status_sub != ''
+            ORDER BY status_sub
+            """
+        else:
+            safe_status = status.replace("'", "''")
+            sql = f"""
+            SELECT DISTINCT status_sub
+            FROM sell
+            WHERE status = '{safe_status}'
+              AND status_sub IS NOT NULL
+              AND status_sub != ''
+            ORDER BY status_sub
+            """
+        success, result = db.select(sql)
+        sub_list = []
+        if success and result:
+            for row in result:
+                if row[0]:
+                    sub_list.append(row[0])
+        return jsonify({'success': True, 'data': sub_list}), 200
+    except Exception as e:
+        print(f"获取销售子状态失败: {e}")
+        return jsonify({'success': False, 'message': str(e), 'data': []}), 500
 @webSellPageV1.route('/getFloatRanges', methods=['GET'])
 def getFloatRanges():
     """获取所有磨损等级的唯一值（优先显示主要磨损等级）"""

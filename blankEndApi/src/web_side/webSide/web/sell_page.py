@@ -150,6 +150,73 @@ def getSellStatsByStatus(status):
             }), 200
     return "查询失败", 500
 
+@webSellV1.route('/getSellDataByStatusSub/<path:status_sub>/<int:min>/<int:max>', methods=['GET'])
+def getSellDataByStatusSub(status_sub, min, max):
+    if status_sub == 'all':
+        sql = f"""
+        SELECT ID, item_name, weapon_name, weapon_type, weapon_float, float_range, price, "from", order_time, status, status_sub
+        FROM sell
+        WHERE status_sub IS NOT NULL AND status_sub != ''
+        ORDER BY order_time DESC
+        LIMIT {max} OFFSET {min};
+        """
+    else:
+        safe_sub = status_sub.replace("'", "''")
+        sql = f"""
+        SELECT ID, item_name, weapon_name, weapon_type, weapon_float, float_range, price, "from", order_time, status, status_sub
+        FROM sell
+        WHERE status_sub = '{safe_sub}'
+        ORDER BY order_time DESC
+        LIMIT {max} OFFSET {min};
+        """
+    result = Date_base().select(sql)
+    if result and len(result) == 2:
+        flag, data = result
+        if flag:
+            return jsonify(data), 200
+    return "查询失败", 500
+
+@webSellV1.route('/getSellStatsByStatusSub/<path:status_sub>', methods=['GET'])
+def getSellStatsByStatusSub(status_sub):
+    if status_sub == 'all':
+        sql = """
+        SELECT 
+            COUNT(*) as total_count,
+            COALESCE(SUM(CASE WHEN status != '已取消' THEN price ELSE 0 END), 0) as total_amount,
+            COALESCE(AVG(CASE WHEN status != '已取消' THEN price ELSE NULL END), 0) as avg_price,
+            COUNT(CASE WHEN status = '已完成' THEN 1 END) as completed_count,
+            COUNT(CASE WHEN status = '已取消' THEN 1 END) as cancelled_count,
+            COUNT(CASE WHEN status = '待收货' THEN 1 END) as pending_count
+        FROM sell
+        WHERE status_sub IS NOT NULL AND status_sub != ''
+        """
+    else:
+        safe_sub = status_sub.replace("'", "''")
+        sql = f"""
+        SELECT 
+            COUNT(*) as total_count,
+            COALESCE(SUM(CASE WHEN status != '已取消' THEN price ELSE 0 END), 0) as total_amount,
+            COALESCE(AVG(CASE WHEN status != '已取消' THEN price ELSE NULL END), 0) as avg_price,
+            COUNT(CASE WHEN status = '已完成' THEN 1 END) as completed_count,
+            COUNT(CASE WHEN status = '已取消' THEN 1 END) as cancelled_count,
+            COUNT(CASE WHEN status = '待收货' THEN 1 END) as pending_count
+        FROM sell
+        WHERE status_sub = '{safe_sub}'
+        """
+    result = Date_base().select(sql)
+    if result and len(result) == 2:
+        flag, data = result
+        if flag and len(data) > 0:
+            stats = data[0]
+            return jsonify({
+                "total_count": stats[0],
+                "total_amount": round(float(stats[1]), 2),
+                "avg_price": round(float(stats[2]), 2),
+                "completed_count": stats[3],
+                "cancelled_count": stats[4],
+                "pending_count": stats[5]
+            }), 200
+    return "查询失败", 500
 @webSellV1.route('/getSellDataByTimeRange/<start_date>/<end_date>/<int:min>/<int:max>', methods=['GET'])
 def getSellDataByTimeRange(start_date, end_date, min, max):
     sql = f"""

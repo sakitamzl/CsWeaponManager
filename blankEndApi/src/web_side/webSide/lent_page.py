@@ -96,6 +96,42 @@ def getStatusList():
             'data': []
         }), 500
 
+@webLentPageV1.route('/getStatusSubList', methods=['GET'])
+def getStatusSubList():
+    """获取租赁子状态（来自 yyyp_lent.last_status）的唯一值列表，支持按主状态筛选"""
+    try:
+        status = request.args.get('status', '').strip()
+        db = Date_base()
+        if not status or status == 'all':
+            sql = """
+            SELECT DISTINCT last_status
+            FROM yyyp_lent
+            WHERE last_status IS NOT NULL
+              AND last_status != ''
+            ORDER BY last_status
+            """
+        else:
+            safe_status = status.replace("'", "''")
+            sql = f"""
+            SELECT DISTINCT last_status
+            FROM yyyp_lent
+            WHERE status = '{safe_status}'
+              AND last_status IS NOT NULL
+              AND last_status != ''
+            ORDER BY last_status
+            """
+        result = db.execute_query(sql)
+        sub_list = []
+        if result:
+            for row in result:
+                if row[0]:
+                    sub_list.append(row[0])
+        return jsonify({'success': True, 'data': sub_list}), 200
+    except Exception as e:
+        print(f"获取租赁子状态失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e), 'data': []}), 500
 @webLentPageV1.route('/getFloatRanges', methods=['GET'])
 def getFloatRanges():
     """获取所有磨损等级的唯一值（优先显示主要磨损等级）"""

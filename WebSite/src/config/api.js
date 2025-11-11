@@ -65,12 +65,14 @@ export const API_CONFIG = {
     SELL_WEAPON_TYPES: '/webSellPageV1/getWeaponTypes',
     SELL_FLOAT_RANGES: '/webSellPageV1/getFloatRanges',
     SELL_STATUS_LIST: '/webSellPageV1/getStatusList',
+    SELL_STATUS_SUB_LIST: (status) => `/webSellPageV1/getStatusSubList?status=${encodeURIComponent(status)}`,
     SELL_SEARCH_BY_TYPE_WEAR: '/webSellPageV1/searchByTypeAndWear',
     SELL_STATS_BY_TYPE_WEAR: '/webSellPageV1/getStatsByTypeAndWear',
     
     LENT_WEAPON_TYPES: '/webLentPageV1/getWeaponTypes',
     LENT_FLOAT_RANGES: '/webLentPageV1/getFloatRanges',
     LENT_STATUS_LIST: '/webLentPageV1/getStatusList',
+    LENT_STATUS_SUB_LIST: (status) => `/webLentPageV1/getStatusSubList?status=${encodeURIComponent(status)}`,
     LENT_SEARCH_BY_TYPE_WEAR: '/webLentPageV1/searchByTypeAndWear',
     LENT_STATS_BY_TYPE_WEAR: '/webLentPageV1/getStatsByTypeAndWear',
     
@@ -201,12 +203,14 @@ export const apiUrls = {
   sellWeaponTypes: () => getApiUrl(API_CONFIG.ENDPOINTS.SELL_WEAPON_TYPES),
   sellFloatRanges: () => getApiUrl(API_CONFIG.ENDPOINTS.SELL_FLOAT_RANGES),
   sellStatusList: () => getApiUrl(API_CONFIG.ENDPOINTS.SELL_STATUS_LIST),
+  sellStatusSubList: (status) => getApiUrl(API_CONFIG.ENDPOINTS.SELL_STATUS_SUB_LIST(status)),
   sellSearchByTypeWear: () => getApiUrl(API_CONFIG.ENDPOINTS.SELL_SEARCH_BY_TYPE_WEAR),
   sellStatsByTypeWear: () => getApiUrl(API_CONFIG.ENDPOINTS.SELL_STATS_BY_TYPE_WEAR),
   
   lentWeaponTypes: () => getApiUrl(API_CONFIG.ENDPOINTS.LENT_WEAPON_TYPES),
   lentFloatRanges: () => getApiUrl(API_CONFIG.ENDPOINTS.LENT_FLOAT_RANGES),
   lentStatusList: () => getApiUrl(API_CONFIG.ENDPOINTS.LENT_STATUS_LIST),
+  lentStatusSubList: (status) => getApiUrl(API_CONFIG.ENDPOINTS.LENT_STATUS_SUB_LIST(status)),
   lentSearchByTypeWear: () => getApiUrl(API_CONFIG.ENDPOINTS.LENT_SEARCH_BY_TYPE_WEAR),
   lentStatsByTypeWear: () => getApiUrl(API_CONFIG.ENDPOINTS.LENT_STATS_BY_TYPE_WEAR),
   

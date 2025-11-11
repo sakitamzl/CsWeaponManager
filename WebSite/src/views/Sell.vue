@@ -25,6 +25,16 @@
               <el-option label="全部" value="all" />
               <el-option v-for="status in statusList" :key="status" :label="status" :value="status" />
             </el-select>
+            <el-select
+              v-model="statusSubFilter"
+              placeholder="选择子状态"
+              class="status-select"
+              @change="handleStatusSubChange"
+              clearable
+            >
+              <el-option label="全部" value="all" />
+              <el-option v-for="sub in statusSubList" :key="sub" :label="sub" :value="sub" />
+            </el-select>
               <el-select 
                 v-model="weaponTypeFilter" 
                 placeholder="选择武器类型（可多选）" 
@@ -81,6 +91,9 @@
           </el-tag>
           <el-tag v-if="statusFilter && statusFilter !== 'all'" type="success" size="small" closable @close="statusFilter = 'all'">
             状态: {{ statusFilter }}
+          </el-tag>
+          <el-tag v-if="statusSubFilter && statusSubFilter !== 'all'" type="success" size="small" closable @close="statusSubFilter = 'all'">
+            子状态: {{ statusSubFilter }}
           </el-tag>
           <el-tag 
             v-for="type in weaponTypeFilter" 
@@ -275,6 +288,8 @@ export default {
     const weaponTypes = ref([])
     const floatRanges = ref([])
     const statusList = ref([])
+    const statusSubList = ref([])
+    const statusSubFilter = ref('all')
     const currentPage = ref(1)
     const pageSize = ref(20)
     const totalItems = ref(0)
@@ -286,6 +301,7 @@ export default {
     const hasAdvancedFilters = computed(() => {
       return (searchText.value && searchText.value.trim()) || 
              (statusFilter.value && statusFilter.value !== 'all') ||
+             (statusSubFilter.value && statusSubFilter.value !== 'all') ||
              (weaponTypeFilter.value && weaponTypeFilter.value.length > 0) ||
              (floatRangeFilter.value && floatRangeFilter.value.length > 0) ||
              (dateRange.value && dateRange.value.length === 2)
@@ -336,6 +352,9 @@ export default {
         if (statusFilter.value !== 'all') {
           filtered = filtered.filter(item => item.status === statusFilter.value)
         }
+        if (statusSubFilter.value && statusSubFilter.value !== 'all') {
+          filtered = filtered.filter(item => (item.status_sub || '') === statusSubFilter.value)
+        }
         
         // 更新总数以反映筛选后的结果
         totalItems.value = filtered.length
@@ -349,6 +368,9 @@ export default {
       // 非搜索模式的筛选（原有逻辑）
       if (statusFilter.value !== 'all') {
         filtered = filtered.filter(item => item.status === statusFilter.value)
+      }
+      if (statusSubFilter.value && statusSubFilter.value !== 'all') {
+        filtered = filtered.filter(item => (item.status_sub || '') === statusSubFilter.value)
       }
 
       return filtered
@@ -381,19 +403,23 @@ export default {
       return '#FFFFFF'
     }
 
-    const loadTotalStats = async (searchKeyword = null, filterStatus = null) => {
+    const loadTotalStats = async (searchKeyword = null, filterStatus = null, filterStatusSub = null) => {
       try {
-        console.log('正在获取总数统计...', { searchKeyword, filterStatus })
+        console.log('正在获取总数统计...', { searchKeyword, filterStatus, filterStatusSub })
         
         let apiUrl = '/api/webSellV1/getSellStats'
         
         // 根据传入的参数或当前状态选择不同的API
         const keyword = searchKeyword || searchText.value.trim()
         const status = filterStatus || statusFilter.value
+        const statusSub = filterStatusSub || statusSubFilter.value
         
         if (keyword) {
           apiUrl = `/api/webSellV1/getSellStatsBySearch/${encodeURIComponent(keyword)}`
           console.log('使用搜索统计API:', apiUrl)
+        } else if (statusSub && statusSub !== 'all') {
+          apiUrl = `/api/webSellV1/getSellStatsByStatusSub/${encodeURIComponent(statusSub)}`
+          console.log('使用子状态筛选统计API:', apiUrl)
         } else if (status !== 'all') {
           apiUrl = `/api/webSellV1/getSellStatsByStatus/${status}`
           console.log('使用状态筛选统计API:', apiUrl)
@@ -538,9 +564,11 @@ export default {
         
         console.log(`正在请求数据... 页码: ${currentPage.value}, 每页: ${pageSize.value}, min: ${min}, max: ${max}`)
         
-        // 根据状态筛选选择不同的API
+        // 根据状态/子状态筛选选择不同的API（子状态优先）
         let apiUrl = `/api/webSellV1/getSellData/${min}/${max}`
-        if (statusFilter.value !== 'all') {
+        if (statusSubFilter.value && statusSubFilter.value !== 'all') {
+          apiUrl = `/api/webSellV1/getSellDataByStatusSub/${encodeURIComponent(statusSubFilter.value)}/${min}/${max}`
+        } else if (statusFilter.value !== 'all') {
           apiUrl = `/api/webSellV1/getSellDataByStatus/${statusFilter.value}/${min}/${max}`
         }
         
@@ -603,8 +631,12 @@ export default {
 
         console.log('转换后的数据:', sellData.value)
         
-        // 获取总数统计
-        await loadTotalStats(null, statusFilter.value)
+        // 获取总数统计（子状态优先）
+        if (statusSubFilter.value && statusSubFilter.value !== 'all') {
+          await loadTotalStats(null, null, statusSubFilter.value)
+        } else {
+          await loadTotalStats(null, statusFilter.value)
+        }
         
         if (sellData.value.length === 0) {
           ElMessage.info('暂无出售数据')
@@ -653,6 +685,8 @@ export default {
     const handleClearSearch = () => {
       searchText.value = ''
       statusFilter.value = 'all'
+      statusSubFilter.value = 'all'
+      statusSubList.value = []
       weaponTypeFilter.value = []
       floatRangeFilter.value = []
       dateRange.value = null
@@ -660,6 +694,7 @@ export default {
       isSearchMode.value = false
       isTimeSearchMode.value = false
       allSearchResults.value = []
+      loadStatusSubList()
       loadSellData()
     }
 
@@ -683,14 +718,20 @@ export default {
 
     const handleStatusChange = async () => {
       currentPage.value = 1
+      statusSubFilter.value = 'all'
+      await loadStatusSubList()
 
       // 如果是搜索模式，只需要更新统计，不需要重新加载数据
       if (isSearchMode.value && searchText.value.trim()) {
-        await loadTotalStats(searchText.value.trim(), statusFilter.value)
+        await loadTotalStats(searchText.value.trim(), statusFilter.value, statusSubFilter.value)
       } else {
         // 非搜索模式，重新加载数据
         loadSellData()
       }
+    }
+    const handleStatusSubChange = () => {
+      currentPage.value = 1
+      loadSellData()
     }
 
     const handleSortChange = ({ column, prop, order }) => {
@@ -909,6 +950,22 @@ export default {
         console.error('获取状态列表失败:', error)
       }
     }
+    const loadStatusSubList = async () => {
+      try {
+        const response = await fetch(apiUrls.sellStatusSubList(statusFilter.value))
+        const result = await response.json()
+        if (result && result.success && Array.isArray(result.data)) {
+          statusSubList.value = result.data
+        } else if (Array.isArray(result)) {
+          statusSubList.value = result
+        } else {
+          statusSubList.value = []
+        }
+      } catch (error) {
+        console.error('获取子状态列表失败:', error)
+        statusSubList.value = []
+      }
+    }
 
     // 类型筛选处理
     const handleTypeChange = async () => {
@@ -1027,6 +1084,7 @@ export default {
       loadWeaponTypes()
       loadFloatRanges()
       loadStatusList()
+      loadStatusSubList()
     })
 
     return {
@@ -1042,6 +1100,8 @@ export default {
       weaponTypes,
       floatRanges,
       statusList,
+      statusSubList,
+      statusSubFilter,
       dateRange,
       isTimeSearchMode,
       currentPage,
@@ -1059,6 +1119,7 @@ export default {
       handleSearch,
       handleClearSearch,
       handleStatusChange,
+      handleStatusSubChange,
       handleSortChange,
       handleTypeChange,
       handleWearChange,
