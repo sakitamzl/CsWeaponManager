@@ -42,7 +42,7 @@ def getNowBuyingList(min, max):
 
 @webBuyV1.route('/selectBuyWeaponName/<itemName>', methods=['get'])
 def selectBuyWeaponName(itemName):
-    sql = f"SELECT ID, item_name, weapon_name, weapon_type, weapon_float, float_range, price, \"from\", order_time, status, status_sub FROM buy WHERE item_name LIKE '%{itemName}%' OR weapon_name LIKE '%{itemName}%';"
+    sql = f"SELECT ID, item_name, weapon_name, weapon_type, weapon_float, float_range, price, \"from\", order_time, status, status_sub FROM buy WHERE item_name LIKE '%{itemName}%' OR weapon_name LIKE '%{itemName}%' ORDER BY order_time DESC;"
     result = Date_base().select(sql)
     if result and len(result) == 2:
         flag, data = result
@@ -53,9 +53,9 @@ def selectBuyWeaponName(itemName):
 @webBuyV1.route('/getBuyDataByStatus/<status>/<int:min>/<int:max>', methods=['get'])
 def getBuyDataByStatus(status, min, max):
     if status == 'all':
-        sql = f"SELECT ID, item_name, weapon_name, weapon_type, weapon_float, float_range, price, \"from\", order_time, status, status_sub FROM buy LIMIT {max} OFFSET {min};"
+        sql = f"SELECT ID, item_name, weapon_name, weapon_type, weapon_float, float_range, price, \"from\", order_time, status, status_sub FROM buy ORDER BY order_time DESC LIMIT {max} OFFSET {min};"
     else:
-        sql = f"SELECT ID, item_name, weapon_name, weapon_type, weapon_float, float_range, price, \"from\", order_time, status, status_sub FROM buy WHERE status = '{status}' LIMIT {max} OFFSET {min};"
+        sql = f"SELECT ID, item_name, weapon_name, weapon_type, weapon_float, float_range, price, \"from\", order_time, status, status_sub FROM buy WHERE status = '{status}' ORDER BY order_time DESC LIMIT {max} OFFSET {min};"
     result = Date_base().select(sql)
     if result and len(result) == 2:
         flag, data = result
