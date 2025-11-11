@@ -28,7 +28,7 @@ def getLentData(min, max):
 
 @webLentV1.route('/selectLentWeaponName/<itemName>', methods=['get'])
 def selectLentWeaponName(itemName):
-    sql = f"SELECT ID, weapon_name, weapon_type, item_name, weapon_float, float_range, price, lenter_name, status, last_status, \"from\", lean_start_time, lean_end_time, total_Lease_Days, max_Lease_Days FROM yyyp_lent WHERE item_name LIKE '%{itemName}%' OR weapon_name LIKE '%{itemName}%';"
+    sql = f"SELECT ID, weapon_name, weapon_type, item_name, weapon_float, float_range, price, lenter_name, status, last_status, \"from\", lean_start_time, lean_end_time, total_Lease_Days, max_Lease_Days FROM yyyp_lent WHERE item_name LIKE '%{itemName}%' OR weapon_name LIKE '%{itemName}%' ORDER BY lean_start_time DESC;"
     result = Date_base().select(sql)
     if result and len(result) == 2:
         flag, data = result

@@ -42,7 +42,7 @@ def getSellData(min, max):
 
 @webSellV1.route('/selectSellWeaponName/<itemName>', methods=['get'])
 def selectSellWeaponName(itemName):
-    sql = f"SELECT ID, item_name, weapon_name, weapon_type, weapon_float, float_range, price, \"from\", order_time, status, status_sub FROM sell WHERE item_name LIKE '%{itemName}%' OR weapon_name LIKE '%{itemName}%';"
+    sql = f"SELECT ID, item_name, weapon_name, weapon_type, weapon_float, float_range, price, \"from\", order_time, status, status_sub FROM sell WHERE item_name LIKE '%{itemName}%' OR weapon_name LIKE '%{itemName}%' ORDER BY order_time DESC;"
     result = Date_base().select(sql)
     if result and len(result) == 2:
         flag, data = result
