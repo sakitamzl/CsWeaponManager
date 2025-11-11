@@ -381,7 +381,8 @@ export default {
       const statusMap = {
         '已完成': 'success',
         '已取消': 'danger',
-        '待收货': 'info'
+        '待收货': 'info',
+        '预售待交付': 'warning'
       }
       return statusMap[status] || 'info'
     }
@@ -390,7 +391,8 @@ export default {
       const colorMap = {
         '已完成': '#52c41a',    // 更鲜明的绿色
         '已取消': '#ff4d4f',    // 更鲜明的红色
-        '待收货': '#1890ff'     // 蓝色
+        '待收货': '#1890ff',    // 蓝色
+        '预售待交付': '#f5a623' // 黄色
       }
       return colorMap[status] || '#909399'
     }
@@ -400,19 +402,23 @@ export default {
       return '#FFFFFF'
     }
 
-    const loadTotalStats = async (searchKeyword = null, filterStatus = null) => {
+    const loadTotalStats = async (searchKeyword = null, filterStatus = null, filterStatusSub = null) => {
       try {
-        console.log('正在获取总数统计...', { searchKeyword, filterStatus })
+        console.log('正在获取总数统计...', { searchKeyword, filterStatus, filterStatusSub })
         
         let apiUrl = '/api/webBuyV1/getBuyStats'
         
         // 根据传入的参数或当前状态选择不同的API
         const keyword = searchKeyword || searchText.value.trim()
         const status = filterStatus || statusFilter.value
+        const statusSub = filterStatusSub || statusSubFilter.value
         
         if (keyword) {
           apiUrl = `/api/webBuyV1/getBuyStatsBySearch/${encodeURIComponent(keyword)}`
           console.log('使用搜索统计API:', apiUrl)
+        } else if (statusSub && statusSub !== 'all') {
+          apiUrl = `/api/webBuyV1/getBuyStatsByStatusSub/${encodeURIComponent(statusSub)}`
+          console.log('使用子状态筛选统计API:', apiUrl)
         } else if (status !== 'all') {
           apiUrl = `/api/webBuyV1/getBuyStatsByStatus/${status}`
           console.log('使用状态筛选统计API:', apiUrl)
@@ -589,9 +595,11 @@ export default {
         
         console.log(`正在请求数据... 页码: ${currentPage.value}, 每页: ${pageSize.value}, min: ${min}, max: ${max}`)
         
-        // 根据状态筛选选择不同的API
+        // 根据状态/子状态筛选选择不同的API（子状态优先）
         let apiUrl = `/api/webBuyV1/getBuyData/${min}/${max}`
-        if (statusFilter.value !== 'all') {
+        if (statusSubFilter.value && statusSubFilter.value !== 'all') {
+          apiUrl = `/api/webBuyV1/getBuyDataByStatusSub/${encodeURIComponent(statusSubFilter.value)}/${min}/${max}`
+        } else if (statusFilter.value !== 'all') {
           apiUrl = `/api/webBuyV1/getBuyDataByStatus/${statusFilter.value}/${min}/${max}`
         }
         
@@ -654,8 +662,12 @@ export default {
         
         console.log('转换后的数据:', buyData.value)
         
-        // 获取总数统计
-        await loadTotalStats(null, statusFilter.value)
+        // 获取总数统计（子状态优先）
+        if (statusSubFilter.value && statusSubFilter.value !== 'all') {
+          await loadTotalStats(null, null, statusSubFilter.value)
+        } else {
+          await loadTotalStats(null, statusFilter.value)
+        }
         
         if (buyData.value.length === 0) {
           ElMessage.info('暂无购入数据')
