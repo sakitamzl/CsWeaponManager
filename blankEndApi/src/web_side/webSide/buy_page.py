@@ -54,6 +54,53 @@ def getWeaponTypes():
             'data': []
         }), 500
 
+@webBuyPageV1.route('/getStatusSubList', methods=['GET'])
+def getStatusSubList():
+    """根据指定状态获取对应的子状态唯一值列表"""
+    try:
+        status = request.args.get('status', '').strip()
+        db = Date_base()
+        # 构建SQL：当未传或传入'all'时，返回全表去重的子状态；否则按指定状态过滤
+        if not status or status == 'all':
+            sql = """
+            SELECT DISTINCT status_sub
+            FROM buy
+            WHERE status_sub IS NOT NULL
+              AND status_sub != ''
+            ORDER BY status_sub
+            """
+        else:
+            # 简单转义单引号，保持与项目其他SQL风格一致
+            safe_status = status.replace("'", "''")
+            sql = f"""
+            SELECT DISTINCT status_sub
+            FROM buy
+            WHERE status = '{safe_status}'
+              AND status_sub IS NOT NULL
+              AND status_sub != ''
+            ORDER BY status_sub
+            """
+        success, result = db.select(sql)
+
+        sub_list = []
+        if success and result:
+            for row in result:
+                if row[0]:
+                    sub_list.append(row[0])
+
+        return jsonify({
+            'success': True,
+            'data': sub_list
+        }), 200
+
+    except Exception as e:
+        logger.error(f"获取子状态列表失败: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e),
+            'data': []
+        }), 500
+
 @webBuyPageV1.route('/getStatusList', methods=['GET'])
 def getStatusList():
     """获取所有状态的唯一值"""

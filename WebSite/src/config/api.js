@@ -58,6 +58,7 @@ export const API_CONFIG = {
     BUY_WEAPON_TYPES: '/webBuyPageV1/getWeaponTypes',
     BUY_FLOAT_RANGES: '/webBuyPageV1/getFloatRanges',
     BUY_STATUS_LIST: '/webBuyPageV1/getStatusList',
+    BUY_STATUS_SUB_LIST: (status) => `/webBuyPageV1/getStatusSubList?status=${encodeURIComponent(status)}`,
     BUY_SEARCH_BY_TYPE_WEAR: '/webBuyPageV1/searchByTypeAndWear',
     BUY_STATS_BY_TYPE_WEAR: '/webBuyPageV1/getStatsByTypeAndWear',
     
@@ -193,6 +194,7 @@ export const apiUrls = {
   buyWeaponTypes: () => getApiUrl(API_CONFIG.ENDPOINTS.BUY_WEAPON_TYPES),
   buyFloatRanges: () => getApiUrl(API_CONFIG.ENDPOINTS.BUY_FLOAT_RANGES),
   buyStatusList: () => getApiUrl(API_CONFIG.ENDPOINTS.BUY_STATUS_LIST),
+  buyStatusSubList: (status) => getApiUrl(API_CONFIG.ENDPOINTS.BUY_STATUS_SUB_LIST(status)),
   buySearchByTypeWear: () => getApiUrl(API_CONFIG.ENDPOINTS.BUY_SEARCH_BY_TYPE_WEAR),
   buyStatsByTypeWear: () => getApiUrl(API_CONFIG.ENDPOINTS.BUY_STATS_BY_TYPE_WEAR),
   

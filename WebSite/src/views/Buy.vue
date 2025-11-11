@@ -25,6 +25,16 @@
               <el-option label="全部" value="all" />
               <el-option v-for="status in statusList" :key="status" :label="status" :value="status" />
             </el-select>
+            <el-select
+              v-model="statusSubFilter"
+              placeholder="选择子状态"
+              class="status-select"
+              @change="handleStatusSubChange"
+              clearable
+            >
+              <el-option label="全部" value="all" />
+              <el-option v-for="sub in statusSubList" :key="sub" :label="sub" :value="sub" />
+            </el-select>
               <el-select 
                 v-model="weaponTypeFilter" 
                 placeholder="选择武器类型（可多选）" 
@@ -81,6 +91,9 @@
           </el-tag>
           <el-tag v-if="statusFilter && statusFilter !== 'all'" type="success" size="small" closable @close="statusFilter = 'all'">
             状态: {{ statusFilter }}
+          </el-tag>
+          <el-tag v-if="statusSubFilter && statusSubFilter !== 'all'" type="success" size="small" closable @close="statusSubFilter = 'all'">
+            子状态: {{ statusSubFilter }}
           </el-tag>
           <el-tag 
             v-for="type in weaponTypeFilter" 
@@ -275,6 +288,8 @@ export default {
     const weaponTypes = ref([])
     const floatRanges = ref([])
     const statusList = ref([])
+    const statusSubList = ref([])
+    const statusSubFilter = ref('all')
     const currentPage = ref(1)
     const pageSize = ref(20)
     const totalItems = ref(0)
@@ -286,6 +301,7 @@ export default {
     const hasAdvancedFilters = computed(() => {
       return (searchText.value && searchText.value.trim()) || 
              (statusFilter.value && statusFilter.value !== 'all') ||
+             (statusSubFilter.value && statusSubFilter.value !== 'all') ||
              (weaponTypeFilter.value && weaponTypeFilter.value.length > 0) ||
              (floatRangeFilter.value && floatRangeFilter.value.length > 0) ||
              (dateRange.value && dateRange.value.length === 2)
@@ -336,6 +352,9 @@ export default {
         if (statusFilter.value !== 'all') {
           filtered = filtered.filter(item => item.status === statusFilter.value)
         }
+        if (statusSubFilter.value && statusSubFilter.value !== 'all') {
+          filtered = filtered.filter(item => (item.status_sub || '') === statusSubFilter.value)
+        }
         
         // 前端分页
         const start = (currentPage.value - 1) * pageSize.value
@@ -346,6 +365,9 @@ export default {
       // 非搜索模式的筛选（原有逻辑）
       if (statusFilter.value !== 'all') {
         filtered = filtered.filter(item => item.status === statusFilter.value)
+      }
+      if (statusSubFilter.value && statusSubFilter.value !== 'all') {
+        filtered = filtered.filter(item => (item.status_sub || '') === statusSubFilter.value)
       }
 
       return filtered
@@ -697,6 +719,7 @@ export default {
     const handleClearSearch = () => {
       searchText.value = ''
       statusFilter.value = 'all'
+      statusSubFilter.value = 'all'
       weaponTypeFilter.value = []
       floatRangeFilter.value = []
       dateRange.value = null
@@ -704,6 +727,7 @@ export default {
       isSearchMode.value = false
       isTimeSearchMode.value = false
       allSearchResults.value = []
+      loadStatusSubList()
       loadBuyData()
     }
 
@@ -726,6 +750,14 @@ export default {
     }
 
     const handleStatusChange = () => {
+      currentPage.value = 1
+      // 重置并加载子状态
+      statusSubFilter.value = 'all'
+      loadStatusSubList()
+      loadBuyData()
+    }
+    
+    const handleStatusSubChange = () => {
       currentPage.value = 1
       loadBuyData()
     }
@@ -947,6 +979,25 @@ export default {
         console.error('获取状态列表失败:', error)
       }
     }
+    
+    // 加载指定状态对应的子状态列表
+    const loadStatusSubList = async () => {
+      try {
+        const response = await fetch(apiUrls.buyStatusSubList(statusFilter.value))
+        const result = await response.json()
+        if (result && result.success && Array.isArray(result.data)) {
+          statusSubList.value = result.data
+        } else if (Array.isArray(result)) {
+          // 兼容直接返回数组
+          statusSubList.value = result
+        } else {
+          statusSubList.value = []
+        }
+      } catch (error) {
+        console.error('获取子状态列表失败:', error)
+        statusSubList.value = []
+      }
+    }
 
     // 类型筛选处理
     const handleTypeChange = async () => {
@@ -1068,6 +1119,7 @@ export default {
       loadWeaponTypes()
       loadFloatRanges()
       loadStatusList()
+      loadStatusSubList()
     })
 
     return {
@@ -1083,6 +1135,8 @@ export default {
       weaponTypes,
       floatRanges,
       statusList,
+      statusSubList,
+      statusSubFilter,
       dateRange,
       isTimeSearchMode,
       currentPage,
@@ -1102,6 +1156,7 @@ export default {
       handleSearch,
       handleClearSearch,
       handleStatusChange,
+      handleStatusSubChange,
       handleTypeChange,
       handleWearChange,
       removeWeaponType,
