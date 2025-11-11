@@ -213,7 +213,7 @@
           </template>
         </el-table-column>
         <el-table-column prop="from" label="来源" min-width="80" />
-        <el-table-column prop="order_time" label="购入时间" min-width="160">
+        <el-table-column prop="order_time" label="购入时间" min-width="160" sortable="custom" @sort-change="handleSortChange">
           <template #default="scope">
             {{ formatTime(scope.row.order_time) }}
           </template>
@@ -280,6 +280,7 @@ export default {
     const totalItems = ref(0)
     const dateRange = ref(null)
     const isTimeSearchMode = ref(false)
+    const sortOrder = ref('descending') // 'ascending' 或 'descending'
     
     // 高级搜索相关
     const hasAdvancedFilters = computed(() => {
@@ -596,16 +597,16 @@ export default {
         }
         
         // 转换数组格式数据为对象格式
-        buyData.value = rawData.map((item, index) => {
+        let transformedData = rawData.map((item, index) => {
           if (!Array.isArray(item)) {
             console.error('数据项格式错误，期望数组，实际收到:', item)
             return null
           }
-          
+
           return {
             id: index + 1,
             order_id: item[0] || '',     // 订单ID
-            item_name: item[1] || '', 
+            item_name: item[1] || '',
             weapon_name: item[2] || '',   // 饰品名称
             weapon_type: item[3] || '',  // 武器类型
             weapon_float: item[4] || 0,  // Float值
@@ -617,6 +618,17 @@ export default {
             status_sub: item[10] || ''   // 状态详情
           }
         }).filter(item => item !== null)
+
+        // 根据当前排序状态进行排序
+        if (sortOrder.value === 'ascending') {
+          transformedData.sort((a, b) => {
+            const timeA = new Date(a.order_time).getTime()
+            const timeB = new Date(b.order_time).getTime()
+            return timeA - timeB
+          })
+        }
+
+        buyData.value = transformedData
         
         console.log('转换后的数据:', buyData.value)
         
@@ -716,6 +728,24 @@ export default {
     const handleStatusChange = () => {
       currentPage.value = 1
       loadBuyData()
+    }
+
+    const handleSortChange = ({ column, prop, order }) => {
+      console.log('排序变更:', { column, prop, order })
+      if (prop === 'order_time') {
+        sortOrder.value = order || 'descending'
+        // 如果在搜索模式，对当前结果进行前端排序
+        if (isSearchMode.value && allSearchResults.value.length > 0) {
+          allSearchResults.value.sort((a, b) => {
+            const timeA = new Date(a.order_time).getTime()
+            const timeB = new Date(b.order_time).getTime()
+            return sortOrder.value === 'ascending' ? timeA - timeB : timeB - timeA
+          })
+        } else {
+          // 非搜索模式，重新加载数据
+          loadBuyData()
+        }
+      }
     }
 
     const handleDateRangeChange = (value) => {
@@ -1079,7 +1109,9 @@ export default {
       handleAdvancedSearch,
       hasAdvancedFilters,
       handleDateRangeChange,
-      handleTimeSearch
+      handleTimeSearch,
+      handleSortChange,
+      sortOrder
     }
   }
 }

@@ -209,7 +209,7 @@
             </template>
           </el-table-column>
           <el-table-column prop="lenter_name" label="承租人" width="100" show-overflow-tooltip />
-          <el-table-column prop="lean_start_time" label="开始时间" min-width="140">
+          <el-table-column prop="lean_start_time" label="开始时间" min-width="140" sortable="custom" @sort-change="handleSortChange">
             <template #default="scope">
               {{ formatTime(scope.row.lean_start_time) }}
             </template>
