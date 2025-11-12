@@ -19,18 +19,18 @@ echo Creating release in: Releases\%VERSION%
 
 :: Clear previous builds
 echo Cleaning previous builds...
-if exist "blankEndApi\dist" rmdir /s /q "blankEndApi\dist"
-if exist "blankEndApi\build" rmdir /s /q "blankEndApi\build"
+if exist "backEnd\dist" rmdir /s /q "backEnd\dist"
+if exist "backEnd\build" rmdir /s /q "backEnd\build"
 if exist "Spider\dist" rmdir /s /q "Spider\dist"
 if exist "Spider\build" rmdir /s /q "Spider\build"
 
-:: Package blankEndApi.py
+:: Package backEnd.py
 echo.
-echo [1/2] Packaging blankEndApi.exe...
-cd blankEndApi
-pyinstaller -F blankEndApi.py --distpath "..\Releases\%VERSION%"
+echo [1/2] Packaging backEnd.exe...
+cd backEnd
+pyinstaller -F backEnd.py --distpath "..\Releases\%VERSION%"
 if %errorlevel% neq 0 (
-    echo Error: Failed to package blankEndApi.py
+    echo Error: Failed to package backEnd.py
     cd ..
     pause
     exit /b 1
@@ -114,7 +114,7 @@ if exist "WebSite" (
     echo Warning: WebSite folder not found
 )
 
-:: Create log directory (required by both blankEndApi.exe and Spider.exe)
+:: Create log directory (required by both backEnd.exe and Spider.exe)
 if not exist "Releases\%VERSION%\log" mkdir "Releases\%VERSION%\log"
 echo log directory created successfully
 
@@ -129,8 +129,8 @@ if exist "logs" (
 :: Clean up build artifacts
 echo.
 echo Cleaning up build artifacts...
-if exist "blankEndApi\build" rmdir /s /q "blankEndApi\build"
-if exist "blankEndApi\*.spec" del /q "blankEndApi\*.spec"
+if exist "backEnd\build" rmdir /s /q "backEnd\build"
+if exist "backEnd\*.spec" del /q "backEnd\*.spec"
 if exist "Spider\build" rmdir /s /q "Spider\build"
 if exist "Spider\*.spec" del /q "Spider\*.spec"
 

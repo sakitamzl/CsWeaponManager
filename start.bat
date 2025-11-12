@@ -5,8 +5,8 @@ setlocal
 
 call conda activate CS2DB
 
-cd /d "%~dp0blankEndApi"
-start /b cmd /c "python blankEndApi.py"
+cd /d "%~dp0backEnd"
+start /b cmd /c "python backEnd.py"
 
 cd /d "%~dp0Spider"
 start /b cmd /c "python Spider.py"
