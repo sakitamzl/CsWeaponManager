@@ -4,6 +4,43 @@ from datetime import datetime
 
 buff163MessageV1 = Blueprint('buff163MessageV1', __name__)
 
+@buff163MessageV1.route('/list/<int:page>/<int:limit>', methods=['GET'])
+def list_messages(page: int, limit: int):
+    try:
+        offset = (page - 1) * limit
+        items = BuffMessageboxModel.find_all("1=1 ORDER BY createTime DESC LIMIT ? OFFSET ?", (limit, offset))
+        total = BuffMessageboxModel.count("1=1")
+        data = [
+            {
+                'message_id': r.message_id,
+                'title': r.title,
+                'templateCode': r.templateCode,
+                'imageType': r.imageType,
+                'readStatus': r.readStatus,
+                'message_type': r.message_type,
+                'orderNo': r.orderNo,
+                'showStyle': r.showStyle,
+                'sentName': r.sentName,
+                'createTime': r.createTime,
+                'message_text': r.message_text,
+                'status': r.status,
+                'data_user': r.data_user,
+            }
+            for r in items
+        ]
+        return jsonify({'success': True, 'data': data, 'total': total}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'查询失败: {str(e)}'}), 500
+
+@buff163MessageV1.route('/types', methods=['GET'])
+def list_types():
+    try:
+        rows = BuffMessageboxModel.select_raw("SELECT DISTINCT sentName FROM buff_messagebox WHERE sentName IS NOT NULL AND sentName != '' ORDER BY sentName")
+        types = [r[0] for r in rows]
+        return jsonify({'success': True, 'data': types}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'查询失败: {str(e)}'}), 500
+
 @buff163MessageV1.route('/getLatest/<user_id>', methods=['GET'])
 def get_latest(user_id):
     try:

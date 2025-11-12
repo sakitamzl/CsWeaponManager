@@ -137,7 +137,7 @@ const routes = [
           {
             path: 'message-box',
             name: 'MessageBox',
-            component: () => import('@/views/MessageBox.vue'),
+            component: () => import('@/views/settings/yyyp_messagebox.vue'),
             meta: { title: '悠悠有品消息' }
           }
         ]
