@@ -733,6 +733,34 @@
 
         <!-- CsFloat特有配置 -->
         <template v-else-if="editForm.type === 'csfloat'">
+          <el-form-item>
+            <el-button 
+              type="success" 
+              @click="startCsfloatTokenCollection(true)" 
+              :loading="csfloatTokenLoading"
+              :disabled="csfloatTokenStatus === 'success'"
+              style="width: 100%;"
+            >
+              <el-icon style="margin-right: 5px;"><Grid /></el-icon>
+              {{ csfloatTokenLoading ? '正在获取令牌...' : csfloatTokenStatus === 'success' ? '✓ 令牌已获取' : '重新获取CsFloat令牌' }}
+            </el-button>
+            <div v-if="csfloatTokenStatus === 'waiting'" style="margin-top: 10px; padding: 10px; background: #fff7e6; border-radius: 4px; border-left: 3px solid #faad14;">
+              <div style="color: #faad14; font-weight: 500; margin-bottom: 5px;">
+                <el-icon><Loading /></el-icon> 等待浏览器访问...
+              </div>
+              <div style="color: #666; font-size: 12px;">
+                1. 在浏览器中配置代理: <strong>{{ proxyAddress || '...' }}</strong><br/>
+                2. 访问 https://csfloat.com 并登录<br/>
+                3. 系统将自动获取令牌
+              </div>
+            </div>
+            <div v-if="csfloatTokenStatus === 'success'" style="margin-top: 10px; padding: 10px; background: #f6ffed; border-radius: 4px; border-left: 3px solid #52c41a;">
+              <div style="color: #52c41a; font-weight: 500;">
+                <el-icon><CircleCheck /></el-icon> 令牌获取成功!
+              </div>
+            </div>
+          </el-form-item>
+          
           <el-collapse v-model="editCsfloatCollapse">
             <el-collapse-item title="CsFloat配置" name="config">
               <el-form-item label="User-Agent" required>
@@ -1389,6 +1417,34 @@
         
         <!-- CsFloat特有配置 -->
         <template v-else-if="inputForm.type === 'csfloat'">
+          <el-form-item>
+            <el-button 
+              type="success" 
+              @click="startCsfloatTokenCollection(false)" 
+              :loading="csfloatTokenLoading"
+              :disabled="csfloatTokenStatus === 'success'"
+              style="width: 100%;"
+            >
+              <el-icon style="margin-right: 5px;"><Grid /></el-icon>
+              {{ csfloatTokenLoading ? '正在获取令牌...' : csfloatTokenStatus === 'success' ? '✓ 令牌已获取' : '一键获取CsFloat令牌' }}
+            </el-button>
+            <div v-if="csfloatTokenStatus === 'waiting'" style="margin-top: 10px; padding: 10px; background: #fff7e6; border-radius: 4px; border-left: 3px solid #faad14;">
+              <div style="color: #faad14; font-weight: 500; margin-bottom: 5px;">
+                <el-icon><Loading /></el-icon> 等待浏览器访问...
+              </div>
+              <div style="color: #666; font-size: 12px;">
+                1. 在浏览器中配置代理: <strong>{{ proxyAddress || '...' }}</strong><br/>
+                2. 访问 https://csfloat.com 并登录<br/>
+                3. 系统将自动获取令牌
+              </div>
+            </div>
+            <div v-if="csfloatTokenStatus === 'success'" style="margin-top: 10px; padding: 10px; background: #f6ffed; border-radius: 4px; border-left: 3px solid #52c41a;">
+              <div style="color: #52c41a; font-weight: 500;">
+                <el-icon><CircleCheck /></el-icon> 令牌获取成功!
+              </div>
+            </div>
+          </el-form-item>
+          
           <el-collapse v-model="inputCsfloatCollapse">
             <el-collapse-item title="CsFloat配置" name="config">
               <el-form-item label="User-Agent" required>
@@ -1661,9 +1717,11 @@ export default {
     const buffTokenLoading = ref(false)  // BUFF Token 获取loading
     const yyypTokenLoading = ref(false)  // 悠悠有品 Token 获取loading
     const perfectWorldTokenLoading = ref(false)  // 完美世界APP Token 获取loading
+    const csfloatTokenLoading = ref(false)  // CsFloat Token 获取loading
     const buffTokenStatus = ref('')  // BUFF Token 获取状态: waiting, success, failed
     const yyypTokenStatus = ref('')  // 悠悠有品 Token 获取状态: waiting, success, failed
     const perfectWorldTokenStatus = ref('')  // 完美世界APP Token 获取状态: waiting, success, failed
+    const csfloatTokenStatus = ref('')  // CsFloat Token 获取状态: waiting, success, failed
     const tokenCheckTimer = ref(null)  // Token 获取状态检查定时器
     const proxyAddress = ref('')  // 代理地址 (从后端获取)
     
@@ -2623,6 +2681,127 @@ export default {
       }
     }
 
+    // ===== CsFloat Token 获取相关函数 =====
+    const startCsfloatTokenCollection = async (isEdit = false) => {
+      try {
+        csfloatTokenLoading.value = true
+        csfloatTokenStatus.value = 'waiting'
+        
+        const url = apiUrls.getAppTokenStartCsfloat()
+        const response = await axios.post(url)
+        
+        if (response.data.code === 200) {
+          // 保存代理地址
+          if (response.data.data && response.data.data.proxy_address) {
+            proxyAddress.value = response.data.data.proxy_address
+          }
+          ElMessage.success('CsFloat 代理服务器已启动，请在浏览器中配置代理')
+          if (proxyAddress.value) {
+            ElMessage.info({
+              message: `代理地址: ${proxyAddress.value}`,
+              duration: 5000
+            })
+          }
+          
+          // 开始轮询获取数据
+          startCsfloatTokenPolling(isEdit)
+        } else {
+          ElMessage.error(response.data.msg || '启动CsFloat代理失败')
+          csfloatTokenLoading.value = false
+          csfloatTokenStatus.value = 'failed'
+        }
+      } catch (error) {
+        console.error('启动CsFloat代理失败:', error)
+        ElMessage.error('启动CsFloat代理失败: ' + (error.message || '网络错误'))
+        csfloatTokenLoading.value = false
+        csfloatTokenStatus.value = 'failed'
+      }
+    }
+
+    const startCsfloatTokenPolling = (isEdit = false) => {
+      // 清除旧的定时器
+      if (tokenCheckTimer.value) {
+        clearInterval(tokenCheckTimer.value)
+      }
+      
+      // 每3秒检查一次数据是否收集完成
+      tokenCheckTimer.value = setInterval(async () => {
+        try {
+          const url = apiUrls.getAppTokenGetCsfloatData()
+          const response = await axios.get(url)
+          
+          console.log('[CsFloat轮询] API响应:', response.data)
+          console.log('[CsFloat轮询] code:', response.data.code)
+          console.log('[CsFloat轮询] data:', response.data.data)
+          
+          if (response.data.code === 200) {
+            // 数据收集完成
+            const data = response.data.data
+            
+            // 填充表单
+            if (isEdit) {
+              editForm.value.csfloatUserAgent = data['User-Agent'] || editForm.value.csfloatUserAgent
+              editForm.value.csfloatReferer = data['Referer'] || editForm.value.csfloatReferer
+              editForm.value.csfloatAccept = data['Accept'] || editForm.value.csfloatAccept
+              editForm.value.csfloatXAppVersion = data['X-App-Version'] || editForm.value.csfloatXAppVersion
+              editForm.value.csfloatHost = data['Host'] || editForm.value.csfloatHost
+              editForm.value.csfloatConnection = data['Connection'] || editForm.value.csfloatConnection
+              editForm.value.csfloatAcceptEncoding = data['Accept-Encoding'] || editForm.value.csfloatAcceptEncoding
+              editForm.value.csfloatCookie = data['Cookie'] || editForm.value.csfloatCookie
+              editForm.value.csfloatSteamID = data['steamID'] || editForm.value.csfloatSteamID
+            } else {
+              inputForm.value.csfloatUserAgent = data['User-Agent'] || inputForm.value.csfloatUserAgent
+              inputForm.value.csfloatReferer = data['Referer'] || inputForm.value.csfloatReferer
+              inputForm.value.csfloatAccept = data['Accept'] || inputForm.value.csfloatAccept
+              inputForm.value.csfloatXAppVersion = data['X-App-Version'] || inputForm.value.csfloatXAppVersion
+              inputForm.value.csfloatHost = data['Host'] || inputForm.value.csfloatHost
+              inputForm.value.csfloatConnection = data['Connection'] || inputForm.value.csfloatConnection
+              inputForm.value.csfloatAcceptEncoding = data['Accept-Encoding'] || inputForm.value.csfloatAcceptEncoding
+              inputForm.value.csfloatCookie = data['Cookie'] || inputForm.value.csfloatCookie
+              inputForm.value.csfloatSteamID = data['steamID'] || inputForm.value.csfloatSteamID
+            }
+            
+            ElMessage.success('CsFloat Token 获取成功!')
+            csfloatTokenStatus.value = 'success'
+            csfloatTokenLoading.value = false
+            
+            // 停止轮询
+            if (tokenCheckTimer.value) {
+              clearInterval(tokenCheckTimer.value)
+              tokenCheckTimer.value = null
+            }
+            
+            // 停止代理服务器
+            stopCsfloatTokenCollection()
+            
+            // 自动保存
+            ElMessage.info('正在自动保存数据源配置...')
+            setTimeout(() => {
+              if (isEdit) {
+                handleEditSubmit()
+              } else {
+                handleSubmit()
+              }
+            }, 1000)
+          } else if (response.data.code === 202) {
+            // 数据正在收集中
+            console.log('CsFloat Token 收集中...')
+          }
+        } catch (error) {
+          console.error('获取CsFloat数据失败:', error)
+        }
+      }, 3000)
+    }
+
+    const stopCsfloatTokenCollection = async () => {
+      try {
+        const url = apiUrls.getAppTokenStopCsfloat()
+        await axios.post(url)
+      } catch (error) {
+        console.error('停止CsFloat代理失败:', error)
+      }
+    }
+
     const resetForm = () => {
       inputForm.value = {
         name: '',
@@ -2667,7 +2846,17 @@ export default {
         platform: '',
         pwToken: '',
         tdSign: '',
-        pwSteamID: ''
+        pwSteamID: '',
+        // CsFloat特有字段
+        csfloatUserAgent: '',
+        csfloatReferer: '',
+        csfloatAccept: '',
+        csfloatXAppVersion: '',
+        csfloatHost: '',
+        csfloatConnection: '',
+        csfloatAcceptEncoding: '',
+        csfloatCookie: '',
+        csfloatSteamID: ''
       }
       editingSourceId.value = null
     }
@@ -3227,9 +3416,11 @@ export default {
       buffTokenStatus.value = ''
       yyypTokenStatus.value = ''
       perfectWorldTokenStatus.value = ''
+      csfloatTokenStatus.value = ''
       buffTokenLoading.value = false
       yyypTokenLoading.value = false
       perfectWorldTokenLoading.value = false
+      csfloatTokenLoading.value = false
       
       // 展开列表
       isListCollapsed.value = false
@@ -3330,9 +3521,11 @@ export default {
       buffTokenStatus.value = ''
       yyypTokenStatus.value = ''
       perfectWorldTokenStatus.value = ''
+      csfloatTokenStatus.value = ''
       buffTokenLoading.value = false
       yyypTokenLoading.value = false
       perfectWorldTokenLoading.value = false
+      csfloatTokenLoading.value = false
       
       resetForm() // 关闭时重置表单
     }
@@ -4434,12 +4627,15 @@ export default {
       buffTokenLoading,
       yyypTokenLoading,
       perfectWorldTokenLoading,
+      csfloatTokenLoading,
       buffTokenStatus,
       yyypTokenStatus,
       perfectWorldTokenStatus,
+      csfloatTokenStatus,
       startBuffTokenCollection,
       startYyypTokenCollection,
       startPerfectWorldTokenCollection,
+      startCsfloatTokenCollection,
       proxyAddress,
       // 编辑对话框折叠面板
       editYyypBasicCollapse,
@@ -4454,9 +4650,11 @@ export default {
       editBuffLocaleCollapse,
       inputBuffCollapse,
       inputPerfectWorldCollapse,
+      inputCsfloatCollapse,
       editSteamCollapse,
       editSteamLoginCollapse,
       editPerfectWorldCollapse,
+      editCsfloatCollapse,
       handleEditBuffCollectAll,
       handleEditSteamCollectAll,
       handleEditDelete,
