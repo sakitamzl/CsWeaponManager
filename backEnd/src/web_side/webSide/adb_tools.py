@@ -330,7 +330,7 @@ def install_cert():
             
             # 如果日志中包含"已修改fstab"，说明需要重启
             try:
-                with open('log/' + __import__('datetime').datetime.now().strftime('%Y-%m-%d') + '_blankEndApi.log', 'r', encoding='utf-8') as f:
+                with open('log/' + __import__('datetime').datetime.now().strftime('%Y-%m-%d') + '_backEnd.log', 'r', encoding='utf-8') as f:
                     recent_logs = f.readlines()[-50:]  # 读取最近50行
                     if any('已修改' in line and 'fstab' in line for line in recent_logs):
                         error_msg = '已修改fstab文件以禁用dm-verity。请手动重启设备，重启完成后重新连接并再次安装证书。'

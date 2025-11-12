@@ -35,6 +35,16 @@
               <el-option label="全部" value="all" />
               <el-option v-for="sub in statusSubList" :key="sub" :label="sub" :value="sub" />
             </el-select>
+            <el-select
+              v-model="sourceFilter"
+              placeholder="选择来源"
+              class="status-select"
+              @change="handleSourceChange"
+              clearable
+            >
+              <el-option label="全部" value="all" />
+              <el-option v-for="src in sourceList" :key="src" :label="src" :value="src" />
+            </el-select>
               <el-select 
                 v-model="weaponTypeFilter" 
                 placeholder="选择武器类型（可多选）" 
@@ -114,6 +124,9 @@
             @close="removeFloatRange(range)"
           >
             磨损: {{ range }}
+          </el-tag>
+          <el-tag v-if="sourceFilter && sourceFilter !== 'all'" type="info" size="small" closable @close="sourceFilter = 'all'">
+            来源: {{ sourceFilter }}
           </el-tag>
           <el-tag v-if="dateRange && dateRange.length === 2" type="danger" size="small" closable @close="dateRange = null">
             时间: {{ dateRange[0] }} ~ {{ dateRange[1] }}
@@ -283,12 +296,14 @@ export default {
     const buyData = ref([])
     const searchText = ref('')
     const statusFilter = ref('all')
+    const sourceFilter = ref('all')
     const weaponTypeFilter = ref([])
     const floatRangeFilter = ref([])
     const weaponTypes = ref([])
     const floatRanges = ref([])
     const statusList = ref([])
     const statusSubList = ref([])
+    const sourceList = ref([])
     const statusSubFilter = ref('all')
     const currentPage = ref(1)
     const pageSize = ref(20)
@@ -302,6 +317,7 @@ export default {
       return (searchText.value && searchText.value.trim()) || 
              (statusFilter.value && statusFilter.value !== 'all') ||
              (statusSubFilter.value && statusSubFilter.value !== 'all') ||
+             (sourceFilter.value && sourceFilter.value !== 'all') ||
              (weaponTypeFilter.value && weaponTypeFilter.value.length > 0) ||
              (floatRangeFilter.value && floatRangeFilter.value.length > 0) ||
              (dateRange.value && dateRange.value.length === 2)
@@ -335,6 +351,25 @@ export default {
         cancelledCount,
         pendingCount
       }
+
+    const loadSourceList = async () => {
+      try {
+        const resp = await fetch(apiUrls.buySourceList(), {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        })
+        if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`)
+        const data = await resp.json()
+        if (Array.isArray(data)) {
+          sourceList.value = data
+        } else {
+          sourceList.value = []
+        }
+      } catch (e) {
+        console.error('加载来源列表失败:', e)
+        sourceList.value = []
+      }
+    }
     })
 
     // 存储所有搜索结果，用于前端分页
@@ -416,6 +451,9 @@ export default {
         if (keyword) {
           apiUrl = `/api/webBuyV1/getBuyStatsBySearch/${encodeURIComponent(keyword)}`
           console.log('使用搜索统计API:', apiUrl)
+        } else if (sourceFilter.value && sourceFilter.value !== 'all') {
+          apiUrl = apiUrls.buyStatsBySource(sourceFilter.value)
+          console.log('使用来源筛选统计API:', apiUrl)
         } else if (statusSub && statusSub !== 'all') {
           apiUrl = `/api/webBuyV1/getBuyStatsByStatusSub/${encodeURIComponent(statusSub)}`
           console.log('使用子状态筛选统计API:', apiUrl)
@@ -597,7 +635,9 @@ export default {
         
         // 根据状态/子状态筛选选择不同的API（子状态优先）
         let apiUrl = `/api/webBuyV1/getBuyData/${min}/${max}`
-        if (statusSubFilter.value && statusSubFilter.value !== 'all') {
+        if (sourceFilter.value && sourceFilter.value !== 'all') {
+          apiUrl = apiUrls.buyDataBySource(sourceFilter.value, min, max)
+        } else if (statusSubFilter.value && statusSubFilter.value !== 'all') {
           apiUrl = `/api/webBuyV1/getBuyDataByStatusSub/${encodeURIComponent(statusSubFilter.value)}/${min}/${max}`
         } else if (statusFilter.value !== 'all') {
           apiUrl = `/api/webBuyV1/getBuyDataByStatus/${statusFilter.value}/${min}/${max}`
@@ -732,6 +772,7 @@ export default {
       searchText.value = ''
       statusFilter.value = 'all'
       statusSubFilter.value = 'all'
+      sourceFilter.value = 'all'
       weaponTypeFilter.value = []
       floatRangeFilter.value = []
       dateRange.value = null
@@ -740,6 +781,7 @@ export default {
       isTimeSearchMode.value = false
       allSearchResults.value = []
       loadStatusSubList()
+      loadSourceList()
       loadBuyData()
     }
 
@@ -772,6 +814,13 @@ export default {
     const handleStatusSubChange = () => {
       currentPage.value = 1
       loadBuyData()
+    }
+
+    const handleSourceChange = () => {
+      currentPage.value = 1
+      loadBuyData()
+      // 更新统计
+      loadTotalStats()
     }
 
     const handleSortChange = ({ column, prop, order }) => {
@@ -1130,6 +1179,7 @@ export default {
       loadBuyData()
       loadWeaponTypes()
       loadFloatRanges()
+      loadSourceList()
       loadStatusList()
       loadStatusSubList()
     })

@@ -63,7 +63,7 @@ sometime = 14        # 日志保留天数
 1. **Cookie配置**: 需要在数据源页面配置各平台的Cookie才能正常使用
 2. **代理设置**: 访问Steam需要配置代理
 3. **数据备份**: 定期备份 `csweaponmanager.db` 数据库文件
-4. **日志文件**: 日志文件位于 `blankEndApi/log/` 目录
+4. **日志文件**: 日志文件位于 `backEnd/log/` 目录
 
 ## 🤝 贡献
 

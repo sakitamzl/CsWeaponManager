@@ -50,6 +50,74 @@ def selectBuyWeaponName(itemName):
             return jsonify(data), 200
     return "查询失败", 500
 
+
+# 新增：来源相关接口
+@webBuyV1.route('/getSourceList', methods=['GET'])
+def get_source_list():
+    sql = (
+        "SELECT DISTINCT `from` AS src FROM buy "
+        "WHERE `from` IS NOT NULL AND TRIM(`from`) <> '' ORDER BY src"
+    )
+    result = Date_base().select(sql)
+    if result and len(result) == 2:
+        flag, data = result
+        if flag:
+            sources = [row[0] for row in data]
+            return jsonify(sources), 200
+    return jsonify([]), 200
+
+
+@webBuyV1.route('/getBuyDataBySource/<path:source>/<int:min>/<int:max>', methods=['GET'])
+def get_buy_data_by_source(source, min, max):
+    if source == 'all':
+        return getNowBuyingList(min, max)
+    safe_src = source.replace("'", "''")
+    sql = f"""
+    SELECT ID, item_name, weapon_name, weapon_type, weapon_float, float_range, price, `from`, order_time, status, status_sub
+    FROM buy
+    WHERE `from` = '{safe_src}'
+    ORDER BY order_time DESC
+    LIMIT {max} OFFSET {min};
+    """
+    result = Date_base().select(sql)
+    if result and len(result) == 2:
+        flag, data = result
+        if flag:
+            return jsonify(data), 200
+    return "查询失败", 500
+
+
+@webBuyV1.route('/getBuyStatsBySource/<path:source>', methods=['GET'])
+def get_buy_stats_by_source(source):
+    if source == 'all':
+        return getBuyStats()
+    safe_src = source.replace("'", "''")
+    sql = f"""
+    SELECT 
+        COUNT(*) as total_count,
+        COALESCE(SUM(CASE WHEN status != '已取消' THEN price ELSE 0 END), 0) as total_amount,
+        COALESCE(AVG(CASE WHEN status != '已取消' THEN price ELSE NULL END), 0) as avg_price,
+        COUNT(CASE WHEN status = '已完成' THEN 1 END) as completed_count,
+        COUNT(CASE WHEN status = '已取消' THEN 1 END) as cancelled_count,
+        COUNT(CASE WHEN status = '待收货' THEN 1 END) as pending_count
+    FROM buy
+    WHERE `from` = '{safe_src}'
+    """
+    result = Date_base().select(sql)
+    if result and len(result) == 2:
+        flag, data = result
+        if flag and len(data) > 0:
+            stats = data[0]
+            return jsonify({
+                "total_count": stats[0],
+                "total_amount": round(float(stats[1]), 2),
+                "avg_price": round(float(stats[2]), 2),
+                "completed_count": stats[3],
+                "cancelled_count": stats[4],
+                "pending_count": stats[5]
+            }), 200
+    return "查询失败", 500
+
 @webBuyV1.route('/getBuyDataByStatus/<status>/<int:min>/<int:max>', methods=['get'])
 def getBuyDataByStatus(status, min, max):
     if status == 'all':

@@ -18,6 +18,9 @@ export const API_CONFIG = {
     // 购买数据相关
     BUY_DATA: (page, limit) => `/webBuyV1/getBuyData/${page}/${limit}`,
     BUY_STATS: '/webBuyV1/getBuyStats',
+    BUY_SOURCE_LIST: '/webBuyV1/getSourceList',
+    BUY_DATA_BY_SOURCE: (source, page, limit) => `/webBuyV1/getBuyDataBySource/${encodeURIComponent(source)}/${page}/${limit}`,
+    BUY_STATS_BY_SOURCE: (source) => `/webBuyV1/getBuyStatsBySource/${encodeURIComponent(source)}`,
     
     // 销售数据相关
     SELL_DATA: (page, limit) => `/webSellV1/getSellData/${page}/${limit}`,
@@ -163,6 +166,9 @@ export const apiUrls = {
   // 购买数据
   buyData: (page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.BUY_DATA(page, limit)),
   buyStats: () => getApiUrl(API_CONFIG.ENDPOINTS.BUY_STATS),
+  buySourceList: () => getApiUrl(API_CONFIG.ENDPOINTS.BUY_SOURCE_LIST),
+  buyDataBySource: (source, page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.BUY_DATA_BY_SOURCE(source, page, limit)),
+  buyStatsBySource: (source) => getApiUrl(API_CONFIG.ENDPOINTS.BUY_STATS_BY_SOURCE(source)),
   
   // 销售数据
   sellData: (page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.SELL_DATA(page, limit)),

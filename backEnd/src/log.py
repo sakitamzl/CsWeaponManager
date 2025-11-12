@@ -18,7 +18,7 @@ class Log:
             # 打包后的 exe，使用 exe 所在目录
             base_path = os.path.dirname(sys.executable)
         else:
-            # 开发环境，使用 blankEndApi 目录
+            # 开发环境，使用 backEnd 目录
             base_path = os.path.dirname(os.path.dirname(__file__))
         
         log_dir = os.path.join(base_path, 'log')
@@ -32,7 +32,7 @@ class Log:
 
     def setup_logger(self):
         log_dir = self._get_log_dir()
-        log_file = os.path.join(log_dir, f"{self.day}_blankEndApi.log")
+        log_file = os.path.join(log_dir, f"{self.day}_backEnd.log")
         # 创建一个logger对象
         logger = logging.getLogger("my_logger")
         logger.setLevel(logging.DEBUG)
