@@ -29,13 +29,20 @@ window.addEventListener('error', (e) => {
     e.stopImmediatePropagation()
     return false
   }
+  if (e.message && e.message.includes('getBoundingClientRect')) {
+    e.stopImmediatePropagation()
+    e.preventDefault()
+    return false
+  }
 })
 
 const app = createApp(App)
 
 app.config.errorHandler = (err, vm, info) => {
-  if (err.message && err.message.includes('ResizeObserver')) {
-    return
+  if (err && err.message) {
+    if (err.message.includes('ResizeObserver') || err.message.includes('getBoundingClientRect')) {
+      return
+    }
   }
   console.error('Vue error:', err, info)
 }

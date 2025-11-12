@@ -50,6 +50,75 @@ def selectSellWeaponName(itemName):
             return jsonify(data), 200
     return "查询失败", 500
 
+@webSellV1.route('/getDataUserList', methods=['GET'])
+def get_sell_data_user_list():
+    """获取 sell 表中 data_user 去重列表"""
+    sql = """
+    SELECT DISTINCT data_user
+    FROM sell
+    WHERE data_user IS NOT NULL AND data_user != ''
+    ORDER BY data_user
+    """
+    result = Date_base().select(sql)
+    if result and len(result) == 2:
+        flag, data = result
+        if flag:
+            users = [row[0] for row in data if row and row[0]]
+            return jsonify(users), 200
+    return jsonify([]), 500
+
+@webSellV1.route('/getSellDataByDataUser/<path:data_user>/<int:min>/<int:max>', methods=['GET'])
+def get_sell_data_by_data_user(data_user, min, max):
+    """按 data_user 分页获取 sell 数据"""
+    if data_user == 'all':
+        return getSellData(min, max)
+    safe_user = data_user.replace("'", "''")
+    sql = f"""
+    SELECT ID, item_name, weapon_name, weapon_type, weapon_float, float_range, price, `from`, order_time, status, status_sub
+    FROM sell
+    WHERE data_user = '{safe_user}'
+    ORDER BY order_time DESC
+    LIMIT {max} OFFSET {min};
+    """
+    result = Date_base().select(sql)
+    if result and len(result) == 2:
+        flag, data = result
+        if flag:
+            return jsonify(data), 200
+    return "查询失败", 500
+
+@webSellV1.route('/getSellStatsByDataUser/<path:data_user>', methods=['GET'])
+def get_sell_stats_by_data_user(data_user):
+    """按 data_user 获取 sell 统计"""
+    if data_user == 'all':
+        return getSellStats()
+    safe_user = data_user.replace("'", "''")
+    sql = f"""
+    SELECT 
+        COUNT(*) as total_count,
+        COALESCE(SUM(CASE WHEN status != '已取消' THEN price ELSE 0 END), 0) as total_amount,
+        COALESCE(AVG(CASE WHEN status != '已取消' THEN price ELSE NULL END), 0) as avg_price,
+        COUNT(CASE WHEN status = '已完成' THEN 1 END) as completed_count,
+        COUNT(CASE WHEN status = '已取消' THEN 1 END) as cancelled_count,
+        COUNT(CASE WHEN status = '待收货' THEN 1 END) as pending_count
+    FROM sell
+    WHERE data_user = '{safe_user}'
+    """
+    result = Date_base().select(sql)
+    if result and len(result) == 2:
+        flag, data = result
+        if flag and len(data) > 0:
+            stats = data[0]
+            return jsonify({
+                "total_count": stats[0],
+                "total_amount": round(float(stats[1]), 2),
+                "avg_price": round(float(stats[2]), 2),
+                "completed_count": stats[3],
+                "cancelled_count": stats[4],
+                "pending_count": stats[5]
+            }), 200
+    return "查询失败", 500
+
 @webSellV1.route('/getSellDataByStatus/<status>/<int:min>/<int:max>', methods=['get'])
 def getSellDataByStatus(status, min, max):
     if status == 'all':

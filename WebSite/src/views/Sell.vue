@@ -22,7 +22,6 @@
               重置
             </el-button>
             <el-select v-model="statusFilter" placeholder="选择状态" class="status-select" @change="handleStatusChange">
-              <el-option label="全部" value="all" />
               <el-option v-for="status in statusList" :key="status" :label="status" :value="status" />
             </el-select>
             <el-select
@@ -32,18 +31,25 @@
               @change="handleStatusSubChange"
               clearable
             >
-              <el-option label="全部" value="all" />
               <el-option v-for="sub in statusSubList" :key="sub" :label="sub" :value="sub" />
             </el-select>
             <el-select
               v-model="sourceFilter"
-              placeholder="选择来源"
+              placeholder="选择平台"
               class="status-select"
               @change="handleSourceChange"
               clearable
             >
-              <el-option label="全部" value="all" />
               <el-option v-for="src in sourceList" :key="src" :label="sourceLabel(src)" :value="src" />
+            </el-select>
+            <el-select
+              v-model="dataUserFilter"
+              placeholder="选择用户"
+              class="status-select"
+              @change="handleDataUserChange"
+              clearable
+            >
+              <el-option v-for="u in dataUserList" :key="u" :label="u" :value="u" />
             </el-select>
               <el-select 
                 v-model="weaponTypeFilter" 
@@ -99,10 +105,10 @@
           <el-tag v-if="searchText && searchText.trim()" type="primary" size="small" closable @close="searchText = ''">
             关键词: {{ searchText }}
           </el-tag>
-          <el-tag v-if="statusFilter && statusFilter !== 'all'" type="success" size="small" closable @close="statusFilter = 'all'">
+          <el-tag v-if="statusFilter" type="success" size="small" closable @close="statusFilter = ''">
             状态: {{ statusFilter }}
           </el-tag>
-          <el-tag v-if="statusSubFilter && statusSubFilter !== 'all'" type="success" size="small" closable @close="statusSubFilter = 'all'">
+          <el-tag v-if="statusSubFilter" type="success" size="small" closable @close="statusSubFilter = ''">
             子状态: {{ statusSubFilter }}
           </el-tag>
           <el-tag 
@@ -125,8 +131,11 @@
           >
             磨损: {{ range }}
           </el-tag>
-          <el-tag v-if="sourceFilter && sourceFilter !== 'all'" type="info" size="small" closable @close="sourceFilter = 'all'">
-            来源: {{ sourceLabel(sourceFilter) }}
+          <el-tag v-if="sourceFilter" type="info" size="small" closable @close="sourceFilter = ''">
+            平台: {{ sourceLabel(sourceFilter) }}
+          </el-tag>
+          <el-tag v-if="dataUserFilter" type="info" size="small" closable @close="dataUserFilter = ''">
+            用户: {{ dataUserFilter }}
           </el-tag>
           <el-tag v-if="dateRange && dateRange.length === 2" type="danger" size="small" closable @close="dateRange = null">
             时间: {{ dateRange[0] }} ~ {{ dateRange[1] }}
@@ -295,16 +304,18 @@ export default {
     const loading = ref(false)
     const sellData = ref([])
     const searchText = ref('')
-    const statusFilter = ref('all')
+    const statusFilter = ref('')
     const weaponTypeFilter = ref([])
-    const sourceFilter = ref('all')
+    const sourceFilter = ref('')
+    const dataUserFilter = ref('')
     const floatRangeFilter = ref([])
     const weaponTypes = ref([])
     const floatRanges = ref([])
     const statusList = ref([])
     const statusSubList = ref([])
     const sourceList = ref(['yyyp','buff','CsFloat'])
-    const statusSubFilter = ref('all')
+    const dataUserList = ref([])
+    const statusSubFilter = ref('')
     const currentPage = ref(1)
     const pageSize = ref(20)
     const totalItems = ref(0)
@@ -315,9 +326,10 @@ export default {
     // 高级搜索相关
     const hasAdvancedFilters = computed(() => {
       return (searchText.value && searchText.value.trim()) || 
-             (statusFilter.value && statusFilter.value !== 'all') ||
-             (statusSubFilter.value && statusSubFilter.value !== 'all') ||
-             (sourceFilter.value && sourceFilter.value !== 'all') ||
+             !!statusFilter.value ||
+             !!statusSubFilter.value ||
+             !!sourceFilter.value ||
+             !!dataUserFilter.value ||
              (weaponTypeFilter.value && weaponTypeFilter.value.length > 0) ||
              (floatRangeFilter.value && floatRangeFilter.value.length > 0) ||
              (dateRange.value && dateRange.value.length === 2)
@@ -365,10 +377,10 @@ export default {
         filtered = allSearchResults.value
         
         // 状态筛选
-        if (statusFilter.value !== 'all') {
+        if (statusFilter.value) {
           filtered = filtered.filter(item => item.status === statusFilter.value)
         }
-        if (statusSubFilter.value && statusSubFilter.value !== 'all') {
+        if (statusSubFilter.value) {
           filtered = filtered.filter(item => (item.status_sub || '') === statusSubFilter.value)
         }
         
@@ -382,10 +394,10 @@ export default {
       }
 
       // 非搜索模式的筛选（原有逻辑）
-      if (statusFilter.value !== 'all') {
+      if (statusFilter.value) {
         filtered = filtered.filter(item => item.status === statusFilter.value)
       }
-      if (statusSubFilter.value && statusSubFilter.value !== 'all') {
+      if (statusSubFilter.value) {
         filtered = filtered.filter(item => (item.status_sub || '') === statusSubFilter.value)
       }
 
@@ -433,13 +445,16 @@ export default {
         if (keyword) {
           apiUrl = `/api/webSellV1/getSellStatsBySearch/${encodeURIComponent(keyword)}`
           console.log('使用搜索统计API:', apiUrl)
-        } else if (sourceFilter.value && sourceFilter.value !== 'all') {
+        } else if (dataUserFilter.value) {
+          apiUrl = apiUrls.sellStatsByUser(dataUserFilter.value)
+          console.log('使用用户筛选统计API:', apiUrl)
+        } else if (sourceFilter.value) {
           apiUrl = apiUrls.sellStatsBySource(sourceFilter.value)
           console.log('使用来源筛选统计API:', apiUrl)
-        } else if (statusSub && statusSub !== 'all') {
+        } else if (statusSub) {
           apiUrl = `/api/webSellV1/getSellStatsByStatusSub/${encodeURIComponent(statusSub)}`
           console.log('使用子状态筛选统计API:', apiUrl)
-        } else if (status !== 'all') {
+        } else if (status) {
           apiUrl = `/api/webSellV1/getSellStatsByStatus/${status}`
           console.log('使用状态筛选统计API:', apiUrl)
         } else {
@@ -488,6 +503,11 @@ export default {
         }
         totalItems.value = 0
       }
+    }
+    const handleDataUserChange = () => {
+      currentPage.value = 1
+      loadSellData()
+      loadTotalStats()
     }
 
     const searchByName = async (itemName) => {
@@ -583,13 +603,15 @@ export default {
         
         console.log(`正在请求数据... 页码: ${currentPage.value}, 每页: ${pageSize.value}, min: ${min}, max: ${max}`)
         
-        // 根据来源/子状态/状态优先级选择API（来源优先，其次子状态）
+        // 根据来源/用户/子状态/状态优先级选择API（来源优先，其次用户，其次子状态）
         let apiUrl = `/api/webSellV1/getSellData/${min}/${max}`
-        if (sourceFilter.value && sourceFilter.value !== 'all') {
+        if (sourceFilter.value) {
           apiUrl = apiUrls.sellDataBySource(sourceFilter.value, min, max)
-        } else if (statusSubFilter.value && statusSubFilter.value !== 'all') {
+        } else if (dataUserFilter.value) {
+          apiUrl = apiUrls.sellDataByUser(dataUserFilter.value, min, max)
+        } else if (statusSubFilter.value) {
           apiUrl = `/api/webSellV1/getSellDataByStatusSub/${encodeURIComponent(statusSubFilter.value)}/${min}/${max}`
-        } else if (statusFilter.value !== 'all') {
+        } else if (statusFilter.value) {
           apiUrl = `/api/webSellV1/getSellDataByStatus/${statusFilter.value}/${min}/${max}`
         }
         
@@ -653,7 +675,7 @@ export default {
         console.log('转换后的数据:', sellData.value)
         
         // 获取总数统计（子状态优先）
-        if (statusSubFilter.value && statusSubFilter.value !== 'all') {
+        if (statusSubFilter.value) {
           await loadTotalStats(null, null, statusSubFilter.value)
         } else {
           await loadTotalStats(null, statusFilter.value)
@@ -705,9 +727,10 @@ export default {
 
     const handleClearSearch = () => {
       searchText.value = ''
-      statusFilter.value = 'all'
-      statusSubFilter.value = 'all'
-      sourceFilter.value = 'all'
+      statusFilter.value = ''
+      statusSubFilter.value = ''
+      sourceFilter.value = ''
+      dataUserFilter.value = ''
       statusSubList.value = []
       weaponTypeFilter.value = []
       floatRangeFilter.value = []
@@ -740,7 +763,7 @@ export default {
 
     const handleStatusChange = async () => {
       currentPage.value = 1
-      statusSubFilter.value = 'all'
+      statusSubFilter.value = ''
       await loadStatusSubList()
 
       // 如果是搜索模式，只需要更新统计，不需要重新加载数据
@@ -789,6 +812,29 @@ export default {
       const map = { yyyp: '悠悠有品', buff: 'BUFF' }
       return map[val] || val
     }
+
+    // 加载 data_user 列表
+    const loadDataUserList = async () => {
+      try {
+        const resp = await fetch(apiUrls.sellDataUserList(), { method: 'GET', headers: { 'Accept': 'application/json' } })
+        if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`)
+        const users = await resp.json()
+        if (Array.isArray(users)) dataUserList.value = users
+      } catch (e) {
+        console.error('加载出售数据用户列表失败:', e)
+      }
+    }
+
+    const normalizeFilters = () => {
+      if (statusFilter.value === 'all') statusFilter.value = ''
+      if (statusSubFilter.value === 'all') statusSubFilter.value = ''
+      if (sourceFilter.value === 'all') sourceFilter.value = ''
+    }
+
+    onMounted(() => {
+      normalizeFilters()
+      loadDataUserList()
+    })
 
     // 高级搜索处理
     const handleAdvancedSearch = async () => {
@@ -1166,7 +1212,10 @@ export default {
       handleDateRangeChange,
       handleTimeSearch,
       removeWeaponType,
-      removeFloatRange
+      removeFloatRange,
+      dataUserFilter,
+      dataUserList,
+      handleDataUserChange
     }
   }
 }

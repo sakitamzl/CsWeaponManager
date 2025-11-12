@@ -1305,8 +1305,9 @@ export default {
 }
 
 .date-picker {
-  min-width: 240px;
-  max-width: 280px;
+  width: clamp(320px, 28vw, 460px);
+  min-width: 320px;
+  max-width: 460px;
 }
 
 .pagination {
@@ -1318,6 +1319,14 @@ export default {
 .pagination-top {
   margin-top: 0;
   margin-bottom: clamp(1rem, 3vw, 1.25rem);
+}
+
+@media (max-width: 768px) {
+  .search-input {
+    min-width: unset;
+    width: 100%;
+    max-width: none;
+  }
 }
 
 :deep(.el-pagination) {
