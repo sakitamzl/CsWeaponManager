@@ -115,6 +115,10 @@ export const API_CONFIG = {
     GET_APP_TOKEN_STOP_PERFECTWORLD: '/getAppTokenV1/stop_perfectworld_proxy',  // 停止完美世界APP代理
     GET_APP_TOKEN_GET_PERFECTWORLD_DATA: '/getAppTokenV1/get_perfectworld_data',  // 获取完美世界APP数据
     GET_APP_TOKEN_CLEAR_PERFECTWORLD_DATA: '/getAppTokenV1/clear_perfectworld_data',  // 清除完美世界APP数据
+    GET_APP_TOKEN_START_CSFLOAT: '/getAppTokenV1/start_csfloat_proxy',  // 启动CsFloat代理
+    GET_APP_TOKEN_STOP_CSFLOAT: '/getAppTokenV1/stop_csfloat_proxy',  // 停止CsFloat代理
+    GET_APP_TOKEN_GET_CSFLOAT_DATA: '/getAppTokenV1/get_csfloat_data',  // 获取CsFloat数据
+    GET_APP_TOKEN_CLEAR_CSFLOAT_DATA: '/getAppTokenV1/clear_csfloat_data',  // 清除CsFloat数据
     GET_APP_TOKEN_PROXY_STATUS: '/getAppTokenV1/proxy_status',  // 查询代理状态
     GET_APP_TOKEN_HELP: '/getAppTokenV1/help',  // 获取帮助信息
     
@@ -257,6 +261,10 @@ export const apiUrls = {
   getAppTokenStopPerfectWorld: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.GET_APP_TOKEN_STOP_PERFECTWORLD),
   getAppTokenGetPerfectWorldData: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.GET_APP_TOKEN_GET_PERFECTWORLD_DATA),
   getAppTokenClearPerfectWorldData: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.GET_APP_TOKEN_CLEAR_PERFECTWORLD_DATA),
+  getAppTokenStartCsfloat: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.GET_APP_TOKEN_START_CSFLOAT),
+  getAppTokenStopCsfloat: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.GET_APP_TOKEN_STOP_CSFLOAT),
+  getAppTokenGetCsfloatData: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.GET_APP_TOKEN_GET_CSFLOAT_DATA),
+  getAppTokenClearCsfloatData: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.GET_APP_TOKEN_CLEAR_CSFLOAT_DATA),
   getAppTokenProxyStatus: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.GET_APP_TOKEN_PROXY_STATUS),
   getAppTokenHelp: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.GET_APP_TOKEN_HELP),
   

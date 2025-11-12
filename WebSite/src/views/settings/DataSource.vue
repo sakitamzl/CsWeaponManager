@@ -104,6 +104,7 @@
             <el-option label="完美世界APP" value="perfectworld" />
             <el-option label="网易BUFF" value="buff" />
             <el-option label="悠悠有品" value="youpin" />
+            <el-option label="CsFloat" value="csfloat" />
           </el-select>
         </el-form-item>
 
@@ -730,6 +731,70 @@
           </el-collapse>
         </template>
 
+        <!-- CsFloat特有配置 -->
+        <template v-else-if="editForm.type === 'csfloat'">
+          <el-collapse v-model="editCsfloatCollapse">
+            <el-collapse-item title="CsFloat配置" name="config">
+              <el-form-item label="User-Agent" required>
+                <el-input 
+                  v-model="editForm.csfloatUserAgent" 
+                  placeholder="请输入User-Agent"
+                />
+              </el-form-item>
+              <el-form-item label="Referer" required>
+                <el-input 
+                  v-model="editForm.csfloatReferer" 
+                  placeholder="请输入Referer"
+                />
+              </el-form-item>
+              <el-form-item label="Accept" required>
+                <el-input 
+                  v-model="editForm.csfloatAccept" 
+                  placeholder="请输入Accept"
+                />
+              </el-form-item>
+              <el-form-item label="X-App-Version" required>
+                <el-input 
+                  v-model="editForm.csfloatXAppVersion" 
+                  placeholder="请输入X-App-Version"
+                />
+              </el-form-item>
+              <el-form-item label="Host" required>
+                <el-input 
+                  v-model="editForm.csfloatHost" 
+                  placeholder="请输入Host"
+                />
+              </el-form-item>
+              <el-form-item label="Connection" required>
+                <el-input 
+                  v-model="editForm.csfloatConnection" 
+                  placeholder="请输入Connection"
+                />
+              </el-form-item>
+              <el-form-item label="Accept-Encoding" required>
+                <el-input 
+                  v-model="editForm.csfloatAcceptEncoding" 
+                  placeholder="请输入Accept-Encoding"
+                />
+              </el-form-item>
+              <el-form-item label="Cookie" required>
+                <el-input 
+                  v-model="editForm.csfloatCookie" 
+                  type="textarea"
+                  :rows="3"
+                  placeholder="请输入Cookie"
+                />
+              </el-form-item>
+              <el-form-item label="SteamID" required>
+                <el-input 
+                  v-model="editForm.csfloatSteamID" 
+                  placeholder="请输入SteamID"
+                />
+              </el-form-item>
+            </el-collapse-item>
+          </el-collapse>
+        </template>
+
         <!-- 通用配置 -->
         <template v-else>
           <el-form-item label="API地址">
@@ -847,6 +912,14 @@
             >
               <span>悠悠有品</span>
               <span v-if="isTypeDisabled('youpin')" style="color: #909399; font-size: 12px; margin-left: 10px;">(已存在)</span>
+            </el-option>
+            <el-option 
+              label="CsFloat" 
+              value="csfloat" 
+              :disabled="isTypeDisabled('csfloat')"
+            >
+              <span>CsFloat</span>
+              <span v-if="isTypeDisabled('csfloat')" style="color: #909399; font-size: 12px; margin-left: 10px;">(已存在)</span>
             </el-option>
           </el-select>
         </el-form-item>
@@ -1314,8 +1387,72 @@
           </el-collapse>
         </template>
         
+        <!-- CsFloat特有配置 -->
+        <template v-else-if="inputForm.type === 'csfloat'">
+          <el-collapse v-model="inputCsfloatCollapse">
+            <el-collapse-item title="CsFloat配置" name="config">
+              <el-form-item label="User-Agent" required>
+                <el-input 
+                  v-model="inputForm.csfloatUserAgent" 
+                  placeholder="请输入User-Agent"
+                />
+              </el-form-item>
+              <el-form-item label="Referer" required>
+                <el-input 
+                  v-model="inputForm.csfloatReferer" 
+                  placeholder="请输入Referer"
+                />
+              </el-form-item>
+              <el-form-item label="Accept" required>
+                <el-input 
+                  v-model="inputForm.csfloatAccept" 
+                  placeholder="请输入Accept"
+                />
+              </el-form-item>
+              <el-form-item label="X-App-Version" required>
+                <el-input 
+                  v-model="inputForm.csfloatXAppVersion" 
+                  placeholder="请输入X-App-Version"
+                />
+              </el-form-item>
+              <el-form-item label="Host" required>
+                <el-input 
+                  v-model="inputForm.csfloatHost" 
+                  placeholder="请输入Host"
+                />
+              </el-form-item>
+              <el-form-item label="Connection" required>
+                <el-input 
+                  v-model="inputForm.csfloatConnection" 
+                  placeholder="请输入Connection"
+                />
+              </el-form-item>
+              <el-form-item label="Accept-Encoding" required>
+                <el-input 
+                  v-model="inputForm.csfloatAcceptEncoding" 
+                  placeholder="请输入Accept-Encoding"
+                />
+              </el-form-item>
+              <el-form-item label="Cookie" required>
+                <el-input 
+                  v-model="inputForm.csfloatCookie" 
+                  type="textarea"
+                  :rows="3"
+                  placeholder="请输入Cookie"
+                />
+              </el-form-item>
+              <el-form-item label="SteamID" required>
+                <el-input 
+                  v-model="inputForm.csfloatSteamID" 
+                  placeholder="请输入SteamID"
+                />
+              </el-form-item>
+            </el-collapse-item>
+          </el-collapse>
+        </template>
+        
         <!-- 通用配置 -->
-        <template v-else-if="inputForm.type && inputForm.type !== 'youpin' && inputForm.type !== 'steam' && inputForm.type !== 'perfectworld'">
+        <template v-else-if="inputForm.type && inputForm.type !== 'youpin' && inputForm.type !== 'steam' && inputForm.type !== 'perfectworld' && inputForm.type !== 'csfloat'">
           <el-form-item label="API地址">
             <el-input 
               v-model="inputForm.apiUrl" 
@@ -1543,9 +1680,11 @@ export default {
     const editBuffLocaleCollapse = ref([])
     const inputBuffCollapse = ref(['config'])
     const inputPerfectWorldCollapse = ref([])
+    const inputCsfloatCollapse = ref(['config'])
     const editSteamCollapse = ref(['config'])
     const editSteamLoginCollapse = ref(['config'])
     const editPerfectWorldCollapse = ref([])
+    const editCsfloatCollapse = ref(['config'])
     
     const editForm = ref({
       name: '',
@@ -1591,7 +1730,17 @@ export default {
       platform: '',
       pwToken: '',
       tdSign: '',
-      pwSteamID: ''
+      pwSteamID: '',
+      // CsFloat特有字段
+      csfloatUserAgent: '',
+      csfloatReferer: '',
+      csfloatAccept: '',
+      csfloatXAppVersion: '',
+      csfloatHost: '',
+      csfloatConnection: '',
+      csfloatAcceptEncoding: '',
+      csfloatCookie: '',
+      csfloatSteamID: ''
     })
     
     const inputForm = ref({
@@ -1640,7 +1789,17 @@ export default {
       platform: '',
       pwToken: '',
       tdSign: '',
-      pwSteamID: ''
+      pwSteamID: '',
+      // CsFloat特有字段
+      csfloatUserAgent: '',
+      csfloatReferer: '',
+      csfloatAccept: '',
+      csfloatXAppVersion: '',
+      csfloatHost: '',
+      csfloatConnection: '',
+      csfloatAcceptEncoding: '',
+      csfloatCookie: '',
+      csfloatSteamID: ''
     })
 
     const dataSources = ref([])
@@ -1679,7 +1838,8 @@ export default {
         steam_login: 'Steam市场(登录)',
         perfectworld: '完美世界APP',
         buff: '网易BUFF',
-        youpin: '悠悠有品'
+        youpin: '悠悠有品',
+        csfloat: 'CsFloat'
       }
       return labels[type] || type
     }
@@ -1869,6 +2029,46 @@ export default {
         }
       }
 
+      // CsFloat类型的字段校验
+      if (inputForm.value.type === 'csfloat') {
+        if (!inputForm.value.csfloatUserAgent) {
+          ElMessage.error('请填写User-Agent')
+          return
+        }
+        if (!inputForm.value.csfloatReferer) {
+          ElMessage.error('请填写Referer')
+          return
+        }
+        if (!inputForm.value.csfloatAccept) {
+          ElMessage.error('请填写Accept')
+          return
+        }
+        if (!inputForm.value.csfloatXAppVersion) {
+          ElMessage.error('请填写X-App-Version')
+          return
+        }
+        if (!inputForm.value.csfloatHost) {
+          ElMessage.error('请填写Host')
+          return
+        }
+        if (!inputForm.value.csfloatConnection) {
+          ElMessage.error('请填写Connection')
+          return
+        }
+        if (!inputForm.value.csfloatAcceptEncoding) {
+          ElMessage.error('请填写Accept-Encoding')
+          return
+        }
+        if (!inputForm.value.csfloatCookie) {
+          ElMessage.error('请填写Cookie')
+          return
+        }
+        if (!inputForm.value.csfloatSteamID) {
+          ElMessage.error('请填写SteamID')
+          return
+        }
+      }
+
       submitting.value = true
       try {
         // 获取当前时间作为创建时间
@@ -1964,6 +2164,20 @@ export default {
             steamID: inputForm.value.steamID,
             steamUsername: inputForm.value.steamUsername,
             steamPassword: inputForm.value.steamPassword,
+            sleep_time: '6000'
+          })
+        } else if (inputForm.value.type === 'csfloat') {
+          // CsFloat特殊配置
+          requestData.configJson = JSON.stringify({
+            'User-Agent': inputForm.value.csfloatUserAgent,
+            'Referer': inputForm.value.csfloatReferer,
+            'Accept': inputForm.value.csfloatAccept,
+            'X-App-Version': inputForm.value.csfloatXAppVersion,
+            'Host': inputForm.value.csfloatHost,
+            'Connection': inputForm.value.csfloatConnection,
+            'Accept-Encoding': inputForm.value.csfloatAcceptEncoding,
+            'Cookie': inputForm.value.csfloatCookie,
+            steamID: inputForm.value.csfloatSteamID,
             sleep_time: '6000'
           })
         } else {
@@ -2976,6 +3190,19 @@ export default {
         editForm.value.tdSign = config.tdSign || ''
         editForm.value.pwSteamID = config.steamID || ''
         editForm.value.updateFreq = config.updateFreq || source.updateFreq || '15min'
+      } else if (source.type === 'csfloat') {
+        // CsFloat配置
+        console.log('CsFloat配置解析:', config)
+        editForm.value.csfloatUserAgent = config['User-Agent'] || config.userAgent || ''
+        editForm.value.csfloatReferer = config.Referer || config.referer || ''
+        editForm.value.csfloatAccept = config.Accept || config.accept || ''
+        editForm.value.csfloatXAppVersion = config['X-App-Version'] || config.xAppVersion || ''
+        editForm.value.csfloatHost = config.Host || config.host || ''
+        editForm.value.csfloatConnection = config.Connection || config.connection || ''
+        editForm.value.csfloatAcceptEncoding = config['Accept-Encoding'] || config.acceptEncoding || ''
+        editForm.value.csfloatCookie = config.Cookie || config.cookie || ''
+        editForm.value.csfloatSteamID = config.steamID || ''
+        editForm.value.updateFreq = config.updateFreq || source.updateFreq || '15min'
       } else {
         // 通用配置 - 检查多种可能的字段名
         editForm.value.apiUrl = config.api_url || source.apiUrl || ''
@@ -3052,7 +3279,17 @@ export default {
         platform: '',
         pwToken: '',
         tdSign: '',
-        pwSteamID: ''
+        pwSteamID: '',
+        // CsFloat特有字段
+        csfloatUserAgent: '',
+        csfloatReferer: '',
+        csfloatAccept: '',
+        csfloatXAppVersion: '',
+        csfloatHost: '',
+        csfloatConnection: '',
+        csfloatAcceptEncoding: '',
+        csfloatCookie: '',
+        csfloatSteamID: ''
       }
     }
 
@@ -3516,6 +3753,46 @@ export default {
         }
       }
 
+      // CsFloat类型的字段校验
+      if (editForm.value.type === 'csfloat') {
+        if (!editForm.value.csfloatUserAgent) {
+          ElMessage.error('请填写User-Agent')
+          return
+        }
+        if (!editForm.value.csfloatReferer) {
+          ElMessage.error('请填写Referer')
+          return
+        }
+        if (!editForm.value.csfloatAccept) {
+          ElMessage.error('请填写Accept')
+          return
+        }
+        if (!editForm.value.csfloatXAppVersion) {
+          ElMessage.error('请填写X-App-Version')
+          return
+        }
+        if (!editForm.value.csfloatHost) {
+          ElMessage.error('请填写Host')
+          return
+        }
+        if (!editForm.value.csfloatConnection) {
+          ElMessage.error('请填写Connection')
+          return
+        }
+        if (!editForm.value.csfloatAcceptEncoding) {
+          ElMessage.error('请填写Accept-Encoding')
+          return
+        }
+        if (!editForm.value.csfloatCookie) {
+          ElMessage.error('请填写Cookie')
+          return
+        }
+        if (!editForm.value.csfloatSteamID) {
+          ElMessage.error('请填写SteamID')
+          return
+        }
+      }
+
       editSubmitting.value = true
       try {
         let requestData = {
@@ -3602,6 +3879,21 @@ export default {
             steamCookieMethod: editForm.value.steamCookieMethod, // 记录获取方式
             steamUsername: editForm.value.steamUsername || '',
             steamPassword: editForm.value.steamPassword || '',
+            updateFreq: editForm.value.updateFreq,
+            sleep_time: '6000'
+          })
+        } else if (editForm.value.type === 'csfloat') {
+          // CsFloat特殊配置
+          requestData.configJson = JSON.stringify({
+            'User-Agent': editForm.value.csfloatUserAgent,
+            'Referer': editForm.value.csfloatReferer,
+            'Accept': editForm.value.csfloatAccept,
+            'X-App-Version': editForm.value.csfloatXAppVersion,
+            'Host': editForm.value.csfloatHost,
+            'Connection': editForm.value.csfloatConnection,
+            'Accept-Encoding': editForm.value.csfloatAcceptEncoding,
+            'Cookie': editForm.value.csfloatCookie,
+            steamID: editForm.value.csfloatSteamID,
             updateFreq: editForm.value.updateFreq,
             sleep_time: '6000'
           })
