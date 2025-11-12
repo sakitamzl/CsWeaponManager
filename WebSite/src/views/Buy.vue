@@ -43,7 +43,7 @@
               clearable
             >
               <el-option label="全部" value="all" />
-              <el-option v-for="src in sourceList" :key="src" :label="src" :value="src" />
+              <el-option v-for="src in sourceList" :key="src" :label="sourceLabel(src)" :value="src" />
             </el-select>
               <el-select 
                 v-model="weaponTypeFilter" 
@@ -126,7 +126,7 @@
             磨损: {{ range }}
           </el-tag>
           <el-tag v-if="sourceFilter && sourceFilter !== 'all'" type="info" size="small" closable @close="sourceFilter = 'all'">
-            来源: {{ sourceFilter }}
+            来源: {{ sourceLabel(sourceFilter) }}
           </el-tag>
           <el-tag v-if="dateRange && dateRange.length === 2" type="danger" size="small" closable @close="dateRange = null">
             时间: {{ dateRange[0] }} ~ {{ dateRange[1] }}
@@ -304,6 +304,7 @@ export default {
     const statusList = ref([])
     const statusSubList = ref([])
     const sourceList = ref([])
+    sourceList.value = ['yyyp', 'buff', 'CsFloat']
     const statusSubFilter = ref('all')
     const currentPage = ref(1)
     const pageSize = ref(20)
@@ -352,24 +353,6 @@ export default {
         pendingCount
       }
 
-    const loadSourceList = async () => {
-      try {
-        const resp = await fetch(apiUrls.buySourceList(), {
-          method: 'GET',
-          headers: { 'Accept': 'application/json' }
-        })
-        if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`)
-        const data = await resp.json()
-        if (Array.isArray(data)) {
-          sourceList.value = data
-        } else {
-          sourceList.value = []
-        }
-      } catch (e) {
-        console.error('加载来源列表失败:', e)
-        sourceList.value = []
-      }
-    }
     })
 
     // 存储所有搜索结果，用于前端分页
@@ -435,6 +418,15 @@ export default {
     const getStatusTextColor = (status) => {
       // 对于所有状态都使用白色文字以确保对比度
       return '#FFFFFF'
+    }
+
+    // 来源显示映射
+    const sourceLabel = (val) => {
+      const map = {
+        yyyp: '悠悠有品',
+        buff: 'BUFF'
+      }
+      return map[val] || val
     }
 
     const loadTotalStats = async (searchKeyword = null, filterStatus = null, filterStatusSub = null) => {
@@ -781,7 +773,6 @@ export default {
       isTimeSearchMode.value = false
       allSearchResults.value = []
       loadStatusSubList()
-      loadSourceList()
       loadBuyData()
     }
 
@@ -1179,7 +1170,6 @@ export default {
       loadBuyData()
       loadWeaponTypes()
       loadFloatRanges()
-      loadSourceList()
       loadStatusList()
       loadStatusSubList()
     })
@@ -1219,6 +1209,10 @@ export default {
       handleClearSearch,
       handleStatusChange,
       handleStatusSubChange,
+      sourceFilter,
+      sourceList,
+      handleSourceChange,
+      sourceLabel,
       handleTypeChange,
       handleWearChange,
       removeWeaponType,

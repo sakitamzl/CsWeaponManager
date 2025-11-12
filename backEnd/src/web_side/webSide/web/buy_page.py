@@ -54,17 +54,9 @@ def selectBuyWeaponName(itemName):
 # 新增：来源相关接口
 @webBuyV1.route('/getSourceList', methods=['GET'])
 def get_source_list():
-    sql = (
-        "SELECT DISTINCT `from` AS src FROM buy "
-        "WHERE `from` IS NOT NULL AND TRIM(`from`) <> '' ORDER BY src"
-    )
-    result = Date_base().select(sql)
-    if result and len(result) == 2:
-        flag, data = result
-        if flag:
-            sources = [row[0] for row in data]
-            return jsonify(sources), 200
-    return jsonify([]), 200
+    # 固定来源列表，不再从数据库去重
+    sources = ['yyyp', 'buff', 'CsFloat']
+    return jsonify(sources), 200
 
 
 @webBuyV1.route('/getBuyDataBySource/<path:source>/<int:min>/<int:max>', methods=['GET'])
@@ -75,7 +67,7 @@ def get_buy_data_by_source(source, min, max):
     sql = f"""
     SELECT ID, item_name, weapon_name, weapon_type, weapon_float, float_range, price, `from`, order_time, status, status_sub
     FROM buy
-    WHERE `from` = '{safe_src}'
+    WHERE LOWER(`from`) = LOWER('{safe_src}')
     ORDER BY order_time DESC
     LIMIT {max} OFFSET {min};
     """
@@ -101,7 +93,7 @@ def get_buy_stats_by_source(source):
         COUNT(CASE WHEN status = '已取消' THEN 1 END) as cancelled_count,
         COUNT(CASE WHEN status = '待收货' THEN 1 END) as pending_count
     FROM buy
-    WHERE `from` = '{safe_src}'
+    WHERE LOWER(`from`) = LOWER('{safe_src}')
     """
     result = Date_base().select(sql)
     if result and len(result) == 2:
