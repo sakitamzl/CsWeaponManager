@@ -66,17 +66,9 @@
         :row-style="{ backgroundColor: 'transparent' }"
         :header-row-style="{ backgroundColor: 'var(--bg-tertiary)' }"
       >
-        <el-table-column prop="message_id" label="消息ID" width="150" show-overflow-tooltip align="left" />
+        <el-table-column prop="message_id" label="消息ID" width="220" show-overflow-tooltip align="left" />
         <el-table-column prop="title" label="标题" width="250" show-overflow-tooltip align="left" />
-        <el-table-column prop="sentName" label="类型" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag :type="getMessageTypeColor(row.sentName)" size="small">
-              {{ row.sentName || '-' }}
-            </el-tag>
-          </template>
-        </el-table-column>
         <el-table-column prop="message_text" label="消息内容" min-width="300" show-overflow-tooltip align="left" />
-        <el-table-column prop="orderNo" label="订单号" width="180" show-overflow-tooltip align="left" />
         <el-table-column prop="createTime" label="创建时间" width="180" align="center" />
       </el-table>
 
