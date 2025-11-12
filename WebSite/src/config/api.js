@@ -25,6 +25,9 @@ export const API_CONFIG = {
     // 销售数据相关
     SELL_DATA: (page, limit) => `/webSellV1/getSellData/${page}/${limit}`,
     SELL_STATS: '/webSellV1/getSellStats',
+    SELL_SOURCE_LIST: '/webSellV1/getSourceList',
+    SELL_DATA_BY_SOURCE: (source, page, limit) => `/webSellV1/getSellDataBySource/${encodeURIComponent(source)}/${page}/${limit}`,
+    SELL_STATS_BY_SOURCE: (source) => `/webSellV1/getSellStatsBySource/${encodeURIComponent(source)}`,
     
     // 消息数据相关
     MESSAGE_DATA: (page, limit) => `/webMessageBoxPageV1/getMessageData/${page}/${limit}`,

@@ -35,6 +35,16 @@
               <el-option label="全部" value="all" />
               <el-option v-for="sub in statusSubList" :key="sub" :label="sub" :value="sub" />
             </el-select>
+            <el-select
+              v-model="sourceFilter"
+              placeholder="选择来源"
+              class="status-select"
+              @change="handleSourceChange"
+              clearable
+            >
+              <el-option label="全部" value="all" />
+              <el-option v-for="src in sourceList" :key="src" :label="sourceLabel(src)" :value="src" />
+            </el-select>
               <el-select 
                 v-model="weaponTypeFilter" 
                 placeholder="选择武器类型（可多选）" 
@@ -114,6 +124,9 @@
             @close="removeFloatRange(range)"
           >
             磨损: {{ range }}
+          </el-tag>
+          <el-tag v-if="sourceFilter && sourceFilter !== 'all'" type="info" size="small" closable @close="sourceFilter = 'all'">
+            来源: {{ sourceLabel(sourceFilter) }}
           </el-tag>
           <el-tag v-if="dateRange && dateRange.length === 2" type="danger" size="small" closable @close="dateRange = null">
             时间: {{ dateRange[0] }} ~ {{ dateRange[1] }}
@@ -284,11 +297,13 @@ export default {
     const searchText = ref('')
     const statusFilter = ref('all')
     const weaponTypeFilter = ref([])
+    const sourceFilter = ref('all')
     const floatRangeFilter = ref([])
     const weaponTypes = ref([])
     const floatRanges = ref([])
     const statusList = ref([])
     const statusSubList = ref([])
+    const sourceList = ref(['yyyp','buff','CsFloat'])
     const statusSubFilter = ref('all')
     const currentPage = ref(1)
     const pageSize = ref(20)
@@ -302,6 +317,7 @@ export default {
       return (searchText.value && searchText.value.trim()) || 
              (statusFilter.value && statusFilter.value !== 'all') ||
              (statusSubFilter.value && statusSubFilter.value !== 'all') ||
+             (sourceFilter.value && sourceFilter.value !== 'all') ||
              (weaponTypeFilter.value && weaponTypeFilter.value.length > 0) ||
              (floatRangeFilter.value && floatRangeFilter.value.length > 0) ||
              (dateRange.value && dateRange.value.length === 2)
@@ -417,6 +433,9 @@ export default {
         if (keyword) {
           apiUrl = `/api/webSellV1/getSellStatsBySearch/${encodeURIComponent(keyword)}`
           console.log('使用搜索统计API:', apiUrl)
+        } else if (sourceFilter.value && sourceFilter.value !== 'all') {
+          apiUrl = apiUrls.sellStatsBySource(sourceFilter.value)
+          console.log('使用来源筛选统计API:', apiUrl)
         } else if (statusSub && statusSub !== 'all') {
           apiUrl = `/api/webSellV1/getSellStatsByStatusSub/${encodeURIComponent(statusSub)}`
           console.log('使用子状态筛选统计API:', apiUrl)
@@ -564,9 +583,11 @@ export default {
         
         console.log(`正在请求数据... 页码: ${currentPage.value}, 每页: ${pageSize.value}, min: ${min}, max: ${max}`)
         
-        // 根据状态/子状态筛选选择不同的API（子状态优先）
+        // 根据来源/子状态/状态优先级选择API（来源优先，其次子状态）
         let apiUrl = `/api/webSellV1/getSellData/${min}/${max}`
-        if (statusSubFilter.value && statusSubFilter.value !== 'all') {
+        if (sourceFilter.value && sourceFilter.value !== 'all') {
+          apiUrl = apiUrls.sellDataBySource(sourceFilter.value, min, max)
+        } else if (statusSubFilter.value && statusSubFilter.value !== 'all') {
           apiUrl = `/api/webSellV1/getSellDataByStatusSub/${encodeURIComponent(statusSubFilter.value)}/${min}/${max}`
         } else if (statusFilter.value !== 'all') {
           apiUrl = `/api/webSellV1/getSellDataByStatus/${statusFilter.value}/${min}/${max}`
@@ -686,6 +707,7 @@ export default {
       searchText.value = ''
       statusFilter.value = 'all'
       statusSubFilter.value = 'all'
+      sourceFilter.value = 'all'
       statusSubList.value = []
       weaponTypeFilter.value = []
       floatRangeFilter.value = []
@@ -734,6 +756,12 @@ export default {
       loadSellData()
     }
 
+    const handleSourceChange = () => {
+      currentPage.value = 1
+      loadSellData()
+      loadTotalStats()
+    }
+
     const handleSortChange = ({ column, prop, order }) => {
       console.log('排序变更:', { column, prop, order })
       if (prop === 'order_time') {
@@ -754,6 +782,12 @@ export default {
 
     const handleDateRangeChange = (value) => {
       console.log('日期范围变更:', value)
+    }
+
+    // 来源显示映射
+    const sourceLabel = (val) => {
+      const map = { yyyp: '悠悠有品', buff: 'BUFF' }
+      return map[val] || val
     }
 
     // 高级搜索处理
@@ -1120,6 +1154,10 @@ export default {
       handleClearSearch,
       handleStatusChange,
       handleStatusSubChange,
+      sourceFilter,
+      sourceList,
+      handleSourceChange,
+      sourceLabel,
       handleSortChange,
       handleTypeChange,
       handleWearChange,

@@ -217,6 +217,7 @@ def getSellStatsByStatusSub(status_sub):
                 "pending_count": stats[5]
             }), 200
     return "查询失败", 500
+
 @webSellV1.route('/getSellDataByTimeRange/<start_date>/<end_date>/<int:min>/<int:max>', methods=['GET'])
 def getSellDataByTimeRange(start_date, end_date, min, max):
     sql = f"""
