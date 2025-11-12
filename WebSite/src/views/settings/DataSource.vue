@@ -841,7 +841,7 @@
           </el-form-item>
         </template>
 
-        <el-form-item v-if="editForm.type === 'youpin' || editForm.type === 'buff'" label="是否自动采集">
+        <el-form-item v-if="['youpin', 'buff', 'steam', 'csfloat'].includes(editForm.type)" label="是否自动采集">
           <el-switch v-model="editForm.enabled" />
         </el-form-item>
 
@@ -1658,7 +1658,7 @@
           </el-form-item>
         </template>
         
-        <el-form-item v-if="inputForm.type === 'youpin' || inputForm.type === 'buff'" label="是否自动采集">
+        <el-form-item v-if="['youpin', 'buff', 'steam', 'csfloat'].includes(inputForm.type)" label="是否自动采集">
           <el-switch v-model="inputForm.enabled" />
         </el-form-item>
       </el-form>
