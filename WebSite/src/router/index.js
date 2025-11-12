@@ -135,10 +135,16 @@ const routes = [
             meta: { title: '数据库管理' }
           },
           {
-            path: 'message-box',
+            path: 'yyyp-message-box',
             name: 'MessageBox',
             component: () => import('@/views/settings/yyyp_messagebox.vue'),
             meta: { title: '悠悠有品消息' }
+          },
+          {
+            path: 'buff-message-box',
+            name: 'BuffMessageBox',
+            component: () => import('@/views/settings/buff_messagebox.vue'),
+            meta: { title: 'BUFF消息' }
           }
         ]
       }

@@ -42,6 +42,10 @@ export const API_CONFIG = {
     MESSAGE_SEARCH_BY_KEYWORD: '/webMessageBoxPageV1/searchMessageByKeyword',
     MESSAGE_SEARCH_BY_TIME: '/webMessageBoxPageV1/searchMessageByTime',
     MESSAGE_SEARCH_BY_TYPE: '/webMessageBoxPageV1/searchMessageByType',
+
+    // BUFF 消息数据相关（buff_messagebox 表）
+    BUFF_MESSAGE_DATA: (page, limit) => `/buff163MessageV1/list/${page}/${limit}`,
+    BUFF_MESSAGE_TYPES: '/buff163MessageV1/types',
     
     // Steam市场数据相关
     STEAM_BUY_DATA: (page, limit) => `/webSteamMarketV1/getSteamBuyData/${page}/${limit}`,
@@ -196,6 +200,10 @@ export const apiUrls = {
   searchMessageByKeyword: () => getApiUrl(API_CONFIG.ENDPOINTS.MESSAGE_SEARCH_BY_KEYWORD),
   searchMessageByTime: () => getApiUrl(API_CONFIG.ENDPOINTS.MESSAGE_SEARCH_BY_TIME),
   searchMessageByType: () => getApiUrl(API_CONFIG.ENDPOINTS.MESSAGE_SEARCH_BY_TYPE),
+
+  // BUFF 消息数据（buff_messagebox）
+  buffMessageData: (page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.BUFF_MESSAGE_DATA(page, limit)),
+  buffMessageTypes: () => getApiUrl(API_CONFIG.ENDPOINTS.BUFF_MESSAGE_TYPES),
   
   // Steam购买数据
   steamBuyData: (page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.STEAM_BUY_DATA(page, limit)),

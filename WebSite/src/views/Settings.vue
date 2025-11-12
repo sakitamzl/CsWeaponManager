@@ -89,12 +89,21 @@
           </li>
           <li 
             :class="{ active: $route.name === 'MessageBox' }"
-            @click="navigateTo('/settings/message-box')"
+            @click="navigateTo('/settings/yyyp-message-box')"
           >
             <el-icon :size="18">
               <ChatLineRound />
             </el-icon>
             <span>悠悠有品消息</span>
+          </li>
+          <li 
+            :class="{ active: $route.name === 'BuffMessageBox' }"
+            @click="navigateTo('/settings/buff-message-box')"
+          >
+            <el-icon :size="18">
+              <ChatLineRound />
+            </el-icon>
+            <span>BUFF消息</span>
           </li>
         </ul>
       </div>
