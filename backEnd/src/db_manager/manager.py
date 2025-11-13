@@ -11,6 +11,7 @@ from .database import DatabaseManager
 from .index import ConfigModel, FundsModel, BuyModel, SellModel, LeaseModel, WeaponClassIDModel
 from .yyyp import YyypBuyModel, YyypSellModel, YyypLentModel, YyypMessageboxModel
 from .buff import BuffBuyModel, BuffSellModel, BuffLentModel, BuffMessageboxModel
+from .csfloat import CsFloatBuyModel, CsFloatSellModel
 from .steam import SteamBuyModel, SteamSellModel, SteamInventoryHistoryModel, SteamInventoryHistoryIndexModel, SteamInventoryModel, SteamStockComponentsModel
 
 
@@ -51,6 +52,10 @@ class DBManager:
             SteamInventoryHistoryIndexModel,
             SteamInventoryModel,
             SteamStockComponentsModel,
+
+            # CSFloat 表
+            CsFloatBuyModel,
+            CsFloatSellModel,
         ]
     
     def initialize_database(self) -> bool:

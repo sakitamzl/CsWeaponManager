@@ -18,6 +18,8 @@ from src.web_side.buff163.buy import buff163BuyV1
 from src.web_side.buff163.sell import buff163SellV1
 from src.web_side.buff163.select_weapon import buff163SelectWeaponV1
 from src.web_side.buff163.message_box import buff163MessageV1
+from src.web_side.csfloat.buy import csfloatBuyV1
+from src.web_side.csfloat.sell import csfloatSellV1
 from src.web_side.steam.market import steamMarketV1
 from src.web_side.steam.steam_inventory_history_api import steamInventoryHistoryV1
 from src.web_side.steam.inventory import steamInventoryV1
@@ -67,6 +69,8 @@ def blankEndApi():
     app.register_blueprint(buff163SellV1, url_prefix = '/buff163SellV1')
     app.register_blueprint(buff163SelectWeaponV1, url_prefix = '/buff163SelectWeaponV1')
     app.register_blueprint(buff163MessageV1, url_prefix = '/buff163MessageV1')
+    app.register_blueprint(csfloatBuyV1, url_prefix = '/csfloatBuyV1')
+    app.register_blueprint(csfloatSellV1, url_prefix = '/csfloatSellV1')
     app.register_blueprint(steamMarketV1, url_prefix = '/steamMarketV1')
     app.register_blueprint(steamInventoryHistoryV1, url_prefix = '/steamInventoryHistoryV1')
     app.register_blueprint(steamInventoryV1, url_prefix = '/api/v1/steam')

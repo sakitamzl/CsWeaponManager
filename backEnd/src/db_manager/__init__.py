@@ -12,6 +12,7 @@ from .manager import DBManager, init_database, get_db_manager
 from .index import ConfigModel, FundsModel, BuyModel, SellModel, LeaseModel
 from .yyyp import YyypBuyModel
 from .steam import SteamBuyModel, SteamSellModel, SteamInventoryHistoryModel, SteamInventoryModel, SteamStockComponentsModel
+from .csfloat import CsFloatBuyModel, CsFloatSellModel
 
 __all__ = [
     'DatabaseManager', 
@@ -29,5 +30,7 @@ __all__ = [
     'SteamSellModel',
     'SteamInventoryHistoryModel',
     'SteamInventoryModel',
-    'SteamStockComponentsModel'
+    'SteamStockComponentsModel',
+    'CsFloatBuyModel',
+    'CsFloatSellModel'
 ]
