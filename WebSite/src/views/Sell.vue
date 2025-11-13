@@ -14,12 +14,6 @@
               @clear="handleClearSearch"
               clearable
             />
-            <el-button type="primary" @click="handleSearch" :loading="loading">
-              搜索
-            </el-button>
-            <el-button @click="handleClearSearch" :disabled="loading">
-              重置
-            </el-button>
             <el-select
               v-model="statusFilter"
               placeholder="选择状态"
@@ -92,11 +86,11 @@
               @change="handleDateRangeChange"
               clearable
             />
-            <el-button type="success" @click="handleTimeSearch" :loading="loading">
-              按时间搜索
+            <el-button type="primary" @click="handleSearch" :loading="loading">
+              搜索
             </el-button>
-            <el-button type="warning" @click="handleAdvancedSearch" :loading="loading" v-if="hasAdvancedFilters">
-              高级搜索
+            <el-button @click="handleClearSearch" :disabled="loading">
+              重置
             </el-button>
           </div>
         </div>
@@ -754,8 +748,7 @@ export default {
     }
 
     const handleSearch = () => {
-      currentPage.value = 1
-      loadSellData()
+      handleAdvancedSearch()
     }
 
     const handleClearSearch = () => {
@@ -873,32 +866,27 @@ export default {
     const handleAdvancedSearch = async () => {
       loading.value = true
       currentPage.value = 1
-      
+
       try {
-        // 构建高级搜索参数
-        const searchParams = {
-          searchText: searchText.value?.trim() || '',
-          statusFilter: statusFilter.value !== 'all' ? statusFilter.value : '',
-          weaponType: weaponTypeFilter.value || '',
-          floatRange: floatRangeFilter.value || '',
-          dateRange: dateRange.value || null,
-          page: currentPage.value,
-          pageSize: pageSize.value
-        }
-        
-        // 如果有类型或磨损筛选，优先使用类型磨损搜索
-        if (searchParams.weaponType || searchParams.floatRange) {
+        const hasTypeFilter = weaponTypeFilter.value && weaponTypeFilter.value.length > 0
+        const hasWearFilter = floatRangeFilter.value && floatRangeFilter.value.length > 0
+        const hasDateRange = dateRange.value && dateRange.value.length === 2
+        const hasKeyword = searchText.value && searchText.value.trim()
+
+        if (hasTypeFilter || hasWearFilter) {
           await searchByTypeAndWear()
-        } else if (searchParams.dateRange) {
+        } else if (hasDateRange) {
           await handleTimeSearch()
+        } else if (hasKeyword) {
+          await searchByName(searchText.value.trim())
         } else {
           await loadSellData()
         }
-        
-        ElMessage.success('高级搜索完成')
+
+        ElMessage.success('搜索完成')
       } catch (error) {
-        console.error('高级搜索失败:', error)
-        ElMessage.error('高级搜索失败')
+        console.error('搜索失败:', error)
+        ElMessage.error(error.message || '搜索失败')
       } finally {
         loading.value = false
       }
@@ -914,7 +902,7 @@ export default {
       try {
         const [startDate, endDate] = dateRange.value
         console.log('按时间搜索:', startDate, '至', endDate)
-        
+
         const response = await fetch(`/api/webSellV1/searchSellByTimeRange/${startDate}/${endDate}`, {
           method: 'GET',
           mode: 'cors',
@@ -922,18 +910,18 @@ export default {
             'Accept': 'application/json',
           },
         })
-        
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
         }
-        
+
         const rawData = await response.json()
         console.log('时间搜索结果:', rawData)
-        
+
         if (!Array.isArray(rawData)) {
           throw new Error('搜索结果格式错误')
         }
-        
+
         // 转换搜索结果并存储所有数据
         const searchResults = rawData.map((item, index) => ({
           id: index + 1,
@@ -949,7 +937,7 @@ export default {
           status: item[9] || '',
           status_sub: item[10] || ''
         }))
-        
+
         // 进入时间搜索模式
         isTimeSearchMode.value = true
         isSearchMode.value = true
@@ -957,16 +945,16 @@ export default {
         sellData.value = [] // 清空普通数据
         totalItems.value = rawData.length
         currentPage.value = 1
-        
+
         // 获取时间搜索结果的统计
         await loadTimeRangeStats(startDate, endDate)
-        
+
         if (searchResults.length === 0) {
           ElMessage.info(`在 ${startDate} 至 ${endDate} 期间未找到出售记录`)
         } else {
           ElMessage.success(`找到 ${searchResults.length} 条出售记录`)
         }
-        
+
       } catch (error) {
         console.error('时间搜索失败:', error)
         ElMessage.error(`时间搜索失败: ${error.message}`)
@@ -1262,19 +1250,11 @@ export default {
   max-width: 300px;
 }
 
-.status-select {
-  min-width: 120px;
-  max-width: 150px;
-}
-
-.type-select {
-  min-width: 140px;
-  max-width: 160px;
-}
-
+.status-select,
+.type-select,
 .wear-select {
-  min-width: 140px;
-  max-width: 160px;
+  min-width: 150px;
+  max-width: 200px;
 }
 
 .date-picker {
