@@ -165,91 +165,79 @@ def getFloatRanges():
 
 @webSellPageV1.route('/searchByTypeAndWear', methods=['POST'])
 def searchByTypeAndWear():
-    """根据类型和磨损等级搜索销售记录"""
+    """根据类型和磨损等级搜索销售记录（支持多选）"""
     try:
-        data = request.get_json()
-        weapon_type = data.get('weapon_type', '')
-        float_range = data.get('float_range', '')
-        page = data.get('page', 1)
-        page_size = data.get('page_size', 20)
-        
-        # 构建查询条件
+        data = request.get_json() or {}
+        weapon_types = data.get('weapon_type', [])
+        float_ranges = data.get('float_range', [])
+        page = max(int(data.get('page', 1)), 1)
+        page_size = max(int(data.get('page_size', 20)), 1)
+
+        if isinstance(weapon_types, str):
+            weapon_types = [weapon_types]
+        if isinstance(float_ranges, str):
+            float_ranges = [float_ranges]
+
         conditions = []
-        
-        if weapon_type:
-            conditions.append(f"weapon_type = '{weapon_type}'")
-            
-        if float_range:
-            conditions.append(f"float_range = '{float_range}'")
-        
-        # 如果没有条件，返回空结果
-        if not conditions:
-            return jsonify({
-                'success': True,
-                'data': [],
-                'total': 0,
-                'page': page,
-                'page_size': page_size
-            }), 200
-        
-        where_clause = " AND ".join(conditions)
-        
-        # 计算偏移量
+        params = []
+
+        if weapon_types:
+            placeholders = ','.join(['?' for _ in weapon_types])
+            conditions.append(f"weapon_type IN ({placeholders})")
+            params.extend(weapon_types)
+
+        if float_ranges:
+            placeholders = ','.join(['?' for _ in float_ranges])
+            conditions.append(f"float_range IN ({placeholders})")
+            params.extend(float_ranges)
+
+        where_clause = ""
+        if conditions:
+            where_clause = "WHERE " + " AND ".join(conditions)
+
         offset = (page - 1) * page_size
-        
-        # 查询数据
+
         db = Date_base()
-        
-        # 获取总数
-        count_sql = f"SELECT COUNT(*) FROM sell WHERE {where_clause}"
-        success, count_result = db.select(count_sql)
-        total = count_result[0][0] if success and count_result else 0
-        
-        # 获取分页数据
-        data_sql = f"""
-        SELECT ID, weapon_name, weapon_type, item_name, weapon_float, float_range, 
-               price, price_original, buyer_name, status, status_sub, `from`, order_time, 
-               steam_id, st, sou
-        FROM sell 
-        WHERE {where_clause} 
-        ORDER BY order_time DESC 
-        LIMIT {page_size} OFFSET {offset}
-        """
-        success2, data_result = db.select(data_sql)
-        
-        # 格式化数据
-        records = []
-        if success2 and data_result:
-            for row in data_result:
-                records.append([
-                    row[0],   # ID
-                    row[1],   # weapon_name
-                    row[2],   # weapon_type
-                    row[3],   # item_name
-                    row[4],   # weapon_float
-                    row[5],   # float_range
-                    row[6],   # price
-                    row[7],   # price_original
-                    row[8],   # buyer_name
-                    row[9],   # status
-                    row[10],  # status_sub
-                    row[11],  # from
-                    row[12],  # order_time
-                    row[13],  # steam_id
-                    row[14],  # st
-                    row[15],  # sou
-                ])
-        
+
+        where_clause = " AND ".join(conditions) if conditions else ""
+
+        total = SellModel.count(where_clause, tuple(params))
+
+        records = SellModel.find_all(where_clause, tuple(params), limit=page_size, offset=offset)
+
+        data = []
+        for record in records:
+            data.append([
+                record.ID,
+                record.weapon_name,
+                record.weapon_type,
+                record.item_name,
+                record.weapon_float,
+                record.float_range,
+                record.price,
+                record.price_original,
+                record.buyer_name,
+                record.status,
+                record.status_sub,
+                getattr(record, 'from', None),
+                record.order_time,
+                record.steam_id,
+                getattr(record, 'st', None),
+                getattr(record, 'sou', None),
+            ])
+
         return jsonify({
             'success': True,
-            'data': records,
+            'data': data,
             'total': total,
             'page': page,
             'page_size': page_size
         }), 200
-        
+
     except Exception as e:
         print(f"按类型和磨损等级搜索失败: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'message': str(e),
@@ -261,26 +249,34 @@ def searchByTypeAndWear():
 def getStatsByTypeAndWear():
     """获取按类型和磨损等级筛选的统计数据"""
     try:
-        data = request.get_json()
-        weapon_type = data.get('weapon_type', '')
-        float_range = data.get('float_range', '')
-        
-        # 构建查询条件
+        data = request.get_json() or {}
+        weapon_types = data.get('weapon_type', [])
+        float_ranges = data.get('float_range', [])
+
+        if isinstance(weapon_types, str):
+            weapon_types = [weapon_types]
+        if isinstance(float_ranges, str):
+            float_ranges = [float_ranges]
+
         conditions = []
-        
-        if weapon_type:
-            conditions.append(f"weapon_type = '{weapon_type}'")
-            
-        if float_range:
-            conditions.append(f"float_range = '{float_range}'")
-        
+        params = []
+
+        if weapon_types:
+            placeholders = ','.join(['?' for _ in weapon_types])
+            conditions.append(f"weapon_type IN ({placeholders})")
+            params.extend(weapon_types)
+
+        if float_ranges:
+            placeholders = ','.join(['?' for _ in float_ranges])
+            conditions.append(f"float_range IN ({placeholders})")
+            params.extend(float_ranges)
+
         where_clause = ""
         if conditions:
             where_clause = "WHERE " + " AND ".join(conditions)
-        
+
         db = Date_base()
-        
-        # 获取统计数据
+
         sql = f"""
         SELECT 
             COUNT(*) as total_count,
@@ -289,13 +285,13 @@ def getStatsByTypeAndWear():
             COUNT(CASE WHEN status = '已完成' THEN 1 END) as completed_count,
             COUNT(CASE WHEN status = '已取消' THEN 1 END) as cancelled_count,
             COUNT(CASE WHEN status = '待收货' THEN 1 END) as pending_count
-        FROM sell 
+        FROM sell
         {where_clause}
         """
-        
-        success, result = db.select(sql)
-        
-        if success and result:
+
+        result = db.execute_query(sql, tuple(params)) or []
+
+        if result:
             row = result[0]
             stats = {
                 'totalCount': row[0],
