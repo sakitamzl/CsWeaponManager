@@ -99,6 +99,8 @@ export const API_CONFIG = {
     BUFF_SPIDER: '/buffSpiderV1/NewData',
     BUFF_FULL_SPIDER: '/buffSpiderV1/allDate',
     BUFF_SYNC_TEMPLATES: '/buffSpiderV1/syncBuffTemplates',  // 同步BUFF饰品映射
+    CSFLOAT_SPIDER: '/csfloatSpiderV1/NewData',
+    CSFLOAT_FULL_SPIDER: '/csfloatSpiderV1/NoneData',
     STEAM_SPIDER: '/steamSpiderV1/getNewData',  // Steam增量采集（获取新数据）
     STEAM_FULL_SPIDER: '/steamSpiderV1/NoneData',  // Steam全量采集
     STEAM_COLLECT_HASH_NAMES: '/steamSpiderV1/collectMarketHashNames',  // 采集Steam市场Hash Names
@@ -294,6 +296,8 @@ export const apiUrls = {
   getAppTokenStopCsfloat: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.GET_APP_TOKEN_STOP_CSFLOAT),
   getAppTokenGetCsfloatData: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.GET_APP_TOKEN_GET_CSFLOAT_DATA),
   getAppTokenClearCsfloatData: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.GET_APP_TOKEN_CLEAR_CSFLOAT_DATA),
+  csfloatSpider: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSFLOAT_SPIDER),
+  csfloatFullSpider: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSFLOAT_FULL_SPIDER),
   getAppTokenProxyStatus: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.GET_APP_TOKEN_PROXY_STATUS),
   getAppTokenHelp: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.GET_APP_TOKEN_HELP),
   

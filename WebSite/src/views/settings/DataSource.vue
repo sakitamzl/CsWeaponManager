@@ -875,6 +875,14 @@
               全部采集
             </el-button>
             <el-button 
+              v-if="editForm.type === 'csfloat'" 
+              type="warning" 
+              @click="handleEditCsfloatCollectAll"
+              :loading="collectingSourceIds.has(editingSourceId)"
+            >
+              全部采集
+            </el-button>
+            <el-button 
               type="danger" 
               @click="handleEditDelete"
             >
@@ -3056,6 +3064,77 @@ export default {
       }
     }
 
+    // CsFloat 专用爬虫采集函数
+    const startCsfloatSpiderCollection = async (source) => {
+      if (!source.enabled) {
+        ElMessage.warning('请先启用数据源')
+        return
+      }
+
+      if (collectingSourceIds.value.has(source.dataID)) {
+        ElMessage.info('该数据源正在采集中...')
+        return
+      }
+
+      const steamId =
+        source.steamID ||
+        source.config?.steamID ||
+        source.config?.steamId ||
+        source.config?.steam_id ||
+        ''
+
+      if (!steamId) {
+        ElMessage.error('请先在数据源配置中填写 SteamID')
+        return
+      }
+
+      try {
+        startCollecting(source.dataID)
+
+        ElMessage.info(`开始采集CsFloat数据: ${source.dataName}`)
+
+        const spiderData = { steamId }
+        console.log('发送给CsFloat爬虫的数据:', spiderData)
+
+        const response = await axios.post(apiUrls.csfloatSpider(), spiderData)
+
+        if (response.status === 200) {
+          const result = response.data || {}
+          if (result.success === false) {
+            ElMessage.error(result.message || 'CsFloat采集失败')
+          } else {
+            const message = result.message || 'CsFloat采集完成'
+            const buyNew = result.data?.buy_new ?? '0'
+            const sellNew = result.data?.sell_new ?? '0'
+            ElMessage.success(`${source.dataName} - ${message} (买:${buyNew} / 卖:${sellNew})`)
+
+            const now = new Date()
+            source.lastUpdate = now
+            await updateLastUpdateInDatabase(source.dataID, now.toISOString())
+          }
+        } else {
+          ElMessage.error(`CsFloat采集失败: ${response.data}`)
+        }
+      } catch (error) {
+        console.error('CsFloat采集失败:', error)
+        let errorMessage = `CsFloat采集 ${source.dataName} 失败`
+
+        if (error.response) {
+          errorMessage =
+            error.response.data?.message ||
+            `CsFloat采集失败 (${error.response.status})`
+        } else if (error.request) {
+          errorMessage = '无法连接到CsFloat爬虫服务器'
+        } else {
+          errorMessage = error.message || 'CsFloat采集失败'
+        }
+
+        ElMessage.error(errorMessage)
+      } finally {
+        stopCollecting(source.dataID)
+      }
+    }
+
     // Steam专用爬虫采集函数（增量采集 - 只获取新数据）
     const startSteamSpiderCollection = async (source) => {
       if (!source.enabled) {
@@ -3137,6 +3216,10 @@ export default {
       // 如果是BUFF，调用BUFF爬虫采集
       if (source.type === 'buff') {
         return startBuffSpiderCollection(source)
+      }
+      
+      if (source.type === 'csfloat') {
+        return startCsfloatSpiderCollection(source)
       }
       
       // 如果是Steam，调用Steam爬虫采集
@@ -3666,6 +3749,78 @@ export default {
         ElMessage.error(errorMessage)
       } finally {
         // 从采集中的列表移除
+        stopCollecting(editingSourceId.value)
+      }
+    }
+
+    // 编辑对话框中的 CsFloat "全部采集" 功能
+    const handleEditCsfloatCollectAll = async () => {
+      if (!editForm.value.name) {
+        ElMessage.error('数据源信息不完整')
+        return
+      }
+
+      if (!editForm.value.enabled) {
+        ElMessage.warning('请先启用数据源')
+        return
+      }
+
+      if (editForm.value.type !== 'csfloat') {
+        ElMessage.error('只有CsFloat数据源才支持全部采集功能')
+        return
+      }
+
+      if (collectingSourceIds.value.has(editingSourceId.value)) {
+        ElMessage.info('该数据源正在采集中...')
+        return
+      }
+
+      const steamId =
+        editForm.value.csfloatSteamID ||
+        editForm.value.steamID ||
+        editForm.value.steamId ||
+        ''
+
+      if (!steamId) {
+        ElMessage.error('请先填写 CsFloat 数据源的 SteamID')
+        return
+      }
+
+      try {
+        startCollecting(editingSourceId.value)
+
+        ElMessage.info(`开始执行CsFloat全部采集: ${editForm.value.name}`)
+
+        const response = await axios.post(apiUrls.csfloatFullSpider(), {
+          steamId,
+        })
+
+        if (response.status === 200) {
+          const result = response.data || {}
+          if (result.success === false) {
+            ElMessage.error(result.message || 'CsFloat 全部采集失败')
+          } else {
+            ElMessage.success(result.message || 'CsFloat 全部采集完成！')
+          }
+        } else {
+          ElMessage.error(`CsFloat 全部采集失败: ${response.data}`)
+        }
+      } catch (error) {
+        console.error('CsFloat 全部采集失败:', error)
+        let errorMessage = `CsFloat 全部采集 ${editForm.value.name} 失败`
+
+        if (error.response) {
+          errorMessage =
+            error.response.data?.message ||
+            `CsFloat 全部采集失败 (${error.response.status})`
+        } else if (error.request) {
+          errorMessage = '无法连接到CsFloat爬虫服务器'
+        } else {
+          errorMessage = error.message || 'CsFloat 全部采集失败'
+        }
+
+        ElMessage.error(errorMessage)
+      } finally {
         stopCollecting(editingSourceId.value)
       }
     }
@@ -4656,6 +4811,7 @@ export default {
       editPerfectWorldCollapse,
       editCsfloatCollapse,
       handleEditBuffCollectAll,
+      handleEditCsfloatCollectAll,
       handleEditSteamCollectAll,
       handleEditDelete,
       openAddDialog,
