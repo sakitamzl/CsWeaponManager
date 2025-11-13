@@ -1340,9 +1340,9 @@ export default {
 }
 
 .date-picker {
-  width: clamp(320px, 28vw, 460px);
-  min-width: 320px;
-  max-width: 460px;
+  width: 360px;
+  min-width: 360px;
+  max-width: 360px;
 }
 
 .pagination {

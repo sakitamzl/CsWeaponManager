@@ -1279,8 +1279,9 @@ export default {
 }
 
 .date-picker {
-  min-width: 240px;
-  max-width: 280px;
+  width: 360px;
+  min-width: 360px;
+  max-width: 360px;
 }
 
 .pagination {
