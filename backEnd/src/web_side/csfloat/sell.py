@@ -95,7 +95,9 @@ def insert_db():
         csfloat_record.price_original = data.get("price_original")
         csfloat_record.currency = data.get("currency")
         csfloat_record.buyer_name = data.get("buyer_name")
+        csfloat_record.buyer_id = data.get("buyer_id")
         csfloat_record.seller_name = data.get("seller_name")
+        csfloat_record.seller_id = data.get("seller_id")
         csfloat_record.state = data.get("state")
         csfloat_record.state_sub = data.get("state_sub")
         csfloat_record.created_at = data.get("created_at")
@@ -128,7 +130,7 @@ def insert_db():
         sell_record.status_sub = data.get("state_sub")
         sell_record.order_time = data.get("created_at")
         sell_record.data_user = data.get("data_user")
-        sell_record.steam_id = data.get("data_user")
+        sell_record.steam_id = data.get("steam_id")
         setattr(sell_record, "from", "csfloat")
         sell_record.save()
 
