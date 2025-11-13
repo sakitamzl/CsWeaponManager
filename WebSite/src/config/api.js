@@ -31,6 +31,8 @@ export const API_CONFIG = {
     SELL_SOURCE_LIST: '/webSellV1/getSourceList',
     SELL_DATA_BY_SOURCE: (source, page, limit) => `/webSellV1/getSellDataBySource/${encodeURIComponent(source)}/${page}/${limit}`,
     SELL_STATS_BY_SOURCE: (source) => `/webSellV1/getSellStatsBySource/${encodeURIComponent(source)}`,
+    BUY_STATS_FILTERED: '/webBuyV1/getBuyStatsFiltered',
+    SELL_STATS_FILTERED: '/webSellV1/getSellStatsFiltered',
     SELL_DATA_USER_LIST: '/webSellV1/getDataUserList',
     SELL_DATA_BY_USER: (user, page, limit) => `/webSellV1/getSellDataByDataUser/${encodeURIComponent(user)}/${page}/${limit}`,
     SELL_STATS_BY_USER: (user) => `/webSellV1/getSellStatsByDataUser/${encodeURIComponent(user)}`,
@@ -184,6 +186,7 @@ export const apiUrls = {
   buySourceList: () => getApiUrl(API_CONFIG.ENDPOINTS.BUY_SOURCE_LIST),
   buyDataBySource: (source, page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.BUY_DATA_BY_SOURCE(source, page, limit)),
   buyStatsBySource: (source) => getApiUrl(API_CONFIG.ENDPOINTS.BUY_STATS_BY_SOURCE(source)),
+  buyStatsFiltered: () => getApiUrl(API_CONFIG.ENDPOINTS.BUY_STATS_FILTERED),
   buyDataUserList: () => getApiUrl(API_CONFIG.ENDPOINTS.BUY_DATA_USER_LIST),
   buyDataByUser: (user, page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.BUY_DATA_BY_USER(user, page, limit)),
   buyStatsByUser: (user) => getApiUrl(API_CONFIG.ENDPOINTS.BUY_STATS_BY_USER(user)),
@@ -194,6 +197,7 @@ export const apiUrls = {
   sellDataUserList: () => getApiUrl(API_CONFIG.ENDPOINTS.SELL_DATA_USER_LIST),
   sellDataByUser: (user, page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.SELL_DATA_BY_USER(user, page, limit)),
   sellStatsByUser: (user) => getApiUrl(API_CONFIG.ENDPOINTS.SELL_STATS_BY_USER(user)),
+  sellStatsFiltered: () => getApiUrl(API_CONFIG.ENDPOINTS.SELL_STATS_FILTERED),
   
   // 消息数据
   messageData: (page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.MESSAGE_DATA(page, limit)),

@@ -21,7 +21,13 @@
             <el-button @click="handleClearSearch" :disabled="loading">
               重置
             </el-button>
-            <el-select v-model="statusFilter" placeholder="选择状态" class="status-select" @change="handleStatusChange">
+            <el-select
+              v-model="statusFilter"
+              placeholder="选择状态"
+              class="status-select"
+              @change="handleStatusChange"
+              clearable
+            >
               <el-option v-for="status in statusList" :key="status" :label="status" :value="status" />
             </el-select>
             <el-select
@@ -314,7 +320,7 @@ export default {
     const statusList = ref([])
     const statusSubList = ref([])
     const sourceList = ref([])
-    sourceList.value = ['yyyp', 'buff', 'CsFloat']
+    sourceList.value = ['yyyp', 'buff', 'csfloat']
     const dataUserList = ref([])
     const statusSubFilter = ref('')
     const currentPage = ref(1)
@@ -343,6 +349,53 @@ export default {
       cancelledCount: 0,
       pendingCount: 0
     })
+
+    const computeStatsFromData = (data) => {
+      if (!Array.isArray(data) || data.length === 0) {
+        return {
+          totalCount: 0,
+          totalAmount: '0.00',
+          avgPrice: '0.00',
+          completedCount: 0,
+          cancelledCount: 0,
+          pendingCount: 0
+        }
+      }
+
+      let totalAmount = 0
+      let sumForAvg = 0
+      let avgCount = 0
+      let completedCount = 0
+      let cancelledCount = 0
+      let pendingCount = 0
+
+      data.forEach(item => {
+        const price = Number(item.price) || 0
+        if (item.status !== '已取消') {
+          totalAmount += price
+          sumForAvg += price
+          avgCount += 1
+        }
+        if (item.status === '已完成') {
+          completedCount += 1
+        } else if (item.status === '已取消') {
+          cancelledCount += 1
+        } else if (item.status === '待收货') {
+          pendingCount += 1
+        }
+      })
+
+      const avgPrice = avgCount > 0 ? (sumForAvg / avgCount) : 0
+
+      return {
+        totalCount: data.length,
+        totalAmount: totalAmount.toFixed(2),
+        avgPrice: avgPrice.toFixed(2),
+        completedCount,
+        cancelledCount,
+        pendingCount
+      }
+    }
 
     const currentPageStats = computed(() => {
       // 基于当前页面显示的数据计算统计信息
@@ -453,82 +506,68 @@ export default {
     const sourceLabel = (val) => {
       const map = {
         yyyp: '悠悠有品',
-        buff: 'BUFF'
+        buff: 'BUFF',
+        csfloat: 'CsFloat'
       }
       return map[val] || val
     }
 
-    const loadTotalStats = async (searchKeyword = null, filterStatus = null, filterStatusSub = null) => {
+    const loadTotalStats = async () => {
+      if (isSearchMode.value) {
+        const stats = computeStatsFromData(allSearchResults.value)
+        totalStats.value = stats
+        totalItems.value = stats.totalCount
+        return
+      }
+
       try {
-        console.log('正在获取总数统计...', { searchKeyword, filterStatus, filterStatusSub })
-        
-        let apiUrl = '/api/webBuyV1/getBuyStats'
-        
-        // 根据传入的参数或当前状态选择不同的API
-        const keyword = searchKeyword || searchText.value.trim()
-        const status = filterStatus || statusFilter.value
-        const statusSub = filterStatusSub || statusSubFilter.value
-        
-        if (keyword) {
-          apiUrl = `/api/webBuyV1/getBuyStatsBySearch/${encodeURIComponent(keyword)}`
-          console.log('使用搜索统计API:', apiUrl)
-        } else if (dataUserFilter.value) {
-          apiUrl = apiUrls.buyStatsByUser(dataUserFilter.value)
-          console.log('使用用户筛选统计API:', apiUrl)
-        } else if (sourceFilter.value) {
-          apiUrl = apiUrls.buyStatsBySource(sourceFilter.value)
-          console.log('使用来源筛选统计API:', apiUrl)
-        } else if (statusSub) {
-          apiUrl = `/api/webBuyV1/getBuyStatsByStatusSub/${encodeURIComponent(statusSub)}`
-          console.log('使用子状态筛选统计API:', apiUrl)
-        } else if (status) {
-          apiUrl = `/api/webBuyV1/getBuyStatsByStatus/${status}`
-          console.log('使用状态筛选统计API:', apiUrl)
-        } else {
-          console.log('使用全部数据统计API:', apiUrl)
+        const payload = {
+          source: sourceFilter.value || null,
+          status: statusFilter.value || null,
+          status_sub: statusSubFilter.value || null,
+          data_user: dataUserFilter.value || null,
+          weapon_types: weaponTypeFilter.value && weaponTypeFilter.value.length > 0 ? weaponTypeFilter.value : null,
+          float_ranges: floatRangeFilter.value && floatRangeFilter.value.length > 0 ? floatRangeFilter.value : null,
+          search: searchText.value && searchText.value.trim() ? searchText.value.trim() : null
         }
-        
-        const response = await fetch(apiUrl, {
-          method: 'GET',
-          mode: 'cors',
+
+        if (dateRange.value && dateRange.value.length === 2) {
+          payload.start_date = dateRange.value[0]
+          payload.end_date = dateRange.value[1]
+        }
+
+        const response = await fetch(apiUrls.buyStatsFiltered(), {
+          method: 'POST',
           headers: {
-            'Accept': 'application/json',
+            'Content-Type': 'application/json'
           },
+          body: JSON.stringify(payload)
         })
-        
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
         }
-        
+
         const statsData = await response.json()
-        console.log('获取到的总统计:', statsData, 'API:', apiUrl)
-        
-        if (statsData) {
+
+        if (statsData && statsData.success) {
           totalStats.value = {
             totalCount: statsData.total_count || 0,
-            totalAmount: statsData.total_amount?.toFixed(2) || '0.00',
-            avgPrice: statsData.avg_price?.toFixed(2) || '0.00',
+            totalAmount: Number(statsData.total_amount || 0).toFixed(2),
+            avgPrice: Number(statsData.avg_price || 0).toFixed(2),
             completedCount: statsData.completed_count || 0,
             cancelledCount: statsData.cancelled_count || 0,
             pendingCount: statsData.pending_count || 0
           }
-          totalItems.value = statsData.total_count || 0
-          console.log('设置总统计为:', totalStats.value)
+          totalItems.value = totalStats.value.totalCount
         } else {
-          console.error('总统计API返回数据格式错误:', statsData)
+          throw new Error(statsData?.message || '统计接口返回失败')
         }
       } catch (error) {
         console.error('获取总统计失败:', error)
-        // 如果获取总统计失败，重置统计数据
-        totalStats.value = {
-          totalCount: 0,
-          totalAmount: '0.00',
-          avgPrice: '0.00',
-          completedCount: 0,
-          cancelledCount: 0,
-          pendingCount: 0
-        }
-        totalItems.value = 0
+        const fallbackStats = computeStatsFromData(buyData.value)
+        totalStats.value = fallbackStats
+        totalItems.value = fallbackStats.totalCount
       }
     }
 
@@ -611,7 +650,7 @@ export default {
         currentPage.value = 1
         
         // 获取搜索结果的统计
-        await loadTotalStats(itemName)
+        await loadTotalStats()
         
         if (searchResults.length === 0) {
           ElMessage.info(`未找到包含"${itemName}"的武器`)
@@ -729,11 +768,7 @@ export default {
         console.log('转换后的数据:', buyData.value)
         
         // 获取总数统计（子状态优先）
-        if (statusSubFilter.value && statusSubFilter.value !== 'all') {
-          await loadTotalStats(null, null, statusSubFilter.value)
-        } else {
-          await loadTotalStats(null, statusFilter.value)
-        }
+        await loadTotalStats()
         
         if (buyData.value.length === 0) {
           ElMessage.info('暂无购入数据')

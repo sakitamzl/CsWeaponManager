@@ -331,6 +331,102 @@ def getSellStatsByTimeRange(start_date, end_date):
             }), 200
     return "查询失败", 500
 
+
+@webSellV1.route('/getSellStatsFiltered', methods=['POST'])
+def get_sell_stats_filtered():
+    try:
+        filters = request.get_json() or {}
+        clauses = []
+        params = []
+
+        def add_clause(clause, *values):
+            clauses.append(clause)
+            params.extend(values)
+
+        source = filters.get('source')
+        if source:
+            add_clause("LOWER(`from`) = LOWER(?)", source)
+
+        status = filters.get('status')
+        if status:
+            add_clause("status = ?", status)
+
+        status_sub = filters.get('status_sub')
+        if status_sub:
+            add_clause("status_sub = ?", status_sub)
+
+        data_user = filters.get('data_user')
+        if data_user:
+            add_clause("data_user = ?", data_user)
+
+        weapon_types = filters.get('weapon_types') or []
+        if isinstance(weapon_types, list) and len(weapon_types) > 0:
+            placeholders = ",".join(["?"] * len(weapon_types))
+            clauses.append(f"weapon_type IN ({placeholders})")
+            params.extend(weapon_types)
+
+        float_ranges = filters.get('float_ranges') or []
+        if isinstance(float_ranges, list) and len(float_ranges) > 0:
+            placeholders = ",".join(["?"] * len(float_ranges))
+            clauses.append(f"float_range IN ({placeholders})")
+            params.extend(float_ranges)
+
+        search_keyword = filters.get('search')
+        if search_keyword:
+            like = f"%{search_keyword}%"
+            clauses.append("(item_name LIKE ? OR weapon_name LIKE ?)")
+            params.extend([like, like])
+
+        start_date = filters.get('start_date')
+        end_date = filters.get('end_date')
+        if start_date and end_date:
+            clauses.append("order_time BETWEEN ? AND ?")
+            params.extend([f"{start_date} 00:00:00", f"{end_date} 23:59:59"])
+
+        where_clause = ""
+        if clauses:
+            where_clause = " WHERE " + " AND ".join(clauses)
+
+        sql = f"""
+        SELECT 
+            COUNT(*) as total_count,
+            COALESCE(SUM(CASE WHEN status != '已取消' THEN price ELSE 0 END), 0) as total_amount,
+            COALESCE(AVG(CASE WHEN status != '已取消' THEN price ELSE NULL END), 0) as avg_price,
+            COUNT(CASE WHEN status = '已完成' THEN 1 END) as completed_count,
+            COUNT(CASE WHEN status = '已取消' THEN 1 END) as cancelled_count,
+            COUNT(CASE WHEN status = '待收货' THEN 1 END) as pending_count
+        FROM sell
+        {where_clause}
+        """
+
+        db = Date_base()
+        result = db.execute_query(sql, tuple(params))
+
+        if result and len(result) > 0:
+            stats = result[0]
+            return jsonify({
+                "success": True,
+                "total_count": stats[0],
+                "total_amount": round(float(stats[1]), 2),
+                "avg_price": round(float(stats[2]), 2),
+                "completed_count": stats[3],
+                "cancelled_count": stats[4],
+                "pending_count": stats[5]
+            }), 200
+
+        return jsonify({
+            "success": True,
+            "total_count": 0,
+            "total_amount": 0.0,
+            "avg_price": 0.0,
+            "completed_count": 0,
+            "cancelled_count": 0,
+            "pending_count": 0
+        }), 200
+    except Exception as e:
+        print(f"获取出售筛选统计失败: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
 @webSellV1.route('/searchSellByTimeRange/<start_date>/<end_date>', methods=['GET'])
 def searchSellByTimeRange(start_date, end_date):
     sql = f"""

@@ -2,6 +2,9 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
 import ElementPlus from 'element-plus'
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
+import dayjs from 'dayjs'
+import 'dayjs/locale/zh-cn'
 import 'element-plus/dist/index.css'
 import './assets/css/global.css'
 
@@ -47,7 +50,9 @@ app.config.errorHandler = (err, vm, info) => {
   console.error('Vue error:', err, info)
 }
 
+dayjs.locale('zh-cn')
+
 app.use(router)
-app.use(ElementPlus)
+app.use(ElementPlus, { locale: zhCn })
 
 app.mount('#app')
