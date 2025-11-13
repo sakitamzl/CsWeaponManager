@@ -2,7 +2,7 @@
 echo Starting PyInstaller packaging process...
 
 :: Set version number (modify this for each release)
-set VERSION=v1.1.13
+set VERSION=v1.1.14
 
 :: Activate conda environment
 call conda activate CS2DB
@@ -146,8 +146,9 @@ echo ========================================
 :: Create ZIP file
 echo.
 echo Creating ZIP archive...
-set ZIP_FILE=Releases\%VERSION%.zip
 
+:: set ZIP_FILE=Releases\%VERSION%.zip
+set ZIP_FILE=Releases\CsWeaponManager.zip
 :: Remove old zip if exists
 if exist "%ZIP_FILE%" (
     echo Removing old ZIP file...
