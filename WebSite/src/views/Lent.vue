@@ -1029,15 +1029,19 @@ export default {
               id: index + 1,
               ID: item[0] || '',
               weapon_name: item[1] || '',
-              item_name: item[2] || '',
-              weapon_float: item[3] || 0,
-              float_range: item[4] || '',
-              unit_price: item[5] || 0,
-              lease_day: item[6] || 0,
-              status: item[7] || '',
-              create_time: item[8] || '',
-              leaser_name: item[9] || '',
-              deposit: item[10] || 0
+              weapon_type: item[2] || '',
+              item_name: item[3] || '',
+              weapon_float: item[4] || 0,
+              float_range: item[5] || '',
+              price: item[6] || 0,
+              lenter_name: item[7] || '',
+              status: item[8] || '',
+              last_status: item[9] || '',
+              from: item[10] || '',
+              lean_start_time: item[11] || '',
+              lean_end_time: item[12] || '',
+              total_Lease_Days: item[13] || 0,
+              max_Lease_Days: item[14] || 0
             }
           })
           
@@ -1082,7 +1086,9 @@ export default {
             avgPrice: result.data.avgPrice.toFixed(2),
             totalLeaseDays: result.data.totalLeaseDays,
             avgLeaseDays: result.data.avgLeaseDays.toFixed(2),
-            rentingCount: result.data.rentingCount
+            rentingCount: result.data.rentingCount,
+            completedCount: result.data.completedCount ?? 0,
+            cancelledCount: result.data.cancelledCount ?? 0
           }
         }
       } catch (error) {

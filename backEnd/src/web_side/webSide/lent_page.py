@@ -222,18 +222,18 @@ def searchByTypeAndWear():
         db = Date_base()
         
         # 获取总数
-        count_sql = f"SELECT COUNT(*) FROM lease WHERE {where_clause}"
+        count_sql = f"SELECT COUNT(*) FROM yyyp_lent WHERE {where_clause}"
         count_result = db.execute_query(count_sql, tuple(params))
         total = count_result[0][0] if count_result else 0
         
         # 获取分页数据
         data_sql = f"""
-        SELECT ID, lease_day, status, unit_price, deposit, create_time, 
-               item_name, weapon_name, weapon_type, float_range, weapon_float, 
-               leaser_id, leaser_name, buy_of, lease_from
-        FROM lease 
-        WHERE {where_clause} 
-        ORDER BY create_time DESC 
+        SELECT ID, weapon_name, weapon_type, item_name, weapon_float, float_range,
+               price, lenter_name, status, last_status, "from",
+               lean_start_time, lean_end_time, total_Lease_Days, max_Lease_Days
+        FROM yyyp_lent
+        WHERE {where_clause}
+        ORDER BY lean_start_time DESC
         LIMIT ? OFFSET ?
         """
         params.extend([page_size, offset])
@@ -244,20 +244,20 @@ def searchByTypeAndWear():
         for row in data_result:
             records.append([
                 row[0],   # ID
-                row[1],   # lease_day
-                row[2],   # status
-                row[3],   # unit_price
-                row[4],   # deposit
-                row[5],   # create_time
-                row[6],   # item_name
-                row[7],   # weapon_name
-                row[8],   # weapon_type
-                row[9],   # float_range
-                row[10],  # weapon_float
-                row[11],  # leaser_id
-                row[12],  # leaser_name
-                row[13],  # buy_of
-                row[14]   # lease_from
+                row[1],   # weapon_name
+                row[2],   # weapon_type
+                row[3],   # item_name
+                row[4],   # weapon_float
+                row[5],   # float_range
+                row[6],   # price
+                row[7],   # lenter_name
+                row[8],   # status
+                row[9],   # last_status
+                row[10],  # from
+                row[11],  # lean_start_time
+                row[12],  # lean_end_time
+                row[13],  # total_Lease_Days
+                row[14]   # max_Lease_Days
             ])
         
         return jsonify({
@@ -311,12 +311,14 @@ def getStatsByTypeAndWear():
         sql = f"""
         SELECT 
             COUNT(*) as total_count,
-            COALESCE(SUM(unit_price * lease_day), 0) as total_amount,
-            COALESCE(AVG(unit_price), 0) as avg_price,
-            COALESCE(SUM(lease_day), 0) as total_lease_days,
-            COALESCE(AVG(lease_day), 0) as avg_lease_days,
-            COUNT(CASE WHEN status = '租赁中' THEN 1 END) as renting_count
-        FROM lease 
+            COALESCE(SUM(price * total_Lease_Days), 0) as total_amount,
+            COALESCE(AVG(price), 0) as avg_price,
+            COALESCE(SUM(total_Lease_Days), 0) as total_lease_days,
+            COALESCE(AVG(total_Lease_Days), 0) as avg_lease_days,
+            COUNT(CASE WHEN status = '租赁中' THEN 1 END) as renting_count,
+            COUNT(CASE WHEN status = '已完成' THEN 1 END) as completed_count,
+            COUNT(CASE WHEN status = '已取消' THEN 1 END) as cancelled_count
+        FROM yyyp_lent 
         {where_clause}
         """
         
@@ -330,7 +332,9 @@ def getStatsByTypeAndWear():
                 'avgPrice': round(row[2], 2),
                 'totalLeaseDays': row[3],
                 'avgLeaseDays': round(row[4], 2),
-                'rentingCount': row[5]
+                'rentingCount': row[5],
+                'completedCount': row[6],
+                'cancelledCount': row[7]
             }
         else:
             stats = {
@@ -339,7 +343,9 @@ def getStatsByTypeAndWear():
                 'avgPrice': 0,
                 'totalLeaseDays': 0,
                 'avgLeaseDays': 0,
-                'rentingCount': 0
+                'rentingCount': 0,
+                'completedCount': 0,
+                'cancelledCount': 0
             }
         
         return jsonify({
