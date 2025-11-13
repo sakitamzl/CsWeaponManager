@@ -52,7 +52,7 @@
             </el-select>
               <el-select 
                 v-model="weaponTypeFilter" 
-              placeholder="选择武器类型" 
+              placeholder="武器类型" 
                 class="type-select" 
                 @change="handleTypeChange" 
                 multiple
@@ -64,7 +64,7 @@
               </el-select>
               <el-select 
                 v-model="floatRangeFilter" 
-              placeholder="选择磨损等级" 
+              placeholder="磨损等级" 
                 class="wear-select" 
                 @change="handleWearChange" 
                 multiple
@@ -1245,16 +1245,17 @@ export default {
 <style scoped>
 
 .search-input {
+  width: 200px;
   min-width: 200px;
-  flex: 1;
-  max-width: 300px;
+  max-width: 200px;
 }
 
 .status-select,
 .type-select,
 .wear-select {
-  min-width: 150px;
-  max-width: 200px;
+  width: 120px;
+  min-width: 120px;
+  max-width: 120px;
 }
 
 .date-picker {
