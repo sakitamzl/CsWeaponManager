@@ -196,6 +196,7 @@ export const apiUrls = {
   sellStats: () => getApiUrl(API_CONFIG.ENDPOINTS.SELL_STATS),
   sellDataUserList: () => getApiUrl(API_CONFIG.ENDPOINTS.SELL_DATA_USER_LIST),
   sellDataByUser: (user, page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.SELL_DATA_BY_USER(user, page, limit)),
+  sellDataBySource: (source, page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.SELL_DATA_BY_SOURCE(source, page, limit)),
   sellStatsByUser: (user) => getApiUrl(API_CONFIG.ENDPOINTS.SELL_STATS_BY_USER(user)),
   sellStatsFiltered: () => getApiUrl(API_CONFIG.ENDPOINTS.SELL_STATS_FILTERED),
   
