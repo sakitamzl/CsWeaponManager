@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request
 
 from src.db_manager.csfloat import CsFloatBuyModel
 from src.db_manager.index.buy import BuyModel
+from src.db_manager.index.weapon_classID import WeaponClassIDModel
 
 csfloatBuyV1 = Blueprint("csfloatBuyV1", __name__)
 
@@ -68,6 +69,35 @@ def update_order_status():
         return jsonify({"success": True, "message": "更新成功"}), 200
     except Exception as exc:
         print(f"更新 CSFloat 购买订单状态失败: {exc}")
+        return jsonify({"success": False, "error": str(exc)}), 500
+
+
+@csfloatBuyV1.route("/resolveWeapon", methods=["POST"])
+def resolve_weapon():
+    try:
+        data = request.get_json(force=True) or {}
+        market_hash_name = data.get("market_hash_name") or data.get("steam_hash_name")
+        if not market_hash_name:
+            return jsonify({"success": False, "message": "缺少 market_hash_name"}), 400
+
+        records = WeaponClassIDModel.find_by_steam_hash_name(market_hash_name)
+        if not records:
+            return jsonify({"success": False, "message": "未找到匹配数据"}), 200
+
+        weapon = records[0]
+        return jsonify(
+            {
+                "success": True,
+                "data": {
+                    "weapon_type": getattr(weapon, "weapon_type", None),
+                    "weapon_name": getattr(weapon, "weapon_name", None),
+                    "item_name": getattr(weapon, "item_name", None),
+                    "float_range": getattr(weapon, "float_range", None),
+                },
+            }
+        ), 200
+    except Exception as exc:
+        print(f"解析 CSFloat 武器信息失败: {exc}")
         return jsonify({"success": False, "error": str(exc)}), 500
 
 
