@@ -8,7 +8,6 @@
           <div class="flex flex-wrap gap-4 items-center">
             <el-input
               v-model="searchText"
-              placeholder="搜索饰品名称..."
               prefix-icon="Search"
               class="search-input"
               @keyup.enter="handleSearch"
@@ -59,7 +58,7 @@
             </el-select>
               <el-select 
                 v-model="weaponTypeFilter" 
-                placeholder="选择武器类型（可多选）" 
+              placeholder="选择武器类型" 
                 class="type-select" 
                 @change="handleTypeChange" 
                 multiple
@@ -71,7 +70,7 @@
               </el-select>
               <el-select 
                 v-model="floatRangeFilter" 
-                placeholder="选择磨损等级（可多选）" 
+              placeholder="选择磨损等级" 
                 class="wear-select" 
                 @change="handleWearChange" 
                 multiple
@@ -1340,9 +1339,10 @@ export default {
 }
 
 .date-picker {
-  width: 360px;
-  min-width: 360px;
-  max-width: 360px;
+  flex: 1 1 320px;
+  min-width: 320px;
+  max-width: 100%;
+  width: 100%;
 }
 
 .pagination {
