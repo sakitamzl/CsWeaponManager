@@ -18,20 +18,19 @@
             <div class="flex flex-wrap gap-4 items-center">
               <el-input
                 v-model="searchText"
-                placeholder="搜索饰品名称..."
                 prefix-icon="Search"
                 class="search-input"
                 @keyup.enter="handleSearch"
                 @clear="handleClearSearch"
                 clearable
               />
-              <el-button type="primary" @click="handleSearch" :loading="loading">
-                搜索
-              </el-button>
-              <el-button @click="handleClearSearch" :disabled="loading">
-                重置
-              </el-button>
-              <el-select v-model="statusFilter" placeholder="选择状态" class="status-select" @change="handleStatusChange">
+              <el-select
+                v-model="statusFilter"
+                placeholder="选择状态"
+                class="status-select"
+                @change="handleStatusChange"
+                clearable
+              >
                 <el-option label="全部" value="all" />
                 <el-option v-for="status in statusList" :key="status" :label="status" :value="status" />
               </el-select>
@@ -47,7 +46,7 @@
               </el-select>
               <el-select 
                 v-model="weaponTypeFilter" 
-                placeholder="选择武器类型（可多选）" 
+                placeholder="武器类型" 
                 class="type-select" 
                 @change="handleTypeChange" 
                 multiple
@@ -59,7 +58,7 @@
               </el-select>
               <el-select 
                 v-model="floatRangeFilter" 
-                placeholder="选择磨损等级（可多选）" 
+                placeholder="磨损等级" 
                 class="wear-select" 
                 @change="handleWearChange" 
                 multiple
@@ -81,11 +80,11 @@
                 @change="handleDateRangeChange"
                 clearable
               />
-              <el-button type="success" @click="handleTimeSearch" :loading="loading">
-                按时间搜索
+              <el-button type="primary" @click="handleSearch" :loading="loading">
+                搜索
               </el-button>
-              <el-button type="warning" @click="handleAdvancedSearch" :loading="loading" v-if="hasAdvancedFilters">
-                高级搜索
+              <el-button @click="handleClearSearch" :disabled="loading">
+                重置
               </el-button>
             </div>
           </div>
@@ -698,8 +697,7 @@ export default {
     }
 
     const handleSearch = () => {
-      currentPage.value = 1
-      loadLentData()
+      handleAdvancedSearch()
     }
 
     const handleClearSearch = () => {
@@ -719,6 +717,9 @@ export default {
     }
 
     const handleStatusChange = () => {
+      if (!statusFilter.value) {
+        statusFilter.value = 'all'
+      }
       currentPage.value = 1
       statusSubFilter.value = 'all'
       loadStatusSubList()
@@ -745,32 +746,27 @@ export default {
     const handleAdvancedSearch = async () => {
       loading.value = true
       currentPage.value = 1
-      
+
       try {
-        // 构建高级搜索参数
-        const searchParams = {
-          searchText: searchText.value?.trim() || '',
-          statusFilter: statusFilter.value !== 'all' ? statusFilter.value : '',
-          weaponType: weaponTypeFilter.value || '',
-          floatRange: floatRangeFilter.value || '',
-          dateRange: dateRange.value || null,
-          page: currentPage.value,
-          pageSize: pageSize.value
-        }
-        
-        // 如果有类型或磨损筛选，优先使用类型磨损搜索
-        if (searchParams.weaponType || searchParams.floatRange) {
+        const hasTypeFilter = weaponTypeFilter.value && weaponTypeFilter.value.length > 0
+        const hasWearFilter = floatRangeFilter.value && floatRangeFilter.value.length > 0
+        const hasDateRange = dateRange.value && dateRange.value.length === 2
+        const hasKeyword = searchText.value && searchText.value.trim()
+
+        if (hasTypeFilter || hasWearFilter) {
           await searchByTypeAndWear()
-        } else if (searchParams.dateRange) {
+        } else if (hasDateRange) {
           await handleTimeSearch()
+        } else if (hasKeyword) {
+          await searchByName(searchText.value.trim())
         } else {
           await loadLentData()
         }
-        
-        ElMessage.success('高级搜索完成')
+
+        ElMessage.success('搜索完成')
       } catch (error) {
-        console.error('高级搜索失败:', error)
-        ElMessage.error('高级搜索失败')
+        console.error('搜索失败:', error)
+        ElMessage.error(error.message || '搜索失败')
       } finally {
         loading.value = false
       }
@@ -945,7 +941,8 @@ export default {
     }
     const loadStatusSubList = async () => {
       try {
-        const response = await fetch(apiUrls.lentStatusSubList(statusFilter.value))
+        const statusParam = statusFilter.value || 'all'
+        const response = await fetch(apiUrls.lentStatusSubList(statusParam))
         const result = await response.json()
         if (result && result.success && Array.isArray(result.data)) {
           statusSubList.value = result.data
@@ -1155,29 +1152,24 @@ export default {
 }
 
 .search-input {
+  width: 200px;
   min-width: 200px;
-  flex: 1;
-  max-width: 300px;
+  max-width: 200px;
 }
 
-.status-select {
-  min-width: 120px;
-  max-width: 150px;
-}
-
-.type-select {
-  min-width: 140px;
-  max-width: 160px;
-}
-
+.status-select,
+.type-select,
 .wear-select {
-  min-width: 140px;
-  max-width: 160px;
+  width: 120px;
+  min-width: 120px;
+  max-width: 120px;
 }
 
 .date-picker {
-  min-width: 240px;
-  max-width: 280px;
+  flex: 1 1 320px;
+  min-width: 320px;
+  max-width: 100%;
+  width: 100%;
 }
 
 .table-container {
@@ -1520,7 +1512,9 @@ export default {
     max-width: none;
   }
   
-  .status-select {
+  .status-select,
+  .type-select,
+  .wear-select {
     min-width: unset;
     width: 100%;
     max-width: none;
