@@ -312,7 +312,7 @@ export default {
     const floatRanges = ref([])
     const statusList = ref([])
     const statusSubList = ref([])
-    const sourceList = ref(['yyyp','buff','csfloat'])
+    const sourceList = ref(['yyyp','buff','csfloat','SMK'])
     const dataUserList = ref([])
     const statusSubFilter = ref('')
     const currentPage = ref(1)
@@ -869,7 +869,7 @@ export default {
 
     // 来源显示映射
     const sourceLabel = (val) => {
-      const map = { yyyp: '悠悠有品', buff: 'BUFF', csfloat: 'CsFloat' }
+      const map = { yyyp: '悠悠有品', buff: 'BUFF', csfloat: 'CsFloat', SMK: 'steam市场' }
       return map[val] || val
     }
 

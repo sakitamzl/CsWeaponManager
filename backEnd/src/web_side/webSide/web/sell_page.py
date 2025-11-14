@@ -21,7 +21,7 @@ def countSellNumber():
 def get_source_list():
     """获取销售数据来源平台列表"""
     # 固定来源列表，不再从数据库去重
-    sources = ['yyyp', 'buff', 'csfloat']
+    sources = ['yyyp', 'buff', 'csfloat', 'SMK']
     return jsonify(sources), 200
 
 

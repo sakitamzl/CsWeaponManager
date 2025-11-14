@@ -31,7 +31,7 @@ def selectBuyWeaponName(itemName):
 def get_source_list():
     """获取购买数据来源平台列表"""
     # 固定来源列表，不再从数据库去重
-    sources = ['yyyp', 'buff', 'CsFloat']
+    sources = ['yyyp', 'buff', 'CsFloat', 'SMK']
     return jsonify(sources), 200
 
 
