@@ -177,6 +177,157 @@ def getFloatRanges():
             'data': []
         }), 500
 
+def _build_lent_filter_clauses(filters):
+    """构建租赁过滤条件的SQL子句和参数"""
+    clauses = []
+    params = []
+
+    def add_clause(clause, *values):
+        clauses.append(clause)
+        params.extend(values)
+
+    status = filters.get('status')
+    if status and status != 'all':
+        add_clause("status = ?", status)
+
+    status_sub = filters.get('status_sub')
+    if status_sub and status_sub != 'all':
+        add_clause("last_status = ?", status_sub)
+
+    weapon_types = filters.get('weapon_types') or []
+    if isinstance(weapon_types, list) and len(weapon_types) > 0:
+        placeholders = ",".join(["?"] * len(weapon_types))
+        clauses.append(f"weapon_type IN ({placeholders})")
+        params.extend(weapon_types)
+
+    float_ranges = filters.get('float_ranges') or []
+    if isinstance(float_ranges, list) and len(float_ranges) > 0:
+        placeholders = ",".join(["?"] * len(float_ranges))
+        clauses.append(f"float_range IN ({placeholders})")
+        params.extend(float_ranges)
+
+    search_keyword = filters.get('search')
+    if search_keyword:
+        like = f"%{search_keyword}%"
+        clauses.append("(item_name LIKE ? OR weapon_name LIKE ?)")
+        params.extend([like, like])
+
+    start_date = filters.get('start_date')
+    end_date = filters.get('end_date')
+    if start_date and end_date:
+        clauses.append("lean_start_time BETWEEN ? AND ?")
+        params.extend([f"{start_date} 00:00:00", f"{end_date} 23:59:59"])
+
+    where_clause = ""
+    if clauses:
+        where_clause = " WHERE " + " AND ".join(clauses)
+
+    return where_clause, tuple(params)
+
+@webLentPageV1.route('/getLentDataFiltered', methods=['POST'])
+def get_lent_data_filtered():
+    """组合查询接口：支持所有过滤条件的分页数据获取"""
+    try:
+        data = request.get_json() or {}
+        filters = data.get('filters', {})
+        min_offset = data.get('min', 0)
+        max_limit = data.get('max', 20)
+
+        where_clause, params = _build_lent_filter_clauses(filters)
+
+        sql = f"""
+        SELECT ID, weapon_name, weapon_type, item_name, weapon_float, float_range,
+               price, lenter_name, status, last_status, "from",
+               lean_start_time, lean_end_time, total_Lease_Days, max_Lease_Days
+        FROM yyyp_lent
+        {where_clause}
+        ORDER BY lean_start_time DESC
+        LIMIT {max_limit} OFFSET {min_offset}
+        """
+
+        db = Date_base()
+        result = db.execute_query(sql, params)
+
+        if result:
+            # 格式化数据为数组格式
+            records = []
+            for row in result:
+                records.append([
+                    row[0],   # ID
+                    row[1],   # weapon_name
+                    row[2],   # weapon_type
+                    row[3],   # item_name
+                    row[4],   # weapon_float
+                    row[5],   # float_range
+                    row[6],   # price
+                    row[7],   # lenter_name
+                    row[8],   # status
+                    row[9],   # last_status
+                    row[10],  # from
+                    row[11],  # lean_start_time
+                    row[12],  # lean_end_time
+                    row[13],  # total_Lease_Days
+                    row[14]   # max_Lease_Days
+                ])
+            return jsonify(records), 200
+        return jsonify([]), 200
+    except Exception as e:
+        print(f"获取租赁筛选数据失败: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@webLentPageV1.route('/getLentStatsFiltered', methods=['POST'])
+def get_lent_stats_filtered():
+    """组合查询接口：支持所有过滤条件的统计信息获取"""
+    try:
+        filters = request.get_json() or {}
+        where_clause, params = _build_lent_filter_clauses(filters)
+
+        sql = f"""
+        SELECT 
+            COUNT(*) as total_count,
+            COALESCE(SUM(price * total_Lease_Days), 0) as total_amount,
+            COALESCE(AVG(price), 0) as avg_price,
+            COALESCE(SUM(total_Lease_Days), 0) as total_lease_days,
+            COALESCE(AVG(total_Lease_Days), 0) as avg_lease_days,
+            COUNT(CASE WHEN status = '租赁中' THEN 1 END) as renting_count,
+            COUNT(CASE WHEN status = '已完成' THEN 1 END) as completed_count,
+            COUNT(CASE WHEN status = '已取消' THEN 1 END) as cancelled_count
+        FROM yyyp_lent
+        {where_clause}
+        """
+
+        db = Date_base()
+        result = db.execute_query(sql, params)
+
+        if result and len(result) > 0:
+            stats = result[0]
+            return jsonify({
+                "success": True,
+                "totalCount": stats[0],
+                "totalAmount": round(float(stats[1]), 2),
+                "avgPrice": round(float(stats[2]), 2),
+                "totalLeaseDays": stats[3],
+                "avgLeaseDays": round(float(stats[4]), 2),
+                "rentingCount": stats[5],
+                "completedCount": stats[6],
+                "cancelledCount": stats[7]
+            }), 200
+
+        return jsonify({
+            "success": True,
+            "totalCount": 0,
+            "totalAmount": 0.0,
+            "avgPrice": 0.0,
+            "totalLeaseDays": 0,
+            "avgLeaseDays": 0.0,
+            "rentingCount": 0,
+            "completedCount": 0,
+            "cancelledCount": 0
+        }), 200
+    except Exception as e:
+        print(f"获取租赁筛选统计失败: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
 @webLentPageV1.route('/searchByTypeAndWear', methods=['POST'])
 def searchByTypeAndWear():
     """根据类型和磨损等级搜索租赁记录（支持多选）"""

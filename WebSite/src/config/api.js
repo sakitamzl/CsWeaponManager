@@ -32,8 +32,11 @@ export const API_CONFIG = {
     SELL_DATA_BY_SOURCE: (source, page, limit) => `/webSellV1/getSellDataBySource/${encodeURIComponent(source)}/${page}/${limit}`,
     SELL_STATS_BY_SOURCE: (source) => `/webSellV1/getSellStatsBySource/${encodeURIComponent(source)}`,
     BUY_STATS_FILTERED: '/webBuyV1/getBuyStatsFiltered',
+    BUY_DATA_FILTERED: '/webBuyV1/getBuyDataFiltered',
     SELL_STATS_FILTERED: '/webSellV1/getSellStatsFiltered',
     SELL_DATA_FILTERED: '/webSellV1/getSellDataFiltered',
+    LENT_STATS_FILTERED: '/webLentPageV1/getLentStatsFiltered',
+    LENT_DATA_FILTERED: '/webLentPageV1/getLentDataFiltered',
     SELL_DATA_USER_LIST: '/webSellV1/getDataUserList',
     
     // 消息数据相关
@@ -186,9 +189,8 @@ export const apiUrls = {
   buyDataBySource: (source, page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.BUY_DATA_BY_SOURCE(source, page, limit)),
   buyStatsBySource: (source) => getApiUrl(API_CONFIG.ENDPOINTS.BUY_STATS_BY_SOURCE(source)),
   buyStatsFiltered: () => getApiUrl(API_CONFIG.ENDPOINTS.BUY_STATS_FILTERED),
+  buyDataFiltered: () => getApiUrl(API_CONFIG.ENDPOINTS.BUY_DATA_FILTERED),
   buyDataUserList: () => getApiUrl(API_CONFIG.ENDPOINTS.BUY_DATA_USER_LIST),
-  buyDataByUser: (user, page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.BUY_DATA_BY_USER(user, page, limit)),
-  buyStatsByUser: (user) => getApiUrl(API_CONFIG.ENDPOINTS.BUY_STATS_BY_USER(user)),
   
   // 销售数据
   sellData: (page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.SELL_DATA(page, limit)),
@@ -197,6 +199,10 @@ export const apiUrls = {
   sellDataBySource: (source, page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.SELL_DATA_BY_SOURCE(source, page, limit)),
   sellStatsFiltered: () => getApiUrl(API_CONFIG.ENDPOINTS.SELL_STATS_FILTERED),
   sellDataFiltered: () => getApiUrl(API_CONFIG.ENDPOINTS.SELL_DATA_FILTERED),
+  
+  // 租赁数据
+  lentStatsFiltered: () => getApiUrl(API_CONFIG.ENDPOINTS.LENT_STATS_FILTERED),
+  lentDataFiltered: () => getApiUrl(API_CONFIG.ENDPOINTS.LENT_DATA_FILTERED),
   
   // 消息数据
   messageData: (page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.MESSAGE_DATA(page, limit)),

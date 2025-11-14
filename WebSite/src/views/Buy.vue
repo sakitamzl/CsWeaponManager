@@ -600,12 +600,35 @@ export default {
       try {
         console.log('正在搜索武器:', itemName)
         
-        const response = await fetch(`/api/webBuyV1/selectBuyWeaponName/${encodeURIComponent(itemName)}`, {
-          method: 'GET',
+        // 构建过滤条件，包含搜索关键词和其他过滤条件
+        const filters = {
+          source: sourceFilter.value || null,
+          status: statusFilter.value || null,
+          status_sub: statusSubFilter.value || null,
+          data_user: dataUserFilter.value || null,
+          weapon_types: weaponTypeFilter.value && weaponTypeFilter.value.length > 0 ? weaponTypeFilter.value : null,
+          float_ranges: floatRangeFilter.value && floatRangeFilter.value.length > 0 ? floatRangeFilter.value : null,
+          search: itemName.trim() || null
+        }
+        
+        if (dateRange.value && dateRange.value.length === 2) {
+          filters.start_date = dateRange.value[0]
+          filters.end_date = dateRange.value[1]
+        }
+        
+        // 使用组合查询接口获取所有搜索结果（不分页）
+        const response = await fetch(apiUrls.buyDataFiltered(), {
+          method: 'POST',
           mode: 'cors',
           headers: {
+            'Content-Type': 'application/json',
             'Accept': 'application/json',
           },
+          body: JSON.stringify({
+            filters: filters,
+            min: 0,
+            max: 10000  // 获取所有搜索结果
+          })
         })
         
         if (!response.ok) {
@@ -689,24 +712,35 @@ export default {
         
         console.log(`正在请求数据... 页码: ${currentPage.value}, 每页: ${pageSize.value}, min: ${min}, max: ${max}`)
         
-        // 根据状态/子状态筛选选择不同的API（子状态优先）
-        let apiUrl = `/api/webBuyV1/getBuyData/${min}/${max}`
-        if (sourceFilter.value) {
-          apiUrl = apiUrls.buyDataBySource(sourceFilter.value, min, max)
-        } else if (dataUserFilter.value) {
-          apiUrl = apiUrls.buyDataByUser(dataUserFilter.value, min, max)
-        } else if (statusSubFilter.value) {
-          apiUrl = `/api/webBuyV1/getBuyDataByStatusSub/${encodeURIComponent(statusSubFilter.value)}/${min}/${max}`
-        } else if (statusFilter.value) {
-          apiUrl = `/api/webBuyV1/getBuyDataByStatus/${statusFilter.value}/${min}/${max}`
+        // 构建过滤条件
+        const filters = {
+          source: sourceFilter.value || null,
+          status: statusFilter.value || null,
+          status_sub: statusSubFilter.value || null,
+          data_user: dataUserFilter.value || null,
+          weapon_types: weaponTypeFilter.value && weaponTypeFilter.value.length > 0 ? weaponTypeFilter.value : null,
+          float_ranges: floatRangeFilter.value && floatRangeFilter.value.length > 0 ? floatRangeFilter.value : null,
+          search: null  // 搜索关键词在搜索模式下单独处理
         }
         
-        const response = await fetch(apiUrl, {
-          method: 'GET',
+        if (dateRange.value && dateRange.value.length === 2) {
+          filters.start_date = dateRange.value[0]
+          filters.end_date = dateRange.value[1]
+        }
+        
+        // 使用组合查询接口
+        const response = await fetch(apiUrls.buyDataFiltered(), {
+          method: 'POST',
           mode: 'cors',
           headers: {
+            'Content-Type': 'application/json',
             'Accept': 'application/json',
           },
+          body: JSON.stringify({
+            filters: filters,
+            min: min,
+            max: max
+          })
         })
         
         console.log('响应状态:', response.status)
