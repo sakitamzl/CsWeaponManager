@@ -125,11 +125,6 @@ def insert_db():
         csfloat_record.price = price_cny
         csfloat_record.us_price = price_usd
         csfloat_record.price_original = data.get("price_original")
-        
-        # 验证数据：检查价格是否正确转换
-        if price_cny and price_usd and price_usd > 0:
-            calculated_rate = price_cny / price_usd
-            print(f"CSFloat购买订单 {trade_id}: 人民币价格={price_cny:.2f} CNY, 美元价格={price_usd:.2f} USD, 计算汇率={calculated_rate:.4f}")
         csfloat_record.seller_name = data.get("seller_name")
         csfloat_record.seller_id = data.get("seller_id")
         csfloat_record.buyer_name = data.get("buyer_name")
