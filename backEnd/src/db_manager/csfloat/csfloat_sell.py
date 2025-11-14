@@ -20,10 +20,9 @@ class CsFloatSellModel(BaseModel):
             "item_name": {"type": "TEXT", "not_null": False, "default": None},
             "weapon_float": {"type": "REAL", "not_null": False, "default": None},
             "float_range": {"type": "TEXT", "not_null": False, "default": None},
-            "price": {"type": "REAL", "not_null": False, "default": None},
-            "price_raw": {"type": "REAL", "not_null": False, "default": None},
+            "price": {"type": "REAL", "not_null": False, "default": None},  # 人民币价格(CNY)
+            "us_price": {"type": "REAL", "not_null": False, "default": None},  # 美元价格(USD)
             "price_original": {"type": "REAL", "not_null": False, "default": None},
-            "currency": {"type": "TEXT", "not_null": False, "default": "USD"},
             "buyer_name": {"type": "TEXT", "not_null": False, "default": None},
             "buyer_id": {"type": "TEXT", "not_null": False, "default": None},
             "seller_name": {"type": "TEXT", "not_null": False, "default": None},

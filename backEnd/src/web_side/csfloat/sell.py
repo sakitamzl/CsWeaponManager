@@ -90,10 +90,16 @@ def insert_db():
         csfloat_record.item_name = data.get("item_name")
         csfloat_record.weapon_float = data.get("weapon_float")
         csfloat_record.float_range = data.get("float_range")
-        csfloat_record.price = data.get("price")
-        csfloat_record.price_raw = data.get("price_raw")
+        price_cny = data.get("price")  # 人民币价格(CNY)
+        price_usd = data.get("price_usd")  # 美元价格(USD)
+        csfloat_record.price = price_cny
+        csfloat_record.us_price = price_usd
         csfloat_record.price_original = data.get("price_original")
-        csfloat_record.currency = data.get("currency")
+        
+        # 验证数据：检查价格是否正确转换
+        if price_cny and price_usd and price_usd > 0:
+            calculated_rate = price_cny / price_usd
+            print(f"CSFloat销售订单 {trade_id}: 人民币价格={price_cny:.2f} CNY, 美元价格={price_usd:.2f} USD, 计算汇率={calculated_rate:.4f}")
         csfloat_record.buyer_name = data.get("buyer_name")
         csfloat_record.buyer_id = data.get("buyer_id")
         csfloat_record.seller_name = data.get("seller_name")
