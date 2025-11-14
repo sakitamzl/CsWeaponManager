@@ -495,13 +495,6 @@
 
           <!-- 手动输入Cookie -->
           <template v-else-if="editForm.steamCookieMethod === 'manual'">
-            <el-alert
-              title="请在下方的“基础Cookies / 库存Cookies”文本框中粘贴最新的Cookie字符串"
-              type="info"
-              :closable="false"
-              show-icon
-              style="margin-bottom: 10px;"
-            />
           </template>
 
               <el-form-item label="基础Cookies">
@@ -524,29 +517,6 @@
                 />
                 <div style="color: #999; font-size: 12px; margin-top: 4px;">
                   若手动维护，请保证此Cookie可访问 <code>inventory/730/16</code>。
-                </div>
-              </el-form-item>
-
-              <el-form-item label="基础Cookies">
-                <el-input 
-                  v-model="editForm.steamBaseCookies" 
-                  type="textarea"
-                  :rows="3"
-                  placeholder="扫码或登录成功后自动填入，可粘贴基础Cookie"
-                />
-                <div style="color: #999; font-size: 12px; margin-top: 4px;">
-                  保留基础Cookies可帮助排查登录问题。
-                </div>
-              </el-form-item>
-              <el-form-item label="库存Cookies" required>
-                <el-input 
-                  v-model="editForm.steamInventoryCookies" 
-                  type="textarea"
-                  :rows="3"
-                  placeholder="访问库存页后的完整Cookie，采集库存使用该值"
-                />
-                <div style="color: #999; font-size: 12px; margin-top: 4px;">
-                  若手动维护，请确保该Cookie可直接访问 inventory/730/16。
                 </div>
               </el-form-item>
 
@@ -667,15 +637,30 @@
 
           <!-- 手动输入Cookie -->
           <template v-else-if="editForm.steamCookieMethod === 'manual'">
-            <el-form-item label="Cookies" required>
-              <el-input 
-                v-model="editForm.cookies" 
-                type="textarea"
-                :rows="3"
-                placeholder="请输入Steam市场的Cookies"
-              />
-            </el-form-item>
           </template>
+
+              <el-form-item label="基础Cookies">
+                <el-input 
+                  v-model="editForm.steamBaseCookies" 
+                  type="textarea"
+                  :rows="3"
+                  placeholder="扫码登录成功后自动填入，可手动粘贴基础Cookie"
+                />
+                <div style="color: #999; font-size: 12px; margin-top: 4px;">
+                  基础Cookies为扫码后立即返回的Cookie，建议与库存Cookies一同保存。
+                </div>
+              </el-form-item>
+              <el-form-item label="库存Cookies" required>
+                <el-input 
+                  v-model="editForm.steamInventoryCookies" 
+                  type="textarea"
+                  :rows="3"
+                  placeholder="访问库存页后的完整Cookie，采集库存时将使用该值"
+                />
+                <div style="color: #999; font-size: 12px; margin-top: 4px;">
+                  若手动维护，请保证此Cookie可访问 <code>inventory/730/16</code>。
+                </div>
+              </el-form-item>
 
               <el-form-item label="SteamID" required>
                 <el-input 
@@ -1237,13 +1222,6 @@
 
           <!-- 手动输入Cookie -->
           <template v-else-if="inputForm.steamCookieMethod === 'manual'">
-            <el-alert
-              title="请在下方的“基础Cookies / 库存Cookies”文本框中粘贴对应的Cookie字符串"
-              type="info"
-              :closable="false"
-              show-icon
-              style="margin-bottom: 10px;"
-            />
           </template>
 
           <el-form-item label="SteamID" required>
