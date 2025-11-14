@@ -4564,16 +4564,20 @@ export default {
               // 登录成功
               steamQRStatus.value = 'success'
               
-              // 填充Cookie
+              // 填充Cookie与SteamID
               inputForm.value.cookies = response.data.data.cookies
+              if (response.data.data?.steam_id) {
+                inputForm.value.steamID = response.data.data.steam_id
+              }
               inputForm.value.steamLoginSuccess = true
               
               // 显示成功消息
               const accountName = response.data.data.account_name || ''
-              inputForm.value.steamLoginMessage = `✅ 扫码登录成功！${accountName ? '账号: ' + accountName : ''}`
+              const steamIdMsg = response.data.data?.steam_id ? '（SteamID已自动填入）' : ''
+              inputForm.value.steamLoginMessage = `✅ 扫码登录成功！${accountName ? '账号: ' + accountName : ''}${steamIdMsg}`
               
               clearInterval(steamQRCheckTimer.value)
-              ElMessage.success('Steam扫码登录成功！请手动输入SteamID')
+              ElMessage.success('Steam扫码登录成功！已填入Cookie与SteamID，可直接保存')
             } else if (response.data.status === 'waiting') {
               // 继续等待
               steamQRStatus.value = 'waiting'
@@ -4644,11 +4648,14 @@ export default {
               // 登录成功
               steamQRStatus.value = 'success'
               
-              // 更新Cookie
+              // 更新Cookie与SteamID
               editForm.value.cookies = response.data.data.cookies
+              if (response.data.data?.steam_id) {
+                editForm.value.steamID = response.data.data.steam_id
+              }
               
               clearInterval(steamQRCheckTimer.value)
-              ElMessage.success('Steam扫码登录成功！Cookie已更新，请手动输入SteamID')
+              ElMessage.success('Steam扫码登录成功！Cookie与SteamID已更新')
             } else if (response.data.status === 'waiting') {
               // 继续等待
               steamQRStatus.value = 'waiting'
