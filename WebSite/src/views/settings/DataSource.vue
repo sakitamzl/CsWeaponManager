@@ -495,15 +495,60 @@
 
           <!-- 手动输入Cookie -->
           <template v-else-if="editForm.steamCookieMethod === 'manual'">
-            <el-form-item label="Cookies" required>
-              <el-input 
-                v-model="editForm.cookies" 
-                type="textarea"
-                :rows="3"
-                placeholder="请输入Steam市场的Cookies"
-              />
-            </el-form-item>
+            <el-alert
+              title="请在下方的“基础Cookies / 库存Cookies”文本框中粘贴最新的Cookie字符串"
+              type="info"
+              :closable="false"
+              show-icon
+              style="margin-bottom: 10px;"
+            />
           </template>
+
+              <el-form-item label="基础Cookies">
+                <el-input 
+                  v-model="editForm.steamBaseCookies" 
+                  type="textarea"
+                  :rows="3"
+                  placeholder="扫码登录成功后自动填入，可手动粘贴基础Cookie"
+                />
+                <div style="color: #999; font-size: 12px; margin-top: 4px;">
+                  基础Cookies为扫码后立即返回的Cookie，建议与库存Cookies一同保存。
+                </div>
+              </el-form-item>
+              <el-form-item label="库存Cookies" required>
+                <el-input 
+                  v-model="editForm.steamInventoryCookies" 
+                  type="textarea"
+                  :rows="3"
+                  placeholder="访问库存页后的完整Cookie，采集库存时将使用该值"
+                />
+                <div style="color: #999; font-size: 12px; margin-top: 4px;">
+                  若手动维护，请保证此Cookie可访问 <code>inventory/730/16</code>。
+                </div>
+              </el-form-item>
+
+              <el-form-item label="基础Cookies">
+                <el-input 
+                  v-model="editForm.steamBaseCookies" 
+                  type="textarea"
+                  :rows="3"
+                  placeholder="扫码或登录成功后自动填入，可粘贴基础Cookie"
+                />
+                <div style="color: #999; font-size: 12px; margin-top: 4px;">
+                  保留基础Cookies可帮助排查登录问题。
+                </div>
+              </el-form-item>
+              <el-form-item label="库存Cookies" required>
+                <el-input 
+                  v-model="editForm.steamInventoryCookies" 
+                  type="textarea"
+                  :rows="3"
+                  placeholder="访问库存页后的完整Cookie，采集库存使用该值"
+                />
+                <div style="color: #999; font-size: 12px; margin-top: 4px;">
+                  若手动维护，请确保该Cookie可直接访问 inventory/730/16。
+                </div>
+              </el-form-item>
 
               <el-form-item label="SteamID" required>
                 <el-input 
@@ -1192,14 +1237,13 @@
 
           <!-- 手动输入Cookie -->
           <template v-else-if="inputForm.steamCookieMethod === 'manual'">
-            <el-form-item label="Cookies" required>
-              <el-input 
-                v-model="inputForm.cookies" 
-                type="textarea"
-                :rows="3"
-                placeholder="请输入Steam市场的Cookies"
-              />
-            </el-form-item>
+            <el-alert
+              title="请在下方的“基础Cookies / 库存Cookies”文本框中粘贴对应的Cookie字符串"
+              type="info"
+              :closable="false"
+              show-icon
+              style="margin-bottom: 10px;"
+            />
           </template>
 
           <el-form-item label="SteamID" required>
@@ -1219,6 +1263,29 @@
             show-icon
             style="margin-top: 10px;"
           />
+
+          <el-form-item label="基础Cookies">
+            <el-input
+              v-model="inputForm.steamBaseCookies"
+              type="textarea"
+              :rows="3"
+              placeholder="扫码登录成功后将自动填入，可手动粘贴基础Cookie"
+            />
+            <div style="color: #999; font-size: 12px; margin-top: 4px;">
+              基础Cookies为扫码后立即返回的原始Cookie，建议同时保存以备验证。
+            </div>
+          </el-form-item>
+          <el-form-item label="库存Cookies" required>
+            <el-input
+              v-model="inputForm.steamInventoryCookies"
+              type="textarea"
+              :rows="3"
+              placeholder="访问库存页后的完整Cookie，采集库存时将使用该值"
+            />
+            <div style="color: #999; font-size: 12px; margin-top: 4px;">
+              若使用手动方式，请先填写基础Cookies，再填写库存Cookies。
+            </div>
+          </el-form-item>
         </template>
 
         <!-- Steam登录特有配置（已废弃，保留兼容） -->
@@ -1328,6 +1395,29 @@
             show-icon
             style="margin-top: 10px;"
           />
+
+          <el-form-item label="基础Cookies">
+            <el-input 
+              v-model="inputForm.steamBaseCookies" 
+              type="textarea"
+              :rows="3"
+              placeholder="扫码或登录成功后自动填入，可手动粘贴基础Cookie"
+            />
+            <div style="color: #999; font-size: 12px; margin-top: 4px;">
+              建议同时保存基础Cookies，以便后续校验或刷新登录状态。
+            </div>
+          </el-form-item>
+          <el-form-item label="库存Cookies" required>
+            <el-input 
+              v-model="inputForm.steamInventoryCookies" 
+              type="textarea"
+              :rows="3"
+              placeholder="访问库存页后的完整Cookie，采集库存使用该值"
+            />
+            <div style="color: #999; font-size: 12px; margin-top: 4px;">
+              库存Cookies需可以访问 <code>inventory/730/16</code> 接口。
+            </div>
+          </el-form-item>
         </template>
 
         <!-- 完美世界APP特有配置 -->
@@ -1782,6 +1872,8 @@ export default {
       steamID: '',
       // Steam特有字段
       cookies: '',
+      steamBaseCookies: '',
+      steamInventoryCookies: '',
       steamCookieMethod: 'manual', // Cookie获取方式：qrcode/password/manual
       // Steam登录特有字段
       steamUsername: '',
@@ -1839,6 +1931,8 @@ export default {
       steamID: '',
       // Steam特有字段
       cookies: '',
+      steamBaseCookies: '',
+      steamInventoryCookies: '',
       steamCookieMethod: 'manual', // Cookie获取方式：qrcode/password/manual
       // Steam登录特有字段
       steamUsername: '',
@@ -1971,6 +2065,13 @@ export default {
           ElMessage.error('请先获取BUFF令牌或填写必要信息')
           return
         }
+      }
+
+      if (['steam', 'steam_login'].includes(inputForm.value.type)) {
+        if (!inputForm.value.steamInventoryCookies && inputForm.value.cookies) {
+          inputForm.value.steamInventoryCookies = inputForm.value.cookies
+        }
+        inputForm.value.cookies = inputForm.value.steamInventoryCookies || inputForm.value.cookies
       }
 
       // Steam类型的字段校验
@@ -2215,8 +2316,12 @@ export default {
           })
         } else if (inputForm.value.type === 'steam') {
           // Steam特殊配置（支持三种Cookie获取方式）
+          const baseCookies = inputForm.value.steamBaseCookies || inputForm.value.cookies || ''
+          const inventoryCookies = inputForm.value.steamInventoryCookies || inputForm.value.cookies || ''
           requestData.configJson = JSON.stringify({
-            cookies: inputForm.value.cookies,
+            baseCookies,
+            inventoryCookies,
+            cookies: inventoryCookies,
             steamID: inputForm.value.steamID,
             steamCookieMethod: inputForm.value.steamCookieMethod, // 记录获取方式
             steamUsername: inputForm.value.steamUsername || '',
@@ -2225,8 +2330,12 @@ export default {
           })
         } else if (inputForm.value.type === 'steam_login') {
           // Steam登录特殊配置
+          const baseCookies = inputForm.value.steamBaseCookies || inputForm.value.cookies || ''
+          const inventoryCookies = inputForm.value.steamInventoryCookies || inputForm.value.cookies || ''
           requestData.configJson = JSON.stringify({
-            cookies: inputForm.value.cookies,
+            baseCookies,
+            inventoryCookies,
+            cookies: inventoryCookies,
             steamID: inputForm.value.steamID,
             steamUsername: inputForm.value.steamUsername,
             steamPassword: inputForm.value.steamPassword,
@@ -2841,6 +2950,8 @@ export default {
         steamID: '',
         // Steam特有字段
         cookies: '',
+        steamBaseCookies: '',
+        steamInventoryCookies: '',
         // Steam登录特有字段
         steamUsername: '',
         steamPassword: '',
@@ -3409,7 +3520,11 @@ export default {
           steamID: config.steamID,
           steamCookieMethod: config.steamCookieMethod
         })
-        editForm.value.cookies = config.cookies || ''
+        const baseCookies = config.baseCookies || config.baseCookie || config.cookie || ''
+        const inventoryCookies = config.inventoryCookies || config.cookies || config.cookie || ''
+        editForm.value.steamBaseCookies = baseCookies
+        editForm.value.steamInventoryCookies = inventoryCookies
+        editForm.value.cookies = inventoryCookies
         editForm.value.steamID = config.steamID || ''
         // 如果是password方式，自动转为manual（因为password已禁用）
         const cookieMethod = config.steamCookieMethod || 'manual'
@@ -3426,7 +3541,11 @@ export default {
           steamUsername: config.steamUsername,
           updateFreq: config.updateFreq
         })
-        editForm.value.cookies = config.cookies || ''
+        const baseCookies = config.baseCookies || config.baseCookie || config.cookie || ''
+        const inventoryCookies = config.inventoryCookies || config.cookies || config.cookie || ''
+        editForm.value.steamBaseCookies = baseCookies
+        editForm.value.steamInventoryCookies = inventoryCookies
+        editForm.value.cookies = inventoryCookies
         editForm.value.steamID = config.steamID || ''
         // 如果有steamCookieMethod则使用，否则根据是否有用户名密码来判断
         let cookieMethod
@@ -3979,6 +4098,13 @@ export default {
         }
       }
 
+      if (['steam', 'steam_login'].includes(editForm.value.type)) {
+        if (!editForm.value.steamInventoryCookies && editForm.value.cookies) {
+          editForm.value.steamInventoryCookies = editForm.value.cookies
+        }
+        editForm.value.cookies = editForm.value.steamInventoryCookies || editForm.value.cookies
+      }
+
       // Steam类型的字段校验
       if (editForm.value.type === 'steam') {
         // 检查Cookie（无论哪种方式都需要Cookie）
@@ -4221,8 +4347,12 @@ export default {
           })
         } else if (editForm.value.type === 'steam') {
           // Steam特殊配置（支持三种Cookie获取方式）
+          const baseCookies = editForm.value.steamBaseCookies || editForm.value.cookies || ''
+          const inventoryCookies = editForm.value.steamInventoryCookies || editForm.value.cookies || ''
           requestData.configJson = JSON.stringify({
-            cookies: editForm.value.cookies,
+            baseCookies,
+            inventoryCookies,
+            cookies: inventoryCookies,
             steamID: editForm.value.steamID,
             steamCookieMethod: editForm.value.steamCookieMethod, // 记录获取方式
             steamUsername: editForm.value.steamUsername || '',
@@ -4247,8 +4377,12 @@ export default {
           })
         } else if (editForm.value.type === 'steam_login') {
           // Steam登录特殊配置（兼容旧数据，使用与steam相同的配置）
+          const baseCookies = editForm.value.steamBaseCookies || editForm.value.cookies || ''
+          const inventoryCookies = editForm.value.steamInventoryCookies || editForm.value.cookies || ''
           requestData.configJson = JSON.stringify({
-            cookies: editForm.value.cookies,
+            baseCookies,
+            inventoryCookies,
+            cookies: inventoryCookies,
             steamID: editForm.value.steamID,
             steamCookieMethod: editForm.value.steamCookieMethod, // 记录获取方式
             steamUsername: editForm.value.steamUsername || '',
@@ -4468,7 +4602,11 @@ export default {
 
         if (result.success) {
           // 登录成功
-          inputForm.value.cookies = result.cookies
+          const baseCookies = result.base_cookies || result.baseCookies || result.cookies || ''
+          const inventoryCookies = result.inventory_cookies || result.inventoryCookies || result.cookies || ''
+          inputForm.value.steamBaseCookies = baseCookies
+          inputForm.value.steamInventoryCookies = inventoryCookies
+          inputForm.value.cookies = inventoryCookies
           inputForm.value.steamLoginMessage = '✅ Steam登录成功！Cookie已获取'
           inputForm.value.steamLoginSuccess = true
           ElMessage.success('Steam登录成功！请手动输入SteamID')
@@ -4565,7 +4703,11 @@ export default {
               steamQRStatus.value = 'success'
               
               // 填充Cookie与SteamID
-              inputForm.value.cookies = response.data.data.cookies
+              const baseCookies = response.data.data?.base_cookies || response.data.data?.baseCookies || response.data.data?.cookies || ''
+              const inventoryCookies = response.data.data?.inventory_cookies || response.data.data?.inventoryCookies || response.data.data?.cookies || ''
+              inputForm.value.steamBaseCookies = baseCookies
+              inputForm.value.steamInventoryCookies = inventoryCookies
+              inputForm.value.cookies = inventoryCookies
               if (response.data.data?.steam_id) {
                 inputForm.value.steamID = response.data.data.steam_id
               }
@@ -4649,13 +4791,17 @@ export default {
               steamQRStatus.value = 'success'
               
               // 更新Cookie与SteamID
-              editForm.value.cookies = response.data.data.cookies
+              const baseCookies = response.data.data?.base_cookies || response.data.data?.baseCookies || response.data.data?.cookies || ''
+              const inventoryCookies = response.data.data?.inventory_cookies || response.data.data?.inventoryCookies || response.data.data?.cookies || ''
+              editForm.value.steamBaseCookies = baseCookies
+              editForm.value.steamInventoryCookies = inventoryCookies
+              editForm.value.cookies = inventoryCookies
               if (response.data.data?.steam_id) {
                 editForm.value.steamID = response.data.data.steam_id
               }
               
               clearInterval(steamQRCheckTimer.value)
-              ElMessage.success('Steam扫码登录成功！Cookie与SteamID已更新')
+              ElMessage.success('Steam扫码登录成功！基础/库存Cookies 与 SteamID 已更新')
             } else if (response.data.status === 'waiting') {
               // 继续等待
               steamQRStatus.value = 'waiting'
@@ -4697,8 +4843,12 @@ export default {
 
         if (result.success) {
           // 登录成功
-          editForm.value.cookies = result.cookies
-          ElMessage.success('Steam重新登录成功！Cookie已更新，请手动输入SteamID')
+          const baseCookies = result.base_cookies || result.baseCookies || result.cookies || ''
+          const inventoryCookies = result.inventory_cookies || result.inventoryCookies || result.cookies || ''
+          editForm.value.steamBaseCookies = baseCookies
+          editForm.value.steamInventoryCookies = inventoryCookies
+          editForm.value.cookies = inventoryCookies
+          ElMessage.success('Steam重新登录成功！基础/库存Cookies已更新，请手动输入SteamID')
         } else if (result.requires_twofactor) {
           ElMessage.warning('需要Steam Guard验证码，请输入后重试')
         } else if (result.requires_emailauth) {

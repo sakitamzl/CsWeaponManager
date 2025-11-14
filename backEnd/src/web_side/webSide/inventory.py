@@ -564,14 +564,19 @@ def get_steam_config(steam_id):
                     # 检查steamID是否匹配
                     if config_steam_id == steam_id:
                         print(f"[INFO] 找到匹配的Steam配置")
-                        # Steam配置中使用 'cookies' 字段，不是 'cookie'
-                        cookie = config_data.get('cookies', '') or config_data.get('cookie', '')
-                        print(f"[DEBUG] Cookie长度: {len(cookie)}")
+                        # Steam配置中使用 inventoryCookies/baseCookies 字段
+                        base_cookie = config_data.get('baseCookies') or config_data.get('baseCookie') or config_data.get('cookie', '')
+                        inventory_cookie = config_data.get('inventoryCookies') or config_data.get('cookies') or config_data.get('cookie', '')
+                        print(f"[DEBUG] Cookie长度: {len(inventory_cookie)}")
                         return jsonify({
                             'success': True,
                             'data': {
                                 'steamId': config_steam_id,
-                                'cookie': cookie,
+                                'cookie': inventory_cookie,
+                                'inventoryCookie': inventory_cookie,
+                                'baseCookie': base_cookie,
+                                'baseCookies': base_cookie,
+                                'inventoryCookies': inventory_cookie,
                                 'dataName': config_data.get('dataName', ''),
                                 'status': config_data.get('status', '1')
                             }
