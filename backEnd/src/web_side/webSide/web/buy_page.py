@@ -31,7 +31,7 @@ def selectBuyWeaponName(itemName):
 def get_source_list():
     """获取购买数据来源平台列表"""
     # 固定来源列表，不再从数据库去重
-    sources = ['yyyp', 'buff', 'CsFloat', 'SMK']
+    sources = ['yyyp', 'buff', 'CsFloat', 'SMK', 'ING']
     return jsonify(sources), 200
 
 
@@ -224,3 +224,64 @@ def get_data_user_list():
             users = [row[0] for row in data if row and row[0]]
             return jsonify(users), 200
     return jsonify([]), 500
+
+@webBuyV1.route('/insertIngameBuy', methods=['POST'])
+def insert_ingame_buy():
+    """插入游戏内购买记录到 buy 表（from='ING'）"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': '无效的JSON数据'}), 400
+        
+        ID = data.get('ID')
+        weapon_name = data.get('weapon_name')
+        weapon_type = data.get('weapon_type')
+        item_name = data.get('item_name')
+        weapon_float = data.get('weapon_float')
+        float_range = data.get('float_range')
+        price = data.get('price')
+        order_time = data.get('order_time')
+        steam_id = data.get('steam_id')
+        data_user = data.get('data_user')
+        
+        if not ID or not price:
+            return jsonify({'success': False, 'error': '缺少必要参数（ID或price）'}), 400
+        
+        # 插入到 buy 表
+        buy_record = BuyModel()
+        buy_record.ID = ID
+        buy_record.weapon_name = weapon_name
+        buy_record.weapon_type = weapon_type
+        buy_record.item_name = item_name
+        buy_record.weapon_float = weapon_float
+        buy_record.float_range = float_range
+        buy_record.price = price
+        buy_record.seller_name = None  # 游戏内购买没有卖家
+        buy_record.status = '已完成'  # 游戏内购买通常是即时完成的
+        buy_record.status_sub = None
+        buy_record.steam_id = steam_id
+        buy_record.order_time = order_time
+        buy_record.data_user = data_user
+        setattr(buy_record, 'from', 'ING')
+        
+        buy_saved = buy_record.save()
+        
+        if buy_saved:
+            return jsonify({
+                'success': True,
+                'message': '游戏内购买数据插入成功',
+                'data': {
+                    'id': ID,
+                    'weapon_name': weapon_name,
+                    'item_name': item_name,
+                    'price': price
+                }
+            }), 200
+        else:
+            return jsonify({'success': False, 'error': '数据插入失败'}), 500
+            
+    except Exception as e:
+        print(f"游戏内购买数据插入错误: {str(e)}")
+        import traceback
+        print(f"详细错误信息: {traceback.format_exc()}")
+        return jsonify({'success': False, 'error': f'服务器错误: {str(e)}'}), 500

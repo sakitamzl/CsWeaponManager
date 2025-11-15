@@ -313,7 +313,7 @@ export default {
     const statusList = ref([])
     const statusSubList = ref([])
     const sourceList = ref([])
-    sourceList.value = ['yyyp', 'buff', 'csfloat', 'SMK']
+    sourceList.value = ['yyyp', 'buff', 'csfloat', 'SMK', 'ING']
     const dataUserList = ref([])
     const statusSubFilter = ref('')
     const currentPage = ref(1)
@@ -501,7 +501,8 @@ export default {
         yyyp: '悠悠有品',
         buff: 'BUFF',
         csfloat: 'CsFloat',
-        SMK: 'steam市场'
+        SMK: 'steam市场',
+        ING: '游戏内购'
       }
       return map[val] || val
     }
