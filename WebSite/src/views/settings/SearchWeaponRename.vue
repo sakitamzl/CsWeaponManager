@@ -715,37 +715,55 @@ export default {
         console.log('发送流式请求到后端 (使用爬取账号):', requestData)
         console.log('  - 爬取账号:', crawlForm.value.crawlAccountId)
         console.log('  - 购买账号:', crawlForm.value.steamId)
+        console.log('  - 请求URL:', `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/auto_buy_renamed_weapon`)
 
         // 使用 fetch 进行流式请求
-        const response = await fetch(
-          `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/auto_buy_renamed_weapon`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestData)
-          }
-        )
+        console.log('[前端] 🔄 开始发送 fetch 请求...')
+        let response
+        try {
+          response = await fetch(
+            `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/auto_buy_renamed_weapon`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(requestData)
+            }
+          )
+          console.log('[前端] ✅ fetch 请求完成，响应状态:', response.status, response.statusText)
+          console.log('[前端] 📋 响应头 Content-Type:', response.headers.get('Content-Type'))
+        } catch (fetchError) {
+          console.error('[前端] ❌ fetch 请求失败:', fetchError)
+          throw fetchError
+        }
 
         if (!response.ok) {
+          const errorText = await response.text().catch(() => '无法读取错误信息')
+          console.error('[前端] ❌ 响应状态错误:', response.status, response.statusText)
+          console.error('[前端] ❌ 错误内容:', errorText)
           throw new Error(`HTTP ${response.status}: ${response.statusText}`)
         }
 
         // 检查响应体是否支持流式读取
         if (!response.body) {
+          console.error('[前端] ❌ 响应体为空，不支持流式读取')
           throw new Error('响应不支持流式读取')
         }
+        
+        console.log('[前端] ✅ 响应体可用，开始读取流式数据...')
 
         // 初始化结果数据结构
         const weaponsMap = new Map()
         let totalWeapons = 0
 
         // 读取流式数据
+        console.log('[前端] 🔄 获取 ReadableStream reader...')
         const reader = response.body.getReader()
         const decoder = new TextDecoder()
         let buffer = ''
         let chunkCount = 0
+        console.log('[前端] ✅ Reader 已创建，开始读取数据...')
         
         // 本地存储防抖：避免频繁保存阻塞主线程
         let saveStorageTimer = null
@@ -758,52 +776,65 @@ export default {
           }, 500) // 500ms 防抖
         }
 
+        console.log('[前端] 🔄 进入 while 循环，开始读取数据块...')
         while (true) {
-          const { done, value } = await reader.read()
+          try {
+            const { done, value } = await reader.read()
+            console.log(`[前端] 📖 reader.read() 返回: done=${done}, value=${value ? `有数据(${value.length}字节)` : 'null'}`)
 
-          if (done) {
-            console.log('✅ 流式数据接收完成')
-            // 处理剩余的 buffer
-            if (buffer.trim()) {
-              const messages = buffer.split('\n\n').filter(msg => msg.trim())
-              for (const message of messages) {
-                await processSSEMessage(message.trim())
+            if (done) {
+              console.log('✅ 流式数据接收完成')
+              // 处理剩余的 buffer
+              if (buffer.trim()) {
+                console.log(`[前端] 📋 处理剩余的 buffer: ${buffer.length} 字符`)
+                const messages = buffer.split('\n\n').filter(msg => msg.trim())
+                for (const message of messages) {
+                  await processSSEMessage(message.trim())
+                }
+              }
+              break
+            }
+            
+            if (!value) {
+              console.warn('[前端] ⚠️ 收到空值，继续等待...')
+              continue
+            }
+
+            chunkCount++
+            const chunk = decoder.decode(value, { stream: true })
+            console.log(`[前端] 📦 收到第 ${chunkCount} 个数据块，大小: ${chunk.length} 字节`)
+            if (chunk.length < 200) {
+              console.log(`[前端] 📦 数据块内容:`, chunk)
+            } else {
+              console.log(`[前端] 📦 数据块内容预览:`, chunk.substring(0, 200) + '...')
+            }
+            
+            // 解码数据
+            buffer += chunk
+
+            // SSE 格式：每个消息以 \n\n 分隔
+            // 处理完整的消息（以 \n\n 结尾的）
+            const messages = buffer.split('\n\n')
+            // 保留最后一个可能不完整的消息
+            buffer = messages.pop() || ''
+
+            console.log(`[前端] 📋 本次解析出 ${messages.length} 条完整消息，buffer 剩余: ${buffer.length} 字符`)
+
+            // 处理所有完整的消息，确保每条消息都立即处理
+            // 使用 for...of 循环确保顺序处理，每条消息处理完后再处理下一条
+            for (let i = 0; i < messages.length; i++) {
+              const message = messages[i]
+              const trimmedMessage = message.trim()
+              if (trimmedMessage) {
+                console.log(`[前端] 🔄 开始处理第 ${i + 1}/${messages.length} 条消息`)
+                // 立即处理每条消息，不等待批量处理
+                await processSSEMessage(trimmedMessage)
+                console.log(`[前端] ✅ 第 ${i + 1}/${messages.length} 条消息处理完成`)
               }
             }
-            break
-          }
-
-          chunkCount++
-          const chunk = decoder.decode(value, { stream: true })
-          console.log(`[前端] 📦 收到第 ${chunkCount} 个数据块，大小: ${chunk.length} 字节`)
-          if (chunk.length < 200) {
-            console.log(`[前端] 📦 数据块内容:`, chunk)
-          } else {
-            console.log(`[前端] 📦 数据块内容预览:`, chunk.substring(0, 200) + '...')
-          }
-          
-          // 解码数据
-          buffer += chunk
-
-          // SSE 格式：每个消息以 \n\n 分隔
-          // 处理完整的消息（以 \n\n 结尾的）
-          const messages = buffer.split('\n\n')
-          // 保留最后一个可能不完整的消息
-          buffer = messages.pop() || ''
-
-          console.log(`[前端] 📋 本次解析出 ${messages.length} 条完整消息，buffer 剩余: ${buffer.length} 字符`)
-
-          // 处理所有完整的消息，确保每条消息都立即处理
-          // 使用 for...of 循环确保顺序处理，每条消息处理完后再处理下一条
-          for (let i = 0; i < messages.length; i++) {
-            const message = messages[i]
-            const trimmedMessage = message.trim()
-            if (trimmedMessage) {
-              console.log(`[前端] 🔄 开始处理第 ${i + 1}/${messages.length} 条消息`)
-              // 立即处理每条消息，不等待批量处理
-              await processSSEMessage(trimmedMessage)
-              console.log(`[前端] ✅ 第 ${i + 1}/${messages.length} 条消息处理完成`)
-            }
+          } catch (readError) {
+            console.error('[前端] ❌ 读取数据块时出错:', readError)
+            throw readError
           }
         }
         
