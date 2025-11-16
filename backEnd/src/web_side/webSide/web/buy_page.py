@@ -234,6 +234,7 @@ def insert_ingame_buy():
             return jsonify({'success': False, 'error': '无效的JSON数据'}), 400
         
         ID = data.get('ID')
+        print(f"收到游戏内购买数据 - ID: {ID}, 物品: {data.get('item_name')}, 价格: {data.get('price')}")
         weapon_name = data.get('weapon_name')
         weapon_type = data.get('weapon_type')
         item_name = data.get('item_name')
@@ -264,6 +265,21 @@ def insert_ingame_buy():
         buy_record.data_user = data_user
         setattr(buy_record, 'from', 'ING')
         
+        # 检查是否已存在相同ID的记录
+        existing_record = BuyModel.find_by_id(ID=ID)
+        if existing_record:
+            print(f"警告：ID {ID} 已存在于buy表中，跳过重复插入")
+            return jsonify({
+                'success': True,
+                'message': '记录已存在，跳过重复插入',
+                'data': {
+                    'id': ID,
+                    'weapon_name': weapon_name,
+                    'item_name': item_name,
+                    'price': price
+                }
+            }), 200
+        
         buy_saved = buy_record.save()
         
         if buy_saved:
@@ -278,6 +294,7 @@ def insert_ingame_buy():
                 }
             }), 200
         else:
+            print(f"数据插入失败 - ID: {ID}, 物品: {item_name}, 价格: {price}")
             return jsonify({'success': False, 'error': '数据插入失败'}), 500
             
     except Exception as e:
