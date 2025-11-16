@@ -735,152 +735,179 @@ export default {
         const decoder = new TextDecoder()
         let buffer = ''
         let chunkCount = 0
+        
+        // 本地存储防抖：避免频繁保存阻塞主线程
+        let saveStorageTimer = null
+        const debouncedSaveStorage = (result) => {
+          if (saveStorageTimer) {
+            clearTimeout(saveStorageTimer)
+          }
+          saveStorageTimer = setTimeout(() => {
+            saveCrawlResultToStorage(result)
+          }, 500) // 500ms 防抖
+        }
 
         while (true) {
           const { done, value } = await reader.read()
 
           if (done) {
             console.log('✅ 流式数据接收完成')
+            // 处理剩余的 buffer
+            if (buffer.trim()) {
+              const messages = buffer.split('\n\n').filter(msg => msg.trim())
+              for (const message of messages) {
+                await processSSEMessage(message.trim())
+              }
+            }
             break
           }
 
           chunkCount++
           const chunk = decoder.decode(value, { stream: true })
           console.log(`[前端] 📦 收到第 ${chunkCount} 个数据块，大小: ${chunk.length} 字节`)
-          console.log(`[前端] 📦 数据块内容预览:`, chunk.substring(0, 200))
           
           // 解码数据
           buffer += chunk
 
-          // 按行分割（SSE格式）
-          const lines = buffer.split('\n')
-          buffer = lines.pop() || '' // 保留最后一个不完整的行
+          // SSE 格式：每个消息以 \n\n 分隔
+          // 处理完整的消息（以 \n\n 结尾的）
+          const messages = buffer.split('\n\n')
+          // 保留最后一个可能不完整的消息
+          buffer = messages.pop() || ''
 
-          console.log(`[前端] 📋 本次解析出 ${lines.length} 行`)
-
-          for (let i = 0; i < lines.length; i++) {
-            const line = lines[i]
-            if (!line.trim()) {
-              continue // 跳过空行
+          // 处理所有完整的消息，确保每条消息都立即处理
+          for (const message of messages) {
+            const trimmedMessage = message.trim()
+            if (trimmedMessage) {
+              await processSSEMessage(trimmedMessage)
             }
-            
-            if (!line.startsWith('data: ')) {
-              console.warn(`[前端] ⚠️ 第 ${i+1} 行不是有效的 SSE 数据:`, line)
-              continue
-            }
+          }
+        }
+        
+        // 处理 SSE 消息的函数
+        async function processSSEMessage(message) {
+          // 提取 data: 后面的内容
+          const dataMatch = message.match(/^data:\s*(.+)$/m)
+          if (!dataMatch) {
+            console.warn(`[前端] ⚠️ 不是有效的 SSE 数据:`, message.substring(0, 100))
+            return
+          }
 
-            try {
-              const jsonStr = line.substring(6)
-              console.log(`[前端] 🔍 第 ${i+1} 行解析 JSON:`, jsonStr)
-              const eventData = JSON.parse(jsonStr)
-              console.log(`[前端] ✅ 第 ${i+1} 行解析成功:`, eventData)
+          try {
+            const jsonStr = dataMatch[1]
+            const eventData = JSON.parse(jsonStr)
+            console.log(`[前端] ✅ 解析成功:`, eventData)
 
-              switch (eventData.type) {
-                case 'start':
-                  totalWeapons = eventData.total
-                  ElMessage.info(`开始查询 ${totalWeapons} 个饰品...`)
-                  break
+            switch (eventData.type) {
+              case 'start':
+                totalWeapons = eventData.total
+                ElMessage.info(`开始查询 ${totalWeapons} 个饰品...`)
+                break
 
-                case 'processing':
-                  console.log(`正在处理 ${eventData.current}/${eventData.total}: ${eventData.weapon_name}`)
-                  break
+              case 'processing':
+                console.log(`正在处理 ${eventData.current}/${eventData.total}: ${eventData.weapon_name}`)
+                break
 
-                case 'item':
-                  // 收到一个新商品，立即添加到结果中
-                  const yyypId = eventData.yyyp_id
-                  
-                  console.log(`[前端] 收到 item 事件:`, eventData)
+              case 'item':
+                // 收到一个新商品，立即添加到结果中
+                const yyypId = eventData.yyyp_id
+                
+                console.log(`[前端] 收到 item 事件:`, eventData)
 
-                  if (!weaponsMap.has(yyypId)) {
-                    console.log(`[前端] 创建新饰品条目: ${eventData.weapon_name} (${yyypId})`)
-                    weaponsMap.set(yyypId, {
-                      yyyp_id: yyypId,
-                      weapon_name: eventData.weapon_name,
-                      total_count: eventData.total_count,
-                      lowest_price: eventData.lowest_price,
-                      renamed_count: 0,
-                      target_count: 0,
-                      items: []
-                    })
-                  }
-
-                  const weaponData = weaponsMap.get(yyypId)
-                  console.log(`[前端] 添加商品到 ${eventData.weapon_name}，当前已有 ${weaponData.items.length} 个`)
-                  weaponData.items.push(eventData.item)
-                  weaponData.target_count = weaponData.items.length
-
-                  // 按差价从高到低排序
-                  weaponData.items.sort((a, b) => {
-                    const diffA = a.priceDiff !== undefined ? a.priceDiff : -Infinity
-                    const diffB = b.priceDiff !== undefined ? b.priceDiff : -Infinity
-                    return diffB - diffA  // 从高到低
+                if (!weaponsMap.has(yyypId)) {
+                  console.log(`[前端] 创建新饰品条目: ${eventData.weapon_name} (${yyypId})`)
+                  weaponsMap.set(yyypId, {
+                    yyyp_id: yyypId,
+                    weapon_name: eventData.weapon_name,
+                    total_count: eventData.total_count,
+                    lowest_price: eventData.lowest_price,
+                    renamed_count: 0,
+                    target_count: 0,
+                    items: []
                   })
+                }
 
-                  // 实时更新显示 - 创建新对象以触发 Vue 响应式更新
-                  crawlResult.value = {
-                    weapons: Array.from(weaponsMap.values()).map(w => ({
-                      ...w,
-                      items: [...w.items] // 创建新数组引用
-                    }))
-                  }
-                  
-                  // 保存到本地存储
-                  saveCrawlResultToStorage(crawlResult.value)
-                  
-                  console.log(`[前端] 🔄 触发响应式更新`)
-                  console.log(`[前端] ✅ 新增商品: ${eventData.item.nameTag}，${eventData.weapon_name} 当前共 ${weaponData.items.length} 个`)
-                  console.log(`[前端] 📊 当前 crawlResult.value:`, crawlResult.value)
-                  break
+                const weaponData = weaponsMap.get(yyypId)
+                console.log(`[前端] 添加商品到 ${eventData.weapon_name}，当前已有 ${weaponData.items.length} 个`)
+                weaponData.items.push(eventData.item)
+                weaponData.target_count = weaponData.items.length
 
-                case 'weapon_complete':
-                  // 某个饰品查询完成，更新统计信息
-                  const completeYyypId = eventData.yyyp_id
+                // 按差价从高到低排序
+                weaponData.items.sort((a, b) => {
+                  const diffA = a.priceDiff !== undefined ? a.priceDiff : -Infinity
+                  const diffB = b.priceDiff !== undefined ? b.priceDiff : -Infinity
+                  return diffB - diffA  // 从高到低
+                })
 
-                  if (!weaponsMap.has(completeYyypId)) {
-                    weaponsMap.set(completeYyypId, {
-                      yyyp_id: completeYyypId,
-                      weapon_name: eventData.weapon_name,
-                      total_count: eventData.total_count,
-                      lowest_price: eventData.lowest_price,
-                      renamed_count: eventData.renamed_count || 0,
-                      target_count: eventData.target_count || 0,
-                      items: []
-                    })
-                  } else {
-                    const weaponData = weaponsMap.get(completeYyypId)
-                    weaponData.total_count = eventData.total_count
-                    weaponData.lowest_price = eventData.lowest_price
-                    weaponData.renamed_count = eventData.renamed_count || 0
-                  }
+                // 实时更新显示 - 创建新对象以触发 Vue 响应式更新
+                // 使用 nextTick 确保立即更新UI
+                crawlResult.value = {
+                  weapons: Array.from(weaponsMap.values()).map(w => ({
+                    ...w,
+                    items: [...w.items] // 创建新数组引用
+                  }))
+                }
+                
+                // 使用防抖保存到本地存储，避免阻塞主线程
+                debouncedSaveStorage(crawlResult.value)
+                
+                console.log(`[前端] 🔄 触发响应式更新`)
+                console.log(`[前端] ✅ 新增商品: ${eventData.item.nameTag}，${eventData.weapon_name} 当前共 ${weaponData.items.length} 个`)
+                
+                // 使用 requestAnimationFrame 确保UI立即更新
+                await new Promise(resolve => requestAnimationFrame(resolve))
+                break
 
-                  // 更新显示 - 创建新对象引用
-                  crawlResult.value = {
-                    weapons: Array.from(weaponsMap.values()).map(w => ({
-                      ...w,
-                      items: [...w.items]
-                    }))
-                  }
-                  
-                  // 保存到本地存储
-                  saveCrawlResultToStorage(crawlResult.value)
+              case 'weapon_complete':
+                // 某个饰品查询完成，更新统计信息
+                const completeYyypId = eventData.yyyp_id
 
-                  console.log(`饰品 ${eventData.weapon_name} 查询完成`)
-                  break
+                if (!weaponsMap.has(completeYyypId)) {
+                  weaponsMap.set(completeYyypId, {
+                    yyyp_id: completeYyypId,
+                    weapon_name: eventData.weapon_name,
+                    total_count: eventData.total_count,
+                    lowest_price: eventData.lowest_price,
+                    renamed_count: eventData.renamed_count || 0,
+                    target_count: eventData.target_count || 0,
+                    items: []
+                  })
+                } else {
+                  const weaponData = weaponsMap.get(completeYyypId)
+                  weaponData.total_count = eventData.total_count
+                  weaponData.lowest_price = eventData.lowest_price
+                  weaponData.renamed_count = eventData.renamed_count || 0
+                }
 
-                case 'complete':
-                  const totalRenamed = Array.from(weaponsMap.values()).reduce((sum, w) => sum + w.renamed_count, 0)
-                  const totalTarget = Array.from(weaponsMap.values()).reduce((sum, w) => sum + w.target_count, 0)
-                  ElMessage.success(`查询完成！共找到 ${totalRenamed} 个改名饰品，其中 ${totalTarget} 个符合条件`)
-                  break
+                // 更新显示 - 创建新对象引用
+                crawlResult.value = {
+                  weapons: Array.from(weaponsMap.values()).map(w => ({
+                    ...w,
+                    items: [...w.items]
+                  }))
+                }
+                
+                // 使用防抖保存到本地存储
+                debouncedSaveStorage(crawlResult.value)
 
-                case 'error':
-                  ElMessage.error(eventData.message || '查询出错')
-                  break
-              }
-            } catch (e) {
-              console.error(`[前端] ❌ 第 ${i+1} 行解析失败:`, e)
-              console.error(`[前端] ❌ 失败的行内容:`, line)
+                console.log(`饰品 ${eventData.weapon_name} 查询完成`)
+                break
+
+              case 'complete':
+                const totalRenamed = Array.from(weaponsMap.values()).reduce((sum, w) => sum + w.renamed_count, 0)
+                const totalTarget = Array.from(weaponsMap.values()).reduce((sum, w) => sum + w.target_count, 0)
+                ElMessage.success(`查询完成！共找到 ${totalRenamed} 个改名饰品，其中 ${totalTarget} 个符合条件`)
+                // 最终保存一次
+                saveCrawlResultToStorage(crawlResult.value)
+                break
+
+              case 'error':
+                ElMessage.error(eventData.message || '查询出错')
+                break
             }
+          } catch (e) {
+            console.error(`[前端] ❌ 解析失败:`, e)
+            console.error(`[前端] ❌ 失败的消息内容:`, message.substring(0, 200))
           }
         }
         
