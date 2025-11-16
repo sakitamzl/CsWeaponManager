@@ -339,7 +339,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -765,6 +765,11 @@ export default {
           chunkCount++
           const chunk = decoder.decode(value, { stream: true })
           console.log(`[前端] 📦 收到第 ${chunkCount} 个数据块，大小: ${chunk.length} 字节`)
+          if (chunk.length < 200) {
+            console.log(`[前端] 📦 数据块内容:`, chunk)
+          } else {
+            console.log(`[前端] 📦 数据块内容预览:`, chunk.substring(0, 200) + '...')
+          }
           
           // 解码数据
           buffer += chunk
@@ -775,13 +780,18 @@ export default {
           // 保留最后一个可能不完整的消息
           buffer = messages.pop() || ''
 
+          console.log(`[前端] 📋 本次解析出 ${messages.length} 条完整消息，buffer 剩余: ${buffer.length} 字符`)
+
           // 处理所有完整的消息，确保每条消息都立即处理
           // 使用 for...of 循环确保顺序处理，每条消息处理完后再处理下一条
-          for (const message of messages) {
+          for (let i = 0; i < messages.length; i++) {
+            const message = messages[i]
             const trimmedMessage = message.trim()
             if (trimmedMessage) {
+              console.log(`[前端] 🔄 开始处理第 ${i + 1}/${messages.length} 条消息`)
               // 立即处理每条消息，不等待批量处理
               await processSSEMessage(trimmedMessage)
+              console.log(`[前端] ✅ 第 ${i + 1}/${messages.length} 条消息处理完成`)
             }
           }
         }
@@ -824,7 +834,7 @@ export default {
                 // 收到一个新商品，立即添加到结果中
                 const yyypId = eventData.yyyp_id
                 
-                console.log(`[前端] 收到 item 事件:`, eventData)
+                console.log(`[前端] 📥 收到 item 事件:`, eventData)
 
                 if (!weaponsMap.has(yyypId)) {
                   console.log(`[前端] 创建新饰品条目: ${eventData.weapon_name} (${yyypId})`)
@@ -841,6 +851,8 @@ export default {
 
                 const weaponData = weaponsMap.get(yyypId)
                 console.log(`[前端] 添加商品到 ${eventData.weapon_name}，当前已有 ${weaponData.items.length} 个`)
+                
+                // 立即添加商品
                 weaponData.items.push(eventData.item)
                 weaponData.target_count = weaponData.items.length
 
@@ -852,22 +864,30 @@ export default {
                 })
 
                 // 实时更新显示 - 创建新对象以触发 Vue 响应式更新
-                // 使用 nextTick 确保立即更新UI
-                crawlResult.value = {
-                  weapons: Array.from(weaponsMap.values()).map(w => ({
-                    ...w,
-                    items: [...w.items] // 创建新数组引用
-                  }))
-                }
+                // 立即更新 crawlResult.value，触发响应式
+                // 使用 Object.freeze 和展开运算符确保创建新对象引用
+                const newWeapons = Array.from(weaponsMap.values()).map(w => ({
+                  ...w,
+                  items: [...w.items] // 创建新数组引用，确保响应式
+                }))
+                
+                crawlResult.value = newWeapons
+                
+                console.log(`[前端] 🔄 已更新 crawlResult.value，当前商品数: ${weaponData.items.length}`)
+                console.log(`[前端] 📊 crawlResult.value.weapons.length: ${crawlResult.value.weapons.length}`)
+                console.log(`[前端] 📊 第一个武器的 items 数量: ${crawlResult.value.weapons[0]?.items.length || 0}`)
+                
+                // 使用 nextTick 确保 Vue 完成 DOM 更新
+                await nextTick()
+                
+                // 使用 requestAnimationFrame 确保浏览器立即渲染
+                // 这确保 UI 在下一个渲染帧之前更新
+                await new Promise(resolve => requestAnimationFrame(resolve))
                 
                 // 使用防抖保存到本地存储，避免阻塞主线程
                 debouncedSaveStorage(crawlResult.value)
                 
-                console.log(`[前端] 🔄 触发响应式更新`)
-                console.log(`[前端] ✅ 新增商品: ${eventData.item.nameTag}，${eventData.weapon_name} 当前共 ${weaponData.items.length} 个`)
-                
-                // 使用 requestAnimationFrame 确保UI立即更新
-                await new Promise(resolve => requestAnimationFrame(resolve))
+                console.log(`[前端] ✅ 新增商品已显示: ${eventData.item.nameTag}，${eventData.weapon_name} 当前共 ${weaponData.items.length} 个`)
                 break
 
               case 'weapon_complete':
