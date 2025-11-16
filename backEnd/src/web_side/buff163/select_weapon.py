@@ -140,11 +140,14 @@ def batchInsertOrUpdate():
     - 接收数据格式: [{"buff_id": 123, "steam_hash_name": "★ Butterfly Knife | Fade (Factory New)", 
                       "market_listing_item_name": "蝴蝶刀（★） | 渐变之色 (崭新出厂)",
                       "buff_class_name": "weapon_knife_butterfly", 
-                      "weapon_type": "刀具", "weapon_name": "蝴蝶刀", "item_name": "渐变之色"}]
+                      "weapon_type": "刀具", "weapon_name": "蝴蝶刀", "item_name": "渐变之色",
+                      "buff_Price": "100.00", "buff_Rent": "5.00", 
+                      "buff_OnSaleCount": "50", "buff_OnLeaseCount": "10"}]
     - 通过 steam_hash_name 匹配已有记录
-    - 如果匹配成功：只更新 buff_id 和 buff_class_name 字段
+    - 如果匹配成功：更新 buff_id, buff_class_name, buff_Price, buff_Rent, buff_OnSaleCount, buff_OnLeaseCount 字段
     - 如果匹配失败：插入新记录，包含所有字段（steam_hash_name, market_listing_item_name, 
-                    buff_id, buff_class_name, weapon_type, weapon_name, item_name）
+                    buff_id, buff_class_name, weapon_type, weapon_name, item_name,
+                    buff_Price, buff_Rent, buff_OnSaleCount, buff_OnLeaseCount）
     """
     try:
         data = request.get_json()
