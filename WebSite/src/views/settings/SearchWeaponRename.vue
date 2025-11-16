@@ -221,28 +221,51 @@
       <!-- 结束 unified-tool-section -->
 
       <!-- 查询结果区域 -->
-      <div v-if="crawlResult && crawlResult.weapons && crawlResult.weapons.length > 0" class="result-section">
-        <h2 class="section-title">查询结果</h2>
-        
-        <!-- 每个饰品的结果 -->
-        <div v-for="weapon in crawlResult.weapons" :key="weapon.yyyp_id" class="weapon-result-card">
-          <div class="weapon-header">
-            <h3 class="weapon-name">{{ weapon.weapon_name }}</h3>
-            <div class="weapon-stats">
-              <el-tag size="small">总在售: {{ weapon.total_count }}</el-tag>
-              <el-tag size="small" type="warning">最低价: ¥{{ weapon.lowest_price }}</el-tag>
-              <el-tag size="small" type="info">改名数: {{ weapon.renamed_count }}</el-tag>
-              <el-tag size="small" type="success">符合条件: {{ weapon.target_count }}</el-tag>
-            </div>
-          </div>
-          
-          <!-- 商品列表 -->
-          <el-table 
-            :data="weapon.items" 
-            style="width: 100%"
-            stripe
+      <div v-if="allCrawlItems && allCrawlItems.length > 0" class="result-section">
+        <div class="result-header">
+          <h2 class="section-title">查询结果 ({{ allCrawlItems.length }} 件)</h2>
+          <el-button 
+            type="danger" 
+            size="small"
+            @click="clearCrawlHistory"
+            :disabled="isCrawling"
           >
-            <el-table-column label="价格" width="100">
+            <el-icon><Delete /></el-icon>
+            清空列表
+          </el-button>
+        </div>
+        
+        <!-- 统一商品列表 -->
+        <el-table 
+          :data="allCrawlItems" 
+          style="width: 100%; min-width: max(1200px, 100%);"
+          stripe
+        >
+          <el-table-column label="图标" width="80" fixed="left" align="center">
+            <template #default="scope">
+              <img 
+                v-if="scope.row.iconUrl" 
+                :src="scope.row.iconUrl" 
+                class="weapon-icon"
+                :alt="scope.row.weapon_name"
+              />
+              <span v-else class="no-icon">-</span>
+            </template>
+          </el-table-column>
+          
+          <el-table-column label="武器名称" width="200" fixed="left">
+            <template #default="scope">
+              <el-tooltip 
+                :content="scope.row.weapon_name" 
+                placement="top"
+                :disabled="!scope.row.weapon_name || scope.row.weapon_name.length <= 20"
+              >
+                <div class="weapon-name-cell">{{ scope.row.weapon_name }}</div>
+              </el-tooltip>
+            </template>
+          </el-table-column>
+          
+          <el-table-column label="价格" width="100">
               <template #default="scope">
                 <span class="price">¥{{ scope.row.price }}</span>
               </template>
@@ -250,8 +273,25 @@
             
             <el-table-column label="溢价" width="100">
               <template #default="scope">
-                <el-tag type="success" size="small">
-                  +¥{{ scope.row.spread.toFixed(2) }}
+                <el-tag type="danger" size="small">
+                  {{ scope.row.spread.toFixed(2) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            
+            <el-table-column label="手续费" width="100" align="center">
+              <template #default="scope">
+                <span class="commission-fee">¥{{ scope.row.commissionFee ? scope.row.commissionFee.toFixed(2) : '0.00' }}</span>
+              </template>
+            </el-table-column>
+            
+            <el-table-column label="收益" width="120" align="center">
+              <template #default="scope">
+                <el-tag 
+                  :type="scope.row.priceDiff < 0 ? 'danger' : (scope.row.priceDiff < 3 ? 'warning' : 'success')" 
+                  size="small"
+                >
+                  {{ scope.row.priceDiff >= 0 ? '+' : '' }}{{ scope.row.priceDiff.toFixed(2) }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -277,17 +317,17 @@
             <el-table-column label="操作" width="100" fixed="right">
               <template #default="scope">
                 <el-button 
-                  type="primary" 
+                  :type="getBuyButtonType(scope.row)"
                   size="small"
                   @click="handleBuyWeapon(scope.row)"
                   :loading="buyingItems[scope.row.id]"
+                  :disabled="purchasedItems.has(scope.row.id)"
                 >
-                  购买
+                  {{ purchasedItems.has(scope.row.id) ? '已购买' : '购买' }}
                 </el-button>
               </template>
             </el-table-column>
-          </el-table>
-        </div>
+        </el-table>
       </div>
 
       </div>
@@ -324,9 +364,98 @@ export default {
     const isCrawling = ref(false)
     const crawlResult = ref(null)
     
+    // 将 weapons 转换为扁平列表，与 SearchPendant 保持一致
+    const allCrawlItems = computed(() => {
+      if (!crawlResult.value || !crawlResult.value.weapons) {
+        return []
+      }
+      
+      const items = []
+      crawlResult.value.weapons.forEach(weapon => {
+        if (weapon.items && weapon.items.length > 0) {
+          weapon.items.forEach(item => {
+            items.push({
+              ...item,
+              weapon_name: weapon.weapon_name,  // 添加武器名称
+              yyyp_id: weapon.yyyp_id || weapon.weapon_id
+            })
+          })
+        }
+      })
+      
+      // 按差价从高到低排序
+      items.sort((a, b) => {
+        const diffA = a.priceDiff !== undefined ? a.priceDiff : -Infinity
+        const diffB = b.priceDiff !== undefined ? b.priceDiff : -Infinity
+        return diffB - diffA  // 从高到低
+      })
+      
+      return items
+    })
+    
     // 配置管理相关
     const savedConfigs = ref([])
     const selectedConfigId = ref(null)
+    
+    // 本地存储相关
+    const STORAGE_KEY = 'spider_weapon_rename_result'
+    
+    // 保存爬虫结果到 localStorage
+    const saveCrawlResultToStorage = (result) => {
+      try {
+        if (result && result.weapons) {
+          const dataToSave = {
+            result: result,
+            timestamp: Date.now(),
+            configName: crawlForm.value.configName || '未命名配置'
+          }
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave))
+          console.log('✅ 爬虫结果已保存到本地存储')
+        }
+      } catch (error) {
+        console.error('保存爬虫结果失败:', error)
+      }
+    }
+    
+    // 从 localStorage 恢复爬虫结果
+    const loadCrawlResultFromStorage = () => {
+      try {
+        const savedData = localStorage.getItem(STORAGE_KEY)
+        if (savedData) {
+          const parsed = JSON.parse(savedData)
+          crawlResult.value = parsed.result
+          console.log('✅ 已恢复历史爬虫结果')
+          console.log(`📅 保存时间: ${new Date(parsed.timestamp).toLocaleString()}`)
+          console.log(`📝 配置名称: ${parsed.configName}`)
+          
+          // 显示提示信息
+          ElMessage.info(`已恢复上次查询结果 (${new Date(parsed.timestamp).toLocaleString()})`)
+          return true
+        }
+      } catch (error) {
+        console.error('恢复爬虫结果失败:', error)
+      }
+      return false
+    }
+    
+    // 清空爬虫历史
+    const clearCrawlHistory = () => {
+      ElMessageBox.confirm(
+        '确定要清空所有查询结果吗？此操作不可恢复。',
+        '确认清空',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      ).then(() => {
+        crawlResult.value = null
+        localStorage.removeItem(STORAGE_KEY)
+        ElMessage.success('已清空查询结果')
+      }).catch(() => {
+        // 用户取消
+      })
+    }
 
     // 饰品搜索相关
     const weaponSearchKeyword = ref('')
@@ -349,7 +478,22 @@ export default {
     const isLoadingMore = ref(false)
     
     // 购买相关
-    const buyingItems = ref({})
+    const buyingItems = ref({})  // 正在购买的商品 {itemId: true/false}
+    const purchasedItems = ref(new Set())  // 已成功购买的商品ID集合
+    
+    // 获取购买按钮类型
+    const getBuyButtonType = (item) => {
+      if (purchasedItems.value.has(item.id)) {
+        return 'success'  // 已购买：绿色
+      }
+      if (item.priceDiff < 0) {
+        return 'danger'   // 亏损：红色
+      }
+      if (item.priceDiff < 3) {
+        return 'warning'  // 收益低：黄色
+      }
+      return 'primary'    // 正常：蓝色
+    }
     
     // 工具区域折叠状态
     const isToolSectionCollapsed = ref(false)
@@ -577,6 +721,11 @@ export default {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`)
         }
 
+        // 检查响应体是否支持流式读取
+        if (!response.body) {
+          throw new Error('响应不支持流式读取')
+        }
+
         // 初始化结果数据结构
         const weaponsMap = new Map()
         let totalWeapons = 0
@@ -660,6 +809,13 @@ export default {
                   weaponData.items.push(eventData.item)
                   weaponData.target_count = weaponData.items.length
 
+                  // 按差价从高到低排序
+                  weaponData.items.sort((a, b) => {
+                    const diffA = a.priceDiff !== undefined ? a.priceDiff : -Infinity
+                    const diffB = b.priceDiff !== undefined ? b.priceDiff : -Infinity
+                    return diffB - diffA  // 从高到低
+                  })
+
                   // 实时更新显示 - 创建新对象以触发 Vue 响应式更新
                   crawlResult.value = {
                     weapons: Array.from(weaponsMap.values()).map(w => ({
@@ -667,6 +823,9 @@ export default {
                       items: [...w.items] // 创建新数组引用
                     }))
                   }
+                  
+                  // 保存到本地存储
+                  saveCrawlResultToStorage(crawlResult.value)
                   
                   console.log(`[前端] 🔄 触发响应式更新`)
                   console.log(`[前端] ✅ 新增商品: ${eventData.item.nameTag}，${eventData.weapon_name} 当前共 ${weaponData.items.length} 个`)
@@ -701,6 +860,9 @@ export default {
                       items: [...w.items]
                     }))
                   }
+                  
+                  // 保存到本地存储
+                  saveCrawlResultToStorage(crawlResult.value)
 
                   console.log(`饰品 ${eventData.weapon_name} 查询完成`)
                   break
@@ -727,6 +889,17 @@ export default {
         weaponsMap.forEach((weapon, id) => {
           console.log(`[前端] 📊   - ${weapon.weapon_name}: ${weapon.items.length} 个商品`)
         })
+        
+        // 最终保存一次结果
+        if (weaponsMap.size > 0) {
+          crawlResult.value = {
+            weapons: Array.from(weaponsMap.values()).map(w => ({
+              ...w,
+              items: [...w.items]
+            }))
+          }
+          saveCrawlResultToStorage(crawlResult.value)
+        }
 
       } catch (error) {
         console.error('流式查询失败:', error)
@@ -736,11 +909,8 @@ export default {
           errorMessage = error.message
         }
 
-        crawlResult.value = {
-          success: false,
-          message: errorMessage
-        }
-        ElMessage.error(errorMessage)
+        // 不清空已有结果，只显示错误提示
+        ElMessage.error(`${errorMessage} - 已保留当前结果`)
       } finally {
         isCrawling.value = false
       }
@@ -1421,7 +1591,8 @@ export default {
           let message = ''
           
           if (payStatus === 2) {
-            // 支付成功
+            // 支付成功 - 标记为已购买
+            purchasedItems.value.add(item.id)
             message = `购买成功！\n\n商品：${item.nameTag || '改名饰品'}\n订单号：${orderNo}\n金额：¥${paymentAmount}\n状态：支付成功✅\n\n饰品将发送至您的库存。`
           } else if (payStatus === 1) {
             // 支付处理中
@@ -1561,6 +1732,9 @@ export default {
     onMounted(() => {
       loadSteamIdList()
       loadConfigList()
+      
+      // 恢复历史爬虫结果
+      loadCrawlResultFromStorage()
     })
 
     return {
@@ -1570,6 +1744,7 @@ export default {
       isCrawling,
       crawlForm,
       crawlResult,
+      allCrawlItems,
       canStartCrawl,
       startCrawl,
       resetForm,
@@ -1614,7 +1789,11 @@ export default {
       getRowClassName,
       // 购买相关
       buyingItems,
+      purchasedItems,
       handleBuyWeapon,
+      getBuyButtonType,
+      // 历史结果管理
+      clearCrawlHistory,
       // 工具区域折叠
       isToolSectionCollapsed,
       toggleToolSection,
@@ -2062,6 +2241,55 @@ export default {
 .price {
   font-weight: 600;
   color: #ffa500;
+}
+
+/* 结果区域 */
+.result-section {
+  background-color: #2a2a2a;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.result-header .section-title {
+  margin: 0;
+}
+
+.weapon-name-cell {
+  color: #409eff;
+  font-weight: 500;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.weapon-icon {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 4px;
+  transition: all 0.3s ease;
+}
+
+.weapon-icon:hover {
+  transform: scale(1.1);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.no-icon {
+  color: #909399;
+  font-size: 0.875rem;
 }
 
 .name-tag {
