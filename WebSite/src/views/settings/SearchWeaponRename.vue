@@ -776,9 +776,11 @@ export default {
           buffer = messages.pop() || ''
 
           // 处理所有完整的消息，确保每条消息都立即处理
+          // 使用 for...of 循环确保顺序处理，每条消息处理完后再处理下一条
           for (const message of messages) {
             const trimmedMessage = message.trim()
             if (trimmedMessage) {
+              // 立即处理每条消息，不等待批量处理
               await processSSEMessage(trimmedMessage)
             }
           }
@@ -787,16 +789,26 @@ export default {
         // 处理 SSE 消息的函数
         async function processSSEMessage(message) {
           // 提取 data: 后面的内容
-          const dataMatch = message.match(/^data:\s*(.+)$/m)
-          if (!dataMatch) {
-            console.warn(`[前端] ⚠️ 不是有效的 SSE 数据:`, message.substring(0, 100))
+          // 使用 [\s\S]*? 匹配所有字符（包括换行符），直到消息结束
+          // 或者使用更简单的方式：找到 data: 后，取剩余所有内容
+          let jsonStr = ''
+          const dataIndex = message.indexOf('data:')
+          if (dataIndex !== -1) {
+            // 提取 data: 后面的所有内容（去掉开头的 data: 和可能的空格）
+            jsonStr = message.substring(dataIndex + 5).trim()
+          } else {
+            console.warn(`[前端] ⚠️ 不是有效的 SSE 数据（缺少 data: 前缀）:`, message.substring(0, 100))
+            return
+          }
+
+          if (!jsonStr) {
+            console.warn(`[前端] ⚠️ SSE 数据为空:`, message.substring(0, 100))
             return
           }
 
           try {
-            const jsonStr = dataMatch[1]
             const eventData = JSON.parse(jsonStr)
-            console.log(`[前端] ✅ 解析成功:`, eventData)
+            console.log(`[前端] ✅ 解析成功，类型: ${eventData.type}`, eventData)
 
             switch (eventData.type) {
               case 'start':
