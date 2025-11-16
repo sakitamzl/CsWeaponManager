@@ -274,24 +274,24 @@
             <el-table-column label="溢价" width="100">
               <template #default="scope">
                 <el-tag type="danger" size="small">
-                  {{ scope.row.spread.toFixed(2) }}
+                  {{ scope.row.spread !== undefined && scope.row.spread !== null ? scope.row.spread.toFixed(2) : '0.00' }}
                 </el-tag>
               </template>
             </el-table-column>
             
             <el-table-column label="手续费" width="100" align="center">
               <template #default="scope">
-                <span class="commission-fee">¥{{ scope.row.commissionFee ? scope.row.commissionFee.toFixed(2) : '0.00' }}</span>
+                <span class="commission-fee">¥{{ scope.row.commissionFee !== undefined && scope.row.commissionFee !== null ? scope.row.commissionFee.toFixed(2) : '0.00' }}</span>
               </template>
             </el-table-column>
             
             <el-table-column label="收益" width="120" align="center">
               <template #default="scope">
                 <el-tag 
-                  :type="scope.row.priceDiff < 0 ? 'danger' : (scope.row.priceDiff < 3 ? 'warning' : 'success')" 
+                  :type="(scope.row.priceDiff !== undefined && scope.row.priceDiff !== null && scope.row.priceDiff < 0) ? 'danger' : ((scope.row.priceDiff !== undefined && scope.row.priceDiff !== null && scope.row.priceDiff < 3) ? 'warning' : 'success')" 
                   size="small"
                 >
-                  {{ scope.row.priceDiff >= 0 ? '+' : '' }}{{ scope.row.priceDiff.toFixed(2) }}
+                  {{ scope.row.priceDiff !== undefined && scope.row.priceDiff !== null ? (scope.row.priceDiff >= 0 ? '+' : '') + scope.row.priceDiff.toFixed(2) : '0.00' }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -374,10 +374,21 @@ export default {
       crawlResult.value.weapons.forEach(weapon => {
         if (weapon.items && weapon.items.length > 0) {
           weapon.items.forEach(item => {
+            // 计算手续费（通常为价格的 2.5%）
+            const commissionRate = 0.025 // 2.5% 手续费率
+            const price = item.price || 0
+            const commissionFee = price * commissionRate
+            
+            // 计算收益（溢价 - 手续费）
+            const spread = item.spread || 0
+            const priceDiff = spread - commissionFee
+            
             items.push({
               ...item,
               weapon_name: weapon.weapon_name,  // 添加武器名称
-              yyyp_id: weapon.yyyp_id || weapon.weapon_id
+              yyyp_id: weapon.yyyp_id || weapon.weapon_id,
+              commissionFee: commissionFee,  // 手续费
+              priceDiff: priceDiff  // 收益
             })
           })
         }
@@ -865,17 +876,24 @@ export default {
 
                 // 实时更新显示 - 创建新对象以触发 Vue 响应式更新
                 // 立即更新 crawlResult.value，触发响应式
-                // 使用 Object.freeze 和展开运算符确保创建新对象引用
+                // 使用展开运算符确保创建新对象引用
                 const newWeapons = Array.from(weaponsMap.values()).map(w => ({
                   ...w,
                   items: [...w.items] // 创建新数组引用，确保响应式
                 }))
                 
-                crawlResult.value = newWeapons
+                // crawlResult.value 应该是一个对象，包含 weapons 属性
+                crawlResult.value = {
+                  weapons: newWeapons
+                }
                 
                 console.log(`[前端] 🔄 已更新 crawlResult.value，当前商品数: ${weaponData.items.length}`)
-                console.log(`[前端] 📊 crawlResult.value.weapons.length: ${crawlResult.value.weapons.length}`)
-                console.log(`[前端] 📊 第一个武器的 items 数量: ${crawlResult.value.weapons[0]?.items.length || 0}`)
+                if (crawlResult.value && crawlResult.value.weapons) {
+                  console.log(`[前端] 📊 crawlResult.value.weapons.length: ${crawlResult.value.weapons.length}`)
+                  if (crawlResult.value.weapons.length > 0) {
+                    console.log(`[前端] 📊 第一个武器的 items 数量: ${crawlResult.value.weapons[0]?.items?.length || 0}`)
+                  }
+                }
                 
                 // 使用 nextTick 确保 Vue 完成 DOM 更新
                 await nextTick()
@@ -1863,7 +1881,10 @@ export default {
       formatJson,
       validateJsonOnly,
       clearJson,
-      updateHighlight
+      updateHighlight,
+      // 从搜索组件添加饰品
+      handleAddWeaponFromSearch,
+      handleAddAllWeaponsFromSearch
     }
   }
 }
