@@ -1053,6 +1053,46 @@ export default {
                 console.log(`[前端] ✅ 新增商品已显示: ${eventData.item.nameTag}，${eventData.weapon_name} 当前共 ${weaponData.items.length} 个`)
                 break
 
+              case 'item_updated':
+                // 更新已有商品的信息（主要是改名内容）
+                const updateYyypId = eventData.yyyp_id
+                const updateItemData = eventData.item
+
+                console.log(`[前端] 🔄 收到 item_updated 事件，更新商品: ${updateItemData.id}`)
+
+                if (weaponsMap.has(updateYyypId)) {
+                  const weaponData = weaponsMap.get(updateYyypId)
+
+                  // 查找并更新对应的商品
+                  const itemIndex = weaponData.items.findIndex(item => item.id === updateItemData.id)
+                  if (itemIndex !== -1) {
+                    // 更新商品信息（主要是 nameTag）
+                    weaponData.items[itemIndex] = {
+                      ...weaponData.items[itemIndex],
+                      ...updateItemData
+                    }
+
+                    console.log(`[前端] ✅ 已更新商品 ${updateItemData.id} 的改名: ${updateItemData.nameTag}`)
+
+                    // 强制触发响应式更新
+                    crawlResult.value = {
+                      weapons: Array.from(weaponsMap.values()).map(w => ({
+                        yyyp_id: w.yyyp_id,
+                        weapon_name: w.weapon_name,
+                        total_count: w.total_count,
+                        lowest_price: w.lowest_price,
+                        renamed_count: w.renamed_count,
+                        target_count: w.target_count,
+                        items: w.items.map(item => ({ ...item }))
+                      }))
+                    }
+
+                    await nextTick()
+                    debouncedSaveStorage(crawlResult.value)
+                  }
+                }
+                break
+
               case 'weapon_complete':
                 // 某个饰品查询完成，更新统计信息
                 const completeYyypId = eventData.yyyp_id
