@@ -220,6 +220,45 @@
       </div>
       <!-- 结束 unified-tool-section -->
 
+      <!-- 实时日志区域 -->
+      <div 
+        class="log-section" 
+        v-if="streamLogs.length > 0 || isCrawling"
+      >
+        <div class="log-section-header">
+          <h2 class="section-title">实时日志</h2>
+          <div class="log-actions">
+            <span class="log-count">当前 {{ streamLogs.length }} 条</span>
+            <el-switch 
+              v-model="logAutoScroll" 
+              size="small" 
+              active-text="自动滚动"
+            />
+            <el-button 
+              size="small" 
+              @click="clearStreamLogs" 
+              :disabled="streamLogs.length === 0"
+            >
+              清空
+            </el-button>
+          </div>
+        </div>
+        <div class="log-list" ref="logPanelRef">
+          <div 
+            v-for="log in streamLogs" 
+            :key="log.id" 
+            class="log-entry" 
+            :class="`log-${log.level}`"
+          >
+            <span class="log-time">{{ formatLogTime(log.timestamp) }}</span>
+            <span class="log-message">{{ log.message }}</span>
+          </div>
+          <div v-if="streamLogs.length === 0" class="log-empty">
+            <el-empty description="暂无日志" :image-size="80" />
+          </div>
+        </div>
+      </div>
+
       <!-- 查询结果区域 -->
       <div v-if="allCrawlItems && allCrawlItems.length > 0" class="result-section">
         <div class="result-header">
@@ -363,26 +402,34 @@ export default {
     const steamIdList = ref([])
     const isCrawling = ref(false)
     const crawlResult = ref(null)
+    const streamLogs = ref([])
+    const logPanelRef = ref(null)
+    const logAutoScroll = ref(true)
+    const MAX_STREAM_LOGS = 800
     
     // 将 weapons 转换为扁平列表，与 SearchPendant 保持一致
     const allCrawlItems = computed(() => {
       if (!crawlResult.value || !crawlResult.value.weapons) {
+        console.log('[allCrawlItems] 📊 crawlResult 为空或无 weapons 数据')
         return []
       }
-      
+
+      console.log(`[allCrawlItems] 🔄 开始计算，weapons 数量: ${crawlResult.value.weapons.length}`)
+
       const items = []
       crawlResult.value.weapons.forEach(weapon => {
         if (weapon.items && weapon.items.length > 0) {
+          console.log(`[allCrawlItems] 📦 处理武器: ${weapon.weapon_name}, items: ${weapon.items.length}`)
           weapon.items.forEach(item => {
             // 计算手续费（通常为价格的 2.5%）
             const commissionRate = 0.025 // 2.5% 手续费率
             const price = item.price || 0
             const commissionFee = price * commissionRate
-            
+
             // 计算收益（溢价 - 手续费）
             const spread = item.spread || 0
             const priceDiff = spread - commissionFee
-            
+
             items.push({
               ...item,
               weapon_name: weapon.weapon_name,  // 添加武器名称
@@ -393,14 +440,16 @@ export default {
           })
         }
       })
-      
+
       // 按差价从高到低排序
       items.sort((a, b) => {
         const diffA = a.priceDiff !== undefined ? a.priceDiff : -Infinity
         const diffB = b.priceDiff !== undefined ? b.priceDiff : -Infinity
         return diffB - diffA  // 从高到低
       })
-      
+
+      console.log(`[allCrawlItems] ✅ 计算完成，总计 ${items.length} 件商品`)
+
       return items
     })
     
@@ -466,6 +515,47 @@ export default {
       }).catch(() => {
         // 用户取消
       })
+    }
+
+    // 实时日志处理
+    const scrollLogPanelToBottom = () => {
+      if (!logAutoScroll.value) return
+      nextTick(() => {
+        if (logPanelRef.value) {
+          logPanelRef.value.scrollTop = logPanelRef.value.scrollHeight
+        }
+      })
+    }
+
+    const appendStreamLog = (message, level = 'info') => {
+      if (!message) return
+      streamLogs.value.push({
+        id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+        timestamp: Date.now(),
+        level,
+        message
+      })
+      if (streamLogs.value.length > MAX_STREAM_LOGS) {
+        streamLogs.value.splice(0, streamLogs.value.length - MAX_STREAM_LOGS)
+      }
+      scrollLogPanelToBottom()
+    }
+
+    const clearStreamLogs = () => {
+      streamLogs.value = []
+    }
+
+    const formatLogTime = (timestamp) => {
+      if (!timestamp) return '--:--:--'
+      return new Date(timestamp).toLocaleTimeString('zh-CN', { hour12: false })
+    }
+
+    const formatNumberText = (value, fractionDigits = 2) => {
+      const num = Number(value)
+      if (!Number.isFinite(num)) {
+        return value ?? '-'
+      }
+      return num.toFixed(fractionDigits)
     }
 
     // 饰品搜索相关
@@ -695,6 +785,8 @@ export default {
 
       isCrawling.value = true
       crawlResult.value = null
+      streamLogs.value = []
+      appendStreamLog('正在启动查询任务...', 'info')
       ElMessage.info('正在启动查询任务...')
 
       try {
@@ -755,6 +847,7 @@ export default {
 
         // 初始化结果数据结构
         const weaponsMap = new Map()
+        const runtimeWeaponStats = new Map()
         let totalWeapons = 0
 
         // 读取流式数据
@@ -866,16 +959,23 @@ export default {
               case 'start':
                 totalWeapons = eventData.total
                 ElMessage.info(`开始查询 ${totalWeapons} 个饰品...`)
+                appendStreamLog(eventData.message || `开始查询 ${totalWeapons} 个饰品...`, 'info')
                 break
 
               case 'processing':
                 console.log(`正在处理 ${eventData.current}/${eventData.total}: ${eventData.weapon_name}`)
+                appendStreamLog(`正在处理 ${eventData.current}/${eventData.total}: ${eventData.weapon_name}`, 'info')
+                runtimeWeaponStats.set(eventData.yyyp_id, {
+                  currentIndex: 0,
+                  renamedTotal: 0,
+                  targetCount: 0
+                })
                 break
 
               case 'item':
                 // 收到一个新商品，立即添加到结果中
                 const yyypId = eventData.yyyp_id
-                
+
                 console.log(`[前端] 📥 收到 item 事件:`, eventData)
 
                 if (!weaponsMap.has(yyypId)) {
@@ -893,7 +993,13 @@ export default {
 
                 const weaponData = weaponsMap.get(yyypId)
                 console.log(`[前端] 添加商品到 ${eventData.weapon_name}，当前已有 ${weaponData.items.length} 个`)
-                
+
+                const runtimeStats = runtimeWeaponStats.get(yyypId) || { currentIndex: 0, renamedTotal: 0, targetCount: 0 }
+                runtimeStats.currentIndex = eventData.item_index ?? (runtimeStats.currentIndex + 1)
+                runtimeStats.renamedTotal = eventData.renamed_total ?? runtimeStats.renamedTotal
+                runtimeStats.targetCount = eventData.target_count ?? runtimeStats.targetCount
+                runtimeWeaponStats.set(yyypId, runtimeStats)
+
                 // 立即添加商品
                 weaponData.items.push(eventData.item)
                 weaponData.target_count = weaponData.items.length
@@ -905,37 +1011,45 @@ export default {
                   return diffB - diffA  // 从高到低
                 })
 
-                // 实时更新显示 - 创建新对象以触发 Vue 响应式更新
-                // 立即更新 crawlResult.value，触发响应式
-                // 使用展开运算符确保创建新对象引用
-                const newWeapons = Array.from(weaponsMap.values()).map(w => ({
-                  ...w,
-                  items: [...w.items] // 创建新数组引用，确保响应式
-                }))
-                
-                // crawlResult.value 应该是一个对象，包含 weapons 属性
+                // 🔥 关键优化：强制触发 Vue 响应式更新
+                // 通过完全重建对象来确保 Vue 能检测到变化
                 crawlResult.value = {
-                  weapons: newWeapons
+                  weapons: Array.from(weaponsMap.values()).map(w => ({
+                    yyyp_id: w.yyyp_id,
+                    weapon_name: w.weapon_name,
+                    total_count: w.total_count,
+                    lowest_price: w.lowest_price,
+                    renamed_count: w.renamed_count,
+                    target_count: w.target_count,
+                    items: w.items.map(item => ({ ...item })) // 深拷贝每个 item
+                  }))
                 }
-                
+
                 console.log(`[前端] 🔄 已更新 crawlResult.value，当前商品数: ${weaponData.items.length}`)
-                if (crawlResult.value && crawlResult.value.weapons) {
-                  console.log(`[前端] 📊 crawlResult.value.weapons.length: ${crawlResult.value.weapons.length}`)
-                  if (crawlResult.value.weapons.length > 0) {
-                    console.log(`[前端] 📊 第一个武器的 items 数量: ${crawlResult.value.weapons[0]?.items?.length || 0}`)
-                  }
-                }
-                
-                // 使用 nextTick 确保 Vue 完成 DOM 更新
+                console.log(`[前端] 📊 allCrawlItems 应该显示的数量: ${Array.from(weaponsMap.values()).reduce((sum, w) => sum + w.items.length, 0)}`)
+
+                // 立即强制更新 Vue - 使用 nextTick 确保响应式系统完成更新
                 await nextTick()
-                
-                // 使用 requestAnimationFrame 确保浏览器立即渲染
-                // 这确保 UI 在下一个渲染帧之前更新
-                await new Promise(resolve => requestAnimationFrame(resolve))
-                
+                console.log(`[前端] ✅ nextTick 完成，DOM 应该已更新`)
+
                 // 使用防抖保存到本地存储，避免阻塞主线程
                 debouncedSaveStorage(crawlResult.value)
-                
+
+                const idxDisplay = runtimeStats.renamedTotal
+                  ? `${runtimeStats.currentIndex}/${runtimeStats.renamedTotal}`
+                  : runtimeStats.currentIndex
+                const targetDisplay = runtimeStats.targetCount || weaponData.items.length
+                appendStreamLog(
+                  `获取改名: 名称标签："${eventData.item?.nameTag || '无改名'}"`,
+                  eventData.item?.nameTag ? 'success' : 'warning'
+                )
+                appendStreamLog(
+                  `[${idxDisplay}] [符合条件 ${targetDisplay}] 价格: ${formatNumberText(eventData.item?.price)}元, ` +
+                  `溢价: ${formatNumberText(eventData.item?.spread)}元, 改名: 名称标签："${eventData.item?.nameTag || '无改名'}", ` +
+                  `卖家: ${eventData.item?.userNickName || '未知'}`,
+                  'success'
+                )
+
                 console.log(`[前端] ✅ 新增商品已显示: ${eventData.item.nameTag}，${eventData.weapon_name} 当前共 ${weaponData.items.length} 个`)
                 break
 
@@ -972,6 +1086,8 @@ export default {
                 debouncedSaveStorage(crawlResult.value)
 
                 console.log(`饰品 ${eventData.weapon_name} 查询完成`)
+                const summaryText = `饰品 ${eventData.weapon_name} 查询完成 - 改名 ${eventData.renamed_count ?? 0} 个，符合条件 ${eventData.target_count ?? 0} 个`
+                appendStreamLog(summaryText, 'info')
                 break
 
               case 'complete':
@@ -980,10 +1096,12 @@ export default {
                 ElMessage.success(`查询完成！共找到 ${totalRenamed} 个改名饰品，其中 ${totalTarget} 个符合条件`)
                 // 最终保存一次
                 saveCrawlResultToStorage(crawlResult.value)
+                appendStreamLog(eventData.message || '所有饰品查询完成', 'success')
                 break
 
               case 'error':
                 ElMessage.error(eventData.message || '查询出错')
+                appendStreamLog(eventData.message || '查询出错', 'error')
                 break
             }
           } catch (e) {
@@ -1019,8 +1137,10 @@ export default {
 
         // 不清空已有结果，只显示错误提示
         ElMessage.error(`${errorMessage} - 已保留当前结果`)
+        appendStreamLog(`查询失败: ${errorMessage}`, 'error')
       } finally {
         isCrawling.value = false
+        appendStreamLog('查询任务已结束', 'info')
       }
     }
 
@@ -1852,6 +1972,9 @@ export default {
       isCrawling,
       crawlForm,
       crawlResult,
+      streamLogs,
+      logPanelRef,
+      logAutoScroll,
       allCrawlItems,
       canStartCrawl,
       startCrawl,
@@ -1902,6 +2025,8 @@ export default {
       getBuyButtonType,
       // 历史结果管理
       clearCrawlHistory,
+      clearStreamLogs,
+      formatLogTime,
       // 工具区域折叠
       isToolSectionCollapsed,
       toggleToolSection,
@@ -2361,6 +2486,97 @@ export default {
   border-radius: 0.75rem;
   margin-bottom: 1.5rem;
   overflow-x: auto;
+}
+
+.log-section {
+  background-color: #2a2a2a;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid #333;
+}
+
+.log-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.log-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.log-count {
+  color: #bbb;
+  font-size: 0.9rem;
+}
+
+.log-list {
+  max-height: 320px;
+  overflow-y: auto;
+  background-color: #1e1e1e;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  border: 1px solid #333;
+}
+
+.log-entry {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.35rem 0;
+  border-left: 3px solid transparent;
+  padding-left: 0.75rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.log-entry.log-info {
+  border-color: #409eff;
+}
+
+.log-entry.log-success {
+  border-color: #67c23a;
+}
+
+.log-entry.log-warning {
+  border-color: #e6a23c;
+}
+
+.log-entry.log-error {
+  border-color: #f56c6c;
+}
+
+.log-time {
+  color: #999;
+  min-width: 72px;
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.log-message {
+  color: #f2f2f2;
+  flex: 1;
+}
+
+.log-entry.log-success .log-message {
+  color: #67c23a;
+}
+
+.log-entry.log-warning .log-message {
+  color: #e6a23c;
+}
+
+.log-entry.log-error .log-message {
+  color: #f56c6c;
+}
+
+.log-empty {
+  display: flex;
+  justify-content: center;
+  padding: 1.5rem 0;
 }
 
 .result-header {
