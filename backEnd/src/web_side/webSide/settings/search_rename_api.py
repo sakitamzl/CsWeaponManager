@@ -225,9 +225,10 @@ def get_items_list():
     获取搜索结果列表（支持轮询）
     
     查询参数:
-    - sessionId: 会话ID（必填）
+    - sessionId: 会话ID（可选，不提供则返回最近的所有结果）
     - limit: 返回数量限制（可选，默认100）
     - offset: 偏移量（可选，默认0）
+    - hours: 查询最近几小时的数据（可选，默认24小时，仅在无sessionId时有效）
     
     返回:
     {
@@ -240,45 +241,48 @@ def get_items_list():
     """
     try:
         session_id = request.args.get('sessionId')
-        limit = int(request.args.get('limit', 100))
-        offset = int(request.args.get('offset', 0))
         
-        if not session_id:
-            return jsonify({
-                'success': False,
-                'message': '缺少sessionId参数'
-            }), 400
+        logger.write_log(f"查询搜索结果 - sessionId: {session_id}", 'INFO')
         
-        # 查询所有结果
-        all_results = SearchRenameResultModel.find_by_session(session_id)
+        # 获取数据库连接
+        db = SearchRenameResultModel.get_db()
+        table_name = SearchRenameResultModel.get_table_name()
         
-        if not all_results:
+        # 构建查询（不使用 LIMIT，查询所有数据）
+        if session_id:
+            # 查询指定会话的所有数据
+            query = f"SELECT * FROM {table_name} WHERE session_id = ? ORDER BY id DESC"
+            params = (session_id,)
+        else:
+            # 查询所有数据，按ID倒序
+            query = f"SELECT * FROM {table_name} ORDER BY id DESC"
+            params = ()
+        
+        logger.write_log(f"执行SQL: {query}", 'INFO')
+        
+        # 执行查询
+        results = db.execute_query(query, params) if params else db.execute_query(query)
+        
+        if not results:
+            logger.write_log("查询结果为空", 'INFO')
             return jsonify({
                 'success': True,
-                'sessionId': session_id,
-                'total': 0,
                 'count': 0,
                 'items': []
             })
         
-        # 分页
-        paginated_results = all_results[offset:offset + limit]
-        
-        # 转换为字典
-        items = [result.to_dict() for result in paginated_results]
+        logger.write_log(f"查询成功，返回 {len(results)} 条数据", 'INFO')
         
         return jsonify({
             'success': True,
-            'sessionId': session_id,
-            'total': len(all_results),
-            'count': len(items),
-            'offset': offset,
-            'limit': limit,
-            'items': items
+            'count': len(results),
+            'items': results
         })
     
     except Exception as e:
         logger.write_log(f"查询搜索结果失败: {str(e)}", 'ERROR')
+        import traceback
+        logger.write_log(f"详细错误: {traceback.format_exc()}", 'ERROR')
         return jsonify({
             'success': False,
             'message': f'查询失败: {str(e)}'

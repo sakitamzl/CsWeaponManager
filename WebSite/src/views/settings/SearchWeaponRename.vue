@@ -378,7 +378,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -411,7 +411,10 @@ export default {
     const sessionId = ref('') // 搜索会话ID
     const pollingTimer = ref(null) // 轮询定时器
     const lastItemId = ref(0) // 最后一条记录的ID（用于增量更新）
-    const POLL_INTERVAL = 500 // 轮询间隔（毫秒）
+    const POLL_INTERVAL = 1000 // 轮询间隔（毫秒）- 1秒
+    const noDataCount = ref(0) // 连续无数据次数
+    const MAX_NO_DATA_COUNT = 10 // 连续10次无数据（10秒）后认为完成
+    const lastPollingTime = ref(0) // 最后轮询时间
     
     // 将 weapons 转换为扁平列表，与 SearchPendant 保持一致
     const allCrawlItems = computed(() => {
@@ -723,23 +726,80 @@ export default {
       isToolSectionCollapsed.value = !isToolSectionCollapsed.value
     }
 
-    // 轮询获取数据库中的搜索结果
-    const pollSearchResults = async () => {
-      // 检查是否正在搜索中
-      if (!isCrawling.value) {
-        console.log('[轮询] 不在搜索状态，停止轮询')
-        stopPolling()
-        return
-      }
-      
-      if (!sessionId.value) {
-        console.log('[轮询] sessionId 为空，跳过')
-        return
-      }
-
+    // 加载数据库中最近的搜索结果（页面加载时）
+    const loadRecentSearchResults = async () => {
       try {
-        // 使用增量查询，只获取新数据
-        const url = `${API_CONFIG.BACKEND_BASE_URL}/searchRename/items/latest?sessionId=${sessionId.value}&sinceId=${lastItemId.value}&limit=50`
+        console.log('[页面加载] 尝试加载历史搜索结果...')
+        
+        // 获取所有搜索结果（不指定sessionId）
+        const url = `${API_CONFIG.BASE_URL}/searchRename/items/list`
+        const response = await fetch(url)
+        
+        if (!response.ok) {
+          console.log('[页面加载] 无法获取历史数据')
+          return
+        }
+
+        const result = await response.json()
+        
+        if (result.success && result.items && result.items.length > 0) {
+          console.log(`[页面加载] 加载到 ${result.items.length} 条历史数据`)
+          
+          // 转换数据格式
+          const historyItems = result.items.map(item => ({
+            id: item.commodityId,
+            commodityNo: item.commodityNo,
+            price: item.price,
+            lowest_price: item.lowestPrice,
+            spread: item.spread,
+            abrade: item.abrade,
+            paintSeed: item.paintSeed,
+            nameTag: item.nameTag,
+            userNickName: item.sellerName,
+            assetId: item.assetId,
+            iconUrl: item.iconUrl,
+            weapon_name: item.weaponName,
+            weapon_id: item.weaponId,
+            commissionFee: item.commissionFee,
+            priceDiff: item.priceDiff
+          }))
+          
+          // 按收益排序
+          historyItems.sort((a, b) => (b.priceDiff || 0) - (a.priceDiff || 0))
+          
+          // 显示历史数据
+          crawlResult.value = {
+            weapons: [{
+              weapon_name: '历史搜索结果',
+              items: historyItems
+            }]
+          }
+          
+          appendStreamLog(`已加载 ${result.items.length} 条历史搜索结果`, 'info')
+          await nextTick()
+        } else {
+          console.log('[页面加载] 没有找到历史数据')
+        }
+      } catch (error) {
+        console.error('[页面加载] 加载历史数据失败:', error)
+      }
+    }
+
+    // 轮询获取数据库中的搜索结果（持续轮询，只要页面在前台）
+    const pollSearchResults = async () => {
+      try {
+        lastPollingTime.value = Date.now()
+        
+        // 如果有 sessionId，使用增量查询
+        let url
+        if (sessionId.value) {
+          // 正在搜索中，只获取当前会话的新数据
+          url = `${API_CONFIG.BASE_URL}/searchRename/items/latest?sessionId=${sessionId.value}&sinceId=${lastItemId.value}`
+        } else {
+          // 没有会话ID，获取所有数据
+          url = `${API_CONFIG.BASE_URL}/searchRename/items/list`
+        }
+        
         const response = await fetch(url)
         
         if (!response.ok) {
@@ -750,7 +810,12 @@ export default {
         const result = await response.json()
         
         if (result.success && result.items && result.items.length > 0) {
-          console.log(`[轮询] 获取到 ${result.items.length} 条新数据`)
+          console.log(`[轮询] 获取到 ${result.items.length} 条数据`)
+          
+          // 如果正在搜索，重置无数据计数
+          if (isCrawling.value) {
+            noDataCount.value = 0
+          }
           
           // 获取当前的所有商品列表
           const currentItems = crawlResult.value?.weapons?.[0]?.items || []
@@ -774,38 +839,67 @@ export default {
             priceDiff: item.priceDiff
           }))
           
-          // 合并并排序
-          const allItems = [...currentItems, ...newItems]
+          // 去重合并（基于 commodityId）
+          const itemMap = new Map()
+          currentItems.forEach(item => itemMap.set(item.id, item))
+          newItems.forEach(item => itemMap.set(item.id, item))
+          const allItems = Array.from(itemMap.values())
+          
+          // 按收益排序
           allItems.sort((a, b) => (b.priceDiff || 0) - (a.priceDiff || 0))
           
           // 更新显示
+          const weaponName = isCrawling.value ? '搜索结果（实时更新）' : '历史搜索结果'
           crawlResult.value = {
             weapons: [{
-              weapon_name: '所有符合条件的商品',
+              weapon_name: weaponName,
               items: allItems
             }]
           }
           
           // 更新lastItemId
-          const maxId = Math.max(...result.items.map(item => item.id))
-          if (maxId > lastItemId.value) {
-            lastItemId.value = maxId
+          if (result.items.length > 0) {
+            const maxId = Math.max(...result.items.map(item => item.id))
+            if (maxId > lastItemId.value) {
+              lastItemId.value = maxId
+            }
           }
           
           await nextTick()
+        } else {
+          // 没有新数据
+          if (isCrawling.value) {
+            // 只有在搜索中才增加计数
+            noDataCount.value++
+            
+            // 如果连续多次无数据，认为搜索完成
+            if (noDataCount.value >= MAX_NO_DATA_COUNT) {
+              console.log('[轮询] 连续无新数据，认为搜索完成')
+              isCrawling.value = false
+              sessionId.value = '' // 清空sessionId
+              
+              const totalItems = crawlResult.value?.weapons?.[0]?.items?.length || 0
+              appendStreamLog(`搜索完成，共找到 ${totalItems} 个符合条件的商品`, 'success')
+              ElMessage.success(`搜索完成！找到 ${totalItems} 个符合条件的商品`)
+              
+              if (crawlResult.value) {
+                saveCrawlResultToStorage(crawlResult.value)
+              }
+            }
+          }
         }
       } catch (error) {
         console.error('[轮询] 请求失败:', error)
       }
     }
 
-    // 启动轮询
+    // 启动轮询（页面在前台时持续轮询）
     const startPolling = () => {
       if (pollingTimer.value) {
-        clearInterval(pollingTimer.value)
+        return // 已经在轮询中
       }
       
-      console.log(`[轮询] 启动轮询，间隔 ${POLL_INTERVAL}ms`)
+      console.log(`[轮询] 启动持续轮询，间隔 ${POLL_INTERVAL}ms (${POLL_INTERVAL/1000}秒)`)
       pollingTimer.value = setInterval(pollSearchResults, POLL_INTERVAL)
       
       // 立即执行一次
@@ -894,6 +988,7 @@ export default {
       streamLogs.value = []
       sessionId.value = '' // 清空sessionId
       lastItemId.value = 0 // 重置lastItemId
+      noDataCount.value = 0 // 重置无数据计数
       stopPolling() // 停止之前的轮询
       appendStreamLog('正在启动查询任务...', 'info')
 
@@ -912,148 +1007,90 @@ export default {
           spider_config: spiderConfig
         }
         
-        console.log('[前端] 发送SSE请求:', requestData)
+        console.log('[前端] 发送搜索请求:', requestData)
 
-        // 发起SSE请求
-        const response = await fetch(
+        // 先创建会话
+        const createSessionResponse = await fetch(
+          `${API_CONFIG.BASE_URL}/searchRename/session/create`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ steamId: crawlForm.value.crawlAccountId })
+          }
+        )
+
+        if (!createSessionResponse.ok) {
+          throw new Error('创建搜索会话失败')
+        }
+
+        const sessionResult = await createSessionResponse.json()
+        if (!sessionResult.success || !sessionResult.sessionId) {
+          throw new Error('获取会话ID失败')
+        }
+
+        sessionId.value = sessionResult.sessionId
+        console.log(`[前端] 创建会话成功: ${sessionId.value}`)
+        appendStreamLog(`会话ID: ${sessionId.value}`, 'info')
+        appendStreamLog('轮询已自动运行，将持续获取搜索结果...', 'info')
+
+        // 发起搜索请求（后台执行）
+        fetch(
           `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/auto_buy_renamed_weapon`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(requestData)
           }
-        )
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-        }
-
-        if (!response.body) {
-          throw new Error('响应不支持流式读取')
-        }
-
-        // 读取SSE流
-        const reader = response.body.getReader()
-        const decoder = new TextDecoder()
-        let buffer = ''
-
-        while (true) {
-          const { done, value } = await reader.read()
-          
-          if (done) {
-            console.log('[前端] SSE流接收完成')
-            break
+        ).then(async response => {
+          if (response.ok) {
+            const result = await response.json()
+            console.log('[前端] 搜索任务响应:', result)
+            
+            if (result.success) {
+              appendStreamLog(`搜索任务已启动 - Session: ${result.sessionId}`, 'info')
+              console.log('[前端] 后台搜索任务已启动，开始轮询数据...')
+            } else {
+              throw new Error(result.message || '启动搜索失败')
+            }
+          } else {
+            throw new Error(`HTTP ${response.status}`)
           }
-          
-          if (!value) continue
+        }).catch(error => {
+          console.error('[前端] 启动搜索任务失败:', error)
+          appendStreamLog(`启动搜索任务失败: ${error.message}`, 'error')
+          ElMessage.error(`启动搜索失败: ${error.message}`)
+          isCrawling.value = false
+          sessionId.value = '' // 清空sessionId
+        })
 
-          // 记录收到数据块的时间
-          const receiveTime = new Date().toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 })
-          console.log(`[前端 ${receiveTime}] 📦 收到数据块: ${value.length} 字节`)
-
-          // 解码并累积到buffer
-          buffer += decoder.decode(value, { stream: true })
-          
-          // 处理完整的SSE消息（以\n\n分隔）
-          const messages = buffer.split('\n\n')
-          buffer = messages.pop() || ''  // 保留不完整的消息
-          
-          // 处理每条完整消息
-          for (const message of messages) {
-            if (!message.trim()) continue
+        // 设置最大搜索时间（5分钟后自动停止搜索状态，但轮询继续）
+        setTimeout(() => {
+          if (isCrawling.value) {
+            console.log('[前端] 搜索超时，结束搜索状态')
+            isCrawling.value = false
+            sessionId.value = '' // 清空sessionId
+            const totalItems = crawlResult.value?.weapons?.[0]?.items?.length || 0
+            appendStreamLog(`搜索超时结束，共找到 ${totalItems} 个商品`, 'warning')
+            ElMessage.warning(`搜索已超时结束，找到 ${totalItems} 个商品`)
             
-            // 提取data:后的JSON
-            const dataMatch = message.match(/^data:\s*(.+)$/m)
-            if (!dataMatch) continue
-            
-            try {
-              const event = JSON.parse(dataMatch[1])
-              const timestamp = new Date().toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 })
-              console.log(`[前端 ${timestamp}] 收到事件: ${event.type}`)
-              
-              // 根据事件类型处理
-              switch (event.type) {
-                case 'init':
-                  // 收到初始消息，包含sessionId
-                  sessionId.value = event.sessionId
-                  console.log(`[前端] 收到 sessionId: ${sessionId.value}`)
-                  appendStreamLog(`会话ID: ${sessionId.value}`, 'info')
-                  // 启动轮询
-                  startPolling()
-                  break
-                  
-                case 'start':
-                  appendStreamLog(`开始搜索 ${event.total_weapons} 个饰品`, 'info')
-                  break
-                
-                case 'weapon_start':
-                  appendStreamLog(
-                    `[${event.weapon_index}/${event.total_weapons}] 开始搜索: ${event.weapon_name}`,
-                    'info'
-                  )
-                  break
-                
-                case 'item_found':
-                  // 收到商品找到事件，只记录日志（数据通过轮询获取）
-                  const item = event.item
-                  const weaponName = event.weapon_name
-                  
-                  // 记录日志
-                  appendStreamLog(
-                    `✓ 找到: ${weaponName} - 价格:¥${item.price} 溢价:¥${item.spread.toFixed(2)} 改名:"${item.nameTag}"`,
-                    'success'
-                  )
-                  break
-                
-                case 'weapon_end':
-                  appendStreamLog(`完成: ${event.weapon_name}`, 'info')
-                  break
-                
-                case 'weapon_error':
-                  appendStreamLog(`错误: ${event.weapon_name} - ${event.error}`, 'error')
-                  break
-                
-                case 'complete':
-                  appendStreamLog('所有饰品搜索完成', 'success')
-                  // 停止轮询
-                  stopPolling()
-                  // 获取最终统计
-                  const totalItems = crawlResult.value?.weapons?.[0]?.items?.length || 0
-                  ElMessage.success(`搜索完成！找到 ${totalItems} 个符合条件的商品`)
-                  
-                  // 保存到本地存储
-                  if (crawlResult.value) {
-                    saveCrawlResultToStorage(crawlResult.value)
-                  }
-                  break
-                
-                case 'error':
-                  appendStreamLog(`错误: ${event.message}`, 'error')
-                  ElMessage.error(event.message)
-                  break
-              }
-            } catch (e) {
-              console.error('[前端] 解析SSE消息失败:', e, message.substring(0, 100))
+            if (crawlResult.value) {
+              saveCrawlResultToStorage(crawlResult.value)
             }
           }
-        }
+        }, 5 * 60 * 1000) // 5分钟
 
       } catch (error) {
-        console.error('流式查询失败:', error)
-        let errorMessage = '查询失败'
+        console.error('搜索失败:', error)
+        let errorMessage = '搜索失败'
 
         if (error.message) {
           errorMessage = error.message
         }
 
-        // 不清空已有结果，只显示错误提示
-        ElMessage.error(`${errorMessage} - 已保留当前结果`)
-        appendStreamLog(`查询失败: ${errorMessage}`, 'error')
-      } finally {
-        // 确保停止轮询
-        stopPolling()
+        ElMessage.error(errorMessage)
+        appendStreamLog(`搜索失败: ${errorMessage}`, 'error')
         isCrawling.value = false
-        appendStreamLog('查询任务已结束', 'info')
+        sessionId.value = '' // 清空sessionId
       }
     }
 
@@ -1869,13 +1906,21 @@ export default {
       highlightedJson.value = highlighted
     }
 
-    // 组件挂载时加载数据
+    // 组件挂载时加载数据并启动轮询
     onMounted(() => {
       loadSteamIdList()
       loadConfigList()
       
-      // 恢复历史爬虫结果
-      loadCrawlResultFromStorage()
+      // 从数据库加载最近的搜索结果
+      loadRecentSearchResults()
+      
+      // 启动持续轮询（只要页面在前台就轮询）
+      startPolling()
+    })
+
+    // 组件卸载时停止轮询
+    onUnmounted(() => {
+      stopPolling()
     })
 
     return {
