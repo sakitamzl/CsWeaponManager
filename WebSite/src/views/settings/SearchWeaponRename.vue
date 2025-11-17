@@ -371,7 +371,7 @@ export default {
     const lastItemId = ref(0) // 最后一条记录的ID（用于增量更新）
     const POLL_INTERVAL = 3000 // 轮询间隔（毫秒）- 3秒
     const noDataCount = ref(0) // 连续无数据次数
-    const MAX_NO_DATA_COUNT = 10 // 连续10次无数据（10秒）后认为完成
+    const MAX_NO_DATA_COUNT = 10 // 连续10次无数据（30秒）后认为完成
     const lastPollingTime = ref(0) // 最后轮询时间
     
     // 将 weapons 转换为扁平列表，与 SearchPendant 保持一致
@@ -825,6 +825,7 @@ export default {
               console.log('[轮询] 连续无新数据，认为搜索完成')
               isCrawling.value = false
               sessionId.value = '' // 清空sessionId
+              stopPolling() // 停止轮询
               
               const totalItems = crawlResult.value?.weapons?.[0]?.items?.length || 0
               console.log(`[轮询] 搜索完成，共找到 ${totalItems} 个符合条件的商品`)
@@ -978,7 +979,10 @@ export default {
         sessionId.value = sessionResult.sessionId
         console.log(`[前端] 创建会话成功: ${sessionId.value}`)
         console.log(`[前端] 会话ID: ${sessionId.value}`)
-        console.log('[前端] 轮询已自动运行，将持续获取搜索结果...')
+        
+        // 启动轮询（只有在开始搜索时才启动）
+        startPolling()
+        console.log('[前端] 轮询已启动，将持续获取搜索结果...')
 
         // 发起搜索请求（后台执行）
         fetch(
@@ -1008,14 +1012,16 @@ export default {
           ElMessage.error(`启动搜索失败: ${error.message}`)
           isCrawling.value = false
           sessionId.value = '' // 清空sessionId
+          stopPolling() // 停止轮询
         })
 
-        // 设置最大搜索时间（5分钟后自动停止搜索状态，但轮询继续）
+        // 设置最大搜索时间（5分钟后自动停止搜索状态和轮询）
         setTimeout(() => {
           if (isCrawling.value) {
             console.log('[前端] 搜索超时，结束搜索状态')
             isCrawling.value = false
             sessionId.value = '' // 清空sessionId
+            stopPolling() // 停止轮询
             const totalItems = crawlResult.value?.weapons?.[0]?.items?.length || 0
             console.log(`[前端] 搜索超时结束，共找到 ${totalItems} 个商品`)
             ElMessage.warning(`搜索已超时结束，找到 ${totalItems} 个商品`)
@@ -1038,6 +1044,7 @@ export default {
         console.error(`[前端] 搜索失败: ${errorMessage}`)
         isCrawling.value = false
         sessionId.value = '' // 清空sessionId
+        stopPolling() // 停止轮询
       }
     }
 
@@ -1853,16 +1860,13 @@ export default {
       highlightedJson.value = highlighted
     }
 
-    // 组件挂载时加载数据并启动轮询
+    // 组件挂载时只加载数据，不启动轮询
     onMounted(() => {
       loadSteamIdList()
       loadConfigList()
       
-      // 从数据库加载最近的搜索结果
+      // 从数据库加载最近的搜索结果（只查询一次）
       loadRecentSearchResults()
-      
-      // 启动持续轮询（只要页面在前台就轮询）
-      startPolling()
     })
 
     // 组件卸载时停止轮询
