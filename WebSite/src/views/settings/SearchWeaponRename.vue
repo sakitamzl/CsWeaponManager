@@ -407,6 +407,12 @@ export default {
     const logAutoScroll = ref(true)
     const MAX_STREAM_LOGS = 800
     
+    // 轮询相关变量
+    const sessionId = ref('') // 搜索会话ID
+    const pollingTimer = ref(null) // 轮询定时器
+    const lastItemId = ref(0) // 最后一条记录的ID（用于增量更新）
+    const POLL_INTERVAL = 500 // 轮询间隔（毫秒）
+    
     // 将 weapons 转换为扁平列表，与 SearchPendant 保持一致
     const allCrawlItems = computed(() => {
       if (!crawlResult.value || !crawlResult.value.weapons) {
@@ -717,6 +723,104 @@ export default {
       isToolSectionCollapsed.value = !isToolSectionCollapsed.value
     }
 
+    // 轮询获取数据库中的搜索结果
+    const pollSearchResults = async () => {
+      // 检查是否正在搜索中
+      if (!isCrawling.value) {
+        console.log('[轮询] 不在搜索状态，停止轮询')
+        stopPolling()
+        return
+      }
+      
+      if (!sessionId.value) {
+        console.log('[轮询] sessionId 为空，跳过')
+        return
+      }
+
+      try {
+        // 使用增量查询，只获取新数据
+        const url = `${API_CONFIG.BACKEND_BASE_URL}/searchRename/items/latest?sessionId=${sessionId.value}&sinceId=${lastItemId.value}&limit=50`
+        const response = await fetch(url)
+        
+        if (!response.ok) {
+          console.error('[轮询] HTTP错误:', response.status)
+          return
+        }
+
+        const result = await response.json()
+        
+        if (result.success && result.items && result.items.length > 0) {
+          console.log(`[轮询] 获取到 ${result.items.length} 条新数据`)
+          
+          // 获取当前的所有商品列表
+          const currentItems = crawlResult.value?.weapons?.[0]?.items || []
+          
+          // 添加新数据
+          const newItems = result.items.map(item => ({
+            id: item.commodityId,
+            commodityNo: item.commodityNo,
+            price: item.price,
+            lowest_price: item.lowestPrice,
+            spread: item.spread,
+            abrade: item.abrade,
+            paintSeed: item.paintSeed,
+            nameTag: item.nameTag,
+            userNickName: item.sellerName,
+            assetId: item.assetId,
+            iconUrl: item.iconUrl,
+            weapon_name: item.weaponName,
+            weapon_id: item.weaponId,
+            commissionFee: item.commissionFee,
+            priceDiff: item.priceDiff
+          }))
+          
+          // 合并并排序
+          const allItems = [...currentItems, ...newItems]
+          allItems.sort((a, b) => (b.priceDiff || 0) - (a.priceDiff || 0))
+          
+          // 更新显示
+          crawlResult.value = {
+            weapons: [{
+              weapon_name: '所有符合条件的商品',
+              items: allItems
+            }]
+          }
+          
+          // 更新lastItemId
+          const maxId = Math.max(...result.items.map(item => item.id))
+          if (maxId > lastItemId.value) {
+            lastItemId.value = maxId
+          }
+          
+          await nextTick()
+        }
+      } catch (error) {
+        console.error('[轮询] 请求失败:', error)
+      }
+    }
+
+    // 启动轮询
+    const startPolling = () => {
+      if (pollingTimer.value) {
+        clearInterval(pollingTimer.value)
+      }
+      
+      console.log(`[轮询] 启动轮询，间隔 ${POLL_INTERVAL}ms`)
+      pollingTimer.value = setInterval(pollSearchResults, POLL_INTERVAL)
+      
+      // 立即执行一次
+      pollSearchResults()
+    }
+
+    // 停止轮询
+    const stopPolling = () => {
+      if (pollingTimer.value) {
+        console.log('[轮询] 停止轮询')
+        clearInterval(pollingTimer.value)
+        pollingTimer.value = null
+      }
+    }
+
     // 开始爬取（流式接收）- 全新重构版本
     const startCrawl = async () => {
       // 开始搜索时自动折叠工具区域
@@ -788,6 +892,9 @@ export default {
       isCrawling.value = true
       crawlResult.value = { weapons: [] }
       streamLogs.value = []
+      sessionId.value = '' // 清空sessionId
+      lastItemId.value = 0 // 重置lastItemId
+      stopPolling() // 停止之前的轮询
       appendStreamLog('正在启动查询任务...', 'info')
 
       try {
@@ -829,9 +936,6 @@ export default {
         const reader = response.body.getReader()
         const decoder = new TextDecoder()
         let buffer = ''
-        
-        // 用于存储所有商品的简单列表
-        const allItems = []
 
         while (true) {
           const { done, value } = await reader.read()
@@ -869,6 +973,15 @@ export default {
               
               // 根据事件类型处理
               switch (event.type) {
+                case 'init':
+                  // 收到初始消息，包含sessionId
+                  sessionId.value = event.sessionId
+                  console.log(`[前端] 收到 sessionId: ${sessionId.value}`)
+                  appendStreamLog(`会话ID: ${sessionId.value}`, 'info')
+                  // 启动轮询
+                  startPolling()
+                  break
+                  
                 case 'start':
                   appendStreamLog(`开始搜索 ${event.total_weapons} 个饰品`, 'info')
                   break
@@ -881,45 +994,15 @@ export default {
                   break
                 
                 case 'item_found':
-                  // 收到一个符合条件的商品，立即添加到列表
+                  // 收到商品找到事件，只记录日志（数据通过轮询获取）
                   const item = event.item
                   const weaponName = event.weapon_name
-                  
-                  // 计算手续费和收益
-                  const commissionRate = 0.025
-                  const commissionFee = item.price * commissionRate
-                  const priceDiff = item.spread - commissionFee
-                  
-                  // 添加到列表
-                  allItems.push({
-                    ...item,
-                    weapon_name: weaponName,
-                    weapon_id: event.weapon_id,
-                    commissionFee,
-                    priceDiff
-                  })
-                  
-                  // 按收益排序
-                  allItems.sort((a, b) => (b.priceDiff || 0) - (a.priceDiff || 0))
-                  
-                  // 更新显示
-                  crawlResult.value = {
-                    weapons: [{
-                      weapon_name: '所有符合条件的商品',
-                      items: [...allItems]  // 创建新数组触发响应式
-                    }]
-                  }
-                  
-                  // 强制更新
-                  await nextTick()
                   
                   // 记录日志
                   appendStreamLog(
                     `✓ 找到: ${weaponName} - 价格:¥${item.price} 溢价:¥${item.spread.toFixed(2)} 改名:"${item.nameTag}"`,
                     'success'
                   )
-                  
-                  console.log('[前端] 当前商品总数:', allItems.length)
                   break
                 
                 case 'weapon_end':
@@ -932,7 +1015,11 @@ export default {
                 
                 case 'complete':
                   appendStreamLog('所有饰品搜索完成', 'success')
-                  ElMessage.success(`搜索完成！找到 ${allItems.length} 个符合条件的商品`)
+                  // 停止轮询
+                  stopPolling()
+                  // 获取最终统计
+                  const totalItems = crawlResult.value?.weapons?.[0]?.items?.length || 0
+                  ElMessage.success(`搜索完成！找到 ${totalItems} 个符合条件的商品`)
                   
                   // 保存到本地存储
                   if (crawlResult.value) {
@@ -963,6 +1050,8 @@ export default {
         ElMessage.error(`${errorMessage} - 已保留当前结果`)
         appendStreamLog(`查询失败: ${errorMessage}`, 'error')
       } finally {
+        // 确保停止轮询
+        stopPolling()
         isCrawling.value = false
         appendStreamLog('查询任务已结束', 'info')
       }

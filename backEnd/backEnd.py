@@ -37,6 +37,7 @@ from src.web_side.prefectWorld.stock_components_api import prefectWorldStockComp
 from src.web_side.webSide.adb_tools import adbToolsPage
 from src.web_side.webSide.login_settings import loginSettingsPage
 from src.web_side.webSide.settings.database_manager import database_manager_bp
+from src.web_side.webSide.settings.search_rename_api import search_rename_bp
 from src.db_manager import init_database
 from src.Unites.auto_process.task_scheduler import get_scheduler
 
@@ -88,6 +89,7 @@ def blankEndApi():
     app.register_blueprint(adbToolsPage, url_prefix = '/adbToolsV1')
     app.register_blueprint(loginSettingsPage, url_prefix = '/loginSettingsV1')
     app.register_blueprint(database_manager_bp)
+    app.register_blueprint(search_rename_bp)  # 改名饰品搜索API
     
     # 启动任务调度器 (只在主进程中启动)
     if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
