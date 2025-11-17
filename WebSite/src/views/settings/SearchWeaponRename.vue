@@ -275,14 +275,14 @@
             <el-table-column label="溢价" width="100">
               <template #default="scope">
                 <el-tag type="danger" size="small">
-                  {{ scope.row.spread !== undefined && scope.row.spread !== null ? scope.row.spread.toFixed(2) : '0.00' }}
+                  {{ scope.row.spread !== undefined && scope.row.spread !== null && typeof scope.row.spread === 'number' ? scope.row.spread.toFixed(2) : '0.00' }}
                 </el-tag>
               </template>
             </el-table-column>
             
             <el-table-column label="手续费" width="100" align="center">
               <template #default="scope">
-                <span class="commission-fee">¥{{ scope.row.commissionFee !== undefined && scope.row.commissionFee !== null ? scope.row.commissionFee.toFixed(2) : '0.00' }}</span>
+                <span class="commission-fee">¥{{ scope.row.commissionFee !== undefined && scope.row.commissionFee !== null && typeof scope.row.commissionFee === 'number' ? scope.row.commissionFee.toFixed(2) : '0.00' }}</span>
               </template>
             </el-table-column>
             
@@ -292,7 +292,7 @@
                   :type="(scope.row.priceDiff !== undefined && scope.row.priceDiff !== null && scope.row.priceDiff < 0) ? 'danger' : ((scope.row.priceDiff !== undefined && scope.row.priceDiff !== null && scope.row.priceDiff < 3) ? 'warning' : 'success')" 
                   size="small"
                 >
-                  {{ scope.row.priceDiff !== undefined && scope.row.priceDiff !== null ? (scope.row.priceDiff >= 0 ? '+' : '') + scope.row.priceDiff.toFixed(2) : '0.00' }}
+                  {{ scope.row.priceDiff !== undefined && scope.row.priceDiff !== null && typeof scope.row.priceDiff === 'number' ? (scope.row.priceDiff >= 0 ? '+' : '') + scope.row.priceDiff.toFixed(2) : '0.00' }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -419,6 +419,11 @@ export default {
       })
 
       console.log(`[allCrawlItems] ✅ 计算完成，总计 ${items.length} 件商品`)
+      if (items.length > 0) {
+        console.log(`[allCrawlItems] 第一条商品数据:`, items[0])
+        console.log(`[allCrawlItems] 第一条weapon_name:`, items[0].weapon_name)
+        console.log(`[allCrawlItems] 第一条iconUrl:`, items[0].iconUrl)
+      }
 
       return items
     })
@@ -670,23 +675,28 @@ export default {
           console.log('[页面加载] 第一条数据示例:', result.items[0])
           
           // 转换数据格式（数据库返回的是蛇形命名）
-          const historyItems = result.items.map(item => ({
-            id: item.commodity_id || item.commodityId,
-            commodityNo: item.commodity_no || item.commodityNo,
-            price: item.price,
-            lowest_price: item.lowest_price || item.lowestPrice,
-            spread: item.spread,
-            abrade: item.abrade,
-            paintSeed: item.paint_seed || item.paintSeed,
-            nameTag: item.name_tag || item.nameTag,
-            userNickName: item.seller_name || item.sellerName,
-            assetId: item.asset_id || item.assetId,
-            iconUrl: item.icon_url || item.iconUrl,
-            weapon_name: item.weapon_name || item.weaponName,
-            weapon_id: item.weapon_id || item.weaponId,
-            commissionFee: item.commission_fee || item.commissionFee,
-            priceDiff: item.price_diff || item.priceDiff
-          }))
+          const historyItems = result.items.map(item => {
+            const mappedItem = {
+              id: item.commodity_id || item.commodityId,
+              commodityNo: item.commodity_no || item.commodityNo,
+              price: parseFloat(item.price) || 0,
+              lowest_price: parseFloat(item.lowest_price || item.lowestPrice) || 0,
+              spread: parseFloat(item.spread) || 0,
+              abrade: item.abrade,
+              paintSeed: item.paint_seed || item.paintSeed,
+              nameTag: item.name_tag || item.nameTag,
+              userNickName: item.seller_name || item.sellerName,
+              assetId: item.asset_id || item.assetId,
+              iconUrl: item.icon_url || item.iconUrl,
+              weapon_name: item.weapon_name || item.weaponName,
+              weapon_id: item.weapon_id || item.weaponId,
+              commissionFee: parseFloat(item.commission_fee || item.commissionFee) || 0,
+              priceDiff: parseFloat(item.price_diff || item.priceDiff) || 0
+            }
+            console.log('[数据映射] 原始item:', item)
+            console.log('[数据映射] 映射后item:', mappedItem)
+            return mappedItem
+          })
           
           // 按收益排序
           historyItems.sort((a, b) => (b.priceDiff || 0) - (a.priceDiff || 0))
@@ -710,6 +720,8 @@ export default {
           crawlResult.value = { weapons }
           
           console.log(`[页面加载] 已加载 ${result.items.length} 条历史搜索结果`)
+          console.log(`[页面加载] 第一条原始数据:`, result.items[0])
+          console.log(`[页面加载] 第一条转换后数据:`, historyItems[0])
           console.log(`[页面加载] 分组后的weapons:`, weapons)
           console.log(`[页面加载] crawlResult.value:`, crawlResult.value)
           await nextTick()
@@ -763,9 +775,9 @@ export default {
           const newItems = result.items.map(item => ({
             id: item.commodity_id || item.commodityId,
             commodityNo: item.commodity_no || item.commodityNo,
-            price: item.price,
-            lowest_price: item.lowest_price || item.lowestPrice,
-            spread: item.spread,
+            price: parseFloat(item.price) || 0,
+            lowest_price: parseFloat(item.lowest_price || item.lowestPrice) || 0,
+            spread: parseFloat(item.spread) || 0,
             abrade: item.abrade,
             paintSeed: item.paint_seed || item.paintSeed,
             nameTag: item.name_tag || item.nameTag,
@@ -774,8 +786,8 @@ export default {
             iconUrl: item.icon_url || item.iconUrl,
             weapon_name: item.weapon_name || item.weaponName,
             weapon_id: item.weapon_id || item.weaponId,
-            commissionFee: item.commission_fee || item.commissionFee,
-            priceDiff: item.price_diff || item.priceDiff
+            commissionFee: parseFloat(item.commission_fee || item.commissionFee) || 0,
+            priceDiff: parseFloat(item.price_diff || item.priceDiff) || 0
           }))
           
           // 去重合并（基于 commodityId）
@@ -1663,7 +1675,7 @@ export default {
       // 确认购买
       try {
         await ElMessageBox.confirm(
-          `确认购买该商品吗？\n\n改名：${item.nameTag || '无'}\n价格：¥${item.price}\n磨损：${item.abrade || '-'}\n溢价：+¥${item.spread.toFixed(2)}`,
+          `确认购买该商品吗？\n\n改名：${item.nameTag || '无'}\n价格：¥${item.price}\n磨损：${item.abrade || '-'}\n溢价：+¥${typeof item.spread === 'number' ? item.spread.toFixed(2) : '0.00'}`,
           '确认购买',
           {
             confirmButtonText: '确认购买',
