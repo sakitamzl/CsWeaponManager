@@ -6,6 +6,7 @@
 from flask import Blueprint, request, jsonify
 from src.log import Log
 from src.db_manager.index import SearchRenameResultModel
+from src.db_manager import get_db_manager
 from datetime import datetime
 import uuid
 
@@ -244,21 +245,40 @@ def get_items_list():
         
         logger.write_log(f"查询搜索结果 - sessionId: {session_id}", 'INFO')
         
-        # 获取数据库连接
-        db = SearchRenameResultModel.get_db()
+        # 获取数据库管理器
+        db_manager = get_db_manager()
         table_name = SearchRenameResultModel.get_table_name()
         
         # 构建查询（不使用 LIMIT，查询所有数据）
         if session_id:
             # 查询指定会话的所有数据
             query = f"SELECT * FROM {table_name} WHERE session_id = ? ORDER BY id DESC"
-            results = db.execute_query(query, (session_id,))
+            raw_results = db_manager.db.execute_query(query, (session_id,))
         else:
             # 查询所有数据，按ID倒序
             query = f"SELECT * FROM {table_name} ORDER BY id DESC"
-            results = db.execute_query(query)
+            raw_results = db_manager.db.execute_query(query, ())
         
-        logger.write_log(f"执行SQL: {query}, 结果: {len(results) if results else 0} 条", 'INFO')
+        logger.write_log(f"执行SQL: {query}, 结果: {len(raw_results) if raw_results else 0} 条", 'INFO')
+        
+        # 将元组结果转换为字典（使用字段名）
+        if not raw_results:
+            results = []
+        else:
+            # 获取字段名
+            fields = SearchRenameResultModel.get_fields()
+            field_names = list(fields.keys())
+            
+            # 转换为字典列表
+            results = []
+            for row in raw_results:
+                item_dict = {}
+                for i, field_name in enumerate(field_names):
+                    if i < len(row):
+                        item_dict[field_name] = row[i]
+                results.append(item_dict)
+        
+        logger.write_log(f"转换后数据: {len(results)} 条", 'INFO')
         
         if not results:
             logger.write_log("查询结果为空", 'INFO')

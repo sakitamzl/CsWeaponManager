@@ -741,27 +741,29 @@ export default {
         }
 
         const result = await response.json()
+        console.log('[页面加载] API返回:', result)
         
         if (result.success && result.items && result.items.length > 0) {
           console.log(`[页面加载] 加载到 ${result.items.length} 条历史数据`)
+          console.log('[页面加载] 第一条数据示例:', result.items[0])
           
-          // 转换数据格式
+          // 转换数据格式（数据库返回的是蛇形命名）
           const historyItems = result.items.map(item => ({
-            id: item.commodityId,
-            commodityNo: item.commodityNo,
+            id: item.commodity_id || item.commodityId,
+            commodityNo: item.commodity_no || item.commodityNo,
             price: item.price,
-            lowest_price: item.lowestPrice,
+            lowest_price: item.lowest_price || item.lowestPrice,
             spread: item.spread,
             abrade: item.abrade,
-            paintSeed: item.paintSeed,
-            nameTag: item.nameTag,
-            userNickName: item.sellerName,
-            assetId: item.assetId,
-            iconUrl: item.iconUrl,
-            weapon_name: item.weaponName,
-            weapon_id: item.weaponId,
-            commissionFee: item.commissionFee,
-            priceDiff: item.priceDiff
+            paintSeed: item.paint_seed || item.paintSeed,
+            nameTag: item.name_tag || item.nameTag,
+            userNickName: item.seller_name || item.sellerName,
+            assetId: item.asset_id || item.assetId,
+            iconUrl: item.icon_url || item.iconUrl,
+            weapon_name: item.weapon_name || item.weaponName,
+            weapon_id: item.weapon_id || item.weaponId,
+            commissionFee: item.commission_fee || item.commissionFee,
+            priceDiff: item.price_diff || item.priceDiff
           }))
           
           // 按收益排序
@@ -808,9 +810,11 @@ export default {
         }
 
         const result = await response.json()
+        console.log('[轮询] API返回:', result)
         
         if (result.success && result.items && result.items.length > 0) {
           console.log(`[轮询] 获取到 ${result.items.length} 条数据`)
+          console.log('[轮询] 第一条数据示例:', result.items[0])
           
           // 如果正在搜索，重置无数据计数
           if (isCrawling.value) {
@@ -820,23 +824,23 @@ export default {
           // 获取当前的所有商品列表
           const currentItems = crawlResult.value?.weapons?.[0]?.items || []
           
-          // 添加新数据
+          // 添加新数据（数据库返回的是蛇形命名）
           const newItems = result.items.map(item => ({
-            id: item.commodityId,
-            commodityNo: item.commodityNo,
+            id: item.commodity_id || item.commodityId,
+            commodityNo: item.commodity_no || item.commodityNo,
             price: item.price,
-            lowest_price: item.lowestPrice,
+            lowest_price: item.lowest_price || item.lowestPrice,
             spread: item.spread,
             abrade: item.abrade,
-            paintSeed: item.paintSeed,
-            nameTag: item.nameTag,
-            userNickName: item.sellerName,
-            assetId: item.assetId,
-            iconUrl: item.iconUrl,
-            weapon_name: item.weaponName,
-            weapon_id: item.weaponId,
-            commissionFee: item.commissionFee,
-            priceDiff: item.priceDiff
+            paintSeed: item.paint_seed || item.paintSeed,
+            nameTag: item.name_tag || item.nameTag,
+            userNickName: item.seller_name || item.sellerName,
+            assetId: item.asset_id || item.assetId,
+            iconUrl: item.icon_url || item.iconUrl,
+            weapon_name: item.weapon_name || item.weaponName,
+            weapon_id: item.weapon_id || item.weaponId,
+            commissionFee: item.commission_fee || item.commissionFee,
+            priceDiff: item.price_diff || item.priceDiff
           }))
           
           // 去重合并（基于 commodityId）
