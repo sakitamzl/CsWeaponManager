@@ -403,8 +403,19 @@ def clear_all_rename_data():
     }
     """
     try:
+        from src.execution_db import DatabaseManager
+        
+        db = DatabaseManager()
+        table_name = SearchRenameResultModel.get_table_name()
+        
+        # 先统计要删除的记录数
+        count_sql = f"SELECT COUNT(*) FROM {table_name} WHERE data_type = 'rename'"
+        count_result = db.execute_query(count_sql)
+        count = count_result[0][0] if count_result else 0
+        
         # 删除所有 data_type='rename' 的数据
-        count = SearchRenameResultModel.delete_where("data_type = 'rename'")
+        delete_sql = f"DELETE FROM {table_name} WHERE data_type = 'rename'"
+        db.execute_update(delete_sql)
         
         logger.write_log(f"清空改名饰品数据: 删除{count}条记录", 'INFO')
         
@@ -416,6 +427,8 @@ def clear_all_rename_data():
     
     except Exception as e:
         logger.write_log(f"清空数据失败: {str(e)}", 'ERROR')
+        import traceback
+        logger.write_log(f"详细错误: {traceback.format_exc()}", 'ERROR')
         return jsonify({
             'success': False,
             'message': f'清空失败: {str(e)}'

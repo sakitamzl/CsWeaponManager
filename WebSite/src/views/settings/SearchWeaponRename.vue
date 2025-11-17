@@ -286,17 +286,6 @@
               </template>
             </el-table-column>
             
-            <el-table-column label="收益" width="120" align="center">
-              <template #default="scope">
-                <el-tag 
-                  :type="(scope.row.priceDiff !== undefined && scope.row.priceDiff !== null && scope.row.priceDiff < 0) ? 'danger' : ((scope.row.priceDiff !== undefined && scope.row.priceDiff !== null && scope.row.priceDiff < 3) ? 'warning' : 'success')" 
-                  size="small"
-                >
-                  {{ scope.row.priceDiff !== undefined && scope.row.priceDiff !== null && typeof scope.row.priceDiff === 'number' ? (scope.row.priceDiff >= 0 ? '+' : '') + scope.row.priceDiff.toFixed(2) : '0.00' }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            
             <el-table-column label="磨损" width="240">
               <template #default="scope">
                 {{ scope.row.abrade }}
