@@ -717,10 +717,11 @@ export default {
       isToolSectionCollapsed.value = !isToolSectionCollapsed.value
     }
 
-    // 开始爬取（流式接收）
+    // 开始爬取（流式接收）- 全新重构版本
     const startCrawl = async () => {
       // 开始搜索时自动折叠工具区域
       isToolSectionCollapsed.value = true
+      
       // 验证基本配置
       if (!crawlForm.value.configName) {
         ElMessage.warning('请输入配置名称')
@@ -783,388 +784,171 @@ export default {
         return
       }
 
+      // 初始化状态
       isCrawling.value = true
-      crawlResult.value = null
+      crawlResult.value = { weapons: [] }
       streamLogs.value = []
       appendStreamLog('正在启动查询任务...', 'info')
-      ElMessage.info('正在启动查询任务...')
 
       try {
-        // 构建爬虫配置
+        // 构建请求
         const spiderConfig = {
-          weapon_id: crawlForm.value.weaponId,  // [{"id": "61490", "name": "..."}]
-          steam_id: crawlForm.value.crawlAccountId,  // ✅ 使用爬取账号
+          weapon_id: crawlForm.value.weaponId,
+          steam_id: crawlForm.value.crawlAccountId,
           最大差价: 5,
           饰品自动查询间隔: 3,
-          ...jsonValidation.config  // 合并自定义配置
+          ...jsonValidation.config
         }
         
         const requestData = {
-          steamId: crawlForm.value.crawlAccountId,  // ✅ 使用爬取账号
+          steamId: crawlForm.value.crawlAccountId,
           spider_config: spiderConfig
         }
         
-        console.log('发送流式请求到后端 (使用爬取账号):', requestData)
-        console.log('  - 爬取账号:', crawlForm.value.crawlAccountId)
-        console.log('  - 购买账号:', crawlForm.value.steamId)
-        console.log('  - 请求URL:', `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/auto_buy_renamed_weapon`)
+        console.log('[前端] 发送SSE请求:', requestData)
 
-        // 使用 fetch 进行流式请求
-        console.log('[前端] 🔄 开始发送 fetch 请求...')
-        let response
-        try {
-          response = await fetch(
-            `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/auto_buy_renamed_weapon`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(requestData)
-            }
-          )
-          console.log('[前端] ✅ fetch 请求完成，响应状态:', response.status, response.statusText)
-          console.log('[前端] 📋 响应头 Content-Type:', response.headers.get('Content-Type'))
-        } catch (fetchError) {
-          console.error('[前端] ❌ fetch 请求失败:', fetchError)
-          throw fetchError
-        }
+        // 发起SSE请求
+        const response = await fetch(
+          `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/auto_buy_renamed_weapon`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestData)
+          }
+        )
 
         if (!response.ok) {
-          const errorText = await response.text().catch(() => '无法读取错误信息')
-          console.error('[前端] ❌ 响应状态错误:', response.status, response.statusText)
-          console.error('[前端] ❌ 错误内容:', errorText)
           throw new Error(`HTTP ${response.status}: ${response.statusText}`)
         }
 
-        // 检查响应体是否支持流式读取
         if (!response.body) {
-          console.error('[前端] ❌ 响应体为空，不支持流式读取')
           throw new Error('响应不支持流式读取')
         }
-        
-        console.log('[前端] ✅ 响应体可用，开始读取流式数据...')
 
-        // 初始化结果数据结构
-        const weaponsMap = new Map()
-        const runtimeWeaponStats = new Map()
-        let totalWeapons = 0
-
-        // 读取流式数据
-        console.log('[前端] 🔄 获取 ReadableStream reader...')
+        // 读取SSE流
         const reader = response.body.getReader()
         const decoder = new TextDecoder()
         let buffer = ''
-        let chunkCount = 0
-        console.log('[前端] ✅ Reader 已创建，开始读取数据...')
         
-        // 本地存储防抖：避免频繁保存阻塞主线程
-        let saveStorageTimer = null
-        const debouncedSaveStorage = (result) => {
-          if (saveStorageTimer) {
-            clearTimeout(saveStorageTimer)
-          }
-          saveStorageTimer = setTimeout(() => {
-            saveCrawlResultToStorage(result)
-          }, 500) // 500ms 防抖
-        }
+        // 用于存储所有商品的简单列表
+        const allItems = []
 
-        console.log('[前端] 🔄 进入 while 循环，开始读取数据块...')
         while (true) {
-          try {
-            const { done, value } = await reader.read()
-            console.log(`[前端] 📖 reader.read() 返回: done=${done}, value=${value ? `有数据(${value.length}字节)` : 'null'}`)
+          const { done, value } = await reader.read()
+          
+          if (done) {
+            console.log('[前端] SSE流接收完成')
+            break
+          }
+          
+          if (!value) continue
 
-            if (done) {
-              console.log('✅ 流式数据接收完成')
-              // 处理剩余的 buffer
-              if (buffer.trim()) {
-                console.log(`[前端] 📋 处理剩余的 buffer: ${buffer.length} 字符`)
-                const messages = buffer.split('\n\n').filter(msg => msg.trim())
-                for (const message of messages) {
-                  await processSSEMessage(message.trim())
-                }
-              }
-              break
-            }
+          // 记录收到数据块的时间
+          const receiveTime = new Date().toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 })
+          console.log(`[前端 ${receiveTime}] 📦 收到数据块: ${value.length} 字节`)
+
+          // 解码并累积到buffer
+          buffer += decoder.decode(value, { stream: true })
+          
+          // 处理完整的SSE消息（以\n\n分隔）
+          const messages = buffer.split('\n\n')
+          buffer = messages.pop() || ''  // 保留不完整的消息
+          
+          // 处理每条完整消息
+          for (const message of messages) {
+            if (!message.trim()) continue
             
-            if (!value) {
-              console.warn('[前端] ⚠️ 收到空值，继续等待...')
-              continue
-            }
-
-            chunkCount++
-            const chunk = decoder.decode(value, { stream: true })
-            console.log(`[前端] 📦 收到第 ${chunkCount} 个数据块，大小: ${chunk.length} 字节`)
-            if (chunk.length < 200) {
-              console.log(`[前端] 📦 数据块内容:`, chunk)
-            } else {
-              console.log(`[前端] 📦 数据块内容预览:`, chunk.substring(0, 200) + '...')
-            }
+            // 提取data:后的JSON
+            const dataMatch = message.match(/^data:\s*(.+)$/m)
+            if (!dataMatch) continue
             
-            // 解码数据
-            buffer += chunk
-
-            // SSE 格式：每个消息以 \n\n 分隔
-            // 处理完整的消息（以 \n\n 结尾的）
-            const messages = buffer.split('\n\n')
-            // 保留最后一个可能不完整的消息
-            buffer = messages.pop() || ''
-
-            console.log(`[前端] 📋 本次解析出 ${messages.length} 条完整消息，buffer 剩余: ${buffer.length} 字符`)
-
-            // 处理所有完整的消息，确保每条消息都立即处理
-            // 使用 for...of 循环确保顺序处理，每条消息处理完后再处理下一条
-            for (let i = 0; i < messages.length; i++) {
-              const message = messages[i]
-              const trimmedMessage = message.trim()
-              if (trimmedMessage) {
-                console.log(`[前端] 🔄 开始处理第 ${i + 1}/${messages.length} 条消息`)
-                // 立即处理每条消息，不等待批量处理
-                await processSSEMessage(trimmedMessage)
-                console.log(`[前端] ✅ 第 ${i + 1}/${messages.length} 条消息处理完成`)
-              }
-            }
-          } catch (readError) {
-            console.error('[前端] ❌ 读取数据块时出错:', readError)
-            throw readError
-          }
-        }
-        
-        // 处理 SSE 消息的函数
-        async function processSSEMessage(message) {
-          // 提取 data: 后面的内容
-          // 使用 [\s\S]*? 匹配所有字符（包括换行符），直到消息结束
-          // 或者使用更简单的方式：找到 data: 后，取剩余所有内容
-          let jsonStr = ''
-          const dataIndex = message.indexOf('data:')
-          if (dataIndex !== -1) {
-            // 提取 data: 后面的所有内容（去掉开头的 data: 和可能的空格）
-            jsonStr = message.substring(dataIndex + 5).trim()
-          } else {
-            console.warn(`[前端] ⚠️ 不是有效的 SSE 数据（缺少 data: 前缀）:`, message.substring(0, 100))
-            return
-          }
-
-          if (!jsonStr) {
-            console.warn(`[前端] ⚠️ SSE 数据为空:`, message.substring(0, 100))
-            return
-          }
-
-          try {
-            const eventData = JSON.parse(jsonStr)
-            console.log(`[前端] ✅ 解析成功，类型: ${eventData.type}`, eventData)
-
-            switch (eventData.type) {
-              case 'start':
-                totalWeapons = eventData.total
-                ElMessage.info(`开始查询 ${totalWeapons} 个饰品...`)
-                appendStreamLog(eventData.message || `开始查询 ${totalWeapons} 个饰品...`, 'info')
-                break
-
-              case 'processing':
-                console.log(`正在处理 ${eventData.current}/${eventData.total}: ${eventData.weapon_name}`)
-                appendStreamLog(`正在处理 ${eventData.current}/${eventData.total}: ${eventData.weapon_name}`, 'info')
-                runtimeWeaponStats.set(eventData.yyyp_id, {
-                  currentIndex: 0,
-                  renamedTotal: 0,
-                  targetCount: 0
-                })
-                break
-
-              case 'item':
-                // 收到一个新商品，立即添加到结果中
-                const yyypId = eventData.yyyp_id
-
-                console.log(`[前端] 📥 收到 item 事件:`, eventData)
-
-                if (!weaponsMap.has(yyypId)) {
-                  console.log(`[前端] 创建新饰品条目: ${eventData.weapon_name} (${yyypId})`)
-                  weaponsMap.set(yyypId, {
-                    yyyp_id: yyypId,
-                    weapon_name: eventData.weapon_name,
-                    total_count: eventData.total_count,
-                    lowest_price: eventData.lowest_price,
-                    renamed_count: 0,
-                    target_count: 0,
-                    items: []
-                  })
-                }
-
-                const weaponData = weaponsMap.get(yyypId)
-                console.log(`[前端] 添加商品到 ${eventData.weapon_name}，当前已有 ${weaponData.items.length} 个`)
-
-                const runtimeStats = runtimeWeaponStats.get(yyypId) || { currentIndex: 0, renamedTotal: 0, targetCount: 0 }
-                runtimeStats.currentIndex = eventData.item_index ?? (runtimeStats.currentIndex + 1)
-                runtimeStats.renamedTotal = eventData.renamed_total ?? runtimeStats.renamedTotal
-                runtimeStats.targetCount = eventData.target_count ?? runtimeStats.targetCount
-                runtimeWeaponStats.set(yyypId, runtimeStats)
-
-                // 立即添加商品
-                weaponData.items.push(eventData.item)
-                weaponData.target_count = weaponData.items.length
-
-                // 按差价从高到低排序
-                weaponData.items.sort((a, b) => {
-                  const diffA = a.priceDiff !== undefined ? a.priceDiff : -Infinity
-                  const diffB = b.priceDiff !== undefined ? b.priceDiff : -Infinity
-                  return diffB - diffA  // 从高到低
-                })
-
-                // 🔥 关键优化：强制触发 Vue 响应式更新
-                // 通过完全重建对象来确保 Vue 能检测到变化
-                crawlResult.value = {
-                  weapons: Array.from(weaponsMap.values()).map(w => ({
-                    yyyp_id: w.yyyp_id,
-                    weapon_name: w.weapon_name,
-                    total_count: w.total_count,
-                    lowest_price: w.lowest_price,
-                    renamed_count: w.renamed_count,
-                    target_count: w.target_count,
-                    items: w.items.map(item => ({ ...item })) // 深拷贝每个 item
-                  }))
-                }
-
-                console.log(`[前端] 🔄 已更新 crawlResult.value，当前商品数: ${weaponData.items.length}`)
-                console.log(`[前端] 📊 allCrawlItems 应该显示的数量: ${Array.from(weaponsMap.values()).reduce((sum, w) => sum + w.items.length, 0)}`)
-
-                // 立即强制更新 Vue - 使用 nextTick 确保响应式系统完成更新
-                await nextTick()
-                console.log(`[前端] ✅ nextTick 完成，DOM 应该已更新`)
-
-                // 使用防抖保存到本地存储，避免阻塞主线程
-                debouncedSaveStorage(crawlResult.value)
-
-                const idxDisplay = runtimeStats.renamedTotal
-                  ? `${runtimeStats.currentIndex}/${runtimeStats.renamedTotal}`
-                  : runtimeStats.currentIndex
-                const targetDisplay = runtimeStats.targetCount || weaponData.items.length
-                appendStreamLog(
-                  `获取改名: 名称标签："${eventData.item?.nameTag || '无改名'}"`,
-                  eventData.item?.nameTag ? 'success' : 'warning'
-                )
-                appendStreamLog(
-                  `[${idxDisplay}] [符合条件 ${targetDisplay}] 价格: ${formatNumberText(eventData.item?.price)}元, ` +
-                  `溢价: ${formatNumberText(eventData.item?.spread)}元, 改名: 名称标签："${eventData.item?.nameTag || '无改名'}", ` +
-                  `卖家: ${eventData.item?.userNickName || '未知'}`,
-                  'success'
-                )
-
-                console.log(`[前端] ✅ 新增商品已显示: ${eventData.item.nameTag}，${eventData.weapon_name} 当前共 ${weaponData.items.length} 个`)
-                break
-
-              case 'item_updated':
-                // 更新已有商品的信息（主要是改名内容）
-                const updateYyypId = eventData.yyyp_id
-                const updateItemData = eventData.item
-
-                console.log(`[前端] 🔄 收到 item_updated 事件，更新商品: ${updateItemData.id}`)
-
-                if (weaponsMap.has(updateYyypId)) {
-                  const weaponData = weaponsMap.get(updateYyypId)
-
-                  // 查找并更新对应的商品
-                  const itemIndex = weaponData.items.findIndex(item => item.id === updateItemData.id)
-                  if (itemIndex !== -1) {
-                    // 更新商品信息（主要是 nameTag）
-                    weaponData.items[itemIndex] = {
-                      ...weaponData.items[itemIndex],
-                      ...updateItemData
-                    }
-
-                    console.log(`[前端] ✅ 已更新商品 ${updateItemData.id} 的改名: ${updateItemData.nameTag}`)
-
-                    // 强制触发响应式更新
-                    crawlResult.value = {
-                      weapons: Array.from(weaponsMap.values()).map(w => ({
-                        yyyp_id: w.yyyp_id,
-                        weapon_name: w.weapon_name,
-                        total_count: w.total_count,
-                        lowest_price: w.lowest_price,
-                        renamed_count: w.renamed_count,
-                        target_count: w.target_count,
-                        items: w.items.map(item => ({ ...item }))
-                      }))
-                    }
-
-                    await nextTick()
-                    debouncedSaveStorage(crawlResult.value)
-                  }
-                }
-                break
-
-              case 'weapon_complete':
-                // 某个饰品查询完成，更新统计信息
-                const completeYyypId = eventData.yyyp_id
-
-                if (!weaponsMap.has(completeYyypId)) {
-                  weaponsMap.set(completeYyypId, {
-                    yyyp_id: completeYyypId,
-                    weapon_name: eventData.weapon_name,
-                    total_count: eventData.total_count,
-                    lowest_price: eventData.lowest_price,
-                    renamed_count: eventData.renamed_count || 0,
-                    target_count: eventData.target_count || 0,
-                    items: []
-                  })
-                } else {
-                  const weaponData = weaponsMap.get(completeYyypId)
-                  weaponData.total_count = eventData.total_count
-                  weaponData.lowest_price = eventData.lowest_price
-                  weaponData.renamed_count = eventData.renamed_count || 0
-                }
-
-                // 更新显示 - 创建新对象引用
-                crawlResult.value = {
-                  weapons: Array.from(weaponsMap.values()).map(w => ({
-                    ...w,
-                    items: [...w.items]
-                  }))
-                }
+            try {
+              const event = JSON.parse(dataMatch[1])
+              const timestamp = new Date().toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 })
+              console.log(`[前端 ${timestamp}] 收到事件: ${event.type}`)
+              
+              // 根据事件类型处理
+              switch (event.type) {
+                case 'start':
+                  appendStreamLog(`开始搜索 ${event.total_weapons} 个饰品`, 'info')
+                  break
                 
-                // 使用防抖保存到本地存储
-                debouncedSaveStorage(crawlResult.value)
-
-                console.log(`饰品 ${eventData.weapon_name} 查询完成`)
-                const summaryText = `饰品 ${eventData.weapon_name} 查询完成 - 改名 ${eventData.renamed_count ?? 0} 个，符合条件 ${eventData.target_count ?? 0} 个`
-                appendStreamLog(summaryText, 'info')
-                break
-
-              case 'complete':
-                const totalRenamed = Array.from(weaponsMap.values()).reduce((sum, w) => sum + w.renamed_count, 0)
-                const totalTarget = Array.from(weaponsMap.values()).reduce((sum, w) => sum + w.target_count, 0)
-                ElMessage.success(`查询完成！共找到 ${totalRenamed} 个改名饰品，其中 ${totalTarget} 个符合条件`)
-                // 最终保存一次
-                saveCrawlResultToStorage(crawlResult.value)
-                appendStreamLog(eventData.message || '所有饰品查询完成', 'success')
-                break
-
-              case 'error':
-                ElMessage.error(eventData.message || '查询出错')
-                appendStreamLog(eventData.message || '查询出错', 'error')
-                break
+                case 'weapon_start':
+                  appendStreamLog(
+                    `[${event.weapon_index}/${event.total_weapons}] 开始搜索: ${event.weapon_name}`,
+                    'info'
+                  )
+                  break
+                
+                case 'item_found':
+                  // 收到一个符合条件的商品，立即添加到列表
+                  const item = event.item
+                  const weaponName = event.weapon_name
+                  
+                  // 计算手续费和收益
+                  const commissionRate = 0.025
+                  const commissionFee = item.price * commissionRate
+                  const priceDiff = item.spread - commissionFee
+                  
+                  // 添加到列表
+                  allItems.push({
+                    ...item,
+                    weapon_name: weaponName,
+                    weapon_id: event.weapon_id,
+                    commissionFee,
+                    priceDiff
+                  })
+                  
+                  // 按收益排序
+                  allItems.sort((a, b) => (b.priceDiff || 0) - (a.priceDiff || 0))
+                  
+                  // 更新显示
+                  crawlResult.value = {
+                    weapons: [{
+                      weapon_name: '所有符合条件的商品',
+                      items: [...allItems]  // 创建新数组触发响应式
+                    }]
+                  }
+                  
+                  // 强制更新
+                  await nextTick()
+                  
+                  // 记录日志
+                  appendStreamLog(
+                    `✓ 找到: ${weaponName} - 价格:¥${item.price} 溢价:¥${item.spread.toFixed(2)} 改名:"${item.nameTag}"`,
+                    'success'
+                  )
+                  
+                  console.log('[前端] 当前商品总数:', allItems.length)
+                  break
+                
+                case 'weapon_end':
+                  appendStreamLog(`完成: ${event.weapon_name}`, 'info')
+                  break
+                
+                case 'weapon_error':
+                  appendStreamLog(`错误: ${event.weapon_name} - ${event.error}`, 'error')
+                  break
+                
+                case 'complete':
+                  appendStreamLog('所有饰品搜索完成', 'success')
+                  ElMessage.success(`搜索完成！找到 ${allItems.length} 个符合条件的商品`)
+                  
+                  // 保存到本地存储
+                  if (crawlResult.value) {
+                    saveCrawlResultToStorage(crawlResult.value)
+                  }
+                  break
+                
+                case 'error':
+                  appendStreamLog(`错误: ${event.message}`, 'error')
+                  ElMessage.error(event.message)
+                  break
+              }
+            } catch (e) {
+              console.error('[前端] 解析SSE消息失败:', e, message.substring(0, 100))
             }
-          } catch (e) {
-            console.error(`[前端] ❌ 解析失败:`, e)
-            console.error(`[前端] ❌ 失败的消息内容:`, message.substring(0, 200))
           }
-        }
-        
-        console.log(`[前端] 📊 最终统计: 共收到 ${chunkCount} 个数据块`)
-        console.log(`[前端] 📊 最终饰品数量:`, weaponsMap.size)
-        weaponsMap.forEach((weapon, id) => {
-          console.log(`[前端] 📊   - ${weapon.weapon_name}: ${weapon.items.length} 个商品`)
-        })
-        
-        // 最终保存一次结果
-        if (weaponsMap.size > 0) {
-          crawlResult.value = {
-            weapons: Array.from(weaponsMap.values()).map(w => ({
-              ...w,
-              items: [...w.items]
-            }))
-          }
-          saveCrawlResultToStorage(crawlResult.value)
         }
 
       } catch (error) {
