@@ -252,16 +252,13 @@ def get_items_list():
         if session_id:
             # 查询指定会话的所有数据
             query = f"SELECT * FROM {table_name} WHERE session_id = ? ORDER BY id DESC"
-            params = (session_id,)
+            results = db.execute_query(query, (session_id,))
         else:
             # 查询所有数据，按ID倒序
             query = f"SELECT * FROM {table_name} ORDER BY id DESC"
-            params = ()
+            results = db.execute_query(query)
         
-        logger.write_log(f"执行SQL: {query}", 'INFO')
-        
-        # 执行查询
-        results = db.execute_query(query, params) if params else db.execute_query(query)
+        logger.write_log(f"执行SQL: {query}, 结果: {len(results) if results else 0} 条", 'INFO')
         
         if not results:
             logger.write_log("查询结果为空", 'INFO')
@@ -283,10 +280,13 @@ def get_items_list():
         logger.write_log(f"查询搜索结果失败: {str(e)}", 'ERROR')
         import traceback
         logger.write_log(f"详细错误: {traceback.format_exc()}", 'ERROR')
+        # 返回200 + 空数组，而不是500错误
         return jsonify({
-            'success': False,
-            'message': f'查询失败: {str(e)}'
-        }), 500
+            'success': True,
+            'count': 0,
+            'items': [],
+            'error': str(e)
+        })
 
 
 @search_rename_bp.route('/items/count', methods=['GET'])
