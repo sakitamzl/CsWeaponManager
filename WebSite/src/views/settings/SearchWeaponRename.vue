@@ -376,12 +376,15 @@ export default {
     
     // 将 weapons 转换为扁平列表，与 SearchPendant 保持一致
     const allCrawlItems = computed(() => {
+      console.log('[allCrawlItems] 🔄 计算开始，crawlResult.value:', crawlResult.value)
+      
       if (!crawlResult.value || !crawlResult.value.weapons) {
         console.log('[allCrawlItems] 📊 crawlResult 为空或无 weapons 数据')
         return []
       }
 
       console.log(`[allCrawlItems] 🔄 开始计算，weapons 数量: ${crawlResult.value.weapons.length}`)
+      console.log('[allCrawlItems] weapons 数据:', crawlResult.value.weapons)
 
       const items = []
       crawlResult.value.weapons.forEach(weapon => {
@@ -716,6 +719,8 @@ export default {
           crawlResult.value = { weapons }
           
           console.log(`[页面加载] 已加载 ${result.items.length} 条历史搜索结果`)
+          console.log(`[页面加载] 分组后的weapons:`, weapons)
+          console.log(`[页面加载] crawlResult.value:`, crawlResult.value)
           await nextTick()
         } else {
           console.log('[页面加载] 没有找到历史数据')
