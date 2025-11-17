@@ -98,13 +98,12 @@ def add_item():
     try:
         data = request.get_json()
         
-        session_id = data.get('sessionId')
         steam_id = data.get('steamId')
         weapon_id = data.get('weaponId')
         weapon_name = data.get('weaponName')
         item_data = data.get('item')
         
-        if not all([session_id, steam_id, weapon_id, weapon_name, item_data]):
+        if not all([steam_id, weapon_id, weapon_name, item_data]):
             return jsonify({
                 'success': False,
                 'message': '缺少必要参数'
@@ -112,7 +111,6 @@ def add_item():
         
         # 创建记录
         record = SearchRenameResultModel.create_from_search_result(
-            session_id=session_id,
             steam_id=steam_id,
             weapon_id=weapon_id,
             weapon_name=weapon_name,
@@ -122,7 +120,7 @@ def add_item():
         # 保存到数据库
         if record.save():
             logger.write_log(
-                f"添加搜索结果: Session={session_id}, Weapon={weapon_name}, Price={item_data.get('price')}, NameTag={item_data.get('nameTag')}",
+                f"添加搜索结果: Weapon={weapon_name}, Price={item_data.get('price')}, NameTag={item_data.get('nameTag')}",
                 'INFO'
             )
             return jsonify({
@@ -175,11 +173,10 @@ def add_items_batch():
     try:
         data = request.get_json()
         
-        session_id = data.get('sessionId')
         steam_id = data.get('steamId')
         items = data.get('items', [])
         
-        if not all([session_id, steam_id, items]):
+        if not all([steam_id, items]):
             return jsonify({
                 'success': False,
                 'message': '缺少必要参数'
@@ -189,7 +186,6 @@ def add_items_batch():
         for item_wrapper in items:
             try:
                 record = SearchRenameResultModel.create_from_search_result(
-                    session_id=session_id,
                     steam_id=steam_id,
                     weapon_id=item_wrapper.get('weaponId'),
                     weapon_name=item_wrapper.get('weaponName'),
@@ -201,7 +197,7 @@ def add_items_batch():
                 logger.write_log(f"批量添加单项失败: {str(e)}", 'WARNING')
                 continue
         
-        logger.write_log(f"批量添加完成: Session={session_id}, 成功={success_count}/{len(items)}", 'INFO')
+        logger.write_log(f"批量添加完成: 成功={success_count}/{len(items)}", 'INFO')
         
         return jsonify({
             'success': True,
@@ -245,42 +241,22 @@ def get_items_list():
         
         logger.write_log(f"查询搜索结果 - sessionId: {session_id}", 'INFO')
         
-        # 获取数据库管理器
-        db_manager = get_db_manager()
-        table_name = SearchRenameResultModel.get_table_name()
-        
-        # 构建查询（不使用 LIMIT，查询所有数据，只查询改名饰品数据）
+        # 使用模型对象查询，确保字段映射正确
         if session_id:
             # 查询指定会话的所有数据
-            query = f"SELECT * FROM {table_name} WHERE session_id = ? AND data_type = 'rename' ORDER BY id DESC"
-            raw_results = db_manager.db.execute_query(query, (session_id,))
+            model_results = SearchRenameResultModel.find_all(
+                "session_id = ? AND data_type = 'rename' ORDER BY id DESC",
+                (session_id,)
+            )
         else:
             # 查询所有改名饰品数据，按ID倒序
-            query = f"SELECT * FROM {table_name} WHERE data_type = 'rename' ORDER BY id DESC"
-            raw_results = db_manager.db.execute_query(query, ())
+            model_results = SearchRenameResultModel.find_all(
+                "data_type = 'rename' ORDER BY id DESC"
+            )
         
-        logger.write_log(f"执行SQL: {query}, 结果: {len(raw_results) if raw_results else 0} 条", 'INFO')
+        logger.write_log(f"查询结果: {len(model_results) if model_results else 0} 条", 'INFO')
         
-        # 将元组结果转换为字典（使用字段名）
-        if not raw_results:
-            results = []
-        else:
-            # 获取字段名
-            fields = SearchRenameResultModel.get_fields()
-            field_names = list(fields.keys())
-            
-            # 转换为字典列表
-            results = []
-            for row in raw_results:
-                item_dict = {}
-                for i, field_name in enumerate(field_names):
-                    if i < len(row):
-                        item_dict[field_name] = row[i]
-                results.append(item_dict)
-        
-        logger.write_log(f"转换后数据: {len(results)} 条", 'INFO')
-        
-        if not results:
+        if not model_results:
             logger.write_log("查询结果为空", 'INFO')
             return jsonify({
                 'success': True,
@@ -288,9 +264,12 @@ def get_items_list():
                 'items': []
             })
         
+        # 转换为字典列表
+        results = [item.to_dict() for item in model_results]
+        
         # 输出第一条数据示例
         if results:
-            logger.write_log(f"第一条数据示例: weapon_name={results[0].get('weapon_name')}, commodity_id={results[0].get('commodity_id')}", 'INFO')
+            logger.write_log(f"第一条数据示例: weapon_name={results[0].get('weaponName')}, commodity_id={results[0].get('commodityId')}", 'INFO')
         
         logger.write_log(f"查询成功，返回 {len(results)} 条数据", 'INFO')
         

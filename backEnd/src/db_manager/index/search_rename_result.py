@@ -32,11 +32,6 @@ class SearchRenameResultModel(BaseModel):
             },
             
             # 搜索会话信息
-            'session_id': {
-                'type': 'TEXT',
-                'not_null': True,
-                'comment': '搜索会话ID，用于区分不同的搜索任务'
-            },
             'steam_id': {
                 'type': 'TEXT',
                 'not_null': True,
@@ -284,14 +279,13 @@ class SearchRenameResultModel(BaseModel):
     # ==================== 便捷创建方法 ====================
 
     @classmethod
-    def create_from_search_result(cls, session_id: str, steam_id: str, 
+    def create_from_search_result(cls, steam_id: str, 
                                   weapon_id: str, weapon_name: str, 
                                   item_data: Dict[str, Any], data_type: str = 'rename') -> 'SearchRenameResultModel':
         """
         从搜索结果数据创建记录
         
         Args:
-            session_id: 搜索会话ID
             steam_id: Steam账号ID
             weapon_id: 饰品ID
             weapon_name: 饰品名称
@@ -309,7 +303,6 @@ class SearchRenameResultModel(BaseModel):
         
         # 创建记录
         record = cls(
-            session_id=session_id,
             steam_id=steam_id,
             data_type=data_type,
             weapon_id=weapon_id,
@@ -342,7 +335,6 @@ class SearchRenameResultModel(BaseModel):
         """
         return {
             'id': self.id,
-            'sessionId': self.session_id,
             'weaponId': self.weapon_id,
             'weaponName': self.weapon_name,
             'commodityId': self.commodity_id,

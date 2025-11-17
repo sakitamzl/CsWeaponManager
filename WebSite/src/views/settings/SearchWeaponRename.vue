@@ -248,7 +248,7 @@
                 v-if="scope.row.iconUrl" 
                 :src="scope.row.iconUrl" 
                 class="weapon-icon"
-                :alt="scope.row.weaponName"
+                :alt="getWeaponDisplayName(scope.row)"
               />
               <span v-else class="no-icon">-</span>
             </template>
@@ -257,11 +257,11 @@
           <el-table-column label="武器名称" width="200" fixed="left">
             <template #default="scope">
               <el-tooltip 
-                :content="scope.row.weaponName" 
+                :content="getWeaponDisplayName(scope.row)" 
                 placement="top"
-                :disabled="!scope.row.weaponName || scope.row.weaponName.length <= 20"
+                :disabled="!getWeaponDisplayName(scope.row) || getWeaponDisplayName(scope.row).length <= 20"
               >
-                <div class="weapon-name-cell">{{ scope.row.weaponName }}</div>
+                <div class="weapon-name-cell">{{ getWeaponDisplayName(scope.row) }}</div>
               </el-tooltip>
             </template>
           </el-table-column>
@@ -369,9 +369,9 @@ export default {
     const sessionId = ref('') // 搜索会话ID
     const pollingTimer = ref(null) // 轮询定时器
     const lastItemId = ref(0) // 最后一条记录的ID（用于增量更新）
-    const POLL_INTERVAL = 3000 // 轮询间隔（毫秒）- 3秒
+    const POLL_INTERVAL = 1000 // 轮询间隔（毫秒）- 1秒
     const noDataCount = ref(0) // 连续无数据次数
-    const MAX_NO_DATA_COUNT = 10 // 连续10次无数据（30秒）后认为完成
+    const MAX_NO_DATA_COUNT = 60 // 连续60次无数据（60秒/1分钟）后认为完成
     const lastPollingTime = ref(0) // 最后轮询时间
     
     // 将 weapons 转换为扁平列表，与 SearchPendant 保持一致
@@ -400,9 +400,11 @@ export default {
             const spread = item.spread || 0
             const priceDiff = spread - commissionFee
 
+            const weaponDisplayName = weapon.weapon_name || weapon.weaponName || '未知饰品'
             items.push({
               ...item,
-              weaponName: weapon.weapon_name,  // 添加武器名称（映射为驼峰命名）
+              weapon_name: weaponDisplayName,
+              weaponName: weaponDisplayName,  // 兼容旧字段
               yyyp_id: weapon.yyyp_id || weapon.weapon_id,
               commissionFee: commissionFee,  // 手续费
               priceDiff: priceDiff  // 收益
@@ -421,7 +423,7 @@ export default {
       console.log(`[allCrawlItems] ✅ 计算完成，总计 ${items.length} 件商品`)
       if (items.length > 0) {
         console.log(`[allCrawlItems] 第一条商品数据:`, items[0])
-        console.log(`[allCrawlItems] 第一条weaponName:`, items[0].weaponName)
+        console.log(`[allCrawlItems] 第一条weapon_name:`, items[0].weapon_name)
         console.log(`[allCrawlItems] 第一条iconUrl:`, items[0].iconUrl)
       }
 
@@ -530,6 +532,11 @@ export default {
         return 'warning'  // 收益低：黄色
       }
       return 'primary'    // 正常：蓝色
+    }
+
+    const getWeaponDisplayName = (item) => {
+      if (!item) return ''
+      return item.weapon_name || item.weaponName || item.market_listing_item_name || item.name || ''
     }
     
     // 工具区域折叠状态
@@ -674,26 +681,31 @@ export default {
           console.log(`[页面加载] 加载到 ${result.items.length} 条历史数据`)
           console.log('[页面加载] 第一条数据示例:', result.items[0])
           
-          // 转换数据格式（数据库返回的是蛇形命名）
+          // 后端已通过 to_dict() 返回驼峰命名，直接使用
           const historyItems = result.items.map(item => {
+            console.log('[数据映射] 原始item (驼峰命名):', item)
+            console.log('[数据映射] item.weaponName:', item.weaponName)
+            console.log('[数据映射] item.weaponId:', item.weaponId)
+            console.log('[数据映射] item 的所有键:', Object.keys(item))
+            // 后端返回的已经是驼峰命名，直接使用
             const mappedItem = {
-              id: item.commodity_id || item.commodityId,
-              commodityNo: item.commodity_no || item.commodityNo,
+              id: item.commodityId,
+              commodityNo: item.commodityNo,
               price: parseFloat(item.price) || 0,
-              lowest_price: parseFloat(item.lowest_price || item.lowestPrice) || 0,
+              lowest_price: parseFloat(item.lowestPrice) || 0,
               spread: parseFloat(item.spread) || 0,
               abrade: item.abrade,
-              paintSeed: item.paint_seed || item.paintSeed,
-              nameTag: item.name_tag || item.nameTag,
-              userNickName: item.seller_name || item.sellerName,
-              assetId: item.asset_id || item.assetId,
-              iconUrl: item.icon_url || item.iconUrl,
-              weaponName: item.weapon_name || item.weaponName,
-              weaponId: item.weapon_id || item.weaponId,
-              commissionFee: parseFloat(item.commission_fee || item.commissionFee) || 0,
-              priceDiff: parseFloat(item.price_diff || item.priceDiff) || 0
+              paintSeed: item.paintSeed,
+              nameTag: item.nameTag,
+              userNickName: item.sellerName,
+              assetId: item.assetId,
+              iconUrl: item.iconUrl,
+              weapon_name: item.weaponName,
+              weaponName: item.weaponName,
+              weaponId: item.weaponId,
+              commissionFee: parseFloat(item.commissionFee) || 0,
+              priceDiff: parseFloat(item.priceDiff) || 0
             }
-            console.log('[数据映射] 原始item:', item)
             console.log('[数据映射] 映射后item:', mappedItem)
             return mappedItem
           })
@@ -704,17 +716,17 @@ export default {
           // 按武器名称分组显示历史数据
           const weaponGroups = {}
           historyItems.forEach(item => {
-            const weaponName = item.weaponName || '未知武器'
-            if (!weaponGroups[weaponName]) {
-              weaponGroups[weaponName] = []
+            const weaponDisplayName = item.weapon_name || item.weaponName || '未知武器'
+            if (!weaponGroups[weaponDisplayName]) {
+              weaponGroups[weaponDisplayName] = []
             }
-            weaponGroups[weaponName].push(item)
+            weaponGroups[weaponDisplayName].push(item)
           })
           
           // 转换为weapons数组格式
-          const weapons = Object.keys(weaponGroups).map(weaponName => ({
-            weapon_name: weaponName,
-            items: weaponGroups[weaponName]
+          const weapons = Object.keys(weaponGroups).map(name => ({
+            weapon_name: name,
+            items: weaponGroups[name]
           }))
           
           crawlResult.value = { weapons }
@@ -760,8 +772,8 @@ export default {
         
         if (result.success && result.items && result.items.length > 0) {
           console.log(`[轮询] 获取到 ${result.items.length} 条数据`)
-          console.log('[轮询] 第一条数据示例:', result.items[0])
-          console.log('[轮询] 第一条weapon_name (数据库字段):', result.items[0].weapon_name)
+          console.log('[轮询] 第一条数据示例 (驼峰命名):', result.items[0])
+          console.log('[轮询] 第一条weaponName:', result.items[0].weaponName)
           
           // 如果正在搜索，重置无数据计数
           if (isCrawling.value) {
@@ -771,24 +783,27 @@ export default {
           // 获取当前的所有商品列表
           const currentItems = crawlResult.value?.weapons?.[0]?.items || []
           
-          // 添加新数据（数据库返回的是蛇形命名）
-          const newItems = result.items.map(item => ({
-            id: item.commodity_id || item.commodityId,
-            commodityNo: item.commodity_no || item.commodityNo,
-            price: parseFloat(item.price) || 0,
-            lowest_price: parseFloat(item.lowest_price || item.lowestPrice) || 0,
-            spread: parseFloat(item.spread) || 0,
-            abrade: item.abrade,
-            paintSeed: item.paint_seed || item.paintSeed,
-            nameTag: item.name_tag || item.nameTag,
-            userNickName: item.seller_name || item.sellerName,
-            assetId: item.asset_id || item.assetId,
-            iconUrl: item.icon_url || item.iconUrl,
-            weaponName: item.weapon_name || item.weaponName,
-            weaponId: item.weapon_id || item.weaponId,
-            commissionFee: parseFloat(item.commission_fee || item.commissionFee) || 0,
-            priceDiff: parseFloat(item.price_diff || item.priceDiff) || 0
-          }))
+          // 后端已通过 to_dict() 返回驼峰命名，直接使用
+          const newItems = result.items.map(item => {
+            return {
+              id: item.commodityId,
+              commodityNo: item.commodityNo,
+              price: parseFloat(item.price) || 0,
+              lowest_price: parseFloat(item.lowestPrice) || 0,
+              spread: parseFloat(item.spread) || 0,
+              abrade: item.abrade,
+              paintSeed: item.paintSeed,
+              nameTag: item.nameTag,
+              userNickName: item.sellerName,
+              assetId: item.assetId,
+              iconUrl: item.iconUrl,
+              weapon_name: item.weaponName,
+              weaponName: item.weaponName,
+              weaponId: item.weaponId,
+              commissionFee: parseFloat(item.commissionFee) || 0,
+              priceDiff: parseFloat(item.priceDiff) || 0
+            }
+          })
           
           // 去重合并（基于 commodityId）
           const itemMap = new Map()
@@ -802,17 +817,17 @@ export default {
           // 按武器名称分组显示数据
           const weaponGroups = {}
           allItems.forEach(item => {
-            const weaponName = item.weaponName || '未知武器'
-            if (!weaponGroups[weaponName]) {
-              weaponGroups[weaponName] = []
+            const weaponDisplayName = item.weapon_name || item.weaponName || '未知武器'
+            if (!weaponGroups[weaponDisplayName]) {
+              weaponGroups[weaponDisplayName] = []
             }
-            weaponGroups[weaponName].push(item)
+            weaponGroups[weaponDisplayName].push(item)
           })
           
           // 转换为weapons数组格式
-          const weapons = Object.keys(weaponGroups).map(weaponName => ({
-            weapon_name: weaponName,
-            items: weaponGroups[weaponName]
+          const weapons = Object.keys(weaponGroups).map(name => ({
+            weapon_name: name,
+            items: weaponGroups[name]
           }))
           
           crawlResult.value = { weapons }
@@ -1956,7 +1971,8 @@ export default {
       updateHighlight,
       // 从搜索组件添加饰品
       handleAddWeaponFromSearch,
-      handleAddAllWeaponsFromSearch
+      handleAddAllWeaponsFromSearch,
+      getWeaponDisplayName
     }
   }
 }
