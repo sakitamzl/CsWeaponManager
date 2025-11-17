@@ -390,49 +390,32 @@ def get_latest_items():
 
 # ==================== 数据管理 ====================
 
-@search_rename_bp.route('/session/clear', methods=['POST'])
-def clear_session():
+@search_rename_bp.route('/clear', methods=['POST'])
+def clear_all_rename_data():
     """
-    清空某个会话的所有数据
-    
-    请求体:
-    {
-        "sessionId": "uuid-xxx"
-    }
+    清空所有改名饰品数据（data_type='rename'）
     
     返回:
     {
         "success": true,
-        "message": "清空成功"
+        "count": 100,
+        "message": "清空成功，删除了100条记录"
     }
     """
     try:
-        data = request.get_json()
-        session_id = data.get('sessionId')
+        # 删除所有 data_type='rename' 的数据
+        count = SearchRenameResultModel.delete_where("data_type = 'rename'")
         
-        if not session_id:
-            return jsonify({
-                'success': False,
-                'message': '缺少sessionId参数'
-            }), 400
+        logger.write_log(f"清空改名饰品数据: 删除{count}条记录", 'INFO')
         
-        # 软删除
-        success = SearchRenameResultModel.delete_by_session(session_id)
-        
-        if success:
-            logger.write_log(f"清空会话: {session_id}", 'INFO')
-            return jsonify({
-                'success': True,
-                'message': '清空成功'
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'message': '清空失败'
-            }), 500
+        return jsonify({
+            'success': True,
+            'count': count,
+            'message': f'清空成功，删除了{count}条记录'
+        })
     
     except Exception as e:
-        logger.write_log(f"清空会话失败: {str(e)}", 'ERROR')
+        logger.write_log(f"清空数据失败: {str(e)}", 'ERROR')
         return jsonify({
             'success': False,
             'message': f'清空失败: {str(e)}'

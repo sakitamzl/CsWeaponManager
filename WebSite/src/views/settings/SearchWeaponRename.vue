@@ -475,22 +475,44 @@ export default {
     }
     
     // 清空爬虫历史
-    const clearCrawlHistory = () => {
-      ElMessageBox.confirm(
-        '确定要清空所有查询结果吗？此操作不可恢复。',
-        '确认清空',
-        {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          type: 'warning'
+    const clearCrawlHistory = async () => {
+      try {
+        await ElMessageBox.confirm(
+          '确定要清空所有查询结果吗？此操作将删除数据库中所有改名饰品数据，不可恢复。',
+          '确认清空',
+          {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        )
+        
+        // 调用后端 API 清空数据库
+        const response = await fetch(`${API_CONFIG.BASE_URL}/searchRename/clear`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        })
+        
+        if (!response.ok) {
+          throw new Error('清空失败')
         }
-      ).then(() => {
-        crawlResult.value = null
-        localStorage.removeItem(STORAGE_KEY)
-        ElMessage.success('已清空查询结果')
-      }).catch(() => {
-        // 用户取消
-      })
+        
+        const result = await response.json()
+        
+        if (result.success) {
+          // 清空前端数据
+          crawlResult.value = null
+          localStorage.removeItem(STORAGE_KEY)
+          ElMessage.success(result.message || `已清空 ${result.count} 条数据`)
+        } else {
+          throw new Error(result.message || '清空失败')
+        }
+      } catch (error) {
+        if (error !== 'cancel') {
+          console.error('清空失败:', error)
+          ElMessage.error(error.message || '清空失败')
+        }
+      }
     }
 
 
