@@ -42,6 +42,12 @@ class SearchRenameResultModel(BaseModel):
                 'not_null': True,
                 'comment': '执行搜索的Steam账号ID'
             },
+            'data_type': {
+                'type': 'TEXT',
+                'not_null': True,
+                'default': "'rename'",
+                'comment': '数据类型：rename(改名饰品)、pendant(挂件)等'
+            },
             
             # 饰品基本信息
             'weapon_id': {
@@ -162,41 +168,43 @@ class SearchRenameResultModel(BaseModel):
     # ==================== 自定义查询方法 ====================
 
     @classmethod
-    def find_by_session(cls, session_id: str, status: str = 'active'):
+    def find_by_session(cls, session_id: str, status: str = 'active', data_type: str = 'rename'):
         """
         根据会话ID查询所有结果
         
         Args:
             session_id: 搜索会话ID
             status: 状态过滤，默认只返回active状态
+            data_type: 数据类型过滤，默认为'rename'
             
         Returns:
             List[SearchRenameResultModel]: 结果列表
         """
         if status:
             return cls.find_all(
-                "session_id = ? AND status = ? ORDER BY price_diff DESC, created_at ASC",
-                (session_id, status)
+                "session_id = ? AND status = ? AND data_type = ? ORDER BY price_diff DESC, created_at ASC",
+                (session_id, status, data_type)
             )
         else:
             return cls.find_all(
-                "session_id = ? ORDER BY price_diff DESC, created_at ASC",
-                (session_id,)
+                "session_id = ? AND data_type = ? ORDER BY price_diff DESC, created_at ASC",
+                (session_id, data_type)
             )
 
     @classmethod
-    def count_by_session(cls, session_id: str, status: str = 'active') -> int:
+    def count_by_session(cls, session_id: str, status: str = 'active', data_type: str = 'rename') -> int:
         """
         统计某个会话的结果数量
         
         Args:
             session_id: 搜索会话ID
             status: 状态过滤
+            data_type: 数据类型过滤，默认为'rename'
             
         Returns:
             int: 结果数量
         """
-        results = cls.find_by_session(session_id, status)
+        results = cls.find_by_session(session_id, status, data_type)
         return len(results) if results else 0
 
     @classmethod
@@ -278,7 +286,7 @@ class SearchRenameResultModel(BaseModel):
     @classmethod
     def create_from_search_result(cls, session_id: str, steam_id: str, 
                                   weapon_id: str, weapon_name: str, 
-                                  item_data: Dict[str, Any]) -> 'SearchRenameResultModel':
+                                  item_data: Dict[str, Any], data_type: str = 'rename') -> 'SearchRenameResultModel':
         """
         从搜索结果数据创建记录
         
@@ -288,6 +296,7 @@ class SearchRenameResultModel(BaseModel):
             weapon_id: 饰品ID
             weapon_name: 饰品名称
             item_data: 商品数据字典
+            data_type: 数据类型，默认为'rename'
             
         Returns:
             SearchRenameResultModel: 创建的记录对象
@@ -302,6 +311,7 @@ class SearchRenameResultModel(BaseModel):
         record = cls(
             session_id=session_id,
             steam_id=steam_id,
+            data_type=data_type,
             weapon_id=weapon_id,
             weapon_name=weapon_name,
             commodity_id=str(item_data.get('id', '')),

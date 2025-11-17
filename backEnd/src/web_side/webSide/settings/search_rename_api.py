@@ -249,14 +249,14 @@ def get_items_list():
         db_manager = get_db_manager()
         table_name = SearchRenameResultModel.get_table_name()
         
-        # 构建查询（不使用 LIMIT，查询所有数据）
+        # 构建查询（不使用 LIMIT，查询所有数据，只查询改名饰品数据）
         if session_id:
             # 查询指定会话的所有数据
-            query = f"SELECT * FROM {table_name} WHERE session_id = ? ORDER BY id DESC"
+            query = f"SELECT * FROM {table_name} WHERE session_id = ? AND data_type = 'rename' ORDER BY id DESC"
             raw_results = db_manager.db.execute_query(query, (session_id,))
         else:
-            # 查询所有数据，按ID倒序
-            query = f"SELECT * FROM {table_name} ORDER BY id DESC"
+            # 查询所有改名饰品数据，按ID倒序
+            query = f"SELECT * FROM {table_name} WHERE data_type = 'rename' ORDER BY id DESC"
             raw_results = db_manager.db.execute_query(query, ())
         
         logger.write_log(f"执行SQL: {query}, 结果: {len(raw_results) if raw_results else 0} 条", 'INFO')
