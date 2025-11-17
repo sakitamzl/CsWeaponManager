@@ -220,44 +220,6 @@
       </div>
       <!-- 结束 unified-tool-section -->
 
-      <!-- 实时日志区域 -->
-      <div 
-        class="log-section" 
-        v-if="streamLogs.length > 0 || isCrawling"
-      >
-        <div class="log-section-header">
-          <h2 class="section-title">实时日志</h2>
-          <div class="log-actions">
-            <span class="log-count">当前 {{ streamLogs.length }} 条</span>
-            <el-switch 
-              v-model="logAutoScroll" 
-              size="small" 
-              active-text="自动滚动"
-            />
-            <el-button 
-              size="small" 
-              @click="clearStreamLogs" 
-              :disabled="streamLogs.length === 0"
-            >
-              清空
-            </el-button>
-          </div>
-        </div>
-        <div class="log-list" ref="logPanelRef">
-          <div 
-            v-for="log in streamLogs" 
-            :key="log.id" 
-            class="log-entry" 
-            :class="`log-${log.level}`"
-          >
-            <span class="log-time">{{ formatLogTime(log.timestamp) }}</span>
-            <span class="log-message">{{ log.message }}</span>
-          </div>
-          <div v-if="streamLogs.length === 0" class="log-empty">
-            <el-empty description="暂无日志" :image-size="80" />
-          </div>
-        </div>
-      </div>
 
       <!-- 查询结果区域 -->
       <div v-if="allCrawlItems && allCrawlItems.length > 0" class="result-section">
@@ -402,10 +364,6 @@ export default {
     const steamIdList = ref([])
     const isCrawling = ref(false)
     const crawlResult = ref(null)
-    const streamLogs = ref([])
-    const logPanelRef = ref(null)
-    const logAutoScroll = ref(true)
-    const MAX_STREAM_LOGS = 800
     
     // 轮询相关变量
     const sessionId = ref('') // 搜索会话ID
@@ -536,36 +494,6 @@ export default {
       })
     }
 
-    const appendStreamLog = (message, level = 'info') => {
-      if (!message) return
-      streamLogs.value.push({
-        id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
-        timestamp: Date.now(),
-        level,
-        message
-      })
-      if (streamLogs.value.length > MAX_STREAM_LOGS) {
-        streamLogs.value.splice(0, streamLogs.value.length - MAX_STREAM_LOGS)
-      }
-      scrollLogPanelToBottom()
-    }
-
-    const clearStreamLogs = () => {
-      streamLogs.value = []
-    }
-
-    const formatLogTime = (timestamp) => {
-      if (!timestamp) return '--:--:--'
-      return new Date(timestamp).toLocaleTimeString('zh-CN', { hour12: false })
-    }
-
-    const formatNumberText = (value, fractionDigits = 2) => {
-      const num = Number(value)
-      if (!Number.isFinite(num)) {
-        return value ?? '-'
-      }
-      return num.toFixed(fractionDigits)
-    }
 
     // 饰品搜索相关
     const weaponSearchKeyword = ref('')
@@ -769,15 +697,25 @@ export default {
           // 按收益排序
           historyItems.sort((a, b) => (b.priceDiff || 0) - (a.priceDiff || 0))
           
-          // 显示历史数据
-          crawlResult.value = {
-            weapons: [{
-              weapon_name: '历史搜索结果',
-              items: historyItems
-            }]
-          }
+          // 按武器名称分组显示历史数据
+          const weaponGroups = {}
+          historyItems.forEach(item => {
+            const weaponName = item.weapon_name || '未知武器'
+            if (!weaponGroups[weaponName]) {
+              weaponGroups[weaponName] = []
+            }
+            weaponGroups[weaponName].push(item)
+          })
           
-          appendStreamLog(`已加载 ${result.items.length} 条历史搜索结果`, 'info')
+          // 转换为weapons数组格式
+          const weapons = Object.keys(weaponGroups).map(weaponName => ({
+            weapon_name: weaponName,
+            items: weaponGroups[weaponName]
+          }))
+          
+          crawlResult.value = { weapons }
+          
+          console.log(`[页面加载] 已加载 ${result.items.length} 条历史搜索结果`)
           await nextTick()
         } else {
           console.log('[页面加载] 没有找到历史数据')
@@ -815,6 +753,7 @@ export default {
         if (result.success && result.items && result.items.length > 0) {
           console.log(`[轮询] 获取到 ${result.items.length} 条数据`)
           console.log('[轮询] 第一条数据示例:', result.items[0])
+          console.log('[轮询] 第一条weapon_name:', result.items[0].weapon_name)
           
           // 如果正在搜索，重置无数据计数
           if (isCrawling.value) {
@@ -852,14 +791,23 @@ export default {
           // 按收益排序
           allItems.sort((a, b) => (b.priceDiff || 0) - (a.priceDiff || 0))
           
-          // 更新显示
-          const weaponName = isCrawling.value ? '搜索结果（实时更新）' : '历史搜索结果'
-          crawlResult.value = {
-            weapons: [{
-              weapon_name: weaponName,
-              items: allItems
-            }]
-          }
+          // 按武器名称分组显示数据
+          const weaponGroups = {}
+          allItems.forEach(item => {
+            const weaponName = item.weapon_name || '未知武器'
+            if (!weaponGroups[weaponName]) {
+              weaponGroups[weaponName] = []
+            }
+            weaponGroups[weaponName].push(item)
+          })
+          
+          // 转换为weapons数组格式
+          const weapons = Object.keys(weaponGroups).map(weaponName => ({
+            weapon_name: weaponName,
+            items: weaponGroups[weaponName]
+          }))
+          
+          crawlResult.value = { weapons }
           
           // 更新lastItemId
           if (result.items.length > 0) {
@@ -883,7 +831,7 @@ export default {
               sessionId.value = '' // 清空sessionId
               
               const totalItems = crawlResult.value?.weapons?.[0]?.items?.length || 0
-              appendStreamLog(`搜索完成，共找到 ${totalItems} 个符合条件的商品`, 'success')
+              console.log(`[轮询] 搜索完成，共找到 ${totalItems} 个符合条件的商品`)
               ElMessage.success(`搜索完成！找到 ${totalItems} 个符合条件的商品`)
               
               if (crawlResult.value) {
@@ -989,12 +937,11 @@ export default {
       // 初始化状态
       isCrawling.value = true
       crawlResult.value = { weapons: [] }
-      streamLogs.value = []
       sessionId.value = '' // 清空sessionId
       lastItemId.value = 0 // 重置lastItemId
       noDataCount.value = 0 // 重置无数据计数
       stopPolling() // 停止之前的轮询
-      appendStreamLog('正在启动查询任务...', 'info')
+      console.log('[前端] 正在启动查询任务...')
 
       try {
         // 构建请求
@@ -1034,8 +981,8 @@ export default {
 
         sessionId.value = sessionResult.sessionId
         console.log(`[前端] 创建会话成功: ${sessionId.value}`)
-        appendStreamLog(`会话ID: ${sessionId.value}`, 'info')
-        appendStreamLog('轮询已自动运行，将持续获取搜索结果...', 'info')
+        console.log(`[前端] 会话ID: ${sessionId.value}`)
+        console.log('[前端] 轮询已自动运行，将持续获取搜索结果...')
 
         // 发起搜索请求（后台执行）
         fetch(
@@ -1051,7 +998,7 @@ export default {
             console.log('[前端] 搜索任务响应:', result)
             
             if (result.success) {
-              appendStreamLog(`搜索任务已启动 - Session: ${result.sessionId}`, 'info')
+              console.log(`[前端] 搜索任务已启动 - Session: ${result.sessionId}`)
               console.log('[前端] 后台搜索任务已启动，开始轮询数据...')
             } else {
               throw new Error(result.message || '启动搜索失败')
@@ -1061,7 +1008,7 @@ export default {
           }
         }).catch(error => {
           console.error('[前端] 启动搜索任务失败:', error)
-          appendStreamLog(`启动搜索任务失败: ${error.message}`, 'error')
+          console.error(`[前端] 启动搜索任务失败: ${error.message}`)
           ElMessage.error(`启动搜索失败: ${error.message}`)
           isCrawling.value = false
           sessionId.value = '' // 清空sessionId
@@ -1074,7 +1021,7 @@ export default {
             isCrawling.value = false
             sessionId.value = '' // 清空sessionId
             const totalItems = crawlResult.value?.weapons?.[0]?.items?.length || 0
-            appendStreamLog(`搜索超时结束，共找到 ${totalItems} 个商品`, 'warning')
+            console.log(`[前端] 搜索超时结束，共找到 ${totalItems} 个商品`)
             ElMessage.warning(`搜索已超时结束，找到 ${totalItems} 个商品`)
             
             if (crawlResult.value) {
@@ -1092,7 +1039,7 @@ export default {
         }
 
         ElMessage.error(errorMessage)
-        appendStreamLog(`搜索失败: ${errorMessage}`, 'error')
+        console.error(`[前端] 搜索失败: ${errorMessage}`)
         isCrawling.value = false
         sessionId.value = '' // 清空sessionId
       }
@@ -1934,9 +1881,6 @@ export default {
       isCrawling,
       crawlForm,
       crawlResult,
-      streamLogs,
-      logPanelRef,
-      logAutoScroll,
       allCrawlItems,
       canStartCrawl,
       startCrawl,

@@ -288,6 +288,10 @@ def get_items_list():
                 'items': []
             })
         
+        # 输出第一条数据示例
+        if results:
+            logger.write_log(f"第一条数据示例: weapon_name={results[0].get('weapon_name')}, commodity_id={results[0].get('commodity_id')}", 'INFO')
+        
         logger.write_log(f"查询成功，返回 {len(results)} 条数据", 'INFO')
         
         return jsonify({
