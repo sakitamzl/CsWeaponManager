@@ -248,7 +248,7 @@
                 v-if="scope.row.iconUrl" 
                 :src="scope.row.iconUrl" 
                 class="weapon-icon"
-                :alt="scope.row.weapon_name"
+                :alt="scope.row.weaponName"
               />
               <span v-else class="no-icon">-</span>
             </template>
@@ -257,11 +257,11 @@
           <el-table-column label="武器名称" width="200" fixed="left">
             <template #default="scope">
               <el-tooltip 
-                :content="scope.row.weapon_name" 
+                :content="scope.row.weaponName" 
                 placement="top"
-                :disabled="!scope.row.weapon_name || scope.row.weapon_name.length <= 20"
+                :disabled="!scope.row.weaponName || scope.row.weaponName.length <= 20"
               >
-                <div class="weapon-name-cell">{{ scope.row.weapon_name }}</div>
+                <div class="weapon-name-cell">{{ scope.row.weaponName }}</div>
               </el-tooltip>
             </template>
           </el-table-column>
@@ -402,7 +402,7 @@ export default {
 
             items.push({
               ...item,
-              weapon_name: weapon.weapon_name,  // 添加武器名称
+              weaponName: weapon.weapon_name,  // 添加武器名称（映射为驼峰命名）
               yyyp_id: weapon.yyyp_id || weapon.weapon_id,
               commissionFee: commissionFee,  // 手续费
               priceDiff: priceDiff  // 收益
@@ -421,7 +421,7 @@ export default {
       console.log(`[allCrawlItems] ✅ 计算完成，总计 ${items.length} 件商品`)
       if (items.length > 0) {
         console.log(`[allCrawlItems] 第一条商品数据:`, items[0])
-        console.log(`[allCrawlItems] 第一条weapon_name:`, items[0].weapon_name)
+        console.log(`[allCrawlItems] 第一条weaponName:`, items[0].weaponName)
         console.log(`[allCrawlItems] 第一条iconUrl:`, items[0].iconUrl)
       }
 
@@ -688,8 +688,8 @@ export default {
               userNickName: item.seller_name || item.sellerName,
               assetId: item.asset_id || item.assetId,
               iconUrl: item.icon_url || item.iconUrl,
-              weapon_name: item.weapon_name || item.weaponName,
-              weapon_id: item.weapon_id || item.weaponId,
+              weaponName: item.weapon_name || item.weaponName,
+              weaponId: item.weapon_id || item.weaponId,
               commissionFee: parseFloat(item.commission_fee || item.commissionFee) || 0,
               priceDiff: parseFloat(item.price_diff || item.priceDiff) || 0
             }
@@ -704,7 +704,7 @@ export default {
           // 按武器名称分组显示历史数据
           const weaponGroups = {}
           historyItems.forEach(item => {
-            const weaponName = item.weapon_name || '未知武器'
+            const weaponName = item.weaponName || '未知武器'
             if (!weaponGroups[weaponName]) {
               weaponGroups[weaponName] = []
             }
@@ -761,7 +761,7 @@ export default {
         if (result.success && result.items && result.items.length > 0) {
           console.log(`[轮询] 获取到 ${result.items.length} 条数据`)
           console.log('[轮询] 第一条数据示例:', result.items[0])
-          console.log('[轮询] 第一条weapon_name:', result.items[0].weapon_name)
+          console.log('[轮询] 第一条weapon_name (数据库字段):', result.items[0].weapon_name)
           
           // 如果正在搜索，重置无数据计数
           if (isCrawling.value) {
@@ -784,8 +784,8 @@ export default {
             userNickName: item.seller_name || item.sellerName,
             assetId: item.asset_id || item.assetId,
             iconUrl: item.icon_url || item.iconUrl,
-            weapon_name: item.weapon_name || item.weaponName,
-            weapon_id: item.weapon_id || item.weaponId,
+            weaponName: item.weapon_name || item.weaponName,
+            weaponId: item.weapon_id || item.weaponId,
             commissionFee: parseFloat(item.commission_fee || item.commissionFee) || 0,
             priceDiff: parseFloat(item.price_diff || item.priceDiff) || 0
           }))
@@ -802,7 +802,7 @@ export default {
           // 按武器名称分组显示数据
           const weaponGroups = {}
           allItems.forEach(item => {
-            const weaponName = item.weapon_name || '未知武器'
+            const weaponName = item.weaponName || '未知武器'
             if (!weaponGroups[weaponName]) {
               weaponGroups[weaponName] = []
             }
