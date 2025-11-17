@@ -366,7 +366,6 @@ export default {
     const crawlResult = ref(null)
     
     // 轮询相关变量
-    const sessionId = ref('') // 搜索会话ID
     const pollingTimer = ref(null) // 轮询定时器
     const lastItemId = ref(0) // 最后一条记录的ID（用于增量更新）
     const POLL_INTERVAL = 1000 // 轮询间隔（毫秒）- 1秒
@@ -750,15 +749,8 @@ export default {
       try {
         lastPollingTime.value = Date.now()
         
-        // 如果有 sessionId，使用增量查询
-        let url
-        if (sessionId.value) {
-          // 正在搜索中，只获取当前会话的新数据
-          url = `${API_CONFIG.BASE_URL}/searchRename/items/latest?sessionId=${sessionId.value}&sinceId=${lastItemId.value}`
-        } else {
-          // 没有会话ID，获取所有数据
-          url = `${API_CONFIG.BASE_URL}/searchRename/items/list`
-        }
+        // 获取所有数据
+        const url = `${API_CONFIG.BASE_URL}/searchRename/items/list`
         
         const response = await fetch(url)
         
@@ -851,7 +843,6 @@ export default {
             if (noDataCount.value >= MAX_NO_DATA_COUNT) {
               console.log('[轮询] 连续无新数据，认为搜索完成')
               isCrawling.value = false
-              sessionId.value = '' // 清空sessionId
               stopPolling() // 停止轮询
               
               const totalItems = crawlResult.value?.weapons?.[0]?.items?.length || 0
@@ -961,7 +952,6 @@ export default {
       // 初始化状态
       isCrawling.value = true
       crawlResult.value = { weapons: [] }
-      sessionId.value = '' // 清空sessionId
       lastItemId.value = 0 // 重置lastItemId
       noDataCount.value = 0 // 重置无数据计数
       stopPolling() // 停止之前的轮询
@@ -999,13 +989,11 @@ export default {
         }
 
         const sessionResult = await createSessionResponse.json()
-        if (!sessionResult.success || !sessionResult.sessionId) {
-          throw new Error('获取会话ID失败')
+        if (!sessionResult.success) {
+          throw new Error('创建会话失败')
         }
 
-        sessionId.value = sessionResult.sessionId
-        console.log(`[前端] 创建会话成功: ${sessionId.value}`)
-        console.log(`[前端] 会话ID: ${sessionId.value}`)
+        console.log('[前端] 创建会话成功')
         
         // 启动轮询（只有在开始搜索时才启动）
         startPolling()
@@ -1025,7 +1013,7 @@ export default {
             console.log('[前端] 搜索任务响应:', result)
             
             if (result.success) {
-              console.log(`[前端] 搜索任务已启动 - Session: ${result.sessionId}`)
+              console.log('[前端] 搜索任务已启动')
               console.log('[前端] 后台搜索任务已启动，开始轮询数据...')
             } else {
               throw new Error(result.message || '启动搜索失败')
@@ -1038,7 +1026,6 @@ export default {
           console.error(`[前端] 启动搜索任务失败: ${error.message}`)
           ElMessage.error(`启动搜索失败: ${error.message}`)
           isCrawling.value = false
-          sessionId.value = '' // 清空sessionId
           stopPolling() // 停止轮询
         })
 
@@ -1047,7 +1034,6 @@ export default {
           if (isCrawling.value) {
             console.log('[前端] 搜索超时，结束搜索状态')
             isCrawling.value = false
-            sessionId.value = '' // 清空sessionId
             stopPolling() // 停止轮询
             const totalItems = crawlResult.value?.weapons?.[0]?.items?.length || 0
             console.log(`[前端] 搜索超时结束，共找到 ${totalItems} 个商品`)
@@ -1070,7 +1056,6 @@ export default {
         ElMessage.error(errorMessage)
         console.error(`[前端] 搜索失败: ${errorMessage}`)
         isCrawling.value = false
-        sessionId.value = '' // 清空sessionId
         stopPolling() // 停止轮询
       }
     }

@@ -301,6 +301,17 @@ class SearchRenameResultModel(BaseModel):
         commission_fee = price * 0.025
         price_diff = spread - commission_fee
         
+        # 处理 name_tag：去除前缀并过滤全*号
+        name_tag = item_data.get('nameTag', '')
+        if name_tag:
+            # 去除 "名称标签："" 前缀
+            name_tag = name_tag.replace('名称标签："', '').replace('"', '').strip()
+            # 如果是全*号，设置为 None（不入库）
+            if name_tag and all(c == '*' for c in name_tag):
+                name_tag = None
+        else:
+            name_tag = None
+        
         # 创建记录
         record = cls(
             steam_id=steam_id,
@@ -314,7 +325,7 @@ class SearchRenameResultModel(BaseModel):
             spread=spread,
             abrade=item_data.get('abrade'),
             paint_seed=str(item_data.get('paintSeed')) if item_data.get('paintSeed') else None,
-            name_tag=item_data.get('nameTag'),
+            name_tag=name_tag,
             seller_name=item_data.get('userNickName'),
             asset_id=item_data.get('assetId'),
             icon_url=item_data.get('iconUrl'),
