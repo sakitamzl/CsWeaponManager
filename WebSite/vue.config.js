@@ -1,6 +1,26 @@
 const { defineConfig } = require('@vue/cli-service')
 const webpack = require('webpack')
 
+const SPIDER_PROXY_TARGET = 'http://127.0.0.1:9002'
+
+const prepareSseProxyReq = (proxyReq) => {
+  if (!proxyReq) return
+  proxyReq.setHeader('Connection', 'keep-alive')
+  proxyReq.setHeader('Cache-Control', 'no-cache')
+  proxyReq.setHeader('X-Accel-Buffering', 'no')
+  proxyReq.setHeader('Accept', 'text/event-stream')
+}
+
+const ensureSseProxyResHeaders = (proxyRes) => {
+  if (!proxyRes || !proxyRes.headers) return
+  proxyRes.headers['cache-control'] = 'no-cache'
+  proxyRes.headers['x-accel-buffering'] = 'no'
+  proxyRes.headers['connection'] = 'keep-alive'
+  if (!proxyRes.headers['content-type'] || !proxyRes.headers['content-type'].includes('text/event-stream')) {
+    proxyRes.headers['content-type'] = 'text/event-stream; charset=utf-8'
+  }
+}
+
 module.exports = defineConfig({
   transpileDependencies: true,
   devServer: {
@@ -29,11 +49,18 @@ module.exports = defineConfig({
       },
       // Spider API服务器（9002端口） - 统一使用 /spider 前缀
       '/spider': {
-        target: 'http://127.0.0.1:9002',
+        target: SPIDER_PROXY_TARGET,
         changeOrigin: true,
+        ws: true,
+        secure: false,
+        logLevel: 'silent',
         pathRewrite: {
           '^/spider': ''
-        }
+        },
+        proxyTimeout: 0,
+        timeout: 0,
+        onProxyReq: prepareSseProxyReq,
+        onProxyRes: ensureSseProxyResHeaders
       }
     }
   },
