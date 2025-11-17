@@ -224,7 +224,7 @@
       <!-- 查询结果区域 -->
       <div v-if="allCrawlItems && allCrawlItems.length > 0" class="result-section">
         <div class="result-header">
-          <h2 class="section-title">查询结果 ({{ allCrawlItems.length }} 件)</h2>
+          <h2 class="section-title">查询结果 ({{ allCrawlItems?.length || 0 }} 件)</h2>
           <el-button 
             type="danger" 
             size="small"
@@ -369,7 +369,7 @@ export default {
     const sessionId = ref('') // 搜索会话ID
     const pollingTimer = ref(null) // 轮询定时器
     const lastItemId = ref(0) // 最后一条记录的ID（用于增量更新）
-    const POLL_INTERVAL = 1000 // 轮询间隔（毫秒）- 1秒
+    const POLL_INTERVAL = 3000 // 轮询间隔（毫秒）- 3秒
     const noDataCount = ref(0) // 连续无数据次数
     const MAX_NO_DATA_COUNT = 10 // 连续10次无数据（10秒）后认为完成
     const lastPollingTime = ref(0) // 最后轮询时间
@@ -487,15 +487,6 @@ export default {
       })
     }
 
-    // 实时日志处理
-    const scrollLogPanelToBottom = () => {
-      if (!logAutoScroll.value) return
-      nextTick(() => {
-        if (logPanelRef.value) {
-          logPanelRef.value.scrollTop = logPanelRef.value.scrollHeight
-        }
-      })
-    }
 
 
     // 饰品搜索相关
@@ -1936,8 +1927,6 @@ export default {
       getBuyButtonType,
       // 历史结果管理
       clearCrawlHistory,
-      clearStreamLogs,
-      formatLogTime,
       // 工具区域折叠
       isToolSectionCollapsed,
       toggleToolSection,
