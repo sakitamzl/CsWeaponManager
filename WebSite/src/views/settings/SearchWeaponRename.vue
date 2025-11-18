@@ -2,39 +2,29 @@
   <div class="spider-weapon-rename-container">
     <div class="page-layout">
       <!-- 左侧配置管理栏 -->
-      <aside class="config-sidebar" :class="{ collapsed: isSidebarCollapsed }">
-        <div class="sidebar-header">
-          <div class="sidebar-header-row">
-            <h3 v-show="!isSidebarCollapsed">配置管理</h3>
-            <el-button
-              class="sidebar-toggle-btn"
-              type="text"
-              @click="toggleSidebar"
-            >
-              <el-icon>
-                <ArrowLeft v-if="!isSidebarCollapsed" />
-                <ArrowRight v-else />
-              </el-icon>
-            </el-button>
+      <aside class="config-sidebar" :class="{ collapsed: isSidebarCollapsed }" @click="handleSidebarClick">
+        <div class="sidebar-header" @click.stop="collapseSidebar" :class="{ clickable: !isSidebarCollapsed }">
+          <div class="sidebar-header-row" v-show="!isSidebarCollapsed">
+            <h3>配置管理</h3>
           </div>
-          <div class="sidebar-actions-row" v-show="!isSidebarCollapsed">
-            <el-button 
-              type="success" 
-              @click="createNewConfig"
-              :disabled="isCrawling"
-            >
-              <el-icon><Document /></el-icon>
-              新建
-            </el-button>
-            
-            <el-button 
-              type="info" 
-              @click="loadConfigList"
-            >
-              <el-icon><Refresh /></el-icon>
-              刷新
-            </el-button>
-          </div>
+        </div>
+        <div class="sidebar-actions-row" v-show="!isSidebarCollapsed">
+          <el-button 
+            type="success" 
+            @click="createNewConfig"
+            :disabled="isCrawling"
+          >
+            <el-icon><Document /></el-icon>
+            新建
+          </el-button>
+          
+          <el-button 
+            type="info" 
+            @click="loadConfigList"
+          >
+            <el-icon><Refresh /></el-icon>
+            刷新
+          </el-button>
         </div>
 
         <div class="config-list" v-show="!isSidebarCollapsed">
@@ -74,7 +64,7 @@
       <!-- 统一的工具区域 -->
       <div class="unified-tool-section" :class="{ collapsed: isToolSectionCollapsed }">
         <div class="tool-section-header" @click="toggleToolSection">
-          <h2 class="main-section-title">配置区域</h2>
+          <h2 class="section-title">爬取配置</h2>
           <el-button type="text" class="collapse-btn">
             <el-icon :size="20">
               <ArrowUp v-if="!isToolSectionCollapsed" />
@@ -85,7 +75,6 @@
         
         <div class="tool-section-content" v-show="!isToolSectionCollapsed">
         <div class="tool-section">
-        <h2 class="section-title">爬取配置</h2>
         
         <div class="form-container">
           <el-form :model="crawlForm" label-width="120px" ref="crawlFormRef">
@@ -103,7 +92,7 @@
                   v-model="crawlForm.platformType" 
                   placeholder="选择平台类型"
                   style="width: 100%;"
-                  :disabled="!!selectedConfigId"
+                  :disabled="!!selectedConfigId || (weaponIdList && weaponIdList.length > 0)"
                   @change="handlePlatformTypeChange"
                 >
                   <el-option label="悠悠有品" value="youpin" />
@@ -144,18 +133,44 @@
               </el-form-item>
             </div>
 
-            <el-form-item label="饰品列表">
-              <div class="weapon-id-tags">
-                <el-tag
-                  v-for="weapon in weaponIdList"
-                  :key="weapon.id"
-                  closable
-                  @close="removeWeaponId(weapon.id)"
-                  type="primary"
-                  size="large"
+            <el-form-item>
+              <template #label>
+                <div class="collapsible-label">
+                  <span class="label-text" @click="toggleWeaponList">
+                    饰品列表 ({{ weaponIdList.length }})
+                    <el-icon 
+                      class="collapse-icon-inline" 
+                      :class="{ 'is-collapsed': isWeaponListCollapsed }"
+                    >
+                      <ArrowUp v-if="!isWeaponListCollapsed" />
+                      <ArrowDown v-else />
+                    </el-icon>
+                  </span>
+                </div>
+              </template>
+              <div class="weapon-id-section" v-show="!isWeaponListCollapsed">
+                <div class="weapon-id-tags">
+                  <el-tag
+                    v-for="weapon in weaponIdList"
+                    :key="weapon.id"
+                    closable
+                    @close="removeWeaponId(weapon.id)"
+                    type="primary"
+                    size="large"
+                  >
+                    {{ weapon.name }} (ID: {{ weapon.id }})
+                  </el-tag>
+                </div>
+                <el-button 
+                  v-if="weaponIdList && weaponIdList.length > 0"
+                  type="danger" 
+                  size="small"
+                  @click="clearAllWeaponIds"
+                  style="margin-left: 10px;"
                 >
-                  {{ weapon.name }} (ID: {{ weapon.id }})
-                </el-tag>
+                  <el-icon><Delete /></el-icon>
+                  一键清空
+                </el-button>
               </div>
             </el-form-item>
 
@@ -343,7 +358,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Document, Delete, Refresh, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
+import { Document, Delete, Refresh, ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import { API_CONFIG } from '@/config/api.js'
 import WeaponSearch from '@/views/Units/weapon_search.vue'
 
@@ -355,9 +370,7 @@ export default {
     Delete,
     Refresh,
     ArrowUp,
-    ArrowDown,
-    ArrowLeft,
-    ArrowRight
+    ArrowDown
   },
   setup() {
     const router = useRouter()
@@ -563,6 +576,8 @@ export default {
     
     // 工具区域折叠状态
     const isToolSectionCollapsed = ref(false)
+    // 饰品列表折叠状态（默认折叠）
+    const isWeaponListCollapsed = ref(true)
     // 左侧配置栏折叠状态
     const isSidebarCollapsed = ref(false)
     
@@ -684,9 +699,25 @@ export default {
       isToolSectionCollapsed.value = !isToolSectionCollapsed.value
     }
 
-    // 切换左侧配置栏折叠
-    const toggleSidebar = () => {
-      isSidebarCollapsed.value = !isSidebarCollapsed.value
+    const toggleWeaponList = () => {
+      isWeaponListCollapsed.value = !isWeaponListCollapsed.value
+    }
+
+    // 左侧配置栏交互
+    const collapseSidebar = () => {
+      if (!isSidebarCollapsed.value) {
+        isSidebarCollapsed.value = true
+      }
+    }
+
+    const handleSidebarClick = () => {
+      if (isSidebarCollapsed.value) {
+        isSidebarCollapsed.value = false
+      }
+    }
+
+    const clearAllWeaponIds = () => {
+      crawlForm.value.weaponId = []
     }
 
     // 加载数据库中最近的搜索结果（页面加载时）
@@ -1965,6 +1996,9 @@ export default {
       addWeaponId,
       removeWeaponId,
       weaponIdList,
+      isWeaponListCollapsed,
+      toggleWeaponList,
+      clearAllWeaponIds,
       getRowClassName,
       // 购买相关
       buyingItems,
@@ -1978,7 +2012,8 @@ export default {
       toggleToolSection,
       // 左侧配置栏折叠
       isSidebarCollapsed,
-      toggleSidebar,
+      collapseSidebar,
+      handleSidebarClick,
       // JSON 编辑器
       jsonValidationMessage,
       jsonValidationStatus,
@@ -2051,15 +2086,14 @@ export default {
   justify-content: space-between;
 }
 
-.sidebar-toggle-btn {
-  padding: 0;
-  min-width: auto;
-}
-
 .sidebar-actions-row {
   display: flex;
   gap: 0.5rem;
   margin-top: 0.75rem;
+}
+
+.sidebar-header.clickable {
+  cursor: pointer;
 }
 
 .sidebar-header h3 {
@@ -2396,6 +2430,43 @@ export default {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+}
+
+.weapon-id-section {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.collapsible-label {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.collapsible-label .label-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s ease;
+}
+
+.collapsible-label .label-text:hover {
+  color: #409EFF;
+}
+
+.collapse-icon-inline {
+  font-size: 0.875rem;
+  transition: transform 0.3s ease;
+  color: inherit;
+}
+
+.collapse-icon-inline.is-collapsed {
+  transform: rotate(0deg);
 }
 
 .action-buttons {
