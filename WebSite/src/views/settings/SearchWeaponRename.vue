@@ -27,6 +27,8 @@
           </el-button>
         </div>
 
+        <div class="sidebar-divider" v-show="!isSidebarCollapsed"></div>
+
         <div class="config-list" v-show="!isSidebarCollapsed">
           <div 
             v-for="config in savedConfigs" 
@@ -2090,6 +2092,14 @@ export default {
   display: flex;
   gap: 0.5rem;
   margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-divider {
+  height: 1px;
+  background-color: #2f2f2f;
+  border-radius: 1px;
+  margin-bottom: 1rem;
 }
 
 .sidebar-header.clickable {
