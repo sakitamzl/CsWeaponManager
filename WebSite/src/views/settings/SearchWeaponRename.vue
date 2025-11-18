@@ -491,17 +491,19 @@ export default {
     }
     
     // 清空爬虫历史
-    const clearCrawlHistory = async () => {
+    const clearCrawlHistory = async (skipConfirm = false) => {
       try {
-        await ElMessageBox.confirm(
-          '确定要清空所有查询结果吗？此操作将删除数据库中所有改名饰品数据，不可恢复。',
-          '确认清空',
-          {
-            confirmButtonText: '确定',
-            cancelButtonText: '取消',
-            type: 'warning'
-          }
-        )
+        if (!skipConfirm) {
+          await ElMessageBox.confirm(
+            '确定要清空所有查询结果吗？此操作将删除数据库中所有改名饰品数据，不可恢复。',
+            '确认清空',
+            {
+              confirmButtonText: '确定',
+              cancelButtonText: '取消',
+              type: 'warning'
+            }
+          )
+        }
         
         // 调用后端 API 清空数据库
         const response = await fetch(`${API_CONFIG.BASE_URL}/searchRename/clear`, {
@@ -519,12 +521,14 @@ export default {
           // 清空前端数据
           crawlResult.value = null
           localStorage.removeItem(STORAGE_KEY)
-          ElMessage.success(result.message || `已清空 ${result.count} 条数据`)
+          if (!skipConfirm) {
+            ElMessage.success(result.message || `已清空 ${result.count} 条数据`)
+          }
         } else {
           throw new Error(result.message || '清空失败')
         }
       } catch (error) {
-        if (error !== 'cancel') {
+        if (error !== 'cancel' && !skipConfirm) {
           console.error('清空失败:', error)
           ElMessage.error(error.message || '清空失败')
         }
@@ -947,8 +951,9 @@ export default {
 
     // 开始爬取（流式接收）- 全新重构版本
     const startCrawl = async () => {
-      // 开始搜索时自动折叠工具区域
+      // 开始搜索时自动折叠工具区域与配置栏
       isToolSectionCollapsed.value = true
+      isSidebarCollapsed.value = true
       
       // 验证基本配置
       if (!crawlForm.value.configName) {
@@ -1011,6 +1016,9 @@ export default {
       } catch {
         return
       }
+
+      // 自动清空历史结果列表（无需确认）
+      await clearCrawlHistory(true)
 
       // 初始化状态
       isCrawling.value = true
