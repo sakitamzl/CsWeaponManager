@@ -18,8 +18,11 @@
             <div class="config-item-header">
               <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
                 <span class="config-name">{{ config.dataName }}</span>
-                <el-tag :type="config.platformType === 'buff' ? 'warning' : 'success'" size="small">
-                  {{ config.platformType === 'buff' ? 'BUFF' : '悠悠有品' }}
+                <el-tag 
+                  :type="config.platformType === 'buff' ? 'warning' : (config.platformType === 'youpin' ? 'success' : 'info')" 
+                  size="small"
+                >
+                  {{ getSourceLabel(config.platformType) }}
                 </el-tag>
               </div>
             </div>
@@ -532,7 +535,7 @@ export default {
       configName: '',      // 对应 dataName
       steamId: '',         // 购买账号
       crawlAccountId: '',  // 爬取账号
-      platformType: 'youpin',  // 平台类型：youpin 或 buff
+      platformType: '',    // 平台类型：youpin 或 buff
       weaponId: [],        // 改为数组，存储 {id, name} 对象
       customConfig: ''     // 对应 value，JSON字符串
     })
@@ -544,73 +547,113 @@ export default {
 
     // 计算是否可以开始爬取
     const canStartCrawl = computed(() => {
-      // 检查必填字段
       if (!crawlForm.value.configName) return false
+      if (!crawlForm.value.platformType) return false
+      if (!crawlForm.value.crawlAccountId) return false
       if (!crawlForm.value.steamId) return false
       if (!crawlForm.value.weaponId || crawlForm.value.weaponId.length === 0) return false
       return true
     })
 
-    // 根据平台类型过滤Steam ID列表
+    const normalizePlatformKey = (value) => {
+      if (!value && value !== 0) return ''
+      const normalized = value.toString().trim().toLowerCase()
+      if (['youpin', 'yyyp', 'you_pin', 'you-pin', '悠悠有品'].some(k => normalized === k.toLowerCase())) {
+        return 'youpin'
+      }
+      if (['buff', 'buff平台'].some(k => normalized === k.toLowerCase())) {
+        return 'buff'
+      }
+      return normalized
+    }
+
+    const PLATFORM_ACCOUNT_SOURCE_MAP = {
+      youpin: { key1: 'youpin', key2: 'config', label: '悠悠有品' },
+      buff: { key1: 'buff', key2: 'config', label: 'BUFF' }
+    }
+
     const filteredSteamIdList = computed(() => {
-      console.log('原始Steam ID列表:', steamIdList.value)
-      console.log('当前平台类型:', crawlForm.value.platformType)
-      
-      if (!crawlForm.value.platformType) {
-        return steamIdList.value
+      const platformKey = normalizePlatformKey(crawlForm.value.platformType || '')
+      if (!platformKey) {
+        console.log('[账号列表] 未选择平台，返回空账号列表')
+        return []
       }
-      
-      // 根据平台类型过滤
-      const filtered = steamIdList.value.filter(item => {
-        console.log(`检查账号: ${item.dataName}, key1=${item.key1}, 平台=${crawlForm.value.platformType}`)
-        return item.key1 === crawlForm.value.platformType
-      })
-      
-      console.log(`过滤后的Steam ID列表 (${crawlForm.value.platformType}):`, filtered)
-      
-      // 如果过滤后为空，返回所有账号
-      if (filtered.length === 0) {
-        console.warn(`没有找到 key1='${crawlForm.value.platformType}' 的账号，显示所有账号`)
-        return steamIdList.value
-      }
-      
-      return filtered
+      const accounts = platformAccountLists.value[platformKey] || []
+      console.log(`[账号列表] 平台: ${platformKey}, 账号数量: ${accounts.length}`, accounts)
+      return accounts
     })
 
-    // 加载Steam ID列表
-    const loadSteamIdList = async () => {
+    const loadAccountsForPlatform = async (platformType) => {
+      const platformKey = normalizePlatformKey(platformType)
+      if (!platformKey) {
+        return
+      }
+
+      const sourceConfig = PLATFORM_ACCOUNT_SOURCE_MAP[platformKey]
+      if (!sourceConfig) {
+        console.warn(`[平台账号] 未配置平台 ${platformKey} 的数据源`)
+        return
+      }
+
+      if (accountLoadingStates.value[platformKey]) {
+        return
+      }
+
+      const cachedList = platformAccountLists.value[platformKey]
+      if (cachedList && cachedList.length > 0) {
+        return
+      }
+
+      accountLoadingStates.value = {
+        ...accountLoadingStates.value,
+        [platformKey]: true
+      }
+
       try {
-        const response = await axios.get(`${API_CONFIG.BASE_URL}/webInventoryV1/steam_ids`)
-        console.log('Steam ID API 响应:', response.data)
-        if (response.data.success && response.data.data.length > 0) {
-          steamIdList.value = response.data.data
-          console.log('已加载 Steam ID 列表:', steamIdList.value)
-          // 默认选择第一个符合平台类型的
-          updateDefaultSteamId()
+        const response = await axios.get(`${API_CONFIG.BASE_URL}/configV1/list`, {
+          params: {
+            key1: sourceConfig.key1,
+            key2: sourceConfig.key2
+          }
+        })
+        console.log(`[平台账号] ${platformKey} 配置API响应:`, response.data)
+        if (response.data.success && Array.isArray(response.data.data)) {
+          const mappedList = response.data.data.map(item => {
+            let parsedValue = {}
+            if (item.value) {
+              try {
+                parsedValue = typeof item.value === 'string'
+                  ? JSON.parse(item.value)
+                  : (item.value || {})
+              } catch (parseError) {
+                console.error(`[平台账号] 解析配置 value 失败 (${platformKey}):`, parseError)
+              }
+            }
+            const steamId = parsedValue.steam_id || parsedValue.steamId || item.steamId || item.steamID || ''
+            const displayName = item.dataName || parsedValue.accountName || parsedValue.name || `配置账号 #${item.id}`
+            return {
+              ...item,
+              steamID: steamId,
+              steam_id: steamId,
+              dataName: displayName,
+              platformKey,
+              platformLabel: sourceConfig.label,
+              rawConfig: parsedValue
+            }
+          })
+
+          platformAccountLists.value = {
+            ...platformAccountLists.value,
+            [platformKey]: mappedList
+          }
         }
       } catch (error) {
-        console.error('加载Steam ID列表失败:', error)
-        console.error('错误详情:', error.response)
-      }
-    }
-    
-    // 更新默认Steam ID（根据当前平台类型）
-    const updateDefaultSteamId = () => {
-      if (filteredSteamIdList.value.length > 0) {
-        const firstItem = filteredSteamIdList.value[0]
-        const steamId = firstItem.steamID || firstItem.steam_id || ''
-        
-        // 设置爬取账号和购买账号为同一个账号
-        crawlForm.value.crawlAccountId = steamId
-        crawlForm.value.steamId = steamId
-        
-        console.log(`已设置默认账号: ${steamId}`)
-        console.log(`  - 爬取账号: ${crawlForm.value.crawlAccountId}`)
-        console.log(`  - 购买账号: ${crawlForm.value.steamId}`)
-      } else {
-        crawlForm.value.crawlAccountId = ''
-        crawlForm.value.steamId = ''
-        console.warn(`没有找到平台类型为 ${crawlForm.value.platformType} 的Steam ID`)
+        console.error(`[平台账号] 加载 ${platformKey} 账号配置失败:`, error)
+      } finally {
+        accountLoadingStates.value = {
+          ...accountLoadingStates.value,
+          [platformKey]: false
+        }
       }
     }
 
@@ -654,6 +697,11 @@ export default {
         ElMessage.warning('请输入配置名称')
         return
       }
+
+      if (!crawlForm.value.platformType) {
+        ElMessage.warning('请选择平台类型')
+        return
+      }
       
       if (!crawlForm.value.crawlAccountId) {
         ElMessage.warning('请选择爬取账号')
@@ -683,7 +731,7 @@ export default {
         confirmMessage += `配置名称: ${crawlForm.value.configName}\n`
         confirmMessage += `爬取账号: ${crawlForm.value.crawlAccountId}\n`
         confirmMessage += `购买账号: ${crawlForm.value.steamId}\n`
-        confirmMessage += `平台类型: ${crawlForm.value.platformType === 'buff' ? 'BUFF' : '悠悠有品'}\n`
+        confirmMessage += `平台类型: ${getSourceLabel(crawlForm.value.platformType)}\n`
         confirmMessage += `监控饰品数量: ${crawlForm.value.weaponId.length} 个`
         
         if (jsonValidation.config) {
@@ -934,19 +982,28 @@ export default {
 
     // 重置表单
     const resetForm = () => {
-      const defaultSteamId = filteredSteamIdList.value.length > 0 
-        ? (filteredSteamIdList.value[0].steamID || filteredSteamIdList.value[0].steam_id || '') 
-        : ''
-      
+      isProgrammaticPlatformChange.value = true
       crawlForm.value = {
         configName: '',
-        steamId: defaultSteamId,
-        crawlAccountId: defaultSteamId,
-        platformType: 'youpin',
+        steamId: '',
+        crawlAccountId: '',
+        platformType: '',
         weaponId: [],
         customConfig: ''
       }
       crawlResult.value = null
+    }
+
+    const getSourceLabel = (source) => {
+      const labels = {
+        youpin: '悠悠有品',
+        buff: 'BUFF',
+        steam: 'Steam库存'
+      }
+      if (!source) {
+        return '未设置'
+      }
+      return labels[source] || source
     }
 
     // 加载配置列表
@@ -961,10 +1018,10 @@ export default {
         
         console.log('配置列表响应:', response.data)
         
-        // 根据 key2 字段判断平台类型
+        // 保存平台类型
         savedConfigs.value = (response.data.data || []).map(config => ({
           ...config,
-          platformType: config.key2 === 'buff' ? 'buff' : 'youpin'
+          platformType: config.key2 || ''
         }))
         
         // 按ID降序排序
@@ -994,6 +1051,10 @@ export default {
         console.log('找到的配置对象:', config)
         
         if (config && config.value) {
+          const platformType = config.platformType || ''
+          if (platformType) {
+            await loadAccountsForPlatform(platformType)
+          }
           // 解析 value 字段（JSON字符串）
           let valueObj
           try {
@@ -1017,13 +1078,14 @@ export default {
           console.log('  - platformType:', config.platformType)
           
           // 移除 weapon_id 和 steam_id，剩余的作为自定义配置
-          const { weapon_id, steam_id, ...restConfig } = valueObj
+          const { weapon_id, steam_id, crawl_account_id, ...restConfig } = valueObj
           
           // 构建新的表单数据
           const newFormData = {
             configName: config.dataName || '',
             steamId: steamId,
-            platformType: config.platformType || 'youpin',
+            crawlAccountId: crawl_account_id || steamId || '',
+            platformType: platformType,
             weaponId: Array.isArray(weaponId) ? weaponId : [],
             customConfig: Object.keys(restConfig).length > 0 ? JSON.stringify(restConfig, null, 2) : ''
           }
@@ -1031,6 +1093,7 @@ export default {
           console.log('准备填充的表单数据:', newFormData)
           
           // 加载配置数据到表单
+          isProgrammaticPlatformChange.value = true
           crawlForm.value = newFormData
           
           // 等待下一个tick确保数据已更新
@@ -1064,11 +1127,18 @@ export default {
     }
 
     // 平台类型改变处理
-    const handlePlatformTypeChange = () => {
-      // 切换平台类型时，自动更新Steam ID为该平台的第一个
-      updateDefaultSteamId()
+    const handlePlatformTypeChange = async () => {
+      if (isProgrammaticPlatformChange.value) {
+        isProgrammaticPlatformChange.value = false
+      } else {
+        crawlForm.value.crawlAccountId = ''
+        crawlForm.value.steamId = ''
+      }
       
-      // 实时保存配置
+      if (crawlForm.value.platformType) {
+        await loadAccountsForPlatform(crawlForm.value.platformType)
+      }
+      
       if (selectedConfigId.value) {
         autoSaveConfig()
       }
@@ -1077,6 +1147,10 @@ export default {
     // 自动保存配置
     const autoSaveConfig = async () => {
       if (!crawlForm.value.configName) {
+        return
+      }
+
+      if (!crawlForm.value.platformType) {
         return
       }
 
@@ -1091,7 +1165,8 @@ export default {
         // 构建配置对象
         const valueObj = {
           weapon_id: crawlForm.value.weaponId,
-          steam_id: crawlForm.value.steamId
+          steam_id: crawlForm.value.steamId,
+          crawl_account_id: crawlForm.value.crawlAccountId
         }
 
         // 如果有自定义配置，合并进去
@@ -1100,7 +1175,7 @@ export default {
         }
 
         // 根据平台类型设置 key2
-        const key2 = crawlForm.value.platformType === 'buff' ? 'buff' : 'youpin'
+        const key2 = crawlForm.value.platformType
 
         const configData = {
           id: selectedConfigId.value,
@@ -1127,6 +1202,11 @@ export default {
         return
       }
 
+      if (!crawlForm.value.platformType) {
+        ElMessage.warning('请选择平台类型')
+        return
+      }
+
       try {
         // 构建 value 对象
         let valueObj = {}
@@ -1150,9 +1230,12 @@ export default {
         if (crawlForm.value.steamId) {
           valueObj.steam_id = crawlForm.value.steamId
         }
+        if (crawlForm.value.crawlAccountId) {
+          valueObj.crawl_account_id = crawlForm.value.crawlAccountId
+        }
 
         // 根据平台类型设置 key2
-        const key2 = crawlForm.value.platformType === 'buff' ? 'buff' : 'youpin'
+        const key2 = crawlForm.value.platformType
 
         const configData = {
           dataName: crawlForm.value.configName,
@@ -1161,13 +1244,31 @@ export default {
           value: JSON.stringify(valueObj)
         }
 
-        const response = await axios.post(`${API_CONFIG.BASE_URL}/configV1/save`, configData)
+        const isUpdating = !!selectedConfigId.value
+        let response
+
+        if (isUpdating) {
+          configData.id = selectedConfigId.value
+          response = await axios.post(`${API_CONFIG.BASE_URL}/webConfigV1/updateConfig`, configData)
+        } else {
+          response = await axios.post(`${API_CONFIG.BASE_URL}/configV1/save`, configData)
+        }
         
         if (response.data.success) {
-          ElMessage.success('保存配置成功')
+          ElMessage.success(isUpdating ? '更新配置成功' : '保存配置成功')
           
           // 重新加载配置列表
           await loadConfigList()
+
+          if (isUpdating && selectedConfigId.value) {
+            await selectConfig(selectedConfigId.value)
+          } else if (!isUpdating) {
+            const newId = response.data.data?.id
+            if (newId) {
+              selectedConfigId.value = newId
+              await selectConfig(newId)
+            }
+          }
         } else {
           throw new Error(response.data.message || '保存配置失败')
         }
@@ -1542,10 +1643,12 @@ export default {
     // 根据平台类型获取对应的饰品ID
     const getWeaponIdByPlatform = (row) => {
       if (crawlForm.value.platformType === 'buff') {
-        return row.buff_id
-      } else {
-        return row.yyyp_id
+        return row.buff_id || row.yyyp_id || row.id || ''
       }
+      if (crawlForm.value.platformType === 'youpin') {
+        return row.yyyp_id || row.buff_id || row.id || ''
+      }
+      return row.yyyp_id || row.buff_id || row.id || ''
     }
 
     // 添加饰品ID到表单
@@ -1608,10 +1711,15 @@ export default {
     }
 
     const addWeaponId = (row) => {
+      if (!crawlForm.value.platformType) {
+        ElMessage.warning('请先选择平台类型')
+        return
+      }
+
       const weaponId = getWeaponIdByPlatform(row)
       
       if (!weaponId) {
-        const platformName = crawlForm.value.platformType === 'buff' ? 'BUFF' : '悠悠有品'
+        const platformName = getSourceLabel(crawlForm.value.platformType) || '当前平台'
         ElMessage.warning(`该饰品没有${platformName}ID`)
         return
       }
@@ -1628,19 +1736,24 @@ export default {
         name: row.market_listing_item_name || row.name || '未知饰品'
       })
 
-      const platformName = crawlForm.value.platformType === 'buff' ? 'BUFF' : '悠悠有品'
+      const platformName = getSourceLabel(crawlForm.value.platformType) || '当前平台'
       ElMessage.success(`已添加${platformName}饰品: ${row.market_listing_item_name || row.name}`)
     }
 
     // 一键添加全部饰品ID
     const addAllWeaponIds = async () => {
+      if (!crawlForm.value.platformType) {
+        ElMessage.warning('请先选择平台类型')
+        return
+      }
+
       if (!weaponSearchResults.value || weaponSearchResults.value.length === 0) {
         ElMessage.warning('没有可添加的饰品')
         return
       }
 
       try {
-        const platformName = crawlForm.value.platformType === 'buff' ? 'BUFF' : '悠悠有品'
+        const platformName = getSourceLabel(crawlForm.value.platformType) || '当前平台'
         
         await ElMessageBox.confirm(
           `确定要添加全部 ${weaponSearchResults.value.length} 个饰品吗？`,
@@ -1972,7 +2085,9 @@ export default {
 
     // 组件挂载时加载数据
     onMounted(() => {
-      loadSteamIdList()
+      if (crawlForm.value.platformType) {
+        loadAccountsForPlatform(crawlForm.value.platformType)
+      }
       loadConfigList()
       
       // 恢复历史爬虫结果
@@ -1989,7 +2104,6 @@ export default {
 
     return {
       crawlFormRef,
-      steamIdList,
       filteredSteamIdList,
       isCrawling,
       crawlForm,
@@ -2026,6 +2140,7 @@ export default {
       loadMoreWeapons,
       clearWeaponSearch,
       getWeaponIdByPlatform,
+      getSourceLabel,
       addWeaponId,
       addAllWeaponIds,
       removeWeaponId,
