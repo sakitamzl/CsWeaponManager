@@ -402,7 +402,9 @@ export default {
   setup() {
     const router = useRouter()
     const crawlFormRef = ref(null)
-    const steamIdList = ref([])
+    const platformAccountLists = ref({})
+    const accountLoadingStates = ref({})
+    const isProgrammaticPlatformChange = ref(false)
     const isCrawling = ref(false)
     const crawlResult = ref(null)
     
