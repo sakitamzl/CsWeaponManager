@@ -1339,6 +1339,55 @@ export default {
       }
     }
 
+    const autoSaveConfig = async () => {
+      if (!selectedConfigId.value) {
+        return
+      }
+      if (!crawlForm.value.configName) {
+        return
+      }
+      if (!crawlForm.value.platformType) {
+        return
+      }
+
+      try {
+        let valueObj = {}
+
+        if (crawlForm.value.customConfig) {
+          try {
+            valueObj = JSON.parse(crawlForm.value.customConfig)
+          } catch (error) {
+            console.warn('自动保存跳过，JSON 无效:', error.message)
+            return
+          }
+        }
+
+        if (crawlForm.value.weaponId && crawlForm.value.weaponId.length > 0) {
+          valueObj.weapon_id = crawlForm.value.weaponId
+        }
+
+        if (crawlForm.value.steamId) {
+          valueObj.steam_id = crawlForm.value.steamId
+        }
+
+        if (crawlForm.value.crawlAccountId) {
+          valueObj.crawl_account_id = crawlForm.value.crawlAccountId
+        }
+
+        const configData = {
+          id: selectedConfigId.value,
+          dataName: crawlForm.value.configName,
+          key1: 'spider_rename',
+          key2: crawlForm.value.platformType,
+          value: JSON.stringify(valueObj)
+        }
+
+        await axios.post(`${API_CONFIG.BASE_URL}/configV1/update`, configData)
+      } catch (error) {
+        console.error('自动保存配置失败:', error)
+      }
+    }
+
     // 创建新配置（清空表单）
     const createNewConfig = () => {
       selectedConfigId.value = null
@@ -1400,7 +1449,7 @@ export default {
 
         if (isUpdating) {
           configData.id = selectedConfigId.value
-          response = await axios.post(`${API_CONFIG.BASE_URL}/webConfigV1/updateConfig`, configData)
+          response = await axios.post(`${API_CONFIG.BASE_URL}/configV1/update`, configData)
         } else {
           response = await axios.post(`${API_CONFIG.BASE_URL}/configV1/save`, configData)
         }
@@ -2083,6 +2132,7 @@ export default {
       selectConfig,
       createNewConfig,
       saveConfig,
+      autoSaveConfig,
       deleteConfig,
       deleteCurrentConfig,
       formatTime,

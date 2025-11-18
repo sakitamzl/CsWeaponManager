@@ -1249,7 +1249,7 @@ export default {
 
         if (isUpdating) {
           configData.id = selectedConfigId.value
-          response = await axios.post(`${API_CONFIG.BASE_URL}/webConfigV1/updateConfig`, configData)
+          response = await axios.post(`${API_CONFIG.BASE_URL}/configV1/update`, configData)
         } else {
           response = await axios.post(`${API_CONFIG.BASE_URL}/configV1/save`, configData)
         }
