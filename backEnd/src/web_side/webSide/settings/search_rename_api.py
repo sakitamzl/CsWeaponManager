@@ -243,15 +243,15 @@ def get_items_list():
         
         # 使用模型对象查询，确保字段映射正确
         if session_id:
-            # 查询指定会话的所有数据
+            # 查询指定会话的所有数据（仅返回存在改名标签的数据）
             model_results = SearchRenameResultModel.find_all(
-                "session_id = ? AND data_type = 'rename' ORDER BY id DESC",
+                "session_id = ? AND data_type = 'rename' AND name_tag IS NOT NULL ORDER BY id DESC",
                 (session_id,)
             )
         else:
-            # 查询所有改名饰品数据，按ID倒序
+            # 查询所有改名饰品数据（仅返回存在改名标签的数据），按ID倒序
             model_results = SearchRenameResultModel.find_all(
-                "data_type = 'rename' ORDER BY id DESC"
+                "data_type = 'rename' AND name_tag IS NOT NULL ORDER BY id DESC"
             )
         
         logger.write_log(f"查询结果: {len(model_results) if model_results else 0} 条", 'INFO')

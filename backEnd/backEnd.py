@@ -1,4 +1,5 @@
 import os
+import logging
 from flask import Flask
 from flask_cors import CORS
 from src.config.config_v1 import configV1
@@ -90,6 +91,10 @@ def blankEndApi():
     app.register_blueprint(loginSettingsPage, url_prefix = '/loginSettingsV1')
     app.register_blueprint(database_manager_bp)
     app.register_blueprint(search_rename_bp)  # 改名饰品搜索API
+    
+    # 禁用 werkzeug 的 HTTP 请求日志
+    log = logging.getLogger('werkzeug')
+    log.setLevel(logging.ERROR)
     
     # 启动任务调度器 (只在主进程中启动)
     if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':

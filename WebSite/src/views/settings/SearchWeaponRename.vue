@@ -2,12 +2,42 @@
   <div class="spider-weapon-rename-container">
     <div class="page-layout">
       <!-- 左侧配置管理栏 -->
-      <aside class="config-sidebar">
+      <aside class="config-sidebar" :class="{ collapsed: isSidebarCollapsed }">
         <div class="sidebar-header">
-          <h3>配置管理</h3>
+          <div class="sidebar-header-row">
+            <h3 v-show="!isSidebarCollapsed">配置管理</h3>
+            <el-button
+              class="sidebar-toggle-btn"
+              type="text"
+              @click="toggleSidebar"
+            >
+              <el-icon>
+                <ArrowLeft v-if="!isSidebarCollapsed" />
+                <ArrowRight v-else />
+              </el-icon>
+            </el-button>
+          </div>
+          <div class="sidebar-actions-row" v-show="!isSidebarCollapsed">
+            <el-button 
+              type="success" 
+              @click="createNewConfig"
+              :disabled="isCrawling"
+            >
+              <el-icon><Document /></el-icon>
+              新建
+            </el-button>
+            
+            <el-button 
+              type="info" 
+              @click="loadConfigList"
+            >
+              <el-icon><Refresh /></el-icon>
+              刷新
+            </el-button>
+          </div>
         </div>
 
-        <div class="config-list">
+        <div class="config-list" v-show="!isSidebarCollapsed">
           <div 
             v-for="config in savedConfigs" 
             :key="config.id"
@@ -34,25 +64,6 @@
           <div v-if="savedConfigs.length === 0" class="empty-config">
             <el-empty description="暂无保存的配置" :image-size="80" />
           </div>
-        </div>
-
-        <div class="sidebar-actions">
-          <el-button 
-            type="success" 
-            @click="createNewConfig"
-            :disabled="isCrawling"
-          >
-            <el-icon><Document /></el-icon>
-            新建
-          </el-button>
-          
-          <el-button 
-            type="info" 
-            @click="loadConfigList"
-          >
-            <el-icon><Refresh /></el-icon>
-            刷新
-          </el-button>
         </div>
       </aside>
 
@@ -229,7 +240,6 @@
             type="danger" 
             size="small"
             @click="clearCrawlHistory"
-            :disabled="isCrawling"
           >
             <el-icon><Delete /></el-icon>
             清空列表
@@ -239,7 +249,7 @@
         <!-- 统一商品列表 -->
         <el-table 
           :data="allCrawlItems" 
-          style="width: 100%; min-width: max(1200px, 100%);"
+          style="width: 100%;"
           stripe
         >
           <el-table-column label="图标" width="80" fixed="left" align="center">
@@ -333,7 +343,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Document, Delete, Refresh, ArrowUp, ArrowDown } from '@element-plus/icons-vue'
+import { Document, Delete, Refresh, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 import { API_CONFIG } from '@/config/api.js'
 import WeaponSearch from '@/views/Units/weapon_search.vue'
 
@@ -345,7 +355,9 @@ export default {
     Delete,
     Refresh,
     ArrowUp,
-    ArrowDown
+    ArrowDown,
+    ArrowLeft,
+    ArrowRight
   },
   setup() {
     const router = useRouter()
@@ -551,6 +563,8 @@ export default {
     
     // 工具区域折叠状态
     const isToolSectionCollapsed = ref(false)
+    // 左侧配置栏折叠状态
+    const isSidebarCollapsed = ref(false)
     
     // JSON 验证相关
     const jsonValidationMessage = ref('')
@@ -668,6 +682,11 @@ export default {
     // 切换工具区域显示/隐藏
     const toggleToolSection = () => {
       isToolSectionCollapsed.value = !isToolSectionCollapsed.value
+    }
+
+    // 切换左侧配置栏折叠
+    const toggleSidebar = () => {
+      isSidebarCollapsed.value = !isSidebarCollapsed.value
     }
 
     // 加载数据库中最近的搜索结果（页面加载时）
@@ -1957,6 +1976,9 @@ export default {
       // 工具区域折叠
       isToolSectionCollapsed,
       toggleToolSection,
+      // 左侧配置栏折叠
+      isSidebarCollapsed,
+      toggleSidebar,
       // JSON 编辑器
       jsonValidationMessage,
       jsonValidationStatus,
@@ -2008,15 +2030,36 @@ export default {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 150px);
+  height: auto;
   position: sticky;
   top: 1rem;
+  transition: width 0.25s ease, min-width 0.25s ease;
+}
+
+.config-sidebar.collapsed {
+  width: 48px;
+  min-width: 48px;
 }
 
 .sidebar-header {
   margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #333;
+}
+
+.sidebar-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebar-toggle-btn {
+  padding: 0;
+  min-width: auto;
+}
+
+.sidebar-actions-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
 }
 
 .sidebar-header h3 {
@@ -2103,8 +2146,7 @@ export default {
 .sidebar-actions {
   display: flex;
   gap: 0.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid #333;
+  margin-left: auto;
 }
 
 .sidebar-actions .el-button {
@@ -2115,7 +2157,7 @@ export default {
 .main-content-area {
   flex: 1;
   min-width: 0;
-  max-width: calc(100% - 280px - 1.5rem);
+  width: auto;
   overflow-x: hidden;
 }
 
@@ -2734,10 +2776,6 @@ export default {
     width: 320px;
     min-width: 320px;
   }
-  
-  .main-content-area {
-    max-width: calc(100% - 320px - 1.5rem);
-  }
 }
 
 /* 中等屏幕 */
@@ -2746,10 +2784,6 @@ export default {
     width: 260px;
     min-width: 260px;
     padding: 1rem;
-  }
-  
-  .main-content-area {
-    max-width: calc(100% - 260px - 1.5rem);
   }
 }
 
@@ -2768,10 +2802,6 @@ export default {
     margin-bottom: 1rem;
   }
   
-  .main-content-area {
-    max-width: 100%;
-  }
-
   .config-list {
     max-height: 250px;
   }
