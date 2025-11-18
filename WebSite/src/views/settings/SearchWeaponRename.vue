@@ -2214,15 +2214,27 @@ export default {
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #333;
+  padding: 1rem;
+  background-color: #2a2a2a;
+  border-radius: 0.5rem;
   margin-bottom: 1.5rem;
   user-select: none;
+  transition: all 0.3s ease;
+}
+
+.tool-section-header:hover {
+  background-color: #333;
+}
+
+.tool-section-header .section-title {
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0;
+  flex: 1;
 }
 
 .unified-tool-section.collapsed .tool-section-header {
-  padding-bottom: 0;
-  border-bottom: none;
   margin-bottom: 0;
 }
 
@@ -2234,13 +2246,13 @@ export default {
 }
 
 .collapse-btn {
-  color: #909399;
-  padding: 0.5rem;
-  transition: all 0.3s ease;
+  padding: 0.25rem;
+  color: #4CAF50;
+  transition: color 0.3s ease, transform 0.3s ease;
 }
 
 .collapse-btn:hover {
-  color: #409eff;
+  color: #66BB6A;
   transform: scale(1.1);
 }
 
