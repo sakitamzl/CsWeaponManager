@@ -21,7 +21,7 @@ class WeaponClassIDModel(BaseModel):
         # 数据库列顺序：steam_hash_name, market_listing_item_name, yyyp_id, buff_id, steam_id, 
         #              weapon_type, weapon_name, item_name, float_range, Rarity, yyyp_class_name, buff_class_name,
         #              yyyp_Price, yyyp_Rent, yyyp_OnSaleCount, yyyp_OnLeaseCount,
-        #              buff_Price, buff_Rent, buff_OnSaleCount, buff_OnLeaseCount
+        #              buff_Price, buff_Rent, buff_OnSaleCount, buff_OnLeaseCount, icon_base64, icon_url
         return {
             'steam_hash_name': {
                 'type': 'TEXT',
@@ -123,6 +123,16 @@ class WeaponClassIDModel(BaseModel):
                 'default': None
             },
             'buff_OnLeaseCount': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None
+            },
+            'icon_base64': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None
+            },
+            'icon_url': {
                 'type': 'TEXT',
                 'not_null': False,
                 'default': None
@@ -235,6 +245,93 @@ class WeaponClassIDModel(BaseModel):
         """根据品质范围查询"""
         return cls.find_all(where="[float_range] = ?", params=(float_range,))
 
+    @classmethod
+    def find_by_en_weapon_name(cls, en_weapon_name: str):
+        """根据英文武器名（steam_hash_name）查询"""
+        return cls.find_by_steam_hash_name(en_weapon_name)
+
+    @classmethod
+    def get_icon_status_map(cls, steam_hash_names: List[str]) -> Dict[str, bool]:
+        """批量获取icon_base64是否存在"""
+        if not steam_hash_names:
+            return {}
+        
+        # 去重并过滤空值
+        valid_names = [name for name in set(steam_hash_names) if name]
+        if not valid_names:
+            return {}
+
+        placeholders = ','.join(['?'] * len(valid_names))
+        sql = f'''SELECT [steam_hash_name], [icon_base64]
+                  FROM {cls.get_table_name()}
+                  WHERE [steam_hash_name] IN ({placeholders})'''
+
+        db = cls().db
+        rows = db.execute_query(sql, tuple(valid_names))
+
+        status_map = {name: False for name in valid_names}
+        for steam_hash_name, icon_base64 in rows:
+            status_map[steam_hash_name] = bool(icon_base64)
+        return status_map
+
+    @classmethod
+    def get_records_for_icon_batch(cls, limit: int = 100, force: bool = False) -> List[Dict[str, Any]]:
+        """获取需要下载图标的记录"""
+        limit = max(1, min(limit, 500))
+        conditions = [
+            "[icon_url] IS NOT NULL",
+            "TRIM([icon_url]) != ''"
+        ]
+        if not force:
+            conditions.append("([icon_base64] IS NULL OR TRIM([icon_base64]) = '')")
+
+        where_clause = " AND ".join(conditions)
+        sql = f'''SELECT [steam_hash_name], [icon_url], [icon_base64]
+                  FROM {cls.get_table_name()}
+                  WHERE {where_clause}
+                  LIMIT ?'''
+
+        db = cls().db
+        rows = db.execute_query(sql, (limit,))
+
+        return [
+            {
+                'steam_hash_name': row[0],
+                'icon_url': row[1],
+                'icon_base64': row[2]
+            }
+            for row in rows
+        ]
+
+    @classmethod
+    def update_icon_data(cls, steam_hash_name: str, icon_base64: str = None, icon_url: str = None) -> bool:
+        """更新指定武器的icon字段"""
+        if not steam_hash_name:
+            return False
+
+        update_fields = []
+        params = []
+
+        if icon_base64 is not None:
+            update_fields.append("[icon_base64] = ?")
+            params.append(icon_base64)
+
+        if icon_url is not None:
+            update_fields.append("[icon_url] = ?")
+            params.append(icon_url)
+
+        if not update_fields:
+            return False
+
+        params.append(steam_hash_name)
+        sql = f'''UPDATE {cls.get_table_name()}
+                  SET {', '.join(update_fields)}
+                  WHERE [steam_hash_name] = ?'''
+
+        db = cls().db
+        affected_rows = db.execute_update(sql, tuple(params))
+        return affected_rows > 0
+
 
     @classmethod
     def batch_insert_or_update(cls, weapon_list: List[Dict[str, Any]], platform: str = 'yyyp') -> int:
@@ -290,18 +387,37 @@ class WeaponClassIDModel(BaseModel):
                             yyyp_rent = weapon_data.get('yyyp_Rent', '')
                             yyyp_on_sale_count = weapon_data.get('yyyp_OnSaleCount', '')
                             yyyp_on_lease_count = weapon_data.get('yyyp_OnLeaseCount', '')
+                            new_icon_base64 = weapon_data.get('icon_base64')
+                            existing_icon_base64 = existing_records[0].icon_base64 if existing_records else None
+                            should_update_icon = bool(new_icon_base64) and not existing_icon_base64
+                            icon_url = weapon_data.get('icon_url', existing_records[0].icon_url if existing_records else '')
                             
+                            update_fields = [
+                                "[yyyp_id] = ?",
+                                "[yyyp_class_name] = ?",
+                                "[yyyp_Price] = ?",
+                                "[yyyp_Rent] = ?",
+                                "[yyyp_OnSaleCount] = ?",
+                                "[yyyp_OnLeaseCount] = ?",
+                                "[icon_url] = ?"
+                            ]
+                            params = [
+                                platform_id, yyyp_class_name,
+                                yyyp_price, yyyp_rent,
+                                yyyp_on_sale_count, yyyp_on_lease_count,
+                                icon_url
+                            ]
+
+                            if should_update_icon:
+                                update_fields.append("[icon_base64] = ?")
+                                params.append(new_icon_base64)
+
+                            params.append(steam_hash_name)
+
                             sql_update = f'''UPDATE {cls.get_table_name()} 
-                                           SET [yyyp_id] = ?, [yyyp_class_name] = ?, 
-                                               [yyyp_Price] = ?, [yyyp_Rent] = ?, 
-                                               [yyyp_OnSaleCount] = ?, [yyyp_OnLeaseCount] = ? 
+                                           SET {', '.join(update_fields)} 
                                            WHERE [steam_hash_name] = ?'''
-                            affected_rows = db.execute_update(sql_update, (
-                                platform_id, yyyp_class_name, 
-                                yyyp_price, yyyp_rent, 
-                                yyyp_on_sale_count, yyyp_on_lease_count, 
-                                steam_hash_name
-                            ))
+                            affected_rows = db.execute_update(sql_update, tuple(params))
                             
                             if affected_rows > 0:
                                 success_count += 1
@@ -325,9 +441,12 @@ class WeaponClassIDModel(BaseModel):
                     
                     # 复制其他字段
                     for key in ['yyyp_id', 'yyyp_class_name', 'weapon_type', 'weapon_name', 'item_name', 'float_range', 'Rarity',
-                                'yyyp_Price', 'yyyp_Rent', 'yyyp_OnSaleCount', 'yyyp_OnLeaseCount']:
+                                'yyyp_Price', 'yyyp_Rent', 'yyyp_OnSaleCount', 'yyyp_OnLeaseCount', 'icon_url']:
                         if key in weapon_data:
                             insert_data[key] = weapon_data[key]
+
+                    if 'icon_base64' in weapon_data and weapon_data['icon_base64']:
+                        insert_data['icon_base64'] = weapon_data['icon_base64']
                     
                     # 检查是否有必需的主键
                     if 'steam_hash_name' not in insert_data or not insert_data['steam_hash_name']:
@@ -351,6 +470,9 @@ class WeaponClassIDModel(BaseModel):
                         # 更新现有记录（更新所有字段）
                         for key, value in weapon_data.items():
                             if hasattr(existing, key):
+                                # 如果是icon_base64且已有值，则仅在原值为空时更新
+                                if key == 'icon_base64' and existing.icon_base64:
+                                    continue
                                 setattr(existing, key, value)
 
                         if existing.save():

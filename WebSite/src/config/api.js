@@ -100,6 +100,7 @@ export const API_CONFIG = {
     YOUPIN_SPIDER: '/youping898SpiderV1/newData',
     YOUPIN_FULL_SPIDER: '/youping898SpiderV1/NoneData',
     YOUPIN_SYNC_TEMPLATES: '/youping898SpiderV1/syncWeaponTemplates',  // 同步悠悠有品饰品映射
+    YOUPIN_FETCH_ICONS: '/youpin898SelectWeaponV1/fetchWeaponIcons',   // 批量获取饰品图片
     BUFF_SPIDER: '/buffSpiderV1/NewData',
     BUFF_FULL_SPIDER: '/buffSpiderV1/allDate',
     BUFF_SYNC_TEMPLATES: '/buffSpiderV1/syncBuffTemplates',  // 同步BUFF饰品映射
@@ -266,6 +267,7 @@ export const apiUrls = {
   youpinSpider: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YOUPIN_SPIDER),
   youpinFullSpider: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YOUPIN_FULL_SPIDER),
   youpinSyncTemplates: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YOUPIN_SYNC_TEMPLATES),
+  fetchWeaponIcons: () => getApiUrl(API_CONFIG.ENDPOINTS.YOUPIN_FETCH_ICONS),
   buffSpider: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.BUFF_SPIDER),
   buffFullSpider: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.BUFF_FULL_SPIDER),
   buffSyncTemplates: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.BUFF_SYNC_TEMPLATES),

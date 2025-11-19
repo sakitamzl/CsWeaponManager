@@ -1,5 +1,7 @@
 from flask import jsonify, request, Blueprint
 from src.db_manager.index.weapon_classID import WeaponClassIDModel
+import requests
+import base64
 
 youpin898SelectWeaponV1 = Blueprint('youpin898SelectWeaponV1', __name__)
 
@@ -161,6 +163,113 @@ def getWeaponByEnName(en_weapon_name):
         }), 200
     except Exception as e:
         print(f"根据英文武器名称获取武器列表失败: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'服务器错误: {str(e)}'
+        }), 500
+
+
+@youpin898SelectWeaponV1.route('/getIconStatus', methods=['POST'])
+def getIconStatus():
+    """批量获取icon_base64状态"""
+    try:
+        data = request.get_json() or {}
+        steam_hash_names = data.get('steam_hash_names') or data.get('hash_names') or []
+
+        if not isinstance(steam_hash_names, list):
+            return jsonify({
+                'success': False,
+                'error': 'steam_hash_names需要数组格式'
+            }), 400
+
+        status_map = WeaponClassIDModel.get_icon_status_map(steam_hash_names)
+        resp_data = {}
+        for name in steam_hash_names:
+            if not name:
+                continue
+            resp_data[name] = {
+                'has_icon': status_map.get(name, False)
+            }
+
+        return jsonify({
+            'success': True,
+            'data': resp_data
+        }), 200
+    except Exception as e:
+        print(f"获取icon状态失败: {e}")
+        import traceback
+        print(f"详细错误信息: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'error': f'服务器错误: {str(e)}'
+        }), 500
+
+
+@youpin898SelectWeaponV1.route('/fetchWeaponIcons', methods=['POST'])
+def fetchWeaponIcons():
+    """批量下载饰品图片并写入Base64"""
+    try:
+        data = request.get_json() or {}
+        limit = int(data.get('limit', 50))
+        force = bool(data.get('force', False))
+        limit = max(1, min(limit, 200))
+
+        records = WeaponClassIDModel.get_records_for_icon_batch(limit=limit, force=force)
+
+        if not records:
+            return jsonify({
+                'success': True,
+                'message': '没有需要处理的饰品',
+                'processed': 0,
+                'success_count': 0,
+                'failed_count': 0
+            }), 200
+
+        success_count = 0
+        failed_items = []
+
+        for record in records:
+            steam_hash_name = record.get('steam_hash_name')
+            icon_url = record.get('icon_url')
+
+            if not icon_url:
+                failed_items.append({
+                    'steam_hash_name': steam_hash_name,
+                    'reason': '缺少icon_url'
+                })
+                continue
+
+            try:
+                response = requests.get(icon_url, timeout=20)
+                response.raise_for_status()
+                icon_base64 = base64.b64encode(response.content).decode('utf-8')
+                if WeaponClassIDModel.update_icon_data(steam_hash_name, icon_base64=icon_base64):
+                    success_count += 1
+                else:
+                    failed_items.append({
+                        'steam_hash_name': steam_hash_name,
+                        'reason': '数据库更新失败'
+                    })
+            except Exception as e:
+                failed_items.append({
+                    'steam_hash_name': steam_hash_name,
+                    'reason': str(e)
+                })
+
+        return jsonify({
+            'success': True,
+            'message': '批量获取饰品图片完成',
+            'processed': len(records),
+            'success_count': success_count,
+            'failed_count': len(failed_items),
+            'failed_items': failed_items[:10],  # 仅返回前10条失败信息
+            'force': force
+        }), 200
+
+    except Exception as e:
+        print(f"批量获取饰品图片失败: {e}")
+        import traceback
+        print(f"详细错误信息: {traceback.format_exc()}")
         return jsonify({
             'success': False,
             'error': f'服务器错误: {str(e)}'
