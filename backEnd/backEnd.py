@@ -38,7 +38,7 @@ from src.web_side.prefectWorld.stock_components_api import prefectWorldStockComp
 from src.web_side.webSide.adb_tools import adbToolsPage
 from src.web_side.webSide.login_settings import loginSettingsPage
 from src.web_side.webSide.settings.database_manager import database_manager_bp
-from src.web_side.webSide.settings.search_rename_api import search_rename_bp
+from src.web_side.webSide.settings.auto_search_weapon_api import search_rename_bp
 from src.db_manager import init_database
 from src.Unites.auto_process.task_scheduler import get_scheduler
 

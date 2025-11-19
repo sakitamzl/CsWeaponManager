@@ -10,12 +10,12 @@ import json
 from ..base_model import BaseModel
 
 
-class SearchRenameResultModel(BaseModel):
-    """改名饰品搜索结果表模型"""
+class AutoSearchWeaponModel(BaseModel):
+    """自动搜索饰品结果表模型（改名/挂件等）"""
 
     @classmethod
     def get_table_name(cls) -> str:
-        return "search_rename_result"
+        return "auto_search_weapon"
 
     @classmethod
     def get_fields(cls) -> Dict[str, Dict[str, Any]]:
@@ -204,7 +204,7 @@ class SearchRenameResultModel(BaseModel):
             data_type: 数据类型过滤，默认为'rename'
             
         Returns:
-            List[SearchRenameResultModel]: 结果列表
+            List[AutoSearchWeaponModel]: 结果列表
         """
         if status:
             return cls.find_all(
@@ -300,7 +300,7 @@ class SearchRenameResultModel(BaseModel):
             limit: 返回数量限制
             
         Returns:
-            List[SearchRenameResultModel]: 结果列表
+            List[AutoSearchWeaponModel]: 结果列表
         """
         return cls.find_all(
             "session_id = ? AND status = 'active' ORDER BY created_at DESC LIMIT ?",
@@ -322,7 +322,7 @@ class SearchRenameResultModel(BaseModel):
         pendant_count: int = None,
         pendant_total_price: float = None,
         price_diff_percentage: float = None
-    ) -> 'SearchRenameResultModel':
+    ) -> 'AutoSearchWeaponModel':
         """
         从搜索结果数据创建记录
         
@@ -334,7 +334,7 @@ class SearchRenameResultModel(BaseModel):
             data_type: 数据类型，默认为'rename'
             
         Returns:
-            SearchRenameResultModel: 创建的记录对象
+            AutoSearchWeaponModel: 创建的记录对象
         """
         # 计算手续费和收益
         price = float(item_data.get('price', 0))

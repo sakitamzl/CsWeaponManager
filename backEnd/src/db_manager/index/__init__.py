@@ -9,6 +9,6 @@ from .buy import BuyModel
 from .sell import SellModel
 from .lease import LeaseModel
 from .weapon_classID import WeaponClassIDModel
-from .search_rename_result import SearchRenameResultModel
+from .auto_search_weapon import AutoSearchWeaponModel
 
-__all__ = ['ConfigModel', 'FundsModel', 'BuyModel', 'SellModel', 'LeaseModel', 'WeaponClassIDModel', 'SearchRenameResultModel']
+__all__ = ['ConfigModel', 'FundsModel', 'BuyModel', 'SellModel', 'LeaseModel', 'WeaponClassIDModel', 'AutoSearchWeaponModel']
