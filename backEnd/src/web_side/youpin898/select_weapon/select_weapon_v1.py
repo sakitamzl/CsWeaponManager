@@ -2,8 +2,6 @@ from flask import jsonify, request, Blueprint
 from src.db_manager.index.weapon_classID import WeaponClassIDModel
 import requests
 import base64
-import xml.etree.ElementTree as ET
-from urllib.parse import urlparse
 
 ICON_DOWNLOAD_HEADERS = {
     "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -258,10 +256,6 @@ def fetchWeaponIcons():
                     retry_headers = ICON_DOWNLOAD_HEADERS.copy()
                     retry_headers["Referer"] = icon_url
                     response = requests.get(icon_url, headers=retry_headers, timeout=20)
-                if response.status_code == 403 and response.text.strip().startswith('<'):
-                    redirected_url = _resolve_oss_url(icon_url, response.text)
-                    if redirected_url:
-                        response = requests.get(redirected_url, headers=ICON_DOWNLOAD_HEADERS, timeout=20)
                 response.raise_for_status()
                 icon_base64 = base64.b64encode(response.content).decode('utf-8')
                 if WeaponClassIDModel.update_icon_data(steam_hash_name, icon_base64=icon_base64):
@@ -295,28 +289,6 @@ def fetchWeaponIcons():
             'success': False,
             'error': f'服务器错误: {str(e)}'
         }), 500
-
-
-def _resolve_oss_url(original_url: str, xml_text: str):
-    """根据OSS错误XML中的endpoint/bucket重写下载地址"""
-    try:
-        root = ET.fromstring(xml_text)
-        endpoint = root.findtext('Endpoint')
-        bucket = root.findtext('Bucket')
-        if not endpoint or not bucket:
-            return None
-
-        parsed = urlparse(original_url)
-        path = parsed.path or ''
-        prefix = f'/{bucket}'
-        if path.startswith(prefix):
-            path = path[len(prefix):]
-        if not path.startswith('/'):
-            path = '/' + path
-        return f"https://{bucket}.{endpoint}{path}"
-    except Exception as e:
-        print(f"解析OSS跳转地址失败: {e}")
-        return None
 
 
 @youpin898SelectWeaponV1.route('/searchWeapon', methods=['POST'])
