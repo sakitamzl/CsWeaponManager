@@ -2238,7 +2238,6 @@ export default {
   display: flex;
   flex-direction: column;
   height: auto;
-  max-height: calc(100vh - 150px);
   position: sticky;
   top: 1rem;
   transition: width 0.25s ease, min-width 0.25s ease;
