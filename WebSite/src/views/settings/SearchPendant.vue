@@ -296,7 +296,7 @@
             </template>
           </el-table-column>
           
-          <el-table-column label="武器名称" width="200" fixed="left">
+          <el-table-column label="武器名称" min-width="260" fixed="left">
             <template #default="scope">
               <el-tooltip 
                 :content="scope.row.weapon_name" 
@@ -2573,9 +2573,10 @@ export default {
   color: #409eff;
   font-weight: 500;
   font-size: 0.9rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: break-word;
+  overflow: visible;
+  line-height: 1.4;
 }
 
 .weapon-icon {
