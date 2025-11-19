@@ -39,15 +39,17 @@ def create_session():
     try:
         data = request.get_json()
         steam_id = data.get('steamId', '')
+        data_type = data.get('dataType', 'rename')
         
         # 生成新的会话ID
         session_id = str(uuid.uuid4())
         
-        logger.write_log(f"创建搜索会话: {session_id}, Steam ID: {steam_id}", 'INFO')
+        logger.write_log(f"创建搜索会话: {session_id}, Steam ID: {steam_id}, dataType: {data_type}", 'INFO')
         
         return jsonify({
             'success': True,
             'sessionId': session_id,
+            'dataType': data_type,
             'steamId': steam_id,
             'message': '会话创建成功'
         })
@@ -102,6 +104,12 @@ def add_item():
         weapon_id = data.get('weaponId')
         weapon_name = data.get('weaponName')
         item_data = data.get('item')
+        session_id = data.get('sessionId')
+        data_type = data.get('dataType', 'rename')
+        pendants = data.get('pendants')
+        pendant_count = data.get('pendantCount')
+        pendant_total_price = data.get('pendantTotalPrice')
+        price_diff_percentage = data.get('priceDiffPercentage')
         
         if not all([steam_id, weapon_id, weapon_name, item_data]):
             return jsonify({
@@ -114,7 +122,13 @@ def add_item():
             steam_id=steam_id,
             weapon_id=weapon_id,
             weapon_name=weapon_name,
-            item_data=item_data
+            item_data=item_data,
+            data_type=data_type,
+            session_id=session_id,
+            pendant_details=pendants,
+            pendant_count=pendant_count,
+            pendant_total_price=pendant_total_price,
+            price_diff_percentage=price_diff_percentage
         )
         
         # 保存到数据库
@@ -175,6 +189,8 @@ def add_items_batch():
         
         steam_id = data.get('steamId')
         items = data.get('items', [])
+        session_id = data.get('sessionId')
+        data_type = data.get('dataType', 'rename')
         
         if not all([steam_id, items]):
             return jsonify({
@@ -189,7 +205,13 @@ def add_items_batch():
                     steam_id=steam_id,
                     weapon_id=item_wrapper.get('weaponId'),
                     weapon_name=item_wrapper.get('weaponName'),
-                    item_data=item_wrapper.get('item')
+                    item_data=item_wrapper.get('item'),
+                    data_type=data_type,
+                    session_id=session_id,
+                    pendant_details=item_wrapper.get('pendants'),
+                    pendant_count=item_wrapper.get('pendantCount'),
+                    pendant_total_price=item_wrapper.get('pendantTotalPrice'),
+                    price_diff_percentage=item_wrapper.get('priceDiffPercentage')
                 )
                 if record.save():
                     success_count += 1
@@ -238,21 +260,26 @@ def get_items_list():
     """
     try:
         session_id = request.args.get('sessionId')
+        data_type = request.args.get('dataType', 'rename')
         
-        logger.write_log(f"查询搜索结果 - sessionId: {session_id}", 'INFO')
+        logger.write_log(f"查询搜索结果 - sessionId: {session_id}, dataType: {data_type}", 'INFO')
         
         # 使用模型对象查询，确保字段映射正确
+        where_clause = ""
+        params = []
         if session_id:
-            # 查询指定会话的所有数据（仅返回存在改名标签的数据）
-            model_results = SearchRenameResultModel.find_all(
-                "session_id = ? AND data_type = 'rename' AND name_tag IS NOT NULL ORDER BY id DESC",
-                (session_id,)
-            )
+            where_clause = "session_id = ? AND data_type = ?"
+            params = (session_id, data_type)
         else:
-            # 查询所有改名饰品数据（仅返回存在改名标签的数据），按ID倒序
-            model_results = SearchRenameResultModel.find_all(
-                "data_type = 'rename' AND name_tag IS NOT NULL ORDER BY id DESC"
-            )
+            where_clause = "data_type = ?"
+            params = (data_type,)
+        
+        if data_type == 'rename':
+            where_clause += " AND name_tag IS NOT NULL"
+        
+        where_clause += " ORDER BY id DESC"
+        
+        model_results = SearchRenameResultModel.find_all(where_clause, params)
         
         logger.write_log(f"查询结果: {len(model_results) if model_results else 0} 条", 'INFO')
         
@@ -405,19 +432,22 @@ def clear_all_rename_data():
     try:
         from src.execution_db import DatabaseManager
         
+        data = request.get_json() or {}
+        data_type = data.get('dataType', 'rename')
+        
         db = DatabaseManager()
         table_name = SearchRenameResultModel.get_table_name()
         
         # 先统计要删除的记录数
-        count_sql = f"SELECT COUNT(*) FROM {table_name} WHERE data_type = 'rename'"
-        count_result = db.execute_query(count_sql)
+        count_sql = f"SELECT COUNT(*) FROM {table_name} WHERE data_type = ?"
+        count_result = db.execute_query(count_sql, (data_type,))
         count = count_result[0][0] if count_result else 0
         
-        # 删除所有 data_type='rename' 的数据
-        delete_sql = f"DELETE FROM {table_name} WHERE data_type = 'rename'"
-        db.execute_update(delete_sql)
+        # 删除所有指定 data_type 的数据
+        delete_sql = f"DELETE FROM {table_name} WHERE data_type = ?"
+        db.execute_update(delete_sql, (data_type,))
         
-        logger.write_log(f"清空改名饰品数据: 删除{count}条记录", 'INFO')
+        logger.write_log(f"清空搜索数据(data_type={data_type}): 删除{count}条记录", 'INFO')
         
         return jsonify({
             'success': True,

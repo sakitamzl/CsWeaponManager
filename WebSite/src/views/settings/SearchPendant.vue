@@ -418,60 +418,194 @@ export default {
     const isCrawling = ref(false)
     const crawlResult = ref(null)
     
-    // localStorage 键名
-    const STORAGE_KEY = 'spider_pendant_crawl_result'
+    const currentSessionId = ref(null)
+    const pollingTimer = ref(null)
+    const POLL_INTERVAL = 1000
+    const noDataCount = ref(0)
+    const MAX_NO_DATA_COUNT = 60
+    const lastPollingTime = ref(0)
     
-    // 保存爬虫结果到 localStorage
-    const saveCrawlResultToStorage = (result) => {
+    const normalizeApiItems = (items = []) => {
+      return items.map(item => ({
+        id: item.commodityId,
+        commodityNo: item.commodityNo,
+        price: parseFloat(item.price) || 0,
+        lowest_price: parseFloat(item.lowestPrice) || 0,
+        spread: parseFloat(item.spread) || 0,
+        abrade: item.abrade,
+        paintSeed: item.paintSeed,
+        nameTag: item.nameTag,
+        userNickName: item.sellerName,
+        assetId: item.assetId,
+        iconUrl: item.iconUrl,
+        weapon_name: item.weaponName,
+        weaponName: item.weaponName,
+        weaponId: item.weaponId,
+        commissionFee: parseFloat(item.commissionFee) || 0,
+        priceDiff: parseFloat(item.priceDiff) || 0,
+        pendants: item.pendants || [],
+        pendantTotalPrice: parseFloat(item.pendantTotalPrice) || 0,
+        priceDiffPercentage: parseFloat(item.priceDiffPercentage) || 0
+      }))
+    }
+
+    const rebuildCrawlResult = (items = []) => {
+      const weaponGroups = {}
+      items.forEach(item => {
+        const weaponDisplayName = item.weapon_name || item.weaponName || '未知饰品'
+        if (!weaponGroups[weaponDisplayName]) {
+          weaponGroups[weaponDisplayName] = []
+        }
+        weaponGroups[weaponDisplayName].push(item)
+      })
+
+      const weapons = Object.keys(weaponGroups).map(name => ({
+        weapon_name: name,
+        items: weaponGroups[name]
+      }))
+
+      crawlResult.value = { weapons }
+    }
+
+    const loadRecentSearchResults = async () => {
       try {
-        if (result && result.weapons) {
-          const dataToSave = {
-            result: result,
-            timestamp: Date.now(),
-            configName: crawlForm.value.configName || '未命名配置'
+        console.log('[挂件] 尝试加载历史结果...')
+        const params = new URLSearchParams({
+          dataType: 'pendant'
+        })
+        const response = await fetch(`${API_CONFIG.BASE_URL}/searchRename/items/list?${params.toString()}`)
+        if (!response.ok) {
+          console.warn('[挂件] 历史数据请求失败')
+          return
+        }
+        const result = await response.json()
+        if (result.success && Array.isArray(result.items) && result.items.length > 0) {
+          const mappedItems = normalizeApiItems(result.items)
+          rebuildCrawlResult(mappedItems)
+          console.log(`[挂件] 已加载 ${mappedItems.length} 条历史结果`)
+        } else {
+          console.log('[挂件] 没有找到历史结果')
+        }
+      } catch (error) {
+        console.error('[挂件] 加载历史数据失败:', error)
+      }
+    }
+
+    const updateCrawlResultWithItems = (newItems) => {
+      const currentItems = crawlResult.value?.weapons?.flatMap(weapon => weapon.items) || []
+      const itemMap = new Map()
+      currentItems.forEach(item => itemMap.set(item.id, item))
+      newItems.forEach(item => itemMap.set(item.id, item))
+      const mergedItems = Array.from(itemMap.values())
+      mergedItems.sort((a, b) => {
+        const diffA = a.priceDiff !== undefined ? a.priceDiff : -Infinity
+        const diffB = b.priceDiff !== undefined ? b.priceDiff : -Infinity
+        return diffB - diffA
+      })
+      rebuildCrawlResult(mergedItems)
+    }
+
+    const pollSearchResults = async () => {
+      try {
+        lastPollingTime.value = Date.now()
+        const params = new URLSearchParams({
+          dataType: 'pendant'
+        })
+        if (currentSessionId.value) {
+          params.append('sessionId', currentSessionId.value)
+        }
+        const response = await fetch(`${API_CONFIG.BASE_URL}/searchRename/items/list?${params.toString()}`)
+        if (!response.ok) {
+          console.error('[挂件] 轮询失败: HTTP', response.status)
+          return
+        }
+        const result = await response.json()
+        if (result.success && Array.isArray(result.items) && result.items.length > 0) {
+          const mappedItems = normalizeApiItems(result.items)
+          updateCrawlResultWithItems(mappedItems)
+          if (isCrawling.value) {
+            noDataCount.value = 0
           }
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave))
-          console.log('✅ 爬虫结果已保存到本地存储')
+        } else if (isCrawling.value) {
+          noDataCount.value++
+          if (noDataCount.value >= MAX_NO_DATA_COUNT) {
+            console.log('[挂件] 连续无新数据，停止轮询')
+            isCrawling.value = false
+            stopPolling()
+            const totalItems = crawlResult.value?.weapons?.flatMap(w => w.items).length || 0
+            ElMessage.success(`搜索完成！找到 ${totalItems} 个符合条件的商品`)
+          }
         }
       } catch (error) {
-        console.error('保存爬虫结果失败:', error)
+        console.error('[挂件] 轮询出错:', error)
       }
     }
-    
-    // 从 localStorage 恢复爬虫结果
-    const loadCrawlResultFromStorage = () => {
+
+    const startPolling = () => {
+      if (pollingTimer.value) {
+        return
+      }
+      console.log(`[挂件] 启动轮询，间隔 ${POLL_INTERVAL}ms`)
+      pollingTimer.value = setInterval(pollSearchResults, POLL_INTERVAL)
+      pollSearchResults()
+    }
+
+    const stopPolling = () => {
+      if (pollingTimer.value) {
+        clearInterval(pollingTimer.value)
+        pollingTimer.value = null
+        console.log('[挂件] 已停止轮询')
+      }
+    }
+
+    const clearCrawlHistory = async (skipConfirm = false) => {
       try {
-        const savedData = localStorage.getItem(STORAGE_KEY)
-        if (savedData) {
-          const parsed = JSON.parse(savedData)
-          crawlResult.value = parsed.result
-          console.log('✅ 已恢复历史爬虫结果')
-          console.log(`📅 保存时间: ${new Date(parsed.timestamp).toLocaleString()}`)
-          console.log(`📝 配置名称: ${parsed.configName}`)
-          
-          // 显示提示信息
-          ElMessage.info(`已恢复上次查询结果 (${new Date(parsed.timestamp).toLocaleString()})`)
-          return true
+        if (!skipConfirm) {
+          await ElMessageBox.confirm(
+            '确定要清空所有挂件搜索结果吗？此操作不可恢复。',
+            '确认清空',
+            {
+              confirmButtonText: '确定',
+              cancelButtonText: '取消',
+              type: 'warning'
+            }
+          )
         }
-        return false
+
+        const response = await fetch(`${API_CONFIG.BASE_URL}/searchRename/clear`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            dataType: 'pendant'
+          })
+        })
+
+        if (!response.ok) {
+          throw new Error('清空失败')
+        }
+
+        const result = await response.json()
+        if (result.success) {
+          crawlResult.value = null
+          purchasedItems.value.clear()
+          currentSessionId.value = null
+          stopPolling()
+          if (!skipConfirm) {
+            ElMessage.success(result.message || '已清空挂件数据')
+          }
+        } else {
+          throw new Error(result.message || '清空失败')
+        }
       } catch (error) {
-        console.error('恢复爬虫结果失败:', error)
-        return false
+        if (error !== 'cancel') {
+          console.error('清空挂件数据失败:', error)
+          if (!skipConfirm) {
+            ElMessage.error(error.message || '清空失败')
+          }
+        }
       }
     }
-    
-    // 清空历史结果
-    const clearCrawlHistory = () => {
-      try {
-        localStorage.removeItem(STORAGE_KEY)
-        crawlResult.value = null
-        purchasedItems.value.clear()  // 清空已购买记录
-        ElMessage.success('已清空历史结果')
-      } catch (error) {
-        console.error('清空历史失败:', error)
-      }
-    }
-    
+
     // 合并所有武器的items到一个统一列表，并按差价从高到低排序
     const allCrawlItems = computed(() => {
       if (!crawlResult.value || !crawlResult.value.weapons) {
@@ -775,32 +909,57 @@ export default {
         return
       }
 
+      await clearCrawlHistory(true)
       isCrawling.value = true
-      // 不再清空 crawlResult，保留历史数据
-      // crawlResult.value = null
+      crawlResult.value = { weapons: [] }
+      noDataCount.value = 0
+      stopPolling()
+      currentSessionId.value = null
       ElMessage.info('正在启动查询任务...')
 
       try {
-        // 构建爬虫配置
+        const sessionResponse = await fetch(`${API_CONFIG.BASE_URL}/searchRename/session/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            steamId: crawlForm.value.crawlAccountId,
+            dataType: 'pendant'
+          })
+        })
+        if (!sessionResponse.ok) {
+          throw new Error('创建搜索会话失败')
+        }
+        const sessionResult = await sessionResponse.json()
+        if (!sessionResult.success) {
+          throw new Error(sessionResult.message || '创建会话失败')
+        }
+        currentSessionId.value = sessionResult.sessionId
+        console.log('[挂件] 创建会话成功:', currentSessionId.value)
+      } catch (error) {
+        console.error('创建会话失败:', error)
+        ElMessage.error(error.message || '创建会话失败')
+        isCrawling.value = false
+        return
+      }
+
+      startPolling()
+
+      try {
         const spiderConfig = {
-          weapon_id: crawlForm.value.weaponId,  // [{"id": "61490", "name": "..."}]
-          steam_id: crawlForm.value.crawlAccountId,  // ✅ 使用爬取账号
+          weapon_id: crawlForm.value.weaponId,
+          steam_id: crawlForm.value.crawlAccountId,
+          session_id: currentSessionId.value,
           最大差价: 5,
           饰品自动查询间隔: 3,
-          ...jsonValidation.config  // 合并自定义配置
+          ...jsonValidation.config
         }
-        
+
         const requestData = {
-          steamId: crawlForm.value.crawlAccountId,  // ✅ 使用爬取账号
+          steamId: crawlForm.value.crawlAccountId,
           spider_config: spiderConfig
         }
-        
-        console.log('发送流式请求到后端 (使用爬取账号):', requestData)
-        console.log('  - 爬取账号:', crawlForm.value.crawlAccountId)
-        console.log('  - 购买账号:', crawlForm.value.steamId)
 
-        // 使用 fetch 进行流式请求
-        const response = await fetch(
+        fetch(
           `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/auto_buy_pendant_weapon`,
           {
             method: 'POST',
@@ -809,192 +968,34 @@ export default {
             },
             body: JSON.stringify(requestData)
           }
-        )
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-        }
-
-        // 初始化结果数据结构
-        const weaponsMap = new Map()
-        let totalWeapons = 0
-
-        // 读取流式数据
-        const reader = response.body.getReader()
-        const decoder = new TextDecoder()
-        let buffer = ''
-        let chunkCount = 0
-
-        while (true) {
-          const { done, value } = await reader.read()
-
-          if (done) {
-            console.log('✅ 流式数据接收完成')
-            break
+        ).then(async response => {
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`)
           }
-
-          chunkCount++
-          const chunk = decoder.decode(value, { stream: true })
-          console.log(`[前端] 📦 收到第 ${chunkCount} 个数据块，大小: ${chunk.length} 字节`)
-          console.log(`[前端] 📦 数据块内容预览:`, chunk.substring(0, 200))
-          
-          // 解码数据
-          buffer += chunk
-
-          // 按行分割（SSE格式）
-          const lines = buffer.split('\n')
-          buffer = lines.pop() || '' // 保留最后一个不完整的行
-
-          console.log(`[前端] 📋 本次解析出 ${lines.length} 行`)
-
-          for (let i = 0; i < lines.length; i++) {
-            const line = lines[i]
-            if (!line.trim()) {
-              continue // 跳过空行
-            }
-            
-            if (!line.startsWith('data: ')) {
-              console.warn(`[前端] ⚠️ 第 ${i+1} 行不是有效的 SSE 数据:`, line)
-              continue
-            }
-
-            try {
-              const jsonStr = line.substring(6)
-              console.log(`[前端] 🔍 第 ${i+1} 行解析 JSON:`, jsonStr)
-              const eventData = JSON.parse(jsonStr)
-              console.log(`[前端] ✅ 第 ${i+1} 行解析成功:`, eventData)
-
-              switch (eventData.type) {
-                case 'start':
-                  totalWeapons = eventData.total
-                  ElMessage.info(`开始查询 ${totalWeapons} 个饰品...`)
-                  break
-
-                case 'processing':
-                  console.log(`正在处理 ${eventData.current}/${eventData.total}: ${eventData.weapon_name}`)
-                  break
-
-                case 'item':
-                  // 收到一个新商品，立即添加到结果中
-                  const weaponId = eventData.weapon_id
-                  
-                  console.log(`[前端] 收到 item 事件:`, eventData)
-
-                  if (!weaponsMap.has(weaponId)) {
-                    console.log(`[前端] 创建新饰品条目: ${eventData.weapon_name} (${weaponId})`)
-                    weaponsMap.set(weaponId, {
-                      weapon_id: weaponId,
-                      weapon_name: eventData.weapon_name,
-                      total_count: eventData.total_count,
-                      lowest_price: eventData.lowest_price,
-                      pendant_count: 0,
-                      target_count: 0,
-                      items: []
-                    })
-                  }
-
-                  const weaponData = weaponsMap.get(weaponId)
-                  console.log(`[前端] 添加商品到 ${eventData.weapon_name}，当前已有 ${weaponData.items.length} 个`)
-                  weaponData.items.push(eventData.item)
-                  weaponData.target_count = weaponData.items.length
-
-                  // 按差价从高到低排序
-                  weaponData.items.sort((a, b) => {
-                    const diffA = a.priceDiff !== undefined ? a.priceDiff : -Infinity
-                    const diffB = b.priceDiff !== undefined ? b.priceDiff : -Infinity
-                    return diffB - diffA  // 从高到低
-                  })
-
-                  // 实时更新显示 - 创建新对象以触发 Vue 响应式更新
-                  crawlResult.value = {
-                    weapons: Array.from(weaponsMap.values()).map(w => ({
-                      ...w,
-                      items: [...w.items] // 创建新数组引用
-                    }))
-                  }
-                  
-                  // 保存到本地存储
-                  saveCrawlResultToStorage(crawlResult.value)
-                  
-                  console.log(`[前端] 🔄 触发响应式更新`)
-                  console.log(`[前端] ✅ 新增商品，${eventData.weapon_name} 当前共 ${weaponData.items.length} 个`)
-                  console.log(`[前端] 📊 当前 crawlResult.value:`, crawlResult.value)
-                  break
-
-                case 'weapon_complete':
-                  // 某个饰品查询完成，更新统计信息
-                  const completeWeaponId = eventData.weapon_id
-
-                  if (!weaponsMap.has(completeWeaponId)) {
-                    weaponsMap.set(completeWeaponId, {
-                      weapon_id: completeWeaponId,
-                      weapon_name: eventData.weapon_name,
-                      total_count: eventData.total_count,
-                      lowest_price: eventData.lowest_price,
-                      pendant_count: eventData.pendant_count || 0,
-                      target_count: eventData.target_count || 0,
-                      items: []
-                    })
-                  } else {
-                    const weaponData = weaponsMap.get(completeWeaponId)
-                    weaponData.total_count = eventData.total_count
-                    weaponData.lowest_price = eventData.lowest_price
-                    weaponData.pendant_count = eventData.pendant_count || 0
-                  }
-
-                  // 更新显示 - 创建新对象引用
-                  crawlResult.value = {
-                    weapons: Array.from(weaponsMap.values()).map(w => ({
-                      ...w,
-                      items: [...w.items]
-                    }))
-                  }
-                  
-                  // 保存到本地存储
-                  saveCrawlResultToStorage(crawlResult.value)
-
-                  console.log(`饰品 ${eventData.weapon_name} 查询完成`)
-                  break
-
-                case 'complete':
-                  const totalPendant = Array.from(weaponsMap.values()).reduce((sum, w) => sum + w.pendant_count, 0)
-                  const totalTarget = Array.from(weaponsMap.values()).reduce((sum, w) => sum + w.target_count, 0)
-                  ElMessage.success(`查询完成！共找到 ${totalPendant} 个挂件饰品，其中 ${totalTarget} 个符合条件`)
-                  break
-
-                case 'error':
-                  ElMessage.error(eventData.message || '查询出错')
-                  break
-              }
-            } catch (e) {
-              console.error(`[前端] ❌ 第 ${i+1} 行解析失败:`, e)
-              console.error(`[前端] ❌ 失败的行内容:`, line)
-            }
-          }
-        }
-        
-        console.log(`[前端] 📊 最终统计: 共收到 ${chunkCount} 个数据块`)
-        console.log(`[前端] 📊 最终饰品数量:`, weaponsMap.size)
-        weaponsMap.forEach((weapon, id) => {
-          console.log(`[前端] 📊   - ${weapon.weapon_name}: ${weapon.items.length} 个商品`)
+          const result = await response.json()
+          console.log('[挂件] 搜索任务响应:', result)
+        }).catch(error => {
+          console.error('[挂件] 搜索任务启动失败:', error)
+          ElMessage.error(`启动搜索失败: ${error.message}`)
+          isCrawling.value = false
+          stopPolling()
         })
 
+        setTimeout(() => {
+          if (isCrawling.value) {
+            console.log('[挂件] 搜索超时，结束搜索状态')
+            isCrawling.value = false
+            stopPolling()
+            const totalItems = crawlResult.value?.weapons?.flatMap(w => w.items).length || 0
+            ElMessage.warning(`搜索已超时结束，找到 ${totalItems} 个商品`)
+          }
+        }, 5 * 60 * 1000)
+
       } catch (error) {
-        console.error('流式查询失败:', error)
-        let errorMessage = '查询失败'
-
-        if (error.message) {
-          errorMessage = error.message
-        }
-
-        // 不清空已有结果，只显示错误提示
-        // crawlResult.value = {
-        //   success: false,
-        //   message: errorMessage
-        // }
-        ElMessage.error(`${errorMessage} - 已保留当前结果`)
-      } finally {
+        console.error('搜索失败:', error)
+        ElMessage.error(error.message || '搜索失败')
         isCrawling.value = false
+        stopPolling()
       }
     }
 
@@ -2107,10 +2108,7 @@ export default {
         loadAccountsForPlatform(crawlForm.value.platformType)
       }
       loadConfigList()
-      
-      // 恢复历史爬虫结果
-      loadCrawlResultFromStorage()
-      
+      loadRecentSearchResults()
       // 添加页面滚动监听
       window.addEventListener('scroll', handlePageScroll)
     })
@@ -2118,6 +2116,7 @@ export default {
     onUnmounted(() => {
       // 移除页面滚动监听
       window.removeEventListener('scroll', handlePageScroll)
+      stopPolling()
     })
 
     return {
@@ -3170,4 +3169,5 @@ export default {
   background: #555;
 }
 </style>
+
 

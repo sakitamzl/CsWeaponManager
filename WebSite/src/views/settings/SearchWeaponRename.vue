@@ -520,7 +520,10 @@ export default {
         // 调用后端 API 清空数据库
         const response = await fetch(`${API_CONFIG.BASE_URL}/searchRename/clear`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            dataType: 'rename'
+          })
         })
         
         if (!response.ok) {
@@ -778,7 +781,7 @@ export default {
         console.log('[页面加载] 尝试加载历史搜索结果...')
         
         // 获取所有搜索结果（不指定sessionId）
-        const url = `${API_CONFIG.BASE_URL}/searchRename/items/list`
+        const url = `${API_CONFIG.BASE_URL}/searchRename/items/list?dataType=rename`
         const response = await fetch(url)
         
         if (!response.ok) {
@@ -863,7 +866,10 @@ export default {
         lastPollingTime.value = Date.now()
         
         // 获取所有数据
-        const url = `${API_CONFIG.BASE_URL}/searchRename/items/list`
+        const params = new URLSearchParams({
+          dataType: 'rename'
+        })
+        const url = `${API_CONFIG.BASE_URL}/searchRename/items/list?${params.toString()}`
         
         const response = await fetch(url)
         

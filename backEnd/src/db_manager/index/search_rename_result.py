@@ -6,6 +6,7 @@
 
 from typing import Dict, Any, List
 from datetime import datetime
+import json
 from ..base_model import BaseModel
 
 
@@ -32,6 +33,12 @@ class SearchRenameResultModel(BaseModel):
             },
             
             # 搜索会话信息
+            'session_id': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None,
+                'comment': '搜索会话ID'
+            },
             'steam_id': {
                 'type': 'TEXT',
                 'not_null': True,
@@ -111,6 +118,18 @@ class SearchRenameResultModel(BaseModel):
                 'default': None,
                 'comment': '卖家昵称'
             },
+            'pendant_count': {
+                'type': 'INTEGER',
+                'not_null': False,
+                'default': 0,
+                'comment': '挂件数量'
+            },
+            'pendant_details': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None,
+                'comment': '挂件详情JSON'
+            },
             
             # Steam资产信息
             'asset_id': {
@@ -138,6 +157,18 @@ class SearchRenameResultModel(BaseModel):
                 'not_null': False,
                 'default': None,
                 'comment': '收益（溢价-手续费）'
+            },
+            'pendant_total_price': {
+                'type': 'REAL',
+                'not_null': False,
+                'default': None,
+                'comment': '挂件总价'
+            },
+            'price_diff_percentage': {
+                'type': 'REAL',
+                'not_null': False,
+                'default': None,
+                'comment': '收益百分比'
             },
             
             # 状态和时间
@@ -279,9 +310,19 @@ class SearchRenameResultModel(BaseModel):
     # ==================== 便捷创建方法 ====================
 
     @classmethod
-    def create_from_search_result(cls, steam_id: str, 
-                                  weapon_id: str, weapon_name: str, 
-                                  item_data: Dict[str, Any], data_type: str = 'rename') -> 'SearchRenameResultModel':
+    def create_from_search_result(
+        cls,
+        steam_id: str,
+        weapon_id: str,
+        weapon_name: str,
+        item_data: Dict[str, Any],
+        data_type: str = 'rename',
+        session_id: str = None,
+        pendant_details: List[Dict[str, Any]] = None,
+        pendant_count: int = None,
+        pendant_total_price: float = None,
+        price_diff_percentage: float = None
+    ) -> 'SearchRenameResultModel':
         """
         从搜索结果数据创建记录
         
@@ -317,13 +358,14 @@ class SearchRenameResultModel(BaseModel):
         # 创建记录
         record = cls(
             steam_id=steam_id,
+            session_id=session_id,
             data_type=data_type,
             weapon_id=weapon_id,
             weapon_name=weapon_name,
             commodity_id=str(item_data.get('id', '')),
             commodity_no=item_data.get('commodityNo'),
             price=price,
-            lowest_price=float(item_data.get('lowest_price', 0)),
+            lowest_price=float(item_data.get('lowest_price', item_data.get('lowestPrice', 0) or 0)),
             spread=spread,
             abrade=item_data.get('abrade'),
             paint_seed=str(item_data.get('paintSeed')) if item_data.get('paintSeed') else None,
@@ -331,8 +373,12 @@ class SearchRenameResultModel(BaseModel):
             seller_name=item_data.get('userNickName'),
             asset_id=item_data.get('assetId'),
             icon_url=item_data.get('iconUrl'),
-            commission_fee=commission_fee,
-            price_diff=price_diff,
+            commission_fee=commission_fee if data_type == 'rename' else item_data.get('commissionFee', commission_fee),
+            price_diff=item_data.get('priceDiff', price_diff),
+            pendant_count=pendant_count if pendant_count is not None else (len(pendant_details) if pendant_details else 0),
+            pendant_total_price=pendant_total_price or item_data.get('pendantTotalPrice'),
+            price_diff_percentage=price_diff_percentage or item_data.get('priceDiffPercentage'),
+            pendant_details=json.dumps(pendant_details, ensure_ascii=False) if pendant_details else (json.dumps(item_data.get('pendants'), ensure_ascii=False) if item_data.get('pendants') else None),
             status='active',
             created_at=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         )
@@ -348,6 +394,8 @@ class SearchRenameResultModel(BaseModel):
         """
         return {
             'id': self.id,
+            'sessionId': self.session_id,
+            'dataType': self.data_type,
             'weaponId': self.weapon_id,
             'weaponName': self.weapon_name,
             'commodityId': self.commodity_id,
@@ -363,6 +411,10 @@ class SearchRenameResultModel(BaseModel):
             'iconUrl': self.icon_url,
             'commissionFee': self.commission_fee,
             'priceDiff': self.price_diff,
+            'pendantCount': self.pendant_count or 0,
+            'pendantTotalPrice': self.pendant_total_price or 0,
+            'priceDiffPercentage': self.price_diff_percentage or 0,
+            'pendants': json.loads(self.pendant_details) if self.pendant_details else [],
             'status': self.status,
             'createdAt': self.created_at,
             'updatedAt': self.updated_at
