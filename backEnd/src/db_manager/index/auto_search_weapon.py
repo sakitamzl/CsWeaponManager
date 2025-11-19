@@ -32,13 +32,6 @@ class AutoSearchWeaponModel(BaseModel):
                 'not_null': True
             },
             
-            # 搜索会话信息
-            'session_id': {
-                'type': 'TEXT',
-                'not_null': False,
-                'default': None,
-                'comment': '搜索会话ID'
-            },
             'steam_id': {
                 'type': 'TEXT',
                 'not_null': True,
@@ -144,6 +137,12 @@ class AutoSearchWeaponModel(BaseModel):
                 'default': None,
                 'comment': '图标URL'
             },
+            'steam_hash_name': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None,
+                'comment': 'Steam Market Hash Name'
+            },
             
             # 计算字段
             'commission_fee': {
@@ -191,76 +190,12 @@ class AutoSearchWeaponModel(BaseModel):
             }
         }
 
-    # ==================== 自定义查询方法 ====================
+    # ==================== 数据维护方法 ====================
 
     @classmethod
-    def find_by_session(cls, session_id: str, status: str = 'active', data_type: str = 'rename'):
+    def clear_old_records(cls, days: int = 7) -> int:
         """
-        根据会话ID查询所有结果
-        
-        Args:
-            session_id: 搜索会话ID
-            status: 状态过滤，默认只返回active状态
-            data_type: 数据类型过滤，默认为'rename'
-            
-        Returns:
-            List[AutoSearchWeaponModel]: 结果列表
-        """
-        if status:
-            return cls.find_all(
-                "session_id = ? AND status = ? AND data_type = ? ORDER BY price_diff DESC, created_at ASC",
-                (session_id, status, data_type)
-            )
-        else:
-            return cls.find_all(
-                "session_id = ? AND data_type = ? ORDER BY price_diff DESC, created_at ASC",
-                (session_id, data_type)
-            )
-
-    @classmethod
-    def count_by_session(cls, session_id: str, status: str = 'active', data_type: str = 'rename') -> int:
-        """
-        统计某个会话的结果数量
-        
-        Args:
-            session_id: 搜索会话ID
-            status: 状态过滤
-            data_type: 数据类型过滤，默认为'rename'
-            
-        Returns:
-            int: 结果数量
-        """
-        results = cls.find_by_session(session_id, status, data_type)
-        return len(results) if results else 0
-
-    @classmethod
-    def delete_by_session(cls, session_id: str) -> bool:
-        """
-        删除某个会话的所有结果（软删除）
-        
-        Args:
-            session_id: 搜索会话ID
-            
-        Returns:
-            bool: 是否成功
-        """
-        results = cls.find_by_session(session_id, status=None)
-        if not results:
-            return True
-        
-        success = True
-        for result in results:
-            result.status = 'deleted'
-            result.updated_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            if not result.save():
-                success = False
-        
-        return success
-
-    @classmethod
-    def clear_old_sessions(cls, days: int = 7) -> int:
-        """
-        清理旧的搜索会话数据
+        清理指定天数之前的旧数据
         
         Args:
             days: 保留最近N天的数据
@@ -272,10 +207,7 @@ class AutoSearchWeaponModel(BaseModel):
         cutoff_date = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
         
         # 查找需要删除的记录
-        old_records = cls.find_all(
-            "created_at < ? AND status = 'active'",
-            (cutoff_date,)
-        )
+        old_records = cls.find_all("created_at < ? AND status = 'active'", (cutoff_date,))
         
         if not old_records:
             return 0
@@ -291,21 +223,23 @@ class AutoSearchWeaponModel(BaseModel):
         return count
 
     @classmethod
-    def get_latest_by_session(cls, session_id: str, limit: int = 50):
+    def drop_legacy_session_column(cls) -> bool:
         """
-        获取某个会话最新的N条结果
-        
-        Args:
-            session_id: 搜索会话ID
-            limit: 返回数量限制
-            
-        Returns:
-            List[AutoSearchWeaponModel]: 结果列表
+        如果老表中仍然存在 session_id 字段，则尝试移除
         """
-        return cls.find_all(
-            "session_id = ? AND status = 'active' ORDER BY created_at DESC LIMIT ?",
-            (session_id, limit)
-        )
+        try:
+            instance = cls()
+            db = instance.db
+            table_name = cls.get_table_name()
+            columns = db.get_table_columns(table_name)
+            if not any(col['name'] == 'session_id' for col in columns):
+                return False
+            db.execute_update(f"ALTER TABLE {table_name} DROP COLUMN session_id")
+            print("🧹 已移除 auto_search_weapon.session_id 旧字段")
+            return True
+        except Exception as e:
+            print(f"⚠️ 移除 session_id 字段失败: {e}")
+            return False
 
     # ==================== 便捷创建方法 ====================
 
@@ -317,7 +251,6 @@ class AutoSearchWeaponModel(BaseModel):
         weapon_name: str,
         item_data: Dict[str, Any],
         data_type: str = 'rename',
-        session_id: str = None,
         pendant_details: List[Dict[str, Any]] = None,
         pendant_count: int = None,
         pendant_total_price: float = None,
@@ -358,7 +291,6 @@ class AutoSearchWeaponModel(BaseModel):
         # 创建记录
         record = cls(
             steam_id=steam_id,
-            session_id=session_id,
             data_type=data_type,
             weapon_id=weapon_id,
             weapon_name=weapon_name,
@@ -373,6 +305,7 @@ class AutoSearchWeaponModel(BaseModel):
             seller_name=item_data.get('userNickName'),
             asset_id=item_data.get('assetId'),
             icon_url=item_data.get('iconUrl'),
+            steam_hash_name=item_data.get('steam_hash_name'),
             commission_fee=commission_fee if data_type == 'rename' else item_data.get('commissionFee', commission_fee),
             price_diff=item_data.get('priceDiff', price_diff),
             pendant_count=pendant_count if pendant_count is not None else (len(pendant_details) if pendant_details else 0),
@@ -420,7 +353,6 @@ class AutoSearchWeaponModel(BaseModel):
 
         return {
             'id': self.id,
-            'sessionId': self.session_id,
             'dataType': self.data_type,
             'weaponId': weapon_id_value,
             'weaponName': weapon_name_value,
@@ -435,6 +367,7 @@ class AutoSearchWeaponModel(BaseModel):
             'sellerName': self.seller_name,
             'assetId': self.asset_id,
             'iconUrl': self.icon_url,
+            'steamHashName': self.steam_hash_name,
             'commissionFee': self.commission_fee,
             'priceDiff': self.price_diff,
             'pendantCount': self.pendant_count or 0,
@@ -445,3 +378,11 @@ class AutoSearchWeaponModel(BaseModel):
             'createdAt': self.created_at,
             'updatedAt': self.updated_at
         }
+
+
+# 确保表结构同步，并尽力移除遗留的 session_id 字段
+try:
+    AutoSearchWeaponModel.ensure_table_exists()
+    AutoSearchWeaponModel.drop_legacy_session_column()
+except Exception as migration_error:
+    print(f"⚠️ AutoSearchWeaponModel 初始化时未能移除 session_id 字段: {migration_error}")

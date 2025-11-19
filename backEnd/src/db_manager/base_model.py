@@ -262,17 +262,31 @@ class BaseModel(ABC):
             return 0
     
     @classmethod
+    def _get_table_column_names(cls) -> List[str]:
+        """获取数据库中真实的列顺序并缓存"""
+        cache_attr = '_cached_table_columns'
+        if not hasattr(cls, cache_attr):
+            instance = cls()
+            columns = instance.db.get_table_columns(cls.get_table_name())
+            setattr(cls, cache_attr, [col['name'] for col in columns])
+        return getattr(cls, cache_attr)
+
+    @classmethod
     def _create_from_row(cls, row: tuple):
         """从数据库行创建模型实例"""
-        fields = list(cls.get_fields().keys())
+        table_columns = cls._get_table_column_names()
+        field_defs = cls.get_fields()
         kwargs = {}
-        for i, field_name in enumerate(fields):
-            if i < len(row):
-                value = row[i]
-                # 处理空字符串，将其转换为 None
-                if isinstance(value, str) and value.strip() == '':
-                    value = None
-                kwargs[field_name] = value
+
+        for idx, column_name in enumerate(table_columns):
+            if idx >= len(row):
+                break
+            if column_name not in field_defs:
+                continue
+            value = row[idx]
+            if isinstance(value, str) and value.strip() == '':
+                value = None
+            kwargs[column_name] = value
         
         instance = cls(**kwargs)
         instance._original_data = instance._data.copy()

@@ -1102,27 +1102,6 @@ export default {
         
         console.log('[前端] 发送搜索请求:', requestData)
 
-        // 先创建会话
-        const createSessionResponse = await fetch(
-          `${API_CONFIG.BASE_URL}/searchRename/session/create`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ steamId: crawlForm.value.crawlAccountId })
-          }
-        )
-
-        if (!createSessionResponse.ok) {
-          throw new Error('创建搜索会话失败')
-        }
-
-        const sessionResult = await createSessionResponse.json()
-        if (!sessionResult.success) {
-          throw new Error('创建会话失败')
-        }
-
-        console.log('[前端] 创建会话成功')
-        
         // 启动轮询（只有在开始搜索时才启动）
         startPolling()
         console.log('[前端] 轮询已启动，将持续获取搜索结果...')

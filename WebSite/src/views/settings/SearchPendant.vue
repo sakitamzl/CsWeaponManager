@@ -277,12 +277,21 @@
         >
           <el-table-column label="图标" width="80" fixed="left" align="center">
             <template #default="scope">
-              <img 
-                v-if="scope.row.iconUrl" 
-                :src="scope.row.iconUrl" 
-                class="weapon-icon"
-                :alt="scope.row.weapon_name"
-              />
+              <template v-if="getItemIconUrl(scope.row)">
+                <a 
+                  :href="getItemIconUrl(scope.row)" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  class="icon-link"
+                >
+                  <img 
+                    :src="getItemIconUrl(scope.row)" 
+                    class="weapon-icon"
+                    :alt="scope.row.weapon_name || 'icon'"
+                    referrerpolicy="no-referrer"
+                  />
+                </a>
+              </template>
               <span v-else class="no-icon">-</span>
             </template>
           </el-table-column>
@@ -418,13 +427,46 @@ export default {
     const isCrawling = ref(false)
     const crawlResult = ref(null)
     
-    const currentSessionId = ref(null)
     const pollingTimer = ref(null)
     const POLL_INTERVAL = 1000
     const noDataCount = ref(0)
     const MAX_NO_DATA_COUNT = 60
     const lastPollingTime = ref(0)
     
+    const getItemIconUrl = (item) => {
+      if (!item) return ''
+      const raw = item.iconUrl ?? item.icon_url
+      if (!raw) return ''
+      const url = typeof raw === 'string' ? raw.trim() : ''
+      if (!url) return ''
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        return url
+      }
+      if (url.startsWith('//')) {
+        return `https:${url}`
+      }
+      return url
+    }
+
+    const parsePendants = (rawPendants) => {
+      if (!rawPendants) {
+        return []
+      }
+      if (Array.isArray(rawPendants)) {
+        return rawPendants
+      }
+      if (typeof rawPendants === 'string') {
+        try {
+          const parsed = JSON.parse(rawPendants)
+          return Array.isArray(parsed) ? parsed : []
+        } catch (error) {
+          console.warn('[挂件] 无法解析 pendants 字段:', rawPendants, error)
+          return []
+        }
+      }
+      return []
+    }
+
     const normalizeApiItems = (items = []) => {
       return items.map(item => ({
         id: item.commodityId,
@@ -437,13 +479,13 @@ export default {
         nameTag: item.nameTag,
         userNickName: item.sellerName,
         assetId: item.assetId,
-        iconUrl: item.iconUrl,
+        iconUrl: item.iconUrl || item.icon_url,
         weapon_name: item.weaponName,
         weaponName: item.weaponName,
         weaponId: item.weaponId,
         commissionFee: parseFloat(item.commissionFee) || 0,
         priceDiff: parseFloat(item.priceDiff) || 0,
-        pendants: item.pendants || [],
+        pendants: parsePendants(item.pendants),
         pendantTotalPrice: parseFloat(item.pendantTotalPrice) || 0,
         priceDiffPercentage: parseFloat(item.priceDiffPercentage) || 0
       }))
@@ -511,9 +553,6 @@ export default {
         const params = new URLSearchParams({
           dataType: 'pendant'
         })
-        if (currentSessionId.value) {
-          params.append('sessionId', currentSessionId.value)
-        }
         const response = await fetch(`${API_CONFIG.BASE_URL}/searchRename/items/list?${params.toString()}`)
         if (!response.ok) {
           console.error('[挂件] 轮询失败: HTTP', response.status)
@@ -588,7 +627,6 @@ export default {
         if (result.success) {
           crawlResult.value = null
           purchasedItems.value.clear()
-          currentSessionId.value = null
           stopPolling()
           if (!skipConfirm) {
             ElMessage.success(result.message || '已清空挂件数据')
@@ -914,41 +952,13 @@ export default {
       crawlResult.value = { weapons: [] }
       noDataCount.value = 0
       stopPolling()
-      currentSessionId.value = null
       ElMessage.info('正在启动查询任务...')
-
-      try {
-        const sessionResponse = await fetch(`${API_CONFIG.BASE_URL}/searchRename/session/create`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            steamId: crawlForm.value.crawlAccountId,
-            dataType: 'pendant'
-          })
-        })
-        if (!sessionResponse.ok) {
-          throw new Error('创建搜索会话失败')
-        }
-        const sessionResult = await sessionResponse.json()
-        if (!sessionResult.success) {
-          throw new Error(sessionResult.message || '创建会话失败')
-        }
-        currentSessionId.value = sessionResult.sessionId
-        console.log('[挂件] 创建会话成功:', currentSessionId.value)
-      } catch (error) {
-        console.error('创建会话失败:', error)
-        ElMessage.error(error.message || '创建会话失败')
-        isCrawling.value = false
-        return
-      }
-
       startPolling()
 
       try {
         const spiderConfig = {
           weapon_id: crawlForm.value.weaponId,
           steam_id: crawlForm.value.crawlAccountId,
-          session_id: currentSessionId.value,
           最大差价: 5,
           饰品自动查询间隔: 3,
           ...jsonValidation.config
@@ -2173,6 +2183,7 @@ export default {
       handleBuyWeapon,
       hasHighlightMoment,
       getBuyButtonType,
+      getItemIconUrl,
       // 历史结果管理
       clearCrawlHistory,
       // 工具区域折叠

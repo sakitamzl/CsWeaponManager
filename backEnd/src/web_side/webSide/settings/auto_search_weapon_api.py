@@ -7,8 +7,6 @@ from flask import Blueprint, request, jsonify
 from src.log import Log
 from src.db_manager.index import AutoSearchWeaponModel
 from src.db_manager import get_db_manager
-from datetime import datetime
-import uuid
 
 search_rename_bp = Blueprint('search_rename', __name__, url_prefix='/searchRename')
 
@@ -17,85 +15,12 @@ logger = Log()
 print("✅ 改名饰品搜索API蓝图已加载")
 
 
-# ==================== 会话管理 ====================
-
-@search_rename_bp.route('/session/create', methods=['POST'])
-def create_session():
-    """
-    创建新的搜索会话
-    
-    请求体:
-    {
-        "steamId": "76561199136814432"
-    }
-    
-    返回:
-    {
-        "success": true,
-        "sessionId": "uuid-xxx",
-        "message": "会话创建成功"
-    }
-    """
-    try:
-        data = request.get_json()
-        steam_id = data.get('steamId', '')
-        data_type = data.get('dataType', 'rename')
-        
-        # 生成新的会话ID
-        session_id = str(uuid.uuid4())
-        
-        logger.write_log(f"创建搜索会话: {session_id}, Steam ID: {steam_id}, dataType: {data_type}", 'INFO')
-        
-        return jsonify({
-            'success': True,
-            'sessionId': session_id,
-            'dataType': data_type,
-            'steamId': steam_id,
-            'message': '会话创建成功'
-        })
-    
-    except Exception as e:
-        logger.write_log(f"创建会话失败: {str(e)}", 'ERROR')
-        return jsonify({
-            'success': False,
-            'message': f'创建会话失败: {str(e)}'
-        }), 500
-
-
 # ==================== 数据写入 ====================
 
 @search_rename_bp.route('/item/add', methods=['POST'])
 def add_item():
     """
     添加单个搜索结果
-    
-    请求体:
-    {
-        "sessionId": "uuid-xxx",
-        "steamId": "76561199136814432",
-        "weaponId": "53597",
-        "weaponName": "沙漠之鹰 | 后发制人 (崭新出厂)",
-        "item": {
-            "id": "1729655184",
-            "commodityNo": "xxx",
-            "price": 32.50,
-            "lowest_price": 29.89,
-            "spread": 2.61,
-            "abrade": "0.0123",
-            "paintSeed": "123",
-            "nameTag": "改名内容",
-            "userNickName": "卖家昵称",
-            "assetId": "xxx",
-            "iconUrl": "https://..."
-        }
-    }
-    
-    返回:
-    {
-        "success": true,
-        "itemId": 123,
-        "message": "添加成功"
-    }
     """
     try:
         data = request.get_json()
@@ -104,7 +29,6 @@ def add_item():
         weapon_id = data.get('weaponId')
         weapon_name = data.get('weaponName')
         item_data = data.get('item')
-        session_id = data.get('sessionId')
         data_type = data.get('dataType', 'rename')
         pendants = data.get('pendants')
         pendant_count = data.get('pendantCount')
@@ -117,21 +41,18 @@ def add_item():
                 'message': '缺少必要参数'
             }), 400
         
-        # 创建记录
         record = AutoSearchWeaponModel.create_from_search_result(
             steam_id=steam_id,
             weapon_id=weapon_id,
             weapon_name=weapon_name,
             item_data=item_data,
             data_type=data_type,
-            session_id=session_id,
             pendant_details=pendants,
             pendant_count=pendant_count,
             pendant_total_price=pendant_total_price,
             price_diff_percentage=price_diff_percentage
         )
         
-        # 保存到数据库
         if record.save():
             logger.write_log(
                 f"添加搜索结果: Weapon={weapon_name}, Price={item_data.get('price')}, NameTag={item_data.get('nameTag')}",
@@ -162,34 +83,12 @@ def add_item():
 def add_items_batch():
     """
     批量添加搜索结果
-    
-    请求体:
-    {
-        "sessionId": "uuid-xxx",
-        "steamId": "76561199136814432",
-        "items": [
-            {
-                "weaponId": "53597",
-                "weaponName": "沙漠之鹰 | 后发制人",
-                "item": {...}
-            },
-            ...
-        ]
-    }
-    
-    返回:
-    {
-        "success": true,
-        "count": 10,
-        "message": "批量添加成功"
-    }
     """
     try:
         data = request.get_json()
         
         steam_id = data.get('steamId')
         items = data.get('items', [])
-        session_id = data.get('sessionId')
         data_type = data.get('dataType', 'rename')
         
         if not all([steam_id, items]):
@@ -207,7 +106,6 @@ def add_items_batch():
                     weapon_name=item_wrapper.get('weaponName'),
                     item_data=item_wrapper.get('item'),
                     data_type=data_type,
-                    session_id=session_id,
                     pendant_details=item_wrapper.get('pendants'),
                     pendant_count=item_wrapper.get('pendantCount'),
                     pendant_total_price=item_wrapper.get('pendantTotalPrice'),
@@ -244,42 +142,48 @@ def get_items_list():
     获取搜索结果列表（支持轮询）
     
     查询参数:
-    - sessionId: 会话ID（可选，不提供则返回最近的所有结果）
-    - limit: 返回数量限制（可选，默认100）
-    - offset: 偏移量（可选，默认0）
-    - hours: 查询最近几小时的数据（可选，默认24小时，仅在无sessionId时有效）
+    - dataType: 数据类型（rename/pendant），默认 rename
+    - steamId: 过滤指定 Steam ID 的数据（可选）
+    - status: 状态过滤，默认 active
+    - limit: 返回数量限制（可选）
+    - offset: 偏移量（可选）
     
     返回:
     {
         "success": true,
-        "sessionId": "uuid-xxx",
-        "total": 50,
         "count": 10,
         "items": [...]
     }
     """
     try:
-        session_id = request.args.get('sessionId')
         data_type = request.args.get('dataType', 'rename')
+        steam_id = request.args.get('steamId')
+        status = request.args.get('status', 'active')
+        limit = request.args.get('limit')
+        offset = request.args.get('offset')
         
-        logger.write_log(f"查询搜索结果 - sessionId: {session_id}, dataType: {data_type}", 'INFO')
+        logger.write_log(f"查询搜索结果 - dataType: {data_type}, steamId: {steam_id}, status: {status}", 'INFO')
         
-        # 使用模型对象查询，确保字段映射正确
-        where_clause = ""
-        params = []
-        if session_id:
-            where_clause = "session_id = ? AND data_type = ?"
-            params = (session_id, data_type)
-        else:
-            where_clause = "data_type = ?"
-            params = (data_type,)
+        where_clause_parts = ["data_type = ?"]
+        params = [data_type]
+        
+        if steam_id:
+            where_clause_parts.append("steam_id = ?")
+            params.append(steam_id)
+        
+        if status:
+            where_clause_parts.append("status = ?")
+            params.append(status)
         
         if data_type == 'rename':
-            where_clause += " AND name_tag IS NOT NULL"
+            where_clause_parts.append("name_tag IS NOT NULL")
         
-        where_clause += " ORDER BY id DESC"
+        where_clause = " AND ".join(where_clause_parts) + " ORDER BY id DESC"
         
-        model_results = AutoSearchWeaponModel.find_all(where_clause, params)
+        list_limit = int(limit) if limit else None
+        list_offset = int(offset) if offset else None
+        
+        model_results = AutoSearchWeaponModel.find_all(where_clause, tuple(params), limit=list_limit, offset=list_offset)
         
         logger.write_log(f"查询结果: {len(model_results) if model_results else 0} 条", 'INFO')
         
@@ -325,29 +229,39 @@ def get_items_count():
     获取搜索结果数量
     
     查询参数:
-    - sessionId: 会话ID（必填）
+    - dataType: 数据类型（默认 rename）
+    - steamId: Steam ID 过滤（可选）
+    - status: 状态过滤，默认 active
     
     返回:
     {
         "success": true,
-        "sessionId": "uuid-xxx",
         "count": 50
     }
     """
     try:
-        session_id = request.args.get('sessionId')
+        data_type = request.args.get('dataType', 'rename')
+        steam_id = request.args.get('steamId')
+        status = request.args.get('status', 'active')
         
-        if not session_id:
-            return jsonify({
-                'success': False,
-                'message': '缺少sessionId参数'
-            }), 400
+        where_clause_parts = ["data_type = ?"]
+        params = [data_type]
         
-        count = AutoSearchWeaponModel.count_by_session(session_id)
+        if steam_id:
+            where_clause_parts.append("steam_id = ?")
+            params.append(steam_id)
+        
+        if status:
+            where_clause_parts.append("status = ?")
+            params.append(status)
+        
+        if data_type == 'rename':
+            where_clause_parts.append("name_tag IS NOT NULL")
+        
+        count = AutoSearchWeaponModel.count(" AND ".join(where_clause_parts), tuple(params))
         
         return jsonify({
             'success': True,
-            'sessionId': session_id,
             'count': count
         })
     
@@ -365,44 +279,51 @@ def get_latest_items():
     获取最新的搜索结果（用于实时更新）
     
     查询参数:
-    - sessionId: 会话ID（必填）
+    - dataType: 数据类型（默认 rename）
+    - steamId: Steam ID（可选）
     - limit: 返回数量（可选，默认20）
     - sinceId: 从此ID之后的记录（可选）
     
     返回:
     {
         "success": true,
-        "sessionId": "uuid-xxx",
         "count": 5,
         "items": [...]
     }
     """
     try:
-        session_id = request.args.get('sessionId')
+        data_type = request.args.get('dataType', 'rename')
+        steam_id = request.args.get('steamId')
         limit = int(request.args.get('limit', 20))
         since_id = request.args.get('sinceId')
+        status = request.args.get('status', 'active')
         
-        if not session_id:
-            return jsonify({
-                'success': False,
-                'message': '缺少sessionId参数'
-            }), 400
+        where_clause_parts = ["data_type = ?"]
+        params = [data_type]
+        
+        if steam_id:
+            where_clause_parts.append("steam_id = ?")
+            params.append(steam_id)
+        
+        if status:
+            where_clause_parts.append("status = ?")
+            params.append(status)
         
         if since_id:
-            # 查询指定ID之后的记录
-            results = AutoSearchWeaponModel.find_all(
-                "session_id = ? AND id > ? AND status = 'active' ORDER BY id ASC LIMIT ?",
-                (session_id, int(since_id), limit)
-            )
+            where_clause_parts.append("id > ?")
+            params.append(int(since_id))
+            order_clause = " ORDER BY id ASC"
         else:
-            # 查询最新的N条记录
-            results = AutoSearchWeaponModel.get_latest_by_session(session_id, limit)
+            order_clause = " ORDER BY id DESC"
+        
+        where_clause = " AND ".join(where_clause_parts) + order_clause
+        
+        results = AutoSearchWeaponModel.find_all(where_clause, tuple(params), limit=limit)
         
         items = [result.to_dict() for result in results] if results else []
         
         return jsonify({
             'success': True,
-            'sessionId': session_id,
             'count': len(items),
             'items': items
         })
@@ -486,7 +407,7 @@ def cleanup_old_data():
         data = request.get_json() or {}
         days = data.get('days', 7)
         
-        count = AutoSearchWeaponModel.clear_old_sessions(days)
+        count = AutoSearchWeaponModel.clear_old_records(days)
         
         logger.write_log(f"清理旧数据: 删除{count}条记录（{days}天前）", 'INFO')
         
@@ -509,94 +430,79 @@ def cleanup_old_data():
 @search_rename_bp.route('/stats', methods=['GET'])
 def get_stats():
     """
-    获取统计信息
-    
-    查询参数:
-    - sessionId: 会话ID（可选，不提供则返回全部统计）
-    
-    返回:
-    {
-        "success": true,
-        "stats": {
-            "totalItems": 500,
-            "totalSessions": 10,
-            "avgItemsPerSession": 50,
-            ...
-        }
-    }
+    获取统计信息，可按 dataType / steamId / status 过滤
     """
     try:
-        session_id = request.args.get('sessionId')
+        data_type = request.args.get('dataType')
+        steam_id = request.args.get('steamId')
+        status = request.args.get('status', 'active')
         
-        if session_id:
-            # 单个会话统计
-            results = AutoSearchWeaponModel.find_by_session(session_id)
-            
-            if not results:
-                return jsonify({
-                    'success': True,
-                    'sessionId': session_id,
-                    'stats': {
-                        'totalItems': 0,
-                        'totalWeapons': 0,
-                        'avgPrice': 0,
-                        'avgSpread': 0,
-                        'avgProfit': 0
-                    }
-                })
-            
-            # 计算统计数据
-            weapon_ids = set()
-            total_price = 0
-            total_spread = 0
-            total_profit = 0
-            
-            for result in results:
-                weapon_ids.add(result.weapon_id)
-                total_price += result.price
-                total_spread += result.spread
-                if result.price_diff:
-                    total_profit += result.price_diff
-            
-            count = len(results)
-            
-            return jsonify({
-                'success': True,
-                'sessionId': session_id,
-                'stats': {
-                    'totalItems': count,
-                    'totalWeapons': len(weapon_ids),
-                    'avgPrice': round(total_price / count, 2) if count > 0 else 0,
-                    'avgSpread': round(total_spread / count, 2) if count > 0 else 0,
-                    'avgProfit': round(total_profit / count, 2) if count > 0 else 0,
-                    'totalProfit': round(total_profit, 2)
-                }
-            })
-        else:
-            # 全局统计
-            all_results = AutoSearchWeaponModel.find_all("status = 'active'")
-            
-            if not all_results:
-                return jsonify({
-                    'success': True,
-                    'stats': {
-                        'totalItems': 0,
-                        'totalSessions': 0
-                    }
-                })
-            
-            sessions = set()
-            for result in all_results:
-                sessions.add(result.session_id)
-            
+        where_clause_parts = []
+        params = []
+        
+        if status:
+            where_clause_parts.append("status = ?")
+            params.append(status)
+        
+        if data_type:
+            where_clause_parts.append("data_type = ?")
+            params.append(data_type)
+        
+        if steam_id:
+            where_clause_parts.append("steam_id = ?")
+            params.append(steam_id)
+        
+        where_clause = " AND ".join(where_clause_parts)
+        params_tuple = tuple(params)
+        
+        results = AutoSearchWeaponModel.find_all(where_clause, params_tuple) if where_clause else AutoSearchWeaponModel.find_all()
+        
+        if not results:
             return jsonify({
                 'success': True,
                 'stats': {
-                    'totalItems': len(all_results),
-                    'totalSessions': len(sessions),
-                    'avgItemsPerSession': round(len(all_results) / len(sessions), 2) if len(sessions) > 0 else 0
+                    'totalItems': 0,
+                    'totalWeapons': 0,
+                    'avgPrice': 0,
+                    'avgSpread': 0,
+                    'avgProfit': 0,
+                    'totalProfit': 0
                 }
             })
+        
+        weapon_ids = set()
+        total_price = 0
+        total_spread = 0
+        total_profit = 0
+        rename_items = 0
+        pendant_items = 0
+        
+        for result in results:
+            weapon_ids.add(result.weapon_id)
+            total_price += result.price or 0
+            total_spread += result.spread or 0
+            if result.price_diff:
+                total_profit += result.price_diff
+            if result.data_type == 'rename':
+                rename_items += 1
+            elif result.data_type == 'pendant':
+                pendant_items += 1
+        
+        count = len(results)
+        
+        return jsonify({
+            'success': True,
+            'stats': {
+                'totalItems': count,
+                'totalWeapons': len(weapon_ids),
+                'avgPrice': round(total_price / count, 2) if count else 0,
+                'avgSpread': round(total_spread / count, 2) if count else 0,
+                'avgProfit': round(total_profit / count, 2) if count else 0,
+                'totalProfit': round(total_profit, 2),
+                'renameItems': rename_items,
+                'pendantItems': pendant_items
+            }
+        })
     
     except Exception as e:
         logger.write_log(f"获取统计信息失败: {str(e)}", 'ERROR')
