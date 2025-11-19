@@ -2,7 +2,11 @@
   <div class="spider-weapon-rename-container">
     <div class="page-layout">
       <!-- 左侧配置管理栏 -->
-      <aside class="config-sidebar" :class="{ collapsed: isConfigSectionsCollapsed }">
+      <aside 
+        class="config-sidebar" 
+        :class="{ collapsed: isConfigSectionsCollapsed }"
+        @click="handleSidebarAreaClick"
+      >
         <div class="sidebar-header clickable" @click.stop="toggleConfigSections">
           <div class="sidebar-header-row" v-show="!isConfigSectionsCollapsed">
             <h3>配置管理</h3>
@@ -27,7 +31,7 @@
           </el-button>
         </div>
 
-        <div class="sidebar-divider" v-show="!isSidebarCollapsed"></div>
+        <div class="sidebar-divider" v-show="!isConfigSectionsCollapsed"></div>
 
         <div class="config-list" v-show="!isConfigSectionsCollapsed">
           <div 
@@ -271,8 +275,10 @@
           :data="allCrawlItems" 
           style="width: 100%;"
           stripe
+          table-layout="auto"
+          :header-cell-style="tableHeaderStyle"
         >
-          <el-table-column label="图标" width="80" fixed="left" align="center">
+          <el-table-column label="图标" width="80" fixed="left" align="center" resizable>
             <template #default="scope">
               <img 
                 v-if="scope.row.iconUrl" 
@@ -284,7 +290,7 @@
             </template>
           </el-table-column>
           
-          <el-table-column label="武器名称" width="200" fixed="left">
+          <el-table-column label="武器名称" :min-width="280" fixed="left" resizable>
             <template #default="scope">
               <el-tooltip 
                 :content="getWeaponDisplayName(scope.row)" 
@@ -296,13 +302,13 @@
             </template>
           </el-table-column>
           
-          <el-table-column label="价格" width="100">
+          <el-table-column label="价格" width="110" resizable>
               <template #default="scope">
                 <span class="price">¥{{ scope.row.price }}</span>
               </template>
             </el-table-column>
             
-            <el-table-column label="溢价" width="100">
+            <el-table-column label="溢价" width="120" resizable>
               <template #default="scope">
                 <el-tag type="danger" size="small">
                   {{ scope.row.spread !== undefined && scope.row.spread !== null && typeof scope.row.spread === 'number' ? scope.row.spread.toFixed(2) : '0.00' }}
@@ -310,31 +316,31 @@
               </template>
             </el-table-column>
             
-            <el-table-column label="手续费" width="100" align="center">
+            <el-table-column label="手续费" width="130" align="center" resizable>
               <template #default="scope">
                 <span class="commission-fee">¥{{ scope.row.commissionFee !== undefined && scope.row.commissionFee !== null && typeof scope.row.commissionFee === 'number' ? scope.row.commissionFee.toFixed(2) : '0.00' }}</span>
               </template>
             </el-table-column>
             
-            <el-table-column label="磨损" width="240">
+            <el-table-column label="磨损" width="240" resizable>
               <template #default="scope">
                 {{ scope.row.abrade }}
               </template>
             </el-table-column>
             
-            <el-table-column label="改名" min-width="200">
+            <el-table-column label="改名" min-width="220" resizable>
               <template #default="scope">
                 <span class="name-tag">{{ scope.row.nameTag || '-' }}</span>
               </template>
             </el-table-column>
             
-            <el-table-column label="卖家" min-width="150">
+            <el-table-column label="卖家" min-width="180" resizable>
               <template #default="scope">
                 {{ scope.row.userNickName || '未知' }}
               </template>
             </el-table-column>
             
-            <el-table-column label="操作" width="100" fixed="right">
+            <el-table-column label="操作" width="120" fixed="right" resizable>
               <template #default="scope">
                 <el-button 
                   :type="getBuyButtonType(scope.row)"
@@ -359,7 +365,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -382,6 +388,7 @@ export default {
     const crawlFormRef = ref(null)
     const platformAccountLists = ref({})
     const isProgrammaticPlatformChange = ref(false)
+    const isApplyingConfigState = ref(false)
     const accountLoadingStates = ref({})
     const isCrawling = ref(false)
     const crawlResult = ref(null)
@@ -1254,6 +1261,7 @@ export default {
       console.log('已设置selectedConfigId:', selectedConfigId.value)
 
       try {
+        isApplyingConfigState.value = true
         const config = savedConfigs.value.find(c => c.id === configId)
         console.log('找到的配置对象:', config)
         
@@ -1320,6 +1328,8 @@ export default {
         console.error('加载配置失败:', error)
         console.error('错误堆栈:', error.stack)
         ElMessage.error(`加载配置失败: ${error.message}`)
+      } finally {
+        isApplyingConfigState.value = false
       }
     }
 
@@ -1371,6 +1381,52 @@ export default {
         console.error('自动保存配置失败:', error)
       }
     }
+
+    const autoSaveTimer = ref(null)
+    const scheduleAutoSave = () => {
+      if (isApplyingConfigState.value) {
+        return
+      }
+      if (!selectedConfigId.value) {
+        return
+      }
+
+      if (autoSaveTimer.value) {
+        clearTimeout(autoSaveTimer.value)
+      }
+
+      autoSaveTimer.value = setTimeout(() => {
+        autoSaveTimer.value = null
+        autoSaveConfig()
+      }, 800)
+    }
+
+    watch(
+      () => [
+        crawlForm.value.configName,
+        crawlForm.value.platformType,
+        crawlForm.value.steamId,
+        crawlForm.value.crawlAccountId
+      ],
+      () => {
+        scheduleAutoSave()
+      }
+    )
+
+    watch(
+      () => crawlForm.value.customConfig,
+      () => {
+        scheduleAutoSave()
+      }
+    )
+
+    watch(
+      () => crawlForm.value.weaponId,
+      () => {
+        scheduleAutoSave()
+      },
+      { deep: true }
+    )
 
     // 创建新配置（清空表单）
     const createNewConfig = () => {
@@ -2080,6 +2136,27 @@ export default {
       highlightedJson.value = highlighted
     }
 
+    const tableHeaderStyle = () => {
+      return {
+        backgroundColor: '#2a2a2a',
+        color: '#fff',
+        fontWeight: 600,
+        borderBottom: '1px solid #3a3a3a'
+      }
+    }
+
+    const handleSidebarAreaClick = (event) => {
+      const target = event.target
+      if (!target) return
+
+      // 点击配置卡片时不触发折叠
+      if (target.closest && target.closest('.config-item')) {
+        return
+      }
+
+      toggleConfigSections()
+    }
+
     // 组件挂载时只加载数据，不启动轮询
     onMounted(() => {
       if (crawlForm.value.platformType) {
@@ -2094,6 +2171,10 @@ export default {
     // 组件卸载时停止轮询
     onUnmounted(() => {
       stopPolling()
+      if (autoSaveTimer.value) {
+        clearTimeout(autoSaveTimer.value)
+        autoSaveTimer.value = null
+      }
     })
 
     return {
@@ -2170,7 +2251,9 @@ export default {
       // 从搜索组件添加饰品
       handleAddWeaponFromSearch,
       handleAddAllWeaponsFromSearch,
-      getWeaponDisplayName
+      getWeaponDisplayName,
+      tableHeaderStyle,
+      handleSidebarAreaClick
     }
   }
 }
@@ -2186,10 +2269,6 @@ export default {
 .page-header {
   margin-bottom: 1rem;
   padding: 1rem;
-}
-
-.back-button {
-  /* 按钮样式 */
 }
 
 .page-layout {
@@ -2320,6 +2399,7 @@ export default {
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
 }
 
@@ -2458,11 +2538,13 @@ export default {
 .no-spinner :deep(input[type="number"]::-webkit-outer-spin-button),
 .no-spinner :deep(input[type="number"]::-webkit-inner-spin-button) {
   -webkit-appearance: none;
+  appearance: none;
   margin: 0;
 }
 
 .no-spinner :deep(input[type="number"]) {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 .search-results-table {
