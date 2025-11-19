@@ -3,6 +3,17 @@ from src.db_manager.index.weapon_classID import WeaponClassIDModel
 import requests
 import base64
 
+ICON_DOWNLOAD_HEADERS = {
+    "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                   "AppleWebKit/537.36 (KHTML, like Gecko) "
+                   "Chrome/119.0.0.0 Safari/537.36"),
+    "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+    "Accept-Language": "zh-CN,zh;q=0.9",
+    "Referer": "https://www.youpin898.com/",
+    "Origin": "https://www.youpin898.com",
+    "Connection": "keep-alive"
+}
+
 youpin898SelectWeaponV1 = Blueprint('youpin898SelectWeaponV1', __name__)
 
 @youpin898SelectWeaponV1.route('/getWeaponList', methods=['GET'])
@@ -240,7 +251,11 @@ def fetchWeaponIcons():
                 continue
 
             try:
-                response = requests.get(icon_url, timeout=20)
+                response = requests.get(icon_url, headers=ICON_DOWNLOAD_HEADERS, timeout=20)
+                if response.status_code == 403:
+                    retry_headers = ICON_DOWNLOAD_HEADERS.copy()
+                    retry_headers["Referer"] = icon_url
+                    response = requests.get(icon_url, headers=retry_headers, timeout=20)
                 response.raise_for_status()
                 icon_base64 = base64.b64encode(response.content).decode('utf-8')
                 if WeaponClassIDModel.update_icon_data(steam_hash_name, icon_base64=icon_base64):
