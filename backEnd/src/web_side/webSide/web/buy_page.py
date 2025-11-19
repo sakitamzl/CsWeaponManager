@@ -35,6 +35,68 @@ def get_source_list():
     return jsonify(sources), 200
 
 
+@webBuyV1.route('/searchBuyByTimeRange/<start_date>/<end_date>', methods=['GET'])
+def search_buy_by_time_range(start_date, end_date):
+    """按时间范围搜索 buy 记录"""
+    try:
+        sql = """
+        SELECT ID, item_name, weapon_name, weapon_type, weapon_float, float_range, price, `from`, order_time, status, status_sub
+        FROM buy
+        WHERE order_time BETWEEN ? AND ?
+        ORDER BY order_time DESC
+        """
+        params = (f"{start_date} 00:00:00", f"{end_date} 23:59:59")
+        db = Date_base()
+        result = db.execute_query(sql, params)
+        return jsonify(result or []), 200
+    except Exception as e:
+        print(f"按时间范围查询购入失败: {e}")
+        return jsonify([]), 500
+
+
+@webBuyV1.route('/getBuyStatsByTimeRange/<start_date>/<end_date>', methods=['GET'])
+def get_buy_stats_by_time_range(start_date, end_date):
+    """按时间范围获取 buy 统计"""
+    try:
+        sql = """
+        SELECT 
+            COUNT(*) as total_count,
+            COALESCE(SUM(CASE WHEN status != '已取消' THEN price ELSE 0 END), 0) as total_amount,
+            COALESCE(AVG(CASE WHEN status != '已取消' THEN price ELSE NULL END), 0) as avg_price,
+            COUNT(CASE WHEN status = '已完成' THEN 1 END) as completed_count,
+            COUNT(CASE WHEN status = '已取消' THEN 1 END) as cancelled_count,
+            COUNT(CASE WHEN status = '待收货' THEN 1 END) as pending_count
+        FROM buy
+        WHERE order_time BETWEEN ? AND ?
+        """
+        params = (f"{start_date} 00:00:00", f"{end_date} 23:59:59")
+        db = Date_base()
+        result = db.execute_query(sql, params)
+
+        if result and len(result) > 0:
+            stats = result[0]
+            return jsonify({
+                "total_count": stats[0],
+                "total_amount": round(float(stats[1]), 2),
+                "avg_price": round(float(stats[2]), 2),
+                "completed_count": stats[3],
+                "cancelled_count": stats[4],
+                "pending_count": stats[5]
+            }), 200
+
+        return jsonify({
+            "total_count": 0,
+            "total_amount": 0.0,
+            "avg_price": 0.0,
+            "completed_count": 0,
+            "cancelled_count": 0,
+            "pending_count": 0
+        }), 200
+    except Exception as e:
+        print(f"获取购入时间范围统计失败: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 def _build_filter_clauses(filters):
     """构建过滤条件的SQL子句和参数"""
     clauses = []
