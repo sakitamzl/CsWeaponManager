@@ -8,9 +8,9 @@
         @click="handleSidebarAreaClick"
       >
         <div class="sidebar-header clickable" @click.stop="toggleConfigSections">
-          <div class="sidebar-header-row">
-            <h3>配置管理</h3>
-            <div class="sidebar-header-actions" v-show="!isConfigSectionsCollapsed">
+          <div class="sidebar-header-row" :class="{ collapsed: isConfigSectionsCollapsed }">
+            <div class="sidebar-header-title">配置管理</div>
+            <div class="sidebar-header-actions">
               <el-button 
                 type="success" 
                 @click.stop="createNewConfig"
@@ -2314,6 +2314,24 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.5rem;
+  overflow: hidden;
+  max-width: 100%;
+  opacity: 1;
+  transition: max-width 0.25s ease, opacity 0.25s ease;
+}
+
+.sidebar-header-row.collapsed {
+  max-width: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sidebar-header-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #4CAF50;
+  white-space: nowrap;
 }
 
 .sidebar-divider {
@@ -2327,6 +2345,7 @@ export default {
   display: flex;
   gap: 0.5rem;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .sidebar-header-actions .el-button {
