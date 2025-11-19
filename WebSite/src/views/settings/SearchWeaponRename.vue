@@ -8,27 +8,27 @@
         @click="handleSidebarAreaClick"
       >
         <div class="sidebar-header clickable" @click.stop="toggleConfigSections">
-          <div class="sidebar-header-row" v-show="!isConfigSectionsCollapsed">
+          <div class="sidebar-header-row">
             <h3>配置管理</h3>
+            <div class="sidebar-header-actions" v-show="!isConfigSectionsCollapsed">
+              <el-button 
+                type="success" 
+                @click.stop="createNewConfig"
+                :disabled="isCrawling"
+              >
+                <el-icon><Document /></el-icon>
+                新建
+              </el-button>
+              
+              <el-button 
+                type="info" 
+                @click.stop="loadConfigList"
+              >
+                <el-icon><Refresh /></el-icon>
+                刷新
+              </el-button>
+            </div>
           </div>
-        </div>
-        <div class="sidebar-actions-row" v-show="!isConfigSectionsCollapsed">
-          <el-button 
-            type="success" 
-            @click="createNewConfig"
-            :disabled="isCrawling"
-          >
-            <el-icon><Document /></el-icon>
-            新建
-          </el-button>
-          
-          <el-button 
-            type="info" 
-            @click="loadConfigList"
-          >
-            <el-icon><Refresh /></el-icon>
-            刷新
-          </el-button>
         </div>
 
         <div class="sidebar-divider" v-show="!isConfigSectionsCollapsed"></div>
@@ -2310,18 +2310,21 @@ export default {
   justify-content: space-between;
 }
 
-.sidebar-actions-row {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
-  margin-bottom: 0.75rem;
-}
-
 .sidebar-divider {
   height: 1px;
   background-color: #2f2f2f;
   border-radius: 1px;
   margin-bottom: 1rem;
+}
+
+.sidebar-header-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.sidebar-header-actions .el-button {
+  min-width: 64px;
 }
 
 .sidebar-header.clickable {
@@ -2408,16 +2411,6 @@ export default {
   align-items: center;
   justify-content: center;
   height: 200px;
-}
-
-.sidebar-actions {
-  display: flex;
-  gap: 0.5rem;
-  margin-left: auto;
-}
-
-.sidebar-actions .el-button {
-  flex: 1;
 }
 
 /* 右侧主内容区域 */

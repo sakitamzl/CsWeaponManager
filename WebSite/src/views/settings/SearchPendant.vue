@@ -2,12 +2,38 @@
   <div class="spider-pendant-container">
     <div class="page-layout">
       <!-- 左侧配置管理栏 -->
-      <aside class="config-sidebar">
-        <div class="sidebar-header">
-          <h3>配置管理</h3>
+      <aside 
+        class="config-sidebar" 
+        :class="{ collapsed: isConfigSectionsCollapsed }"
+        @click="handleSidebarAreaClick"
+      >
+        <div class="sidebar-header clickable" @click.stop="toggleConfigSections">
+          <div class="sidebar-header-row">
+            <h3>配置管理</h3>
+            <div class="sidebar-header-actions" v-show="!isConfigSectionsCollapsed">
+              <el-button 
+                type="success" 
+                @click.stop="createNewConfig"
+                :disabled="isCrawling"
+              >
+                <el-icon><Document /></el-icon>
+                新建
+              </el-button>
+              
+              <el-button 
+                type="info" 
+                @click.stop="loadConfigList"
+              >
+                <el-icon><Refresh /></el-icon>
+                刷新
+              </el-button>
+            </div>
+          </div>
         </div>
 
-        <div class="config-list">
+        <div class="sidebar-divider" v-show="!isConfigSectionsCollapsed"></div>
+
+        <div class="config-list" v-show="!isConfigSectionsCollapsed">
           <div 
             v-for="config in savedConfigs" 
             :key="config.id"
@@ -38,43 +64,24 @@
             <el-empty description="暂无保存的配置" :image-size="80" />
           </div>
         </div>
-
-        <div class="sidebar-actions">
-          <el-button 
-            type="success" 
-            @click="createNewConfig"
-            :disabled="isCrawling"
-          >
-            <el-icon><Document /></el-icon>
-            新建
-          </el-button>
-          
-          <el-button 
-            type="info" 
-            @click="loadConfigList"
-          >
-            <el-icon><Refresh /></el-icon>
-            刷新
-          </el-button>
-        </div>
       </aside>
 
       <!-- 右侧主内容区域 -->
       <div class="main-content-area">
 
       <!-- 统一的工具区域 -->
-      <div class="unified-tool-section" :class="{ collapsed: isToolSectionCollapsed }">
-        <div class="tool-section-header" @click="toggleToolSection">
+      <div class="unified-tool-section" :class="{ collapsed: isConfigSectionsCollapsed }">
+        <div class="tool-section-header" @click="toggleConfigSections">
           <h2 class="section-title">爬取配置</h2>
           <el-button type="text" class="collapse-btn">
             <el-icon :size="20">
-              <ArrowUp v-if="!isToolSectionCollapsed" />
+              <ArrowUp v-if="!isConfigSectionsCollapsed" />
               <ArrowDown v-else />
             </el-icon>
           </el-button>
         </div>
         
-        <div class="tool-section-content" v-show="!isToolSectionCollapsed">
+        <div class="tool-section-content" v-show="!isConfigSectionsCollapsed">
         <div class="tool-section">
         
         <div class="form-container">
@@ -521,8 +528,8 @@ export default {
     const buyingItems = ref({})  // 正在购买的商品 {itemId: true/false}
     const purchasedItems = ref(new Set())  // 已成功购买的商品ID集合
     
-    // 工具区域折叠状态
-    const isToolSectionCollapsed = ref(false)
+    // 工具与配置区域联动折叠状态
+    const isConfigSectionsCollapsed = ref(false)
     const isSearchResultsCollapsed = ref(false)  // 搜索结果列表折叠状态
     const isWeaponListCollapsed = ref(true)  // 饰品列表折叠状态（默认折叠）
     
@@ -671,9 +678,9 @@ export default {
       }
     }
 
-    // 切换工具区域显示/隐藏
-    const toggleToolSection = () => {
-      isToolSectionCollapsed.value = !isToolSectionCollapsed.value
+    // 联动切换配置管理与爬取配置
+    const toggleConfigSections = () => {
+      isConfigSectionsCollapsed.value = !isConfigSectionsCollapsed.value
     }
 
     // 切换搜索结果列表显示/隐藏
@@ -686,10 +693,21 @@ export default {
       isWeaponListCollapsed.value = !isWeaponListCollapsed.value
     }
 
+    const handleSidebarAreaClick = (event) => {
+      const target = event.target
+      if (!target) return
+
+      if (target.closest && target.closest('.config-item')) {
+        return
+      }
+
+      toggleConfigSections()
+    }
+
     // 开始爬取（流式接收）
     const startCrawl = async () => {
-      // 开始搜索时自动折叠工具区域
-      isToolSectionCollapsed.value = true
+      // 开始搜索时自动折叠工具与配置区域
+      isConfigSectionsCollapsed.value = true
       // 清空已购买记录
       purchasedItems.value.clear()
       // 验证基本配置
@@ -1584,7 +1602,7 @@ export default {
       }
       
       // 只有在爬取配置区域是展开状态时，才触发自动加载
-      if (isToolSectionCollapsed.value) {
+      if (isConfigSectionsCollapsed.value) {
         console.log('❌ 跳过滚动检查：配置区域已收起')
         return
       }
@@ -1607,7 +1625,7 @@ export default {
           distanceToBottom: Math.round(distanceToBottom),
           hasMore: hasMore.value,
           isLoadingMore: isLoadingMore.value,
-          isToolSectionCollapsed: isToolSectionCollapsed.value,
+          isConfigSectionsCollapsed: isConfigSectionsCollapsed.value,
           currentPage: currentPage.value,
           resultsCount: weaponSearchResults.value.length
         })
@@ -2159,12 +2177,13 @@ export default {
       // 历史结果管理
       clearCrawlHistory,
       // 工具区域折叠
-      isToolSectionCollapsed,
-      toggleToolSection,
+      isConfigSectionsCollapsed,
+      toggleConfigSections,
       isSearchResultsCollapsed,
       toggleSearchResults,
       isWeaponListCollapsed,
       toggleWeaponList,
+      handleSidebarAreaClick,
       // JSON 编辑器
       jsonValidationMessage,
       jsonValidationStatus,
@@ -2190,10 +2209,6 @@ export default {
   padding: 1rem;
 }
 
-.back-button {
-  /* 按钮样式 */
-}
-
 .page-layout {
   display: flex;
   gap: 1.5rem;
@@ -2212,15 +2227,30 @@ export default {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
+  height: auto;
   max-height: calc(100vh - 150px);
   position: sticky;
   top: 1rem;
+  transition: width 0.25s ease, min-width 0.25s ease;
+}
+
+.config-sidebar.collapsed {
+  width: 48px;
+  min-width: 48px;
 }
 
 .sidebar-header {
   margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #333;
+}
+
+.sidebar-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebar-header.clickable {
+  cursor: pointer;
 }
 
 .sidebar-header h3 {
@@ -2294,6 +2324,7 @@ export default {
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
 }
 
@@ -2304,22 +2335,28 @@ export default {
   height: 200px;
 }
 
-.sidebar-actions {
-  display: flex;
-  gap: 0.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid #333;
+.sidebar-divider {
+  height: 1px;
+  background-color: #2f2f2f;
+  border-radius: 1px;
+  margin-bottom: 1rem;
 }
 
-.sidebar-actions .el-button {
-  flex: 1;
+.sidebar-header-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.sidebar-header-actions .el-button {
+  min-width: 64px;
 }
 
 /* 右侧主内容区域 */
 .main-content-area {
   flex: 1;
   min-width: 0;
-  max-width: calc(100% - 280px - 1.5rem);
+  width: auto;
   overflow-x: hidden;
 }
 
@@ -2836,11 +2873,13 @@ export default {
 .no-spinner :deep(input[type="number"]::-webkit-outer-spin-button),
 .no-spinner :deep(input[type="number"]::-webkit-inner-spin-button) {
   -webkit-appearance: none;
+  appearance: none;
   margin: 0;
 }
 
 .no-spinner :deep(input[type="number"]) {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 .result-info {
@@ -3024,10 +3063,6 @@ export default {
     width: 320px;
     min-width: 320px;
   }
-  
-  .main-content-area {
-    max-width: calc(100% - 320px - 1.5rem);
-  }
 }
 
 /* 中等屏幕 */
@@ -3036,10 +3071,6 @@ export default {
     width: 260px;
     min-width: 260px;
     padding: 1rem;
-  }
-  
-  .main-content-area {
-    max-width: calc(100% - 260px - 1.5rem);
   }
 }
 
@@ -3056,10 +3087,6 @@ export default {
     max-height: 400px;
     position: static;
     margin-bottom: 1rem;
-  }
-  
-  .main-content-area {
-    max-width: 100%;
   }
 
   .config-list {
@@ -3084,7 +3111,7 @@ export default {
     padding: 1rem;
   }
 
-  .sidebar-actions {
+  .sidebar-header-actions {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
