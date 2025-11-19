@@ -84,6 +84,78 @@ def save_config():
             'message': f'保存失败: {str(e)}'
         }), 500
 
+@configV1.route('/update', methods=['POST'])
+def update_config():
+    """更新现有配置"""
+    try:
+        data = request.get_json() or {}
+        config_id = data.get('id')
+        data_name = data.get('dataName')
+        key1 = data.get('key1')
+        key2 = data.get('key2')
+        value = data.get('value')
+
+        if not config_id:
+            return jsonify({
+                'success': False,
+                'message': '缺少配置ID'
+            }), 400
+
+        try:
+            config_id = int(config_id)
+        except (TypeError, ValueError):
+            return jsonify({
+                'success': False,
+                'message': '配置ID必须为整数'
+            }), 400
+
+        if not all([data_name, key1, key2, value]):
+            return jsonify({
+                'success': False,
+                'message': '缺少必要参数'
+            }), 400
+
+        # 检查配置是否存在
+        select_sql = f"SELECT dataID FROM config WHERE dataID = {config_id}"
+        flag, existing = Date_base().select(select_sql)
+        if not (flag and existing):
+            return jsonify({
+                'success': False,
+                'message': '配置不存在或已被删除'
+            }), 404
+
+        # 转义单引号
+        data_name_escaped = data_name.replace("'", "''")
+        key1_escaped = key1.replace("'", "''")
+        key2_escaped = key2.replace("'", "''")
+        value_escaped = value.replace("'", "''")
+
+        update_sql = f"""
+            UPDATE config
+            SET dataName = '{data_name_escaped}',
+                key1 = '{key1_escaped}',
+                key2 = '{key2_escaped}',
+                value = '{value_escaped}'
+            WHERE dataID = {config_id}
+        """
+        Date_base().update(update_sql)
+
+        Log().write_log(f"更新配置成功，dataID: {config_id}", 'info')
+        return jsonify({
+            'success': True,
+            'message': '更新成功',
+            'data': {
+                'id': config_id
+            }
+        }), 200
+
+    except Exception as e:
+        Log().write_log(f"更新配置失败: {str(e)}", 'error')
+        return jsonify({
+            'success': False,
+            'message': f'更新失败: {str(e)}'
+        }), 500
+
 @configV1.route('/list', methods=['GET'])
 def list_configs():
     """获取配置列表"""

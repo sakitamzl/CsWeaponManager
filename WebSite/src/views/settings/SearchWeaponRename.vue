@@ -1382,7 +1382,7 @@ export default {
           value: JSON.stringify(valueObj)
         }
 
-        await axios.post(`${API_CONFIG.BASE_URL}/configV1/update`, configData)
+        await axios.post(`${API_CONFIG.BASE_URL}/configV1/save`, configData)
       } catch (error) {
         console.error('自动保存配置失败:', error)
       }
