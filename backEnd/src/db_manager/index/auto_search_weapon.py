@@ -405,12 +405,25 @@ class AutoSearchWeaponModel(BaseModel):
             elif isinstance(pendants_raw, list):
                 pendants = pendants_raw
 
+        weapon_id_value = self.weapon_id
+        weapon_name_value = self.weapon_name
+
+        if (
+            weapon_name_value
+            and isinstance(weapon_name_value, str)
+            and weapon_name_value.isdigit()
+            and weapon_id_value
+            and isinstance(weapon_id_value, str)
+            and not weapon_id_value.isdigit()
+        ):
+            weapon_id_value, weapon_name_value = weapon_name_value, weapon_id_value
+
         return {
             'id': self.id,
             'sessionId': self.session_id,
             'dataType': self.data_type,
-            'weaponId': self.weapon_id,
-            'weaponName': self.weapon_name,
+            'weaponId': weapon_id_value,
+            'weaponName': weapon_name_value,
             'commodityId': self.commodity_id,
             'commodityNo': self.commodity_no,
             'price': self.price,
