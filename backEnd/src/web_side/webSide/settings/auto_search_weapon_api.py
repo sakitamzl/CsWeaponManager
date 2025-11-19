@@ -279,7 +279,7 @@ def get_items_list():
         
         where_clause += " ORDER BY id DESC"
         
-        model_results = SearchRenameResultModel.find_all(where_clause, params)
+        model_results = AutoSearchWeaponModel.find_all(where_clause, params)
         
         logger.write_log(f"查询结果: {len(model_results) if model_results else 0} 条", 'INFO')
         
@@ -343,7 +343,7 @@ def get_items_count():
                 'message': '缺少sessionId参数'
             }), 400
         
-        count = SearchRenameResultModel.count_by_session(session_id)
+        count = AutoSearchWeaponModel.count_by_session(session_id)
         
         return jsonify({
             'success': True,
@@ -390,13 +390,13 @@ def get_latest_items():
         
         if since_id:
             # 查询指定ID之后的记录
-            results = SearchRenameResultModel.find_all(
+            results = AutoSearchWeaponModel.find_all(
                 "session_id = ? AND id > ? AND status = 'active' ORDER BY id ASC LIMIT ?",
                 (session_id, int(since_id), limit)
             )
         else:
             # 查询最新的N条记录
-            results = SearchRenameResultModel.get_latest_by_session(session_id, limit)
+            results = AutoSearchWeaponModel.get_latest_by_session(session_id, limit)
         
         items = [result.to_dict() for result in results] if results else []
         
@@ -436,7 +436,7 @@ def clear_all_rename_data():
         data_type = data.get('dataType', 'rename')
         
         db = DatabaseManager()
-        table_name = SearchRenameResultModel.get_table_name()
+        table_name = AutoSearchWeaponModel.get_table_name()
         
         # 先统计要删除的记录数
         count_sql = f"SELECT COUNT(*) FROM {table_name} WHERE data_type = ?"
@@ -486,7 +486,7 @@ def cleanup_old_data():
         data = request.get_json() or {}
         days = data.get('days', 7)
         
-        count = SearchRenameResultModel.clear_old_sessions(days)
+        count = AutoSearchWeaponModel.clear_old_sessions(days)
         
         logger.write_log(f"清理旧数据: 删除{count}条记录（{days}天前）", 'INFO')
         
@@ -530,7 +530,7 @@ def get_stats():
         
         if session_id:
             # 单个会话统计
-            results = SearchRenameResultModel.find_by_session(session_id)
+            results = AutoSearchWeaponModel.find_by_session(session_id)
             
             if not results:
                 return jsonify({
@@ -574,7 +574,7 @@ def get_stats():
             })
         else:
             # 全局统计
-            all_results = SearchRenameResultModel.find_all("status = 'active'")
+            all_results = AutoSearchWeaponModel.find_all("status = 'active'")
             
             if not all_results:
                 return jsonify({

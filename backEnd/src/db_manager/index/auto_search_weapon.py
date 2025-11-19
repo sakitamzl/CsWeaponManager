@@ -392,6 +392,19 @@ class AutoSearchWeaponModel(BaseModel):
         Returns:
             Dict[str, Any]: 字典数据
         """
+        pendants_raw = self.pendant_details
+        pendants = []
+        if pendants_raw:
+            if isinstance(pendants_raw, (bytes, bytearray)):
+                pendants_raw = pendants_raw.decode('utf-8', errors='ignore')
+            if isinstance(pendants_raw, str):
+                try:
+                    pendants = json.loads(pendants_raw)
+                except (json.JSONDecodeError, TypeError):
+                    pendants = []
+            elif isinstance(pendants_raw, list):
+                pendants = pendants_raw
+
         return {
             'id': self.id,
             'sessionId': self.session_id,
@@ -414,7 +427,7 @@ class AutoSearchWeaponModel(BaseModel):
             'pendantCount': self.pendant_count or 0,
             'pendantTotalPrice': self.pendant_total_price or 0,
             'priceDiffPercentage': self.price_diff_percentage or 0,
-            'pendants': json.loads(self.pendant_details) if self.pendant_details else [],
+            'pendants': pendants,
             'status': self.status,
             'createdAt': self.created_at,
             'updatedAt': self.updated_at
