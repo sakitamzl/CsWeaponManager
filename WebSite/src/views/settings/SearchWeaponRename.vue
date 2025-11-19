@@ -2,13 +2,13 @@
   <div class="spider-weapon-rename-container">
     <div class="page-layout">
       <!-- 左侧配置管理栏 -->
-      <aside class="config-sidebar" :class="{ collapsed: isSidebarCollapsed }" @click="handleSidebarClick">
-        <div class="sidebar-header" @click.stop="collapseSidebar" :class="{ clickable: !isSidebarCollapsed }">
-          <div class="sidebar-header-row" v-show="!isSidebarCollapsed">
+      <aside class="config-sidebar" :class="{ collapsed: isConfigSectionsCollapsed }">
+        <div class="sidebar-header clickable" @click.stop="toggleConfigSections">
+          <div class="sidebar-header-row" v-show="!isConfigSectionsCollapsed">
             <h3>配置管理</h3>
           </div>
         </div>
-        <div class="sidebar-actions-row" v-show="!isSidebarCollapsed">
+        <div class="sidebar-actions-row" v-show="!isConfigSectionsCollapsed">
           <el-button 
             type="success" 
             @click="createNewConfig"
@@ -29,7 +29,7 @@
 
         <div class="sidebar-divider" v-show="!isSidebarCollapsed"></div>
 
-        <div class="config-list" v-show="!isSidebarCollapsed">
+        <div class="config-list" v-show="!isConfigSectionsCollapsed">
           <div 
             v-for="config in savedConfigs" 
             :key="config.id"
@@ -67,18 +67,18 @@
 
       <!-- 饰品搜索区域 -->
       <!-- 统一的工具区域 -->
-      <div class="unified-tool-section" :class="{ collapsed: isToolSectionCollapsed }">
-        <div class="tool-section-header" @click="toggleToolSection">
+      <div class="unified-tool-section" :class="{ collapsed: isConfigSectionsCollapsed }">
+        <div class="tool-section-header" @click="toggleConfigSections">
           <h2 class="section-title">爬取配置</h2>
           <el-button type="text" class="collapse-btn">
             <el-icon :size="20">
-              <ArrowUp v-if="!isToolSectionCollapsed" />
+              <ArrowUp v-if="!isConfigSectionsCollapsed" />
               <ArrowDown v-else />
             </el-icon>
           </el-button>
         </div>
         
-        <div class="tool-section-content" v-show="!isToolSectionCollapsed">
+        <div class="tool-section-content" v-show="!isConfigSectionsCollapsed">
         <div class="tool-section">
         
         <div class="form-container">
@@ -585,12 +585,10 @@ export default {
       return item.weapon_name || item.weaponName || item.market_listing_item_name || item.name || ''
     }
     
-    // 工具区域折叠状态
-    const isToolSectionCollapsed = ref(false)
+    // 工具与配置区域联动折叠状态
+    const isConfigSectionsCollapsed = ref(false)
     // 饰品列表折叠状态（默认折叠）
     const isWeaponListCollapsed = ref(true)
-    // 左侧配置栏折叠状态
-    const isSidebarCollapsed = ref(false)
     
     // JSON 验证相关
     const jsonValidationMessage = ref('')
@@ -754,26 +752,13 @@ export default {
       }
     }
 
-    // 切换工具区域显示/隐藏
-    const toggleToolSection = () => {
-      isToolSectionCollapsed.value = !isToolSectionCollapsed.value
+    // 联动切换配置管理与爬取配置区域
+    const toggleConfigSections = () => {
+      isConfigSectionsCollapsed.value = !isConfigSectionsCollapsed.value
     }
 
     const toggleWeaponList = () => {
       isWeaponListCollapsed.value = !isWeaponListCollapsed.value
-    }
-
-    // 左侧配置栏交互
-    const collapseSidebar = () => {
-      if (!isSidebarCollapsed.value) {
-        isSidebarCollapsed.value = true
-      }
-    }
-
-    const handleSidebarClick = () => {
-      if (isSidebarCollapsed.value) {
-        isSidebarCollapsed.value = false
-      }
     }
 
     const clearAllWeaponIds = () => {
@@ -1006,8 +991,7 @@ export default {
     // 开始爬取（流式接收）- 全新重构版本
     const startCrawl = async () => {
       // 开始搜索时自动折叠工具区域与配置栏
-      isToolSectionCollapsed.value = true
-      isSidebarCollapsed.value = true
+      isConfigSectionsCollapsed.value = true
       
       // 验证基本配置
       if (!crawlForm.value.configName) {
@@ -2173,12 +2157,8 @@ export default {
       // 历史结果管理
       clearCrawlHistory,
       // 工具区域折叠
-      isToolSectionCollapsed,
-      toggleToolSection,
-      // 左侧配置栏折叠
-      isSidebarCollapsed,
-      collapseSidebar,
-      handleSidebarClick,
+      isConfigSectionsCollapsed,
+      toggleConfigSections,
       // JSON 编辑器
       jsonValidationMessage,
       jsonValidationStatus,

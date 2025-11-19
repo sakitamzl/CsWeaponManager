@@ -2139,6 +2139,8 @@ export default {
       handleSearchWeapon,
       loadMoreWeapons,
       clearWeaponSearch,
+      handleAddWeaponFromSearch,
+      handleAddAllWeaponsFromSearch,
       getWeaponIdByPlatform,
       getSourceLabel,
       addWeaponId,
