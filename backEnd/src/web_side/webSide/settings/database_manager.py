@@ -813,9 +813,14 @@ def truncate_table():
         cursor.execute(f'DELETE FROM "{table_name}"')
         conn.commit()
         
-        # 重置自增ID（如果有的话）
-        cursor.execute(f'DELETE FROM sqlite_sequence WHERE name=?', (table_name,))
-        conn.commit()
+        # 重置自增ID（如果存在sqlite_sequence表）
+        cursor.execute("""
+            SELECT name FROM sqlite_master 
+            WHERE type='table' AND name='sqlite_sequence'
+        """)
+        if cursor.fetchone():
+            cursor.execute('DELETE FROM sqlite_sequence WHERE name=?', (table_name,))
+            conn.commit()
         
         conn.close()
         

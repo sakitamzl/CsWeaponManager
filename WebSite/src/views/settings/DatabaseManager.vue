@@ -493,7 +493,24 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Search } from '@element-plus/icons-vue';
+import { 
+  Search,
+  Refresh,
+  FolderAdd,
+  Download,
+  Upload,
+  Tools,
+  MagicStick,
+  Grid,
+  List,
+  EditPen,
+  Plus,
+  Delete,
+  Filter,
+  CopyDocument,
+  CaretRight,
+  DocumentAdd
+} from '@element-plus/icons-vue';
 import axios from 'axios';
 
 // 侧边栏
@@ -1178,7 +1195,7 @@ const truncateTable = async (tableName) => {
     ElMessage.success(`表 "${tableName}" 已清空`);
     
     // 刷新表列表和数据库信息
-    await loadTables();
+    await refreshTables();
     await refreshDatabaseInfo();
     
     // 如果当前选中的就是这个表，刷新数据
@@ -1228,7 +1245,7 @@ const dropTable = async (tableName) => {
     }
     
     // 刷新表列表和数据库信息
-    await loadTables();
+    await refreshTables();
     await refreshDatabaseInfo();
   } catch (error) {
     if (error !== 'cancel') {

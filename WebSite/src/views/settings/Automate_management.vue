@@ -2,15 +2,6 @@
   <div class="automate-management">
     <div class="config-section">
       <el-form :model="automateForm" label-width="140px" label-position="left">
-        <!-- 任务名称 -->
-        <el-form-item label="任务名称">
-          <el-input 
-            v-model="automateForm.taskName" 
-            placeholder="请输入任务名称"
-            style="width: 300px"
-          />
-        </el-form-item>
-
         <!-- 自动化类型选择 -->
         <el-form-item label="自动化类型">
           <el-select 
@@ -21,7 +12,17 @@
           >
             <el-option label="更新steam库存价格" value="auto_update" />
             <el-option label="获取平台交易记录" value="auto_fetch" />
+            <el-option label="更新饰品平台映射价格" value="auto_platform_price" />
           </el-select>
+        </el-form-item>
+
+        <!-- 任务名称 -->
+        <el-form-item label="任务名称">
+          <el-input 
+            v-model="automateForm.taskName" 
+            placeholder="请输入任务名称"
+            style="width: 300px"
+          />
         </el-form-item>
 
         <!-- 第二个下拉框 - 根据类型动态显示 -->
@@ -58,7 +59,7 @@
         </el-form-item>
 
         <!-- 数据源选择 (仅在自动获取数据时显示) - 单选 -->
-        <el-form-item v-if="automateForm.automateType === 'auto_fetch'" label="数据源">
+        <el-form-item v-if="['auto_fetch', 'auto_platform_price'].includes(automateForm.automateType)" label="数据源">
           <el-select 
             v-model="automateForm.selectedDataSource" 
             placeholder="请选择数据源"
@@ -87,12 +88,22 @@
             <el-option label="1小时" :value="60" />
             <el-option label="3小时" :value="180" />
             <el-option label="6小时" :value="360" />
-            <el-option label="8小时" :value="480" />
-            <el-option label="10小时" :value="600" />
             <el-option label="12小时" :value="720" />
-            <el-option label="16小时" :value="960" />
-            <el-option label="20小时" :value="1200" />
             <el-option label="24小时" :value="1440" />
+            <template #footer>
+              <div class="custom-interval-footer">
+                <span>手动输入(分钟)</span>
+                <el-input-number 
+                  v-model="customInterval"
+                  :min="1"
+                  :step="5"
+                  controls-position="right"
+                  size="small"
+                  style="width: 160px"
+                />
+                <el-button type="primary" size="small" @click="applyCustomInterval">应用</el-button>
+              </div>
+            </template>
           </el-select>
         </el-form-item>
 
@@ -112,8 +123,12 @@
       <el-table :data="runningTasks" style="width: 100%">
         <el-table-column prop="type" label="自动化类型" min-width="120" />
         <el-table-column prop="taskName" label="任务名称" min-width="150" />
-        <el-table-column prop="targetInfo" label="目标" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="interval" label="间隔(分钟)" width="100" align="center" />
+        <el-table-column prop="targetInfo" label="使用账号" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="interval" label="间隔(分钟)" width="120" align="center">
+          <template #default="{ row }">
+            {{ formatInterval(row.interval) }}
+          </template>
+        </el-table-column>
         <el-table-column prop="status" label="状态" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="row.status === '运行中' ? 'success' : 'info'">
@@ -169,10 +184,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
-import { API_CONFIG } from '@/config/api.js'
+import { API_CONFIG, apiUrls } from '@/config/api.js'
 
 // 表单数据
 const automateForm = ref({
@@ -183,6 +198,8 @@ const automateForm = ref({
   selectedDataSource: '', // 单选数据源
   interval: 30
 })
+
+const customInterval = ref(automateForm.value.interval)
 
 // 执行状态
 const executing = ref(false)
@@ -219,9 +236,41 @@ const fetchTasks = [
   { label: '悠悠有品数据采集', value: 'collect_youpin' }
 ]
 
+// 更新饰品平台映射价格任务
+const platformPriceTasks = [
+  { label: '更新悠悠有品饰品价格', value: 'platform_youpin_price' },
+  { label: '更新BUFF饰品价格', value: 'platform_buff_price' }
+]
+
+const typeLabelMap = {
+  auto_update: '更新steam库存价格',
+  auto_fetch: '获取平台交易记录',
+  auto_platform_price: '更新饰品平台映射价格'
+}
+
+const labelToTypeMap = Object.entries(typeLabelMap).reduce((acc, [key, label]) => {
+  acc[label] = key
+  return acc
+}, {})
+
+const getExecutionTypeLabel = (type) => {
+  if (type === 'auto_update') return '自动更新数据'
+  if (type === 'auto_platform_price') return '更新饰品平台映射价格'
+  return '自动获取数据'
+}
+
 // 第二个选择框标签
 const secondSelectLabel = computed(() => {
-  return automateForm.value.automateType === 'auto_update' ? '更新任务' : '采集任务'
+  if (automateForm.value.automateType === 'auto_update') {
+    return '更新任务'
+  }
+  if (automateForm.value.automateType === 'auto_platform_price') {
+    return '价格更新任务'
+  }
+  if (automateForm.value.automateType === 'auto_fetch') {
+    return '采集任务'
+  }
+  return '任务'
 })
 
 // 根据所选任务类型返回对应的Steam配置列表
@@ -244,7 +293,16 @@ const currentSteamConfigList = computed(() => {
 
 // 可用的任务列表
 const availableTasks = computed(() => {
-  return automateForm.value.automateType === 'auto_update' ? updateTasks : fetchTasks
+  if (automateForm.value.automateType === 'auto_update') {
+    return updateTasks
+  }
+  if (automateForm.value.automateType === 'auto_platform_price') {
+    return platformPriceTasks
+  }
+  if (automateForm.value.automateType === 'auto_fetch') {
+    return fetchTasks
+  }
+  return []
 })
 
 // 过滤后的数据源 (根据选择的任务类型)
@@ -259,6 +317,14 @@ const filteredDataSources = computed(() => {
   } else if (automateForm.value.selectedTask === 'collect_youpin') {
     const filtered = dataSources.value.filter(s => s.type === 'youpin' && s.enabled)
     console.log('过滤后的悠悠有品数据源:', filtered)
+    return filtered
+  } else if (automateForm.value.selectedTask === 'platform_buff_price') {
+    const filtered = dataSources.value.filter(s => s.type === 'buff' && s.enabled)
+    console.log('过滤后的BUFF价格数据源:', filtered)
+    return filtered
+  } else if (automateForm.value.selectedTask === 'platform_youpin_price') {
+    const filtered = dataSources.value.filter(s => s.type === 'youpin' && s.enabled)
+    console.log('过滤后的悠悠有品价格数据源:', filtered)
     return filtered
   }
   console.log('未选择任务,返回空数组')
@@ -351,6 +417,24 @@ const handleTypeChange = () => {
   automateForm.value.selectedDataSource = ''
 }
 
+const applyCustomInterval = () => {
+  if (!customInterval.value || customInterval.value < 1) {
+    ElMessage.warning('请输入大于0的分钟数')
+    return
+  }
+  automateForm.value.interval = Number(customInterval.value)
+  ElMessage.success('已应用自定义执行间隔')
+}
+
+watch(
+  () => automateForm.value.interval,
+  (val) => {
+    if (typeof val === 'number' && val > 0) {
+      customInterval.value = val
+    }
+  }
+)
+
 // 执行任务
 const handleExecute = async () => {
   // 验证表单
@@ -374,11 +458,14 @@ const handleExecute = async () => {
       ElMessage.warning('请选择Steam账号')
       return
     }
-  } else {
+  } else if (['auto_fetch', 'auto_platform_price'].includes(automateForm.value.automateType)) {
     if (!automateForm.value.selectedDataSource) {
       ElMessage.warning('请选择数据源')
       return
     }
+  } else {
+    ElMessage.warning('请选择有效的自动化类型')
+    return
   }
 
   // 如果是编辑模式,执行更新;否则创建新任务
@@ -393,14 +480,21 @@ const handleExecute = async () => {
 const executeTask = async () => {
   executing.value = true
   const startTime = new Date().toLocaleString()
+  const automateType = automateForm.value.automateType
+  const executionType = getExecutionTypeLabel(automateType)
   
   try {
     let result
     const taskType = automateForm.value.selectedTask
     
-    if (automateForm.value.automateType === 'auto_update') {
-      // 自动更新数据任务
-      const steamId = automateForm.value.selectedSteamId
+    if (automateType === 'auto_update') {
+      const selectedConfigId = automateForm.value.selectedSteamConfig
+      const config = currentSteamConfigList.value.find(c => c.dataID === selectedConfigId)
+      const steamId = config?.steamID
+      
+      if (!steamId) {
+        throw new Error('未找到对应的 Steam ID，请重新选择账号后重试')
+      }
       
       if (taskType === 'update_steam_inventory') {
         result = await updateSteamInventory(steamId)
@@ -409,38 +503,39 @@ const executeTask = async () => {
       } else if (taskType === 'fetch_buff_price') {
         result = await fetchBuffPrice(steamId)
       }
-    } else {
-      // 自动获取数据任务 - 支持多个数据源
-      const dataSourceIds = automateForm.value.selectedDataSources
-      const results = []
+    } else if (automateType === 'auto_platform_price') {
+      const selectedSource = dataSources.value.find(s => s.dataID === automateForm.value.selectedDataSource)
       
-      for (const dataSourceId of dataSourceIds) {
-        const dataSource = dataSources.value.find(s => s.dataID === dataSourceId)
-        
-        if (dataSource) {
-          let singleResult
-          if (taskType === 'collect_buff') {
-            singleResult = await collectBuffData(dataSource)
-          } else if (taskType === 'collect_youpin') {
-            singleResult = await collectYoupinData(dataSource)
-          }
-          results.push({ source: dataSource.dataName, ...singleResult })
-        }
+      if (!selectedSource || !selectedSource.steamID) {
+        throw new Error('未找到有效的数据源或缺少 Steam ID')
       }
       
-      // 汇总结果
-      const successCount = results.filter(r => r.success).length
-      const totalCount = results.length
-      result = {
-        success: successCount > 0,
-        message: `完成 ${successCount}/${totalCount} 个数据源采集`
+      if (taskType === 'platform_youpin_price') {
+        result = await syncYoupinPriceMapping(selectedSource.steamID)
+      } else if (taskType === 'platform_buff_price') {
+        result = await syncBuffPriceMapping(selectedSource.steamID)
+      }
+    } else if (automateType === 'auto_fetch') {
+      const selectedSource = dataSources.value.find(s => s.dataID === automateForm.value.selectedDataSource)
+      
+      if (!selectedSource) {
+        throw new Error('未找到有效的数据源')
+      }
+      
+      if (taskType === 'collect_buff') {
+        result = await collectBuffData(selectedSource)
+      } else if (taskType === 'collect_youpin') {
+        result = await collectYoupinData(selectedSource)
       }
     }
     
-    // 添加到执行历史
+    if (!result) {
+      throw new Error('未能执行所选任务，请检查配置后重试')
+    }
+    
     addExecutionHistory({
       time: startTime,
-      type: automateForm.value.automateType === 'auto_update' ? '自动更新数据' : '自动获取数据',
+      type: executionType,
       taskName: availableTasks.value.find(t => t.value === taskType)?.label || taskType,
       targetInfo: getTargetInfo(),
       result: result.success ? '成功' : '失败',
@@ -451,7 +546,7 @@ const executeTask = async () => {
     console.error('执行任务失败:', error)
     addExecutionHistory({
       time: startTime,
-      type: automateForm.value.automateType === 'auto_update' ? '自动更新数据' : '自动获取数据',
+      type: executionType,
       taskName: availableTasks.value.find(t => t.value === automateForm.value.selectedTask)?.label || automateForm.value.selectedTask,
       targetInfo: getTargetInfo(),
       result: '失败',
@@ -577,6 +672,48 @@ const collectYoupinData = async (dataSource) => {
   }
 }
 
+// 更新悠悠有品饰品价格
+const syncYoupinPriceMapping = async (steamId) => {
+  try {
+    const response = await axios.post(
+      apiUrls.youpinSyncTemplates(),
+      { steamId }
+    )
+    
+    if (response.data.success) {
+      ElMessage.success(response.data.message || '悠悠有品饰品价格更新成功')
+      return { success: true, message: response.data.message || '更新成功' }
+    } else {
+      ElMessage.error(response.data.message || '悠悠有品饰品价格更新失败')
+      return { success: false, message: response.data.message || '更新失败' }
+    }
+  } catch (error) {
+    ElMessage.error('更新失败: ' + error.message)
+    throw error
+  }
+}
+
+// 更新BUFF饰品价格
+const syncBuffPriceMapping = async (steamId) => {
+  try {
+    const response = await axios.post(
+      apiUrls.buffSyncTemplates(),
+      { steamId }
+    )
+    
+    if (response.data.success) {
+      ElMessage.success(response.data.message || 'BUFF饰品价格更新成功')
+      return { success: true, message: response.data.message || '更新成功' }
+    } else {
+      ElMessage.error(response.data.message || 'BUFF饰品价格更新失败')
+      return { success: false, message: response.data.message || '更新失败' }
+    }
+  } catch (error) {
+    ElMessage.error('更新失败: ' + error.message)
+    throw error
+  }
+}
+
 // 启动定时任务
 const startScheduledTask = async () => {
   // 检查是否存在重复任务
@@ -629,7 +766,7 @@ const startScheduledTask = async () => {
     
     const taskInfo = {
       id: taskId,
-      type: automateForm.value.automateType === 'auto_update' ? '更新steam库存价格' : '获取平台交易记录',
+      type: typeLabelMap[automateForm.value.automateType] || '-',
       taskName: automateForm.value.taskName, // 使用用户输入的任务名称
       targetInfo: getTargetInfo(),
       interval: automateForm.value.interval,
@@ -724,7 +861,7 @@ const editTask = (task) => {
   // 填充表单
   automateForm.value = {
     taskName: task.taskName,
-    automateType: task.type === '更新steam库存价格' ? 'auto_update' : 'auto_fetch',
+    automateType: labelToTypeMap[task.type] || 'auto_fetch',
     selectedTask: task.config.selectedTask,
     selectedSteamConfig: task.config.selectedSteamConfig || '',
     selectedDataSource: task.config.selectedDataSource || '',
@@ -797,7 +934,7 @@ const updateTask = async () => {
         const task = runningTasks.value[taskIndex]
         
         task.taskName = automateForm.value.taskName
-        task.type = automateForm.value.automateType === 'auto_update' ? '更新steam库存价格' : '获取平台交易记录'
+        task.type = typeLabelMap[automateForm.value.automateType] || task.type
         task.targetInfo = getTaskTargetInfo({
           automateType: automateForm.value.automateType,
           config: taskConfig.config
@@ -895,6 +1032,19 @@ const getTargetInfo = () => {
   }
 }
 
+const formatInterval = (interval) => {
+  if (!interval && interval !== 0) return '-'
+  if (interval < 60) {
+    return `${interval} 分钟`
+  }
+  const hours = Math.floor(interval / 60)
+  const minutes = interval % 60
+  if (minutes === 0) {
+    return `${hours} 小时`
+  }
+  return `${hours} 小时 ${minutes} 分钟`
+}
+
 
 // 重置表单
 const handleReset = () => {
@@ -927,7 +1077,7 @@ const loadSavedTasks = async () => {
       for (const savedTask of response.data.data) {
         const taskInfo = {
           id: savedTask.taskId,
-          type: savedTask.automateType === 'auto_update' ? '更新steam库存价格' : '获取平台交易记录',
+          type: typeLabelMap[savedTask.automateType] || savedTask.automateType,
           taskName: savedTask.taskName,
           targetInfo: getTaskTargetInfo(savedTask),
           interval: savedTask.config.interval,
@@ -957,15 +1107,35 @@ const loadSavedTasks = async () => {
 // 使用配置执行任务 (支持从数据库加载的任务和手动启动的任务)
 const executeTaskWithConfig = async (taskOrSavedTask) => {
   const startTime = new Date().toLocaleString()
+  const savedTask = taskOrSavedTask
+  const config = savedTask.config || taskOrSavedTask.config || taskOrSavedTask
+  const taskType = config.selectedTask
+  const automateType = savedTask.automateType || config.automateType
+  const executionType = getExecutionTypeLabel(automateType)
   
   try {
     let result
-    // 兼容两种数据结构
-    const config = taskOrSavedTask.config || taskOrSavedTask
-    const taskType = config.selectedTask
     
-    if (savedTask.automateType === 'auto_update') {
-      const steamId = savedTask.config.selectedSteamId
+    if (automateType === 'auto_update') {
+      const selectedConfigId = config.selectedSteamConfig
+      let steamId = config.selectedSteamId
+      
+      if (!steamId && selectedConfigId) {
+        let configList = []
+        if (taskType === 'update_steam_inventory') {
+          configList = steamConfigList.value
+        } else if (taskType === 'fetch_yyyp_price') {
+          configList = youpinConfigList.value
+        } else if (taskType === 'fetch_buff_price') {
+          configList = buffConfigList.value
+        }
+        const foundConfig = configList.find(item => item.dataID === selectedConfigId)
+        steamId = foundConfig?.steamID
+      }
+      
+      if (!steamId) {
+        throw new Error('未找到对应的 Steam ID')
+      }
       
       if (taskType === 'update_steam_inventory') {
         result = await updateSteamInventory(steamId)
@@ -974,9 +1144,21 @@ const executeTaskWithConfig = async (taskOrSavedTask) => {
       } else if (taskType === 'fetch_buff_price') {
         result = await fetchBuffPrice(steamId)
       }
-    } else {
-      // 支持多个数据源
-      const dataSourceIds = savedTask.config.selectedDataSources || []
+    } else if (automateType === 'auto_platform_price') {
+      const dataSourceId = config.selectedDataSource
+      const dataSource = dataSources.value.find(s => s.dataID === dataSourceId)
+      
+      if (!dataSource || !dataSource.steamID) {
+        throw new Error('未找到有效的数据源或缺少 Steam ID')
+      }
+      
+      if (taskType === 'platform_youpin_price') {
+        result = await syncYoupinPriceMapping(dataSource.steamID)
+      } else if (taskType === 'platform_buff_price') {
+        result = await syncBuffPriceMapping(dataSource.steamID)
+      }
+    } else if (automateType === 'auto_fetch') {
+      const dataSourceIds = config.selectedDataSources?.length ? config.selectedDataSources : [config.selectedDataSource].filter(Boolean)
       const results = []
       
       for (const dataSourceId of dataSourceIds) {
@@ -995,7 +1177,6 @@ const executeTaskWithConfig = async (taskOrSavedTask) => {
         }
       }
       
-      // 汇总结果
       if (results.length > 0) {
         const successCount = results.filter(r => r.success).length
         const totalCount = results.length
@@ -1006,11 +1187,10 @@ const executeTaskWithConfig = async (taskOrSavedTask) => {
       }
     }
     
-    // 添加到执行历史
     if (result) {
       addExecutionHistory({
         time: startTime,
-        type: savedTask.automateType === 'auto_update' ? '自动更新数据' : '自动获取数据',
+        type: executionType,
         taskName: savedTask.taskName,
         targetInfo: getTaskTargetInfo(savedTask),
         result: result.success ? '成功' : '失败',
@@ -1021,7 +1201,7 @@ const executeTaskWithConfig = async (taskOrSavedTask) => {
     console.error('执行定时任务失败:', error)
     addExecutionHistory({
       time: startTime,
-      type: savedTask.automateType === 'auto_update' ? '自动更新数据' : '自动获取数据',
+      type: executionType,
       taskName: savedTask.taskName,
       targetInfo: getTaskTargetInfo(savedTask),
       result: '失败',
@@ -1058,7 +1238,7 @@ const getTaskTargetInfo = (savedTask) => {
     
     // 显示格式: 配置名称 (SteamID)
     return config.steamID ? `${config.dataName} (${config.steamID})` : config.dataName
-  } else {
+  } else if (['auto_fetch', 'auto_platform_price'].includes(savedTask.automateType)) {
     // 获取数据类型:只显示数据源名称和SteamID
     const selectedId = savedTask.config.selectedDataSource
     
@@ -1074,6 +1254,8 @@ const getTaskTargetInfo = (savedTask) => {
     
     // 显示格式: 数据源名称 (SteamID)
     return source.steamID ? `${source.dataName} (${source.steamID})` : source.dataName
+  } else {
+    return '-'
   }
 }
 
@@ -1119,6 +1301,19 @@ onMounted(async () => {
 
 .empty-placeholder {
   padding: 20px 0;
+}
+
+.custom-interval-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-top: 1px solid rgba(58, 58, 58, 0.8);
+}
+
+.custom-interval-footer span {
+  color: #e8e8e8;
+  font-size: 12px;
 }
 
 /* Element Plus 表单样式调整 */

@@ -364,6 +364,9 @@ class TaskScheduler:
             elif automate_type == 'auto_fetch':
                 # 自动获取数据任务
                 self._execute_fetch_task(task_info)
+            elif automate_type == 'auto_platform_price':
+                # 更新饰品平台价格
+                self._execute_platform_price_task(task_info)
             else:
                 self.log.write_log(f"未知的任务类型: {automate_type}", 'error')
                 
@@ -553,6 +556,71 @@ class TaskScheduler:
             self.log.write_log(f"数据采集失败: {str(e)}", 'error')
         except Exception as e:
             self.log.write_log(f"处理数据源失败 (ID={data_source_id}): {str(e)}", 'error')
+
+    def _execute_platform_price_task(self, task_info):
+        """执行饰品平台价格更新任务"""
+        config = task_info['config']
+        selected_task = config.get('selectedTask')
+        data_source_id = config.get('selectedDataSource')
+        
+        if not data_source_id:
+            self.log.write_log(f"任务 {task_info['task_name']} 没有选择数据源", 'error')
+            return
+        
+        db = Date_base()
+        
+        try:
+            query_sql = f"""
+            SELECT dataName, key1, value, steamID 
+            FROM config 
+            WHERE dataID = {data_source_id} AND key2 = 'config'
+            """
+            success, result = db.select(query_sql)
+            
+            if not success or not result:
+                self.log.write_log(f"数据源不存在: ID={data_source_id}", 'error')
+                return
+            
+            data_name = result[0][0]
+            data_type = result[0][1]
+            steam_id = result[0][3]
+            
+            if not steam_id:
+                self.log.write_log(f"数据源 {data_name} (ID={data_source_id}) 缺少 Steam ID", 'error')
+                return
+            
+            spider_base_url = "http://127.0.0.1:9002"
+            
+            if selected_task == 'platform_youpin_price':
+                if data_type != 'youpin':
+                    self.log.write_log(f"数据源类型与任务不匹配: 期望youpin, 实际 {data_type}", 'warning')
+                    return
+                
+                url = f"{spider_base_url}/youping898SpiderV1/syncWeaponTemplates"
+                payload = {'steamId': steam_id}
+                self.log.write_log(f"开始更新悠悠有品饰品价格: {data_name}, URL: {url}", 'info')
+                response = requests.post(url, json=payload, timeout=600)
+                self.log.write_log(f"悠悠有品饰品价格更新完成: 状态 {response.status_code}, 响应: {response.text[:200]}", 'info')
+            
+            elif selected_task == 'platform_buff_price':
+                if data_type != 'buff':
+                    self.log.write_log(f"数据源类型与任务不匹配: 期望buff, 实际 {data_type}", 'warning')
+                    return
+                
+                url = f"{spider_base_url}/buffSpiderV1/syncBuffTemplates"
+                payload = {'steamId': steam_id}
+                self.log.write_log(f"开始更新BUFF饰品价格: {data_name}, URL: {url}", 'info')
+                response = requests.post(url, json=payload, timeout=600)
+                self.log.write_log(f"BUFF饰品价格更新完成: 状态 {response.status_code}, 响应: {response.text[:200]}", 'info')
+            else:
+                self.log.write_log(f"未知的平台价格任务类型: {selected_task}", 'error')
+        
+        except requests.exceptions.Timeout:
+            self.log.write_log(f"平台价格更新超时 (数据源ID={data_source_id})", 'error')
+        except requests.exceptions.RequestException as e:
+            self.log.write_log(f"平台价格更新失败: {str(e)}", 'error')
+        except Exception as e:
+            self.log.write_log(f"平台价格任务处理失败 (ID={data_source_id}): {str(e)}", 'error')
 
 
 # 全局调度器实例
