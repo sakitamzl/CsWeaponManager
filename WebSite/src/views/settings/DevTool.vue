@@ -151,15 +151,6 @@
             {{ isSyncingBuff ? '同步中...' : '获取BUFF饰品映射' }}
           </el-button>
 
-          <el-button
-            type="primary"
-            @click="fetchWeaponIconsBatch"
-            :disabled="isSyncing || isSyncingBuff || isFetchingIcons"
-            :loading="isFetchingIcons"
-          >
-            {{ isFetchingIcons ? '获取图片中...' : '批量获取饰品图片' }}
-          </el-button>
-
           <el-button 
             type="primary" 
             @click="collectHashNamesFull"
@@ -248,7 +239,6 @@ export default {
     const steamIdList = ref([])
     const isSyncing = ref(false)
     const isSyncingBuff = ref(false)
-    const isFetchingIcons = ref(false)
     const lastSyncTime = ref('')
     
     // Steam Hash Names 相关状态
@@ -724,55 +714,6 @@ export default {
       }
     }
 
-    const fetchWeaponIconsBatch = async () => {
-      if (isFetchingIcons.value) {
-        return
-      }
-
-      let limit = 50
-      try {
-        const { value } = await ElMessageBox.prompt(
-          '请输入本次需要处理的饰品数量（1-200）',
-          '批量获取饰品图片',
-          {
-            confirmButtonText: '开始',
-            cancelButtonText: '取消',
-            inputValue: '50',
-            inputPattern: /^([1-9]\d?|1\d\d|200)$/,
-            inputErrorMessage: '请输入1-200之间的数字'
-          }
-        )
-        limit = parseInt(value, 10)
-      } catch {
-        return
-      }
-
-      isFetchingIcons.value = true
-      ElMessage.info(`开始获取 ${limit} 个饰品图片...`)
-
-      try {
-        const response = await axios.post(apiUrls.fetchWeaponIcons(), { limit })
-        if (response.data.success) {
-          const msg = `已处理 ${response.data.processed} 条，成功 ${response.data.success_count} 条`
-          ElMessage.success(response.data.message ? `${response.data.message}，${msg}` : msg)
-        } else {
-          ElMessage.error(response.data.error || '获取饰品图片失败')
-        }
-      } catch (error) {
-        console.error('获取饰品图片失败:', error)
-        let errorMessage = '请求失败'
-        if (error.response) {
-          errorMessage = error.response.data?.error || error.response.data?.message || `请求失败 (${error.response.status})`
-        } else if (error.request) {
-          errorMessage = '无法连接到后端服务器'
-        } else if (error.message) {
-          errorMessage = error.message
-        }
-        ElMessage.error(errorMessage)
-      } finally {
-        isFetchingIcons.value = false
-      }
-    }
 
     // 完整采集Hash Names (全部)
     const collectHashNamesTest = async () => {
@@ -974,11 +915,9 @@ export default {
       steamIdList,
       isSyncing,
       isSyncingBuff,
-      isFetchingIcons,
       lastSyncTime,
       syncWeaponTemplates,
       syncBuffTemplates,
-      fetchWeaponIconsBatch,
       // Steam Hash Names 相关
       isCollectingHashNames,
       lastCollectTime,

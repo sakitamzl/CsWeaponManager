@@ -1,18 +1,5 @@
 from flask import jsonify, request, Blueprint
 from src.db_manager.index.weapon_classID import WeaponClassIDModel
-import requests
-import base64
-
-ICON_DOWNLOAD_HEADERS = {
-    "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                   "AppleWebKit/537.36 (KHTML, like Gecko) "
-                   "Chrome/119.0.0.0 Safari/537.36"),
-    "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-    "Accept-Language": "zh-CN,zh;q=0.9",
-    "Referer": "https://www.youpin898.com/",
-    "Origin": "https://www.youpin898.com",
-    "Connection": "keep-alive"
-}
 
 youpin898SelectWeaponV1 = Blueprint('youpin898SelectWeaponV1', __name__)
 
@@ -216,79 +203,6 @@ def getIconStatus():
         }), 500
 
 
-@youpin898SelectWeaponV1.route('/fetchWeaponIcons', methods=['POST'])
-def fetchWeaponIcons():
-    """批量下载饰品图片并写入Base64"""
-    try:
-        data = request.get_json() or {}
-        limit = int(data.get('limit', 50))
-        force = bool(data.get('force', False))
-        limit = max(1, min(limit, 200))
-
-        records = WeaponClassIDModel.get_records_for_icon_batch(limit=limit, force=force)
-
-        if not records:
-            return jsonify({
-                'success': True,
-                'message': '没有需要处理的饰品',
-                'processed': 0,
-                'success_count': 0,
-                'failed_count': 0
-            }), 200
-
-        success_count = 0
-        failed_items = []
-
-        for record in records:
-            steam_hash_name = record.get('steam_hash_name')
-            icon_url = record.get('icon_url')
-
-            if not icon_url:
-                failed_items.append({
-                    'steam_hash_name': steam_hash_name,
-                    'reason': '缺少icon_url'
-                })
-                continue
-
-            try:
-                response = requests.get(icon_url, headers=ICON_DOWNLOAD_HEADERS, timeout=20)
-                if response.status_code == 403:
-                    retry_headers = ICON_DOWNLOAD_HEADERS.copy()
-                    retry_headers["Referer"] = icon_url
-                    response = requests.get(icon_url, headers=retry_headers, timeout=20)
-                response.raise_for_status()
-                icon_base64 = base64.b64encode(response.content).decode('utf-8')
-                if WeaponClassIDModel.update_icon_data(steam_hash_name, icon_base64=icon_base64):
-                    success_count += 1
-                else:
-                    failed_items.append({
-                        'steam_hash_name': steam_hash_name,
-                        'reason': '数据库更新失败'
-                    })
-            except Exception as e:
-                failed_items.append({
-                    'steam_hash_name': steam_hash_name,
-                    'reason': str(e)
-                })
-
-        return jsonify({
-            'success': True,
-            'message': '批量获取饰品图片完成',
-            'processed': len(records),
-            'success_count': success_count,
-            'failed_count': len(failed_items),
-            'failed_items': failed_items[:10],  # 仅返回前10条失败信息
-            'force': force
-        }), 200
-
-    except Exception as e:
-        print(f"批量获取饰品图片失败: {e}")
-        import traceback
-        print(f"详细错误信息: {traceback.format_exc()}")
-        return jsonify({
-            'success': False,
-            'error': f'服务器错误: {str(e)}'
-        }), 500
 
 
 @youpin898SelectWeaponV1.route('/searchWeapon', methods=['POST'])
