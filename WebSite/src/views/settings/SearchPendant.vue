@@ -977,10 +977,18 @@ export default {
             body: JSON.stringify(requestData)
           }
         ).then(async response => {
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`)
+          let result = null
+          try {
+            result = await response.json()
+          } catch (parseError) {
+            console.warn('[挂件] 响应解析失败:', parseError)
           }
-          const result = await response.json()
+
+          if (!response.ok || !result?.success) {
+            const errMsg = result?.message || `HTTP ${response.status}`
+            throw new Error(errMsg)
+          }
+
           console.log('[挂件] 搜索任务响应:', result)
         }).catch(error => {
           console.error('[挂件] 搜索任务启动失败:', error)

@@ -1114,19 +1114,21 @@ export default {
             body: JSON.stringify(requestData)
           }
         ).then(async response => {
-          if (response.ok) {
-            const result = await response.json()
-            console.log('[前端] 搜索任务响应:', result)
-            
-            if (result.success) {
-              console.log('[前端] 搜索任务已启动')
-              console.log('[前端] 后台搜索任务已启动，开始轮询数据...')
-            } else {
-              throw new Error(result.message || '启动搜索失败')
-            }
-          } else {
-            throw new Error(`HTTP ${response.status}`)
+          let result = null
+          try {
+            result = await response.json()
+          } catch (parseError) {
+            console.warn('[前端] 响应解析失败:', parseError)
           }
+
+          if (!response.ok || !result?.success) {
+            const errMsg = result?.message || `HTTP ${response.status}`
+            throw new Error(errMsg)
+          }
+
+          console.log('[前端] 搜索任务响应:', result)
+          console.log('[前端] 搜索任务已启动')
+          console.log('[前端] 后台搜索任务已启动，开始轮询数据...')
         }).catch(error => {
           console.error('[前端] 启动搜索任务失败:', error)
           console.error(`[前端] 启动搜索任务失败: ${error.message}`)
