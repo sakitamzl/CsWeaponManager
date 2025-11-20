@@ -183,27 +183,50 @@
               </div>
             </el-form-item>
 
-            <el-form-item label="自定义配置">
-              <div class="json-editor-container">
-                <!-- JSON 编辑器 -->
-                <div class="json-editor-wrapper">
-                  <div class="json-editor-preview" v-if="crawlForm.customConfig" v-html="highlightedJson"></div>
-                  <textarea 
-                    v-model="crawlForm.customConfig" 
-                    class="json-textarea"
-                    placeholder='请输入 JSON 配置...'
-                    @blur="formatJson"
-                    @input="updateHighlight"
-                    rows="8"
-                  ></textarea>
+            <el-form-item>
+              <div class="custom-config-grid">
+                <div class="custom-config-field">
+                  <div class="field-label">饰品自动查询间隔 (秒)</div>
+                  <div class="field-control no-spinner">
+                    <el-input
+                      v-model.number="customConfigForm['饰品自动查询间隔']"
+                      type="number"
+                      placeholder="例如 3"
+                      min="1"
+                      style="width: 100px;"
+                    />
+                  </div>
                 </div>
-                <div v-if="jsonValidationMessage" class="json-validation">
-                  <el-alert 
-                    :type="jsonValidationStatus" 
-                    :title="jsonValidationMessage"
-                    :closable="false"
-                    show-icon
-                  />
+
+                <div class="custom-config-field">
+                  <div class="field-label">最大差价 (元)</div>
+                  <div class="field-control no-spinner">
+                    <el-input
+                      v-model.number="customConfigForm['最大差价']"
+                      type="number"
+                      placeholder="例如 8"
+                      min="0"
+                      style="width: 100px;"
+                    />
+                  </div>
+                </div>
+
+                <div class="custom-config-field">
+                  <div class="field-label">是否自动购买</div>
+                  <div class="field-control">
+                    <el-select
+                      v-model="customConfigForm['是否自动购买']"
+                      placeholder="请选择"
+                      style="width: 100px;"
+                    >
+                      <el-option
+                        v-for="option in booleanOptions"
+                        :key="`rename-auto-buy-${option.value}`"
+                        :label="option.label"
+                        :value="option.value"
+                      />
+                    </el-select>
+                  </div>
                 </div>
               </div>
             </el-form-item>
@@ -600,19 +623,27 @@ export default {
     // 饰品列表折叠状态（默认折叠）
     const isWeaponListCollapsed = ref(true)
     
-    // JSON 验证相关
-    const jsonValidationMessage = ref('')
-    const jsonValidationStatus = ref('success')
-    const highlightedJson = ref('')
-
     const crawlForm = ref({
       configName: '',      // 对应 dataName
       steamId: '',         // 购买账号
       crawlAccountId: '',  // 爬取账号
       platformType: '',    // 平台类型：youpin 或 buff
-      weaponId: [],        // 改为数组，存储 {id, name} 对象
-      customConfig: ''     // 对应 value，JSON字符串
+      weaponId: []         // 改为数组，存储 {id, name} 对象
     })
+
+    const booleanOptions = [
+      { label: '是', value: true },
+      { label: '否', value: false }
+    ]
+
+    const createDefaultCustomConfig = () => ({
+      '饰品自动查询间隔': 3,
+      '最大差价': 8,
+      '是否自动购买': false
+    })
+
+    const customConfigForm = ref(createDefaultCustomConfig())
+    const isProgrammaticCustomConfigChange = ref(false)
 
     const weaponIdList = computed(() => {
       return crawlForm.value.weaponId || []
@@ -650,6 +681,80 @@ export default {
       if (!crawlForm.value.weaponId || crawlForm.value.weaponId.length === 0) return false
       return true
     })
+
+    const resetCustomConfigForm = () => {
+      isProgrammaticCustomConfigChange.value = true
+      customConfigForm.value = createDefaultCustomConfig()
+      nextTick(() => {
+        isProgrammaticCustomConfigChange.value = false
+      })
+    }
+
+    const normalizeBooleanValue = (value, defaultValue) => {
+      if (value === true || value === false) return value
+      if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase()
+        if (['true', '1', '是', 'yes', 'y'].includes(normalized)) return true
+        if (['false', '0', '否', 'no', 'n'].includes(normalized)) return false
+      }
+      return defaultValue
+    }
+
+    const normalizeNumberValue = (value, defaultValue) => {
+      const num = Number(value)
+      return Number.isFinite(num) ? num : defaultValue
+    }
+
+    const buildCustomConfig = () => ({
+      '饰品自动查询间隔': normalizeNumberValue(
+        customConfigForm.value['饰品自动查询间隔'],
+        3
+      ),
+      '最大差价': normalizeNumberValue(
+        customConfigForm.value['最大差价'],
+        8
+      ),
+      '是否自动购买': normalizeBooleanValue(
+        customConfigForm.value['是否自动购买'],
+        false
+      ),
+      '是否授权': true
+    })
+
+    const validateCustomConfig = () => {
+      const config = buildCustomConfig()
+
+      if (config['饰品自动查询间隔'] <= 0) {
+        return { valid: false, message: '饰品自动查询间隔必须大于 0 秒' }
+      }
+      if (config['最大差价'] < 0) {
+        return { valid: false, message: '最大差价不能为负数' }
+      }
+
+      return { valid: true, config }
+    }
+
+    const applyCustomConfig = (config = {}) => {
+      const defaults = createDefaultCustomConfig()
+      isProgrammaticCustomConfigChange.value = true
+      customConfigForm.value = {
+        '饰品自动查询间隔': normalizeNumberValue(
+          config['饰品自动查询间隔'],
+          defaults['饰品自动查询间隔']
+        ),
+        '最大差价': normalizeNumberValue(
+          config['最大差价'],
+          defaults['最大差价']
+        ),
+        '是否自动购买': normalizeBooleanValue(
+          config['是否自动购买'],
+          defaults['是否自动购买']
+        )
+      }
+      nextTick(() => {
+        isProgrammaticCustomConfigChange.value = false
+      })
+    }
 
     const PLATFORM_ACCOUNT_SOURCE_MAP = {
       youpin: { key1: 'youpin', key2: 'config', label: '悠悠有品' },
@@ -749,19 +854,6 @@ export default {
     }
 
     // 验证JSON配置
-    const validateJsonConfig = () => {
-      if (!crawlForm.value.customConfig || crawlForm.value.customConfig.trim() === '') {
-        return { valid: true, config: null }
-      }
-
-      try {
-        const config = JSON.parse(crawlForm.value.customConfig)
-        return { valid: true, config: config }
-      } catch (error) {
-        return { valid: false, error: error.message }
-      }
-    }
-
     // 联动切换配置管理与爬取配置区域
     const toggleConfigSections = () => {
       isConfigSectionsCollapsed.value = !isConfigSectionsCollapsed.value
@@ -1031,12 +1123,12 @@ export default {
         return
       }
 
-      // 验证JSON配置
-      const jsonValidation = validateJsonConfig()
-      if (!jsonValidation.valid) {
-        ElMessage.error(`自定义配置JSON格式错误: ${jsonValidation.error}`)
+      const customConfigResult = validateCustomConfig()
+      if (!customConfigResult.valid) {
+        ElMessage.error(customConfigResult.message)
         return
       }
+      const customConfig = customConfigResult.config
 
       // 确认对话框
       try {
@@ -1050,15 +1142,9 @@ export default {
         confirmMessage += `监控饰品: ${weaponNames}\n`
         confirmMessage += `饰品数量: ${crawlForm.value.weaponId.length} 个`
         
-        if (jsonValidation.config) {
-          const config = jsonValidation.config
-          if (config['最大差价']) {
-            confirmMessage += `\n最大溢价: ${config['最大差价']} 元`
-          }
-          if (config['饰品自动查询间隔']) {
-            confirmMessage += `\n查询间隔: ${config['饰品自动查询间隔']} 秒`
-          }
-        }
+        confirmMessage += `\n最大差价: ${customConfig['最大差价']} 元`
+        confirmMessage += `\n查询间隔: ${customConfig['饰品自动查询间隔']} 秒`
+        confirmMessage += `\n是否自动购买: ${customConfig['是否自动购买'] ? '是' : '否'}`
 
         await ElMessageBox.confirm(
           confirmMessage,
@@ -1088,9 +1174,7 @@ export default {
         const spiderConfig = {
           weapon_id: crawlForm.value.weaponId,
           steam_id: crawlForm.value.crawlAccountId,
-          最大差价: 5,
-          饰品自动查询间隔: 3,
-          ...jsonValidation.config
+          ...customConfig
         }
         
         const requestData = {
@@ -1173,10 +1257,10 @@ export default {
         steamId: '',
         crawlAccountId: '',
         platformType: '',
-        weaponId: [],
-        customConfig: ''
+        weaponId: []
       }
       crawlResult.value = null
+      resetCustomConfigForm()
     }
 
     // 获取模式标签
@@ -1281,8 +1365,7 @@ export default {
             steamId: steamId,
             crawlAccountId: crawl_account_id || steamId || '',
             platformType: config.platformType || '',
-            weaponId: Array.isArray(weaponId) ? weaponId : [],
-            customConfig: Object.keys(restConfig).length > 0 ? JSON.stringify(restConfig, null, 2) : ''
+            weaponId: Array.isArray(weaponId) ? weaponId : []
           }
           
           console.log('准备填充的表单数据:', newFormData)
@@ -1290,6 +1373,7 @@ export default {
           // 加载配置数据到表单
           isProgrammaticPlatformChange.value = true
           crawlForm.value = newFormData
+          applyCustomConfig(restConfig)
           
           // 等待下一个tick确保数据已更新
           await new Promise(resolve => setTimeout(resolve, 50))
@@ -1299,7 +1383,7 @@ export default {
           console.log('  - steamId:', crawlForm.value.steamId)
           console.log('  - platformType:', crawlForm.value.platformType)
           console.log('  - weaponId:', crawlForm.value.weaponId)
-          console.log('  - customConfig:', crawlForm.value.customConfig)
+          console.log('  - 自定义配置:', restConfig)
           console.log('=== 配置加载完成 ===')
           
           ElMessage.success(`已加载配置: ${config.dataName}`)
@@ -1328,16 +1412,12 @@ export default {
       }
 
       try {
-        let valueObj = {}
-
-        if (crawlForm.value.customConfig) {
-          try {
-            valueObj = JSON.parse(crawlForm.value.customConfig)
-          } catch (error) {
-            console.warn('自动保存跳过，JSON 无效:', error.message)
-            return
-          }
+        const customConfigResult = validateCustomConfig()
+        if (!customConfigResult.valid) {
+          console.warn('自动保存跳过，自定义配置错误:', customConfigResult.message)
+          return
         }
+        let valueObj = { ...customConfigResult.config }
 
         if (crawlForm.value.weaponId && crawlForm.value.weaponId.length > 0) {
           valueObj.weapon_id = crawlForm.value.weaponId
@@ -1397,10 +1477,14 @@ export default {
     )
 
     watch(
-      () => crawlForm.value.customConfig,
+      customConfigForm,
       () => {
+        if (isProgrammaticCustomConfigChange.value) {
+          return
+        }
         scheduleAutoSave()
-      }
+      },
+      { deep: true }
     )
 
     watch(
@@ -1431,18 +1515,14 @@ export default {
       }
 
       try {
-        // 构建 value 对象
-        let valueObj = {}
-        
-        // 如果有自定义配置，先解析
-        if (crawlForm.value.customConfig) {
-          try {
-            valueObj = JSON.parse(crawlForm.value.customConfig)
-          } catch (e) {
-            ElMessage.error('自定义配置JSON格式错误')
-            return
-          }
+        const customConfigResult = validateCustomConfig()
+        if (!customConfigResult.valid) {
+          ElMessage.error(customConfigResult.message)
+          return
         }
+
+        // 构建 value 对象
+        let valueObj = { ...customConfigResult.config }
         
         // 将饰品列表添加到 value 对象中
         if (crawlForm.value.weaponId && crawlForm.value.weaponId.length > 0) {
@@ -2040,85 +2120,6 @@ export default {
       return 'weapon-row'
     }
 
-    // 格式化 JSON
-    const formatJson = () => {
-      jsonValidationMessage.value = ''
-      
-      if (!crawlForm.value.customConfig || crawlForm.value.customConfig.trim() === '') {
-        return
-      }
-
-      try {
-        const parsed = JSON.parse(crawlForm.value.customConfig)
-        crawlForm.value.customConfig = JSON.stringify(parsed, null, 2)
-        // 格式化成功，不显示提示
-      } catch (error) {
-        jsonValidationMessage.value = `JSON 格式错误: ${error.message}`
-        jsonValidationStatus.value = 'error'
-      }
-    }
-
-    // 仅验证 JSON
-    const validateJsonOnly = () => {
-      jsonValidationMessage.value = ''
-      
-      if (!crawlForm.value.customConfig || crawlForm.value.customConfig.trim() === '') {
-        jsonValidationMessage.value = 'JSON 配置为空'
-        jsonValidationStatus.value = 'info'
-        return
-      }
-
-      try {
-        JSON.parse(crawlForm.value.customConfig)
-        jsonValidationMessage.value = 'JSON 格式验证通过 ✓'
-        jsonValidationStatus.value = 'success'
-        
-        setTimeout(() => {
-          jsonValidationMessage.value = ''
-        }, 2000)
-      } catch (error) {
-        jsonValidationMessage.value = `JSON 格式错误: ${error.message}`
-        jsonValidationStatus.value = 'error'
-      }
-    }
-
-    // 清空 JSON
-    const clearJson = () => {
-      crawlForm.value.customConfig = ''
-      jsonValidationMessage.value = ''
-      highlightedJson.value = ''
-    }
-
-    // 更新语法高亮
-    const updateHighlight = () => {
-      const json = crawlForm.value.customConfig
-      if (!json || json.trim() === '') {
-        highlightedJson.value = ''
-        return
-      }
-      
-      // 简单的 JSON 语法高亮
-      let highlighted = json
-        // 转义 HTML 特殊字符
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        // 高亮字符串（键）
-        .replace(/"([^"]+)"(\s*:)/g, '<span class="json-key">"$1"</span>$2')
-        // 高亮字符串值
-        .replace(/:\s*"([^"]*)"/g, ': <span class="json-string">"$1"</span>')
-        // 高亮数字
-        .replace(/:\s*(\d+\.?\d*)/g, ': <span class="json-number">$1</span>')
-        // 高亮布尔值
-        .replace(/:\s*(true|false)/g, ': <span class="json-boolean">$1</span>')
-        // 高亮 null
-        .replace(/:\s*(null)/g, ': <span class="json-null">$1</span>')
-        // 高亮括号
-        .replace(/([{}[\]])/g, '<span class="json-bracket">$1</span>')
-      
-      highlightedJson.value = highlighted
-    }
-
     const tableHeaderStyle = () => {
       return {
         backgroundColor: '#2a2a2a',
@@ -2166,6 +2167,8 @@ export default {
       filteredSteamIdList,
       isCrawling,
       crawlForm,
+      customConfigForm,
+      booleanOptions,
       crawlResult,
       allCrawlItems,
       canStartCrawl,
@@ -2224,14 +2227,7 @@ export default {
       // 工具区域折叠
       isConfigSectionsCollapsed,
       toggleConfigSections,
-      // JSON 编辑器
-      jsonValidationMessage,
-      jsonValidationStatus,
-      highlightedJson,
-      formatJson,
-      validateJsonOnly,
-      clearJson,
-      updateHighlight,
+      resetCustomConfigForm,
       // 从搜索组件添加饰品
       handleAddWeaponFromSearch,
       handleAddAllWeaponsFromSearch,
@@ -2641,6 +2637,32 @@ export default {
   margin-bottom: 1.5rem;
 }
 
+.custom-config-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem 2.5rem;
+  align-items: center;
+}
+
+.custom-config-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  flex: 0 0 auto;
+}
+
+.custom-config-field .field-label {
+  min-width: 140px;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.custom-config-field .field-control {
+  flex: 0 0 100px;
+  width: 100px;
+}
+
 .form-row {
   display: flex;
   gap: 1rem;
@@ -2994,95 +3016,6 @@ export default {
 }
 
 /* JSON 编辑器样式 */
-.json-editor-container {
-  width: 100%;
-}
-
-.json-editor-wrapper {
-  position: relative;
-  width: 100%;
-  min-height: 200px;
-  background-color: #1a1a1a;
-  border: 1px solid #444;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.json-editor-preview {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 8px 11px;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: 13px;
-  line-height: 1.6;
-  color: transparent;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.json-textarea {
-  position: relative;
-  width: 100%;
-  min-height: 200px;
-  padding: 8px 11px;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: 13px;
-  line-height: 1.6;
-  background-color: transparent;
-  color: #e8e8e8;
-  border: none;
-  outline: none;
-  resize: vertical;
-  z-index: 2;
-  caret-color: #e8e8e8;
-}
-
-.json-textarea::placeholder {
-  color: #666;
-  font-size: 12px;
-}
-
-/* JSON 语法高亮颜色 */
-:deep(.json-key) {
-  color: #9cdcfe; /* 键名 - 浅蓝色 */
-}
-
-:deep(.json-string) {
-  color: #ce9178; /* 字符串值 - 橙色 */
-}
-
-:deep(.json-number) {
-  color: #b5cea8; /* 数字 - 浅绿色 */
-}
-
-:deep(.json-boolean) {
-  color: #569cd6; /* 布尔值 - 蓝色 */
-}
-
-:deep(.json-null) {
-  color: #569cd6; /* null - 蓝色 */
-}
-
-:deep(.json-bracket) {
-  color: #ffd700; /* 括号 - 金色 */
-}
-
-.json-tools {
-  margin-top: 8px;
-  display: flex;
-  gap: 8px;
-}
-
-.json-validation {
-  margin-top: 8px;
-}
-
 /* 响应式设计 */
 /* 大屏幕优化 */
 @media (min-width: 1920px) {

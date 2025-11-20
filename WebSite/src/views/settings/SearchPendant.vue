@@ -142,6 +142,85 @@
             </div>
 
             <el-form-item>
+              <div class="custom-config-grid">
+                <div class="custom-config-field">
+                  <div class="field-label">饰品自动查询间隔 (秒)</div>
+                  <div class="field-control no-spinner">
+                    <el-input
+                      v-model.number="customConfigForm['饰品自动查询间隔']"
+                      type="number"
+                      placeholder="例如 3"
+                      min="1"
+                      style="width: 100px;"
+                    />
+                  </div>
+                </div>
+
+                <div class="custom-config-field">
+                  <div class="field-label">最大差价百分比 (%)</div>
+                  <div class="field-control no-spinner">
+                    <el-input
+                      v-model.number="customConfigForm['最大差价百分比']"
+                      type="number"
+                      placeholder="例如 80"
+                      min="0"
+                      style="width: 100px;"
+                    />
+                  </div>
+                </div>
+
+                <div class="custom-config-field">
+                  <div class="field-label">最大溢价 (元)</div>
+                  <div class="field-control no-spinner">
+                    <el-input
+                      v-model.number="customConfigForm['最大溢价']"
+                      type="number"
+                      placeholder="例如 200"
+                      min="0"
+                      style="width: 100px;"
+                    />
+                  </div>
+                </div>
+
+                <div class="custom-config-field">
+                  <div class="field-label">是否自动购买</div>
+                  <div class="field-control">
+                    <el-select
+                      v-model="customConfigForm['是否自动购买']"
+                      placeholder="请选择"
+                      style="width: 100px;"
+                    >
+                      <el-option
+                        v-for="option in booleanOptions"
+                        :key="`auto-buy-${option.value}`"
+                        :label="option.label"
+                        :value="option.value"
+                      />
+                    </el-select>
+                  </div>
+                </div>
+
+                <div class="custom-config-field">
+                  <div class="field-label">是否全部返回</div>
+                  <div class="field-control">
+                    <el-select
+                      v-model="customConfigForm['是否全部返回']"
+                      placeholder="请选择"
+                      style="width: 100px;"
+                    >
+                      <el-option
+                        v-for="option in booleanOptions"
+                        :key="`return-all-${option.value}`"
+                        :label="option.label"
+                        :value="option.value"
+                      />
+                    </el-select>
+                  </div>
+                </div>
+              </div>
+            </el-form-item>
+
+            <el-form-item>
               <template #label>
                 <div class="collapsible-label">
                   <span class="label-text" @click="toggleWeaponList">
@@ -179,91 +258,6 @@
                   <el-icon><Delete /></el-icon>
                   一键清空
                 </el-button>
-              </div>
-            </el-form-item>
-
-            <el-form-item label="自定义配置">
-              <div class="custom-config-grid">
-                <div class="custom-config-field">
-                  <div class="field-label">是否授权</div>
-                  <el-select
-                    v-model="customConfigForm['是否授权']"
-                    placeholder="请选择"
-                    style="width: 100%;"
-                  >
-                    <el-option
-                      v-for="option in booleanOptions"
-                      :key="`authorized-${option.value}`"
-                      :label="option.label"
-                      :value="option.value"
-                    />
-                  </el-select>
-                </div>
-
-                <div class="custom-config-field">
-                  <div class="field-label">饰品自动查询间隔 (秒)</div>
-                  <el-input
-                    v-model.number="customConfigForm['饰品自动查询间隔']"
-                    type="number"
-                    placeholder="例如 3"
-                    min="1"
-                  />
-                </div>
-
-                <div class="custom-config-field">
-                  <div class="field-label">是否自动购买</div>
-                  <el-select
-                    v-model="customConfigForm['是否自动购买']"
-                    placeholder="请选择"
-                    style="width: 100%;"
-                  >
-                    <el-option
-                      v-for="option in booleanOptions"
-                      :key="`auto-buy-${option.value}`"
-                      :label="option.label"
-                      :value="option.value"
-                    />
-                  </el-select>
-                </div>
-
-                <div class="custom-config-field">
-                  <div class="field-label">最大差价百分比 (%)</div>
-                  <el-input
-                    v-model.number="customConfigForm['最大差价百分比']"
-                    type="number"
-                    placeholder="例如 80"
-                    min="0"
-                  />
-                </div>
-
-                <div class="custom-config-field">
-                  <div class="field-label">最大溢价 (元)</div>
-                  <el-input
-                    v-model.number="customConfigForm['最大溢价']"
-                    type="number"
-                    placeholder="例如 200"
-                    min="0"
-                  />
-                </div>
-
-                <div class="custom-config-field">
-                  <div class="field-label">是否全部返回</div>
-                  <el-select
-                    v-model="customConfigForm['是否全部返回']"
-                    placeholder="请选择"
-                    style="width: 100%;"
-                  >
-                    <el-option
-                      v-for="option in booleanOptions"
-                      :key="`return-all-${option.value}`"
-                      :label="option.label"
-                      :value="option.value"
-                    />
-                  </el-select>
-                </div>
-              </div>
-              <div class="custom-config-tip">
-                配置将自动转换为爬虫参数，无需手动输入 JSON。
               </div>
             </el-form-item>
           </el-form>
@@ -764,12 +758,11 @@ export default {
     const isWeaponListCollapsed = ref(true)  // 饰品列表折叠状态（默认折叠）
     
     const createDefaultCustomConfig = () => ({
-      '是否授权': true,
       '饰品自动查询间隔': 3,
       '是否自动购买': false,
       '最大差价百分比': 80,
       '最大溢价': 200,
-      '是否全部返回': true
+      '是否全部返回': false
     })
 
     const booleanOptions = [
@@ -929,10 +922,6 @@ export default {
     }
 
     const buildCustomConfig = () => ({
-      '是否授权': normalizeBooleanValue(
-        customConfigForm.value['是否授权'],
-        true
-      ),
       '饰品自动查询间隔': normalizeNumberValue(
         customConfigForm.value['饰品自动查询间隔'],
         3
@@ -951,8 +940,9 @@ export default {
       ),
       '是否全部返回': normalizeBooleanValue(
         customConfigForm.value['是否全部返回'],
-        true
-      )
+        false
+      ),
+      '是否授权': true
     })
 
     const validateCustomConfig = () => {
@@ -975,7 +965,6 @@ export default {
       const defaults = createDefaultCustomConfig()
       isProgrammaticCustomConfigChange.value = true
       customConfigForm.value = {
-        '是否授权': normalizeBooleanValue(config['是否授权'], defaults['是否授权']),
         '饰品自动查询间隔': normalizeNumberValue(
           config['饰品自动查询间隔'],
           defaults['饰品自动查询间隔']
@@ -1077,7 +1066,6 @@ export default {
         confirmMessage += `平台类型: ${getSourceLabel(crawlForm.value.platformType)}\n`
         confirmMessage += `监控饰品数量: ${crawlForm.value.weaponId.length} 个`
         
-        confirmMessage += `\n是否授权: ${customConfig['是否授权'] ? '是' : '否'}`
         confirmMessage += `\n查询间隔: ${customConfig['饰品自动查询间隔']} 秒`
         confirmMessage += `\n是否自动购买: ${customConfig['是否自动购买'] ? '是' : '否'}`
         confirmMessage += `\n最大差价百分比: ${customConfig['最大差价百分比']}%`
@@ -2985,6 +2973,12 @@ export default {
   appearance: textfield;
 }
 
+.no-spinner :deep(input[type="number"]::-webkit-inner-spin-button),
+.no-spinner :deep(input[type="number"]::-webkit-outer-spin-button) {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .result-info {
   display: grid;
   gap: 1rem;
@@ -3071,32 +3065,29 @@ export default {
 
 /* 自定义配置表单 */
 .custom-config-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem 2.5rem;
+  align-items: center;
 }
 
 .custom-config-field {
-  padding: 1rem;
-  border-radius: 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 0.5rem;
-  min-height: 110px;
+  min-height: 48px;
+  flex: 0 0 auto;
 }
 
 .custom-config-field .field-label {
+  min-width: 120px;
   font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.7);
-  font-weight: 500;
 }
 
-.custom-config-tip {
-  margin-top: 0.5rem;
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.5);
+.custom-config-field .field-control {
+  flex: 0 0 100px;
+  width: 100px;
 }
 
 /* 响应式设计 */
