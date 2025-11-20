@@ -143,47 +143,6 @@
             </div>
 
             <el-form-item>
-              <template #label>
-                <div class="collapsible-label">
-                  <span class="label-text" @click="toggleWeaponList">
-                    饰品列表 ({{ weaponIdList.length }})
-                    <el-icon 
-                      class="collapse-icon-inline" 
-                      :class="{ 'is-collapsed': isWeaponListCollapsed }"
-                    >
-                      <ArrowUp v-if="!isWeaponListCollapsed" />
-                      <ArrowDown v-else />
-                    </el-icon>
-                  </span>
-                </div>
-              </template>
-              <div class="weapon-id-section" v-show="!isWeaponListCollapsed">
-                <div class="weapon-id-tags">
-                  <el-tag
-                    v-for="weapon in weaponIdList"
-                    :key="weapon.id"
-                    closable
-                    @close="removeWeaponId(weapon.id)"
-                    type="primary"
-                    size="large"
-                  >
-                    {{ weapon.name }} (ID: {{ weapon.id }})
-                  </el-tag>
-                </div>
-                <el-button 
-                  v-if="weaponIdList && weaponIdList.length > 0"
-                  type="danger" 
-                  size="small"
-                  @click="clearAllWeaponIds"
-                  style="margin-left: 10px;"
-                >
-                  <el-icon><Delete /></el-icon>
-                  一键清空
-                </el-button>
-              </div>
-            </el-form-item>
-
-            <el-form-item>
               <div class="custom-config-grid">
                 <div class="custom-config-field">
                   <div class="field-label">饰品自动查询间隔 (秒)</div>
@@ -228,6 +187,47 @@
                     </el-select>
                   </div>
                 </div>
+              </div>
+            </el-form-item>
+
+            <el-form-item>
+              <template #label>
+                <div class="collapsible-label">
+                  <span class="label-text" @click="toggleWeaponList">
+                    饰品列表 ({{ weaponIdList.length }})
+                    <el-icon 
+                      class="collapse-icon-inline" 
+                      :class="{ 'is-collapsed': isWeaponListCollapsed }"
+                    >
+                      <ArrowUp v-if="!isWeaponListCollapsed" />
+                      <ArrowDown v-else />
+                    </el-icon>
+                  </span>
+                </div>
+              </template>
+              <div class="weapon-id-section" v-show="!isWeaponListCollapsed">
+                <div class="weapon-id-tags">
+                  <el-tag
+                    v-for="weapon in weaponIdList"
+                    :key="weapon.id"
+                    closable
+                    @close="removeWeaponId(weapon.id)"
+                    type="primary"
+                    size="large"
+                  >
+                    {{ weapon.name }} (ID: {{ weapon.id }})
+                  </el-tag>
+                </div>
+                <el-button 
+                  v-if="weaponIdList && weaponIdList.length > 0"
+                  type="danger" 
+                  size="small"
+                  @click="clearAllWeaponIds"
+                  style="margin-left: 10px;"
+                >
+                  <el-icon><Delete /></el-icon>
+                  一键清空
+                </el-button>
               </div>
             </el-form-item>
           </el-form>

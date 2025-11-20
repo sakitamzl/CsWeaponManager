@@ -178,7 +178,7 @@ def get_items_list():
         if data_type == 'rename':
             where_clause_parts.append("name_tag IS NOT NULL")
         
-        where_clause = " AND ".join(where_clause_parts) + " ORDER BY id DESC"
+        where_clause = " AND ".join(where_clause_parts) + " ORDER BY spread ASC, id DESC"
         
         list_limit = int(limit) if limit else None
         list_offset = int(offset) if offset else None
