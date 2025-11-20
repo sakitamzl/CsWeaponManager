@@ -568,9 +568,8 @@ export default {
         } else if (isCrawling.value) {
           noDataCount.value++
           if (noDataCount.value >= MAX_NO_DATA_COUNT) {
-            console.log('[挂件] 连续无新数据，停止轮询')
+            console.log('[挂件] 连续无新数据，结束搜索状态')
             isCrawling.value = false
-            stopPolling()
             const totalItems = crawlResult.value?.weapons?.flatMap(w => w.items).length || 0
             ElMessage.success(`搜索完成！找到 ${totalItems} 个符合条件的商品`)
           }
@@ -627,7 +626,6 @@ export default {
         if (result.success) {
           crawlResult.value = null
           purchasedItems.value.clear()
-          stopPolling()
           if (!skipConfirm) {
             ElMessage.success(result.message || '已清空挂件数据')
           }
@@ -951,9 +949,9 @@ export default {
       isCrawling.value = true
       crawlResult.value = { weapons: [] }
       noDataCount.value = 0
-      stopPolling()
       ElMessage.info('正在启动查询任务...')
       startPolling()
+      pollSearchResults()
 
       try {
         const spiderConfig = {
@@ -988,14 +986,12 @@ export default {
           console.error('[挂件] 搜索任务启动失败:', error)
           ElMessage.error(`启动搜索失败: ${error.message}`)
           isCrawling.value = false
-          stopPolling()
         })
 
         setTimeout(() => {
           if (isCrawling.value) {
             console.log('[挂件] 搜索超时，结束搜索状态')
             isCrawling.value = false
-            stopPolling()
             const totalItems = crawlResult.value?.weapons?.flatMap(w => w.items).length || 0
             ElMessage.warning(`搜索已超时结束，找到 ${totalItems} 个商品`)
           }
@@ -1005,7 +1001,6 @@ export default {
         console.error('搜索失败:', error)
         ElMessage.error(error.message || '搜索失败')
         isCrawling.value = false
-        stopPolling()
       }
     }
 
@@ -2112,13 +2107,14 @@ export default {
       highlightedJson.value = highlighted
     }
 
-    // 组件挂载时加载数据
+    // 组件挂载时加载数据并启动轮询
     onMounted(() => {
       if (crawlForm.value.platformType) {
         loadAccountsForPlatform(crawlForm.value.platformType)
       }
       loadConfigList()
       loadRecentSearchResults()
+      startPolling()
       // 添加页面滚动监听
       window.addEventListener('scroll', handlePageScroll)
     })

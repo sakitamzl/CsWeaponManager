@@ -860,7 +860,7 @@ export default {
       }
     }
 
-    // 轮询获取数据库中的搜索结果（持续轮询，只要页面在前台）
+    // 轮询获取数据库中的搜索结果（页面打开期间持续执行）
     const pollSearchResults = async () => {
       try {
         lastPollingTime.value = Date.now()
@@ -962,7 +962,6 @@ export default {
             if (noDataCount.value >= MAX_NO_DATA_COUNT) {
               console.log('[轮询] 连续无新数据，认为搜索完成')
               isCrawling.value = false
-              stopPolling() // 停止轮询
               
               const totalItems = crawlResult.value?.weapons?.[0]?.items?.length || 0
               console.log(`[轮询] 搜索完成，共找到 ${totalItems} 个符合条件的商品`)
@@ -1082,7 +1081,6 @@ export default {
       crawlResult.value = { weapons: [] }
       lastItemId.value = 0 // 重置lastItemId
       noDataCount.value = 0 // 重置无数据计数
-      stopPolling() // 停止之前的轮询
       console.log('[前端] 正在启动查询任务...')
 
       try {
@@ -1104,6 +1102,7 @@ export default {
 
         // 启动轮询（只有在开始搜索时才启动）
         startPolling()
+        pollSearchResults()
         console.log('[前端] 轮询已启动，将持续获取搜索结果...')
 
         // 发起搜索请求（后台执行）
@@ -1133,7 +1132,6 @@ export default {
           console.error(`[前端] 启动搜索任务失败: ${error.message}`)
           ElMessage.error(`启动搜索失败: ${error.message}`)
           isCrawling.value = false
-          stopPolling() // 停止轮询
         })
 
         // 设置最大搜索时间（5分钟后自动停止搜索状态和轮询）
@@ -1141,7 +1139,6 @@ export default {
           if (isCrawling.value) {
             console.log('[前端] 搜索超时，结束搜索状态')
             isCrawling.value = false
-            stopPolling() // 停止轮询
             const totalItems = crawlResult.value?.weapons?.[0]?.items?.length || 0
             console.log(`[前端] 搜索超时结束，共找到 ${totalItems} 个商品`)
             ElMessage.warning(`搜索已超时结束，找到 ${totalItems} 个商品`)
@@ -1163,7 +1160,6 @@ export default {
         ElMessage.error(errorMessage)
         console.error(`[前端] 搜索失败: ${errorMessage}`)
         isCrawling.value = false
-        stopPolling() // 停止轮询
       }
     }
 
@@ -2142,7 +2138,7 @@ export default {
       toggleConfigSections()
     }
 
-    // 组件挂载时只加载数据，不启动轮询
+    // 组件挂载时加载数据并启动轮询
     onMounted(() => {
       if (crawlForm.value.platformType) {
         loadAccountsForPlatform(crawlForm.value.platformType)
@@ -2151,6 +2147,7 @@ export default {
       
       // 从数据库加载最近的搜索结果（只查询一次）
       loadRecentSearchResults()
+      startPolling()
     })
 
     // 组件卸载时停止轮询
