@@ -13,6 +13,7 @@
             <el-option label="更新steam库存价格" value="auto_update" />
             <el-option label="获取平台交易记录" value="auto_fetch" />
             <el-option label="更新饰品平台映射价格" value="auto_platform_price" />
+            <el-option label="自动搜素饰品" value="auto_search_weapon" />
           </el-select>
         </el-form-item>
 
@@ -71,6 +72,26 @@
               :key="source.dataID" 
               :label="`${source.dataName} (${source.steamID || '无SteamID'})`" 
               :value="source.dataID" 
+            />
+          </el-select>
+        </el-form-item>
+
+        <!-- 搜索配置选择 (仅在自动搜素饰品时显示) -->
+        <el-form-item
+          v-if="automateForm.automateType === 'auto_search_weapon' && automateForm.selectedTask"
+          label="搜索配置"
+        >
+          <el-select
+            v-model="automateForm.selectedSearchConfig"
+            placeholder="请选择搜索配置"
+            style="width: 300px"
+            filterable
+          >
+            <el-option
+              v-for="config in currentSearchConfigList"
+              :key="config.dataID"
+              :label="`${config.dataName}${config.platformType ? ' - ' + config.platformType : ''}`"
+              :value="config.dataID"
             />
           </el-select>
         </el-form-item>
@@ -196,6 +217,7 @@ const automateForm = ref({
   selectedTask: '',
   selectedSteamConfig: '', // Steam配置的dataID
   selectedDataSource: '', // 单选数据源
+  selectedSearchConfig: '', // 搜索配置
   interval: 30
 })
 
@@ -223,6 +245,10 @@ const dataSources = ref([])
 // 运行中的任务
 const runningTasks = ref([])
 
+// 搜索配置列表
+const renameSearchConfigList = ref([])
+const pendantSearchConfigList = ref([])
+
 // 自动更新数据的任务选项
 const updateTasks = [
   { label: '更新Steam库存', value: 'update_steam_inventory' },
@@ -242,10 +268,17 @@ const platformPriceTasks = [
   { label: '更新BUFF饰品价格', value: 'platform_buff_price' }
 ]
 
+// 自动搜索饰品任务
+const searchWeaponTasks = [
+  { label: '自动搜素饰品改名', value: 'search_weapon_rename' },
+  { label: '自动搜素饰品挂件', value: 'search_weapon_pendant' }
+]
+
 const typeLabelMap = {
   auto_update: '更新steam库存价格',
   auto_fetch: '获取平台交易记录',
-  auto_platform_price: '更新饰品平台映射价格'
+  auto_platform_price: '更新饰品平台映射价格',
+  auto_search_weapon: '自动搜素饰品'
 }
 
 const labelToTypeMap = Object.entries(typeLabelMap).reduce((acc, [key, label]) => {
@@ -256,6 +289,7 @@ const labelToTypeMap = Object.entries(typeLabelMap).reduce((acc, [key, label]) =
 const getExecutionTypeLabel = (type) => {
   if (type === 'auto_update') return '自动更新数据'
   if (type === 'auto_platform_price') return '更新饰品平台映射价格'
+  if (type === 'auto_search_weapon') return '自动搜素饰品'
   return '自动获取数据'
 }
 
@@ -266,6 +300,9 @@ const secondSelectLabel = computed(() => {
   }
   if (automateForm.value.automateType === 'auto_platform_price') {
     return '价格更新任务'
+  }
+  if (automateForm.value.automateType === 'auto_search_weapon') {
+    return '采集任务'
   }
   if (automateForm.value.automateType === 'auto_fetch') {
     return '采集任务'
@@ -291,6 +328,25 @@ const currentSteamConfigList = computed(() => {
   return []
 })
 
+const currentSearchConfigList = computed(() => {
+  const selectedTask = automateForm.value.selectedTask
+  if (selectedTask === 'search_weapon_rename') {
+    return renameSearchConfigList.value
+  }
+  if (selectedTask === 'search_weapon_pendant') {
+    return pendantSearchConfigList.value
+  }
+  return []
+})
+
+const findSearchConfigById = (taskType, configId) => {
+  if (!configId) return null
+  const sourceList = taskType === 'search_weapon_pendant'
+    ? pendantSearchConfigList.value
+    : renameSearchConfigList.value
+  return sourceList.find(config => config.dataID === configId) || null
+}
+
 // 可用的任务列表
 const availableTasks = computed(() => {
   if (automateForm.value.automateType === 'auto_update') {
@@ -298,6 +354,9 @@ const availableTasks = computed(() => {
   }
   if (automateForm.value.automateType === 'auto_platform_price') {
     return platformPriceTasks
+  }
+  if (automateForm.value.automateType === 'auto_search_weapon') {
+    return searchWeaponTasks
   }
   if (automateForm.value.automateType === 'auto_fetch') {
     return fetchTasks
@@ -394,6 +453,48 @@ const loadBuffConfigs = async () => {
   }
 }
 
+const normalizeConfigValue = (value) => {
+  if (!value) return {}
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value)
+    } catch (error) {
+      console.warn('解析配置JSON失败:', error)
+      return {}
+    }
+  }
+  return value
+}
+
+const fetchSearchConfigs = async (key1) => {
+  try {
+    const response = await axios.get(`${API_CONFIG.BASE_URL}/configV1/list`, {
+      params: { key1 }
+    })
+
+    if (response.data?.data && Array.isArray(response.data.data)) {
+      return response.data.data.map(item => ({
+        dataID: item.id,
+        dataName: item.dataName,
+        platformType: item.key2 || '',
+        config: normalizeConfigValue(item.value)
+      }))
+    }
+  } catch (error) {
+    console.error(`加载${key1}配置列表失败:`, error)
+    ElMessage.error(`加载配置失败: ${error.message}`)
+  }
+  return []
+}
+
+const loadRenameSearchConfigs = async () => {
+  renameSearchConfigList.value = await fetchSearchConfigs('spider_rename')
+}
+
+const loadPendantSearchConfigs = async () => {
+  pendantSearchConfigList.value = await fetchSearchConfigs('spider_pendant')
+}
+
 // 加载数据源列表
 const loadDataSources = async () => {
   try {
@@ -415,6 +516,7 @@ const handleTypeChange = () => {
   automateForm.value.selectedTask = ''
   automateForm.value.selectedSteamConfig = ''
   automateForm.value.selectedDataSource = ''
+  automateForm.value.selectedSearchConfig = ''
 }
 
 const applyCustomInterval = () => {
@@ -434,6 +536,7 @@ watch(
     }
   }
 )
+
 
 // 执行任务
 const handleExecute = async () => {
@@ -461,6 +564,11 @@ const handleExecute = async () => {
   } else if (['auto_fetch', 'auto_platform_price'].includes(automateForm.value.automateType)) {
     if (!automateForm.value.selectedDataSource) {
       ElMessage.warning('请选择数据源')
+      return
+    }
+  } else if (automateForm.value.automateType === 'auto_search_weapon') {
+    if (!automateForm.value.selectedSearchConfig) {
+      ElMessage.warning('请选择搜索配置')
       return
     }
   } else {
@@ -526,6 +634,20 @@ const executeTask = async () => {
         result = await collectBuffData(selectedSource)
       } else if (taskType === 'collect_youpin') {
         result = await collectYoupinData(selectedSource)
+      }
+    } else if (automateType === 'auto_search_weapon') {
+      const selectedConfig = currentSearchConfigList.value.find(
+        config => config.dataID === automateForm.value.selectedSearchConfig
+      )
+
+      if (!selectedConfig) {
+        throw new Error('未找到对应的搜索配置，请重新选择')
+      }
+
+      if (taskType === 'search_weapon_rename') {
+        result = await executeSearchRenameTask(selectedConfig)
+      } else if (taskType === 'search_weapon_pendant') {
+        result = await executeSearchPendantTask(selectedConfig)
       }
     }
     
@@ -714,6 +836,54 @@ const syncBuffPriceMapping = async (steamId) => {
   }
 }
 
+const runSearchTask = async (configOption, endpointUrl, successFallback) => {
+  if (!configOption) {
+    throw new Error('请选择有效的搜索配置')
+  }
+
+  const configValue = JSON.parse(JSON.stringify(configOption.config || {}))
+  const steamId = configValue.crawl_account_id || configValue.steam_id || configValue.steamId
+
+  if (!steamId) {
+    throw new Error('配置中缺少爬取账号，请检查配置内容')
+  }
+
+  if (!configValue.weapon_id || configValue.weapon_id.length === 0) {
+    throw new Error('配置中未包含监控的饰品ID')
+  }
+
+  const requestBody = {
+    steamId,
+    spider_config: configValue
+  }
+
+  const response = await axios.post(endpointUrl, requestBody)
+
+  if (response.data.success) {
+    ElMessage.success(response.data.message || successFallback)
+    return { success: true, message: response.data.message || successFallback }
+  } else {
+    ElMessage.error(response.data.message || '搜索任务启动失败')
+    return { success: false, message: response.data.message || '搜索任务启动失败' }
+  }
+}
+
+const executeSearchRenameTask = async (configOption) => {
+  return runSearchTask(
+    configOption,
+    `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/auto_buy_renamed_weapon`,
+    '改名饰品搜索任务已启动'
+  )
+}
+
+const executeSearchPendantTask = async (configOption) => {
+  return runSearchTask(
+    configOption,
+    `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/auto_buy_pendant_weapon`,
+    '挂件饰品搜索任务已启动'
+  )
+}
+
 // 启动定时任务
 const startScheduledTask = async () => {
   // 检查是否存在重复任务
@@ -723,14 +893,17 @@ const startScheduledTask = async () => {
       return false
     }
     
-    // 比较目标账号/数据源
+    // 比较目标账号/数据源/配置
     if (automateForm.value.automateType === 'auto_update') {
       // 更新类型：比较Steam配置ID
       return task.config.selectedSteamConfig === automateForm.value.selectedSteamConfig
-    } else {
+    } else if (['auto_fetch', 'auto_platform_price'].includes(automateForm.value.automateType)) {
       // 采集类型：比较数据源ID
       return task.config.selectedDataSource === automateForm.value.selectedDataSource
+    } else if (automateForm.value.automateType === 'auto_search_weapon') {
+      return task.config.selectedSearchConfig === automateForm.value.selectedSearchConfig
     }
+    return false
   })
   
   if (isDuplicate) {
@@ -744,6 +917,7 @@ const startScheduledTask = async () => {
       selectedTask: automateForm.value.selectedTask,
       selectedSteamConfig: automateForm.value.selectedSteamConfig, // Steam配置的dataID
       selectedDataSource: automateForm.value.selectedDataSource, // 单个数据源
+      selectedSearchConfig: automateForm.value.selectedSearchConfig,
       interval: automateForm.value.interval
     }
     
@@ -865,6 +1039,7 @@ const editTask = (task) => {
     selectedTask: task.config.selectedTask,
     selectedSteamConfig: task.config.selectedSteamConfig || '',
     selectedDataSource: task.config.selectedDataSource || '',
+    selectedSearchConfig: task.config.selectedSearchConfig || '',
     interval: task.interval
   }
   
@@ -898,10 +1073,13 @@ const updateTask = async () => {
     if (automateForm.value.automateType === 'auto_update') {
       // 更新类型：比较Steam配置ID
       return task.config.selectedSteamConfig === automateForm.value.selectedSteamConfig
-    } else {
+    } else if (['auto_fetch', 'auto_platform_price'].includes(automateForm.value.automateType)) {
       // 采集类型：比较数据源ID
       return task.config.selectedDataSource === automateForm.value.selectedDataSource
+    } else if (automateForm.value.automateType === 'auto_search_weapon') {
+      return task.config.selectedSearchConfig === automateForm.value.selectedSearchConfig
     }
+    return false
   })
   
   if (isDuplicate) {
@@ -918,6 +1096,7 @@ const updateTask = async () => {
         selectedTask: automateForm.value.selectedTask,
         selectedSteamConfig: automateForm.value.selectedSteamConfig,
         selectedDataSource: automateForm.value.selectedDataSource,
+        selectedSearchConfig: automateForm.value.selectedSearchConfig,
         interval: automateForm.value.interval
       }
     }
@@ -1026,10 +1205,17 @@ const getTargetInfo = () => {
     
     const config = configList.find(c => c.dataID === automateForm.value.selectedSteamConfig)
     return config ? `${config.dataName} (${config.steamID || '无SteamID'})` : '-'
-  } else {
+  } else if (['auto_fetch', 'auto_platform_price'].includes(automateForm.value.automateType)) {
     const source = dataSources.value.find(s => s.dataID === automateForm.value.selectedDataSource)
     return source ? `${source.dataName} (${source.steamID || '无SteamID'})` : '-'
+  } else if (automateForm.value.automateType === 'auto_search_weapon') {
+    const config = findSearchConfigById(automateForm.value.selectedTask, automateForm.value.selectedSearchConfig)
+    if (!config) return '-'
+    return config.platformType
+      ? `${config.dataName} (${config.platformType})`
+      : config.dataName
   }
+  return '-'
 }
 
 const formatInterval = (interval) => {
@@ -1054,6 +1240,7 @@ const handleReset = () => {
     selectedTask: '',
     selectedSteamConfig: '',
     selectedDataSource: '',
+    selectedSearchConfig: '',
     interval: 30
   }
   
@@ -1185,6 +1372,17 @@ const executeTaskWithConfig = async (taskOrSavedTask) => {
           message: `完成 ${successCount}/${totalCount} 个数据源采集`
         }
       }
+    } else if (automateType === 'auto_search_weapon') {
+      const selectedConfig = findSearchConfigById(config.selectedTask, config.selectedSearchConfig)
+      if (!selectedConfig) {
+        throw new Error('未找到对应的搜索配置，请在设置页刷新后重试')
+      }
+
+      if (taskType === 'search_weapon_rename') {
+        result = await executeSearchRenameTask(selectedConfig)
+      } else if (taskType === 'search_weapon_pendant') {
+        result = await executeSearchPendantTask(selectedConfig)
+      }
     }
     
     if (result) {
@@ -1254,6 +1452,14 @@ const getTaskTargetInfo = (savedTask) => {
     
     // 显示格式: 数据源名称 (SteamID)
     return source.steamID ? `${source.dataName} (${source.steamID})` : source.dataName
+  } else if (savedTask.automateType === 'auto_search_weapon') {
+    const config = findSearchConfigById(savedTask.config.selectedTask, savedTask.config.selectedSearchConfig)
+    if (!config) {
+      return '-'
+    }
+    return config.platformType
+      ? `${config.dataName} (${config.platformType})`
+      : config.dataName
   } else {
     return '-'
   }
@@ -1265,6 +1471,8 @@ onMounted(async () => {
   await loadYoupinConfigs()
   await loadBuffConfigs()
   await loadDataSources()
+  await loadRenameSearchConfigs()
+  await loadPendantSearchConfigs()
   await loadSavedTasks()
 })
 </script>

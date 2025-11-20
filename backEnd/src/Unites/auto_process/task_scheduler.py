@@ -367,6 +367,9 @@ class TaskScheduler:
             elif automate_type == 'auto_platform_price':
                 # 更新饰品平台价格
                 self._execute_platform_price_task(task_info)
+            elif automate_type == 'auto_search_weapon':
+                # 自动搜索饰品任务
+                self._execute_search_weapon_task(task_info)
             else:
                 self.log.write_log(f"未知的任务类型: {automate_type}", 'error')
                 
@@ -621,6 +624,86 @@ class TaskScheduler:
             self.log.write_log(f"平台价格更新失败: {str(e)}", 'error')
         except Exception as e:
             self.log.write_log(f"平台价格任务处理失败 (ID={data_source_id}): {str(e)}", 'error')
+
+    def _execute_search_weapon_task(self, task_info):
+        """执行自动搜索饰品任务"""
+        config = task_info['config']
+        selected_task = config.get('selectedTask')
+        search_config_id = config.get('selectedSearchConfig')
+
+        if not search_config_id:
+            self.log.write_log(f"任务 {task_info['task_name']} 未配置搜索配置ID", 'error')
+            return
+
+        if selected_task == 'search_weapon_rename':
+            key1 = 'spider_rename'
+            endpoint = '/youping898SpiderV1/auto_buy_renamed_weapon'
+            task_desc = '改名饰品搜索'
+        elif selected_task == 'search_weapon_pendant':
+            key1 = 'spider_pendant'
+            endpoint = '/youping898SpiderV1/auto_buy_pendant_weapon'
+            task_desc = '挂件饰品搜索'
+        else:
+            self.log.write_log(f"未知的搜索任务类型: {selected_task}", 'error')
+            return
+
+        db = Date_base()
+        try:
+            query_sql = f"""
+            SELECT dataName, value
+            FROM config
+            WHERE dataID = {search_config_id} AND key1 = '{key1}'
+            """
+            success, result = db.select(query_sql)
+
+            if not success or not result:
+                self.log.write_log(f"搜索配置不存在: ID={search_config_id}, key1={key1}", 'error')
+                return
+
+            config_name = result[0][0]
+            config_value = json.loads(result[0][1]) if result[0][1] else {}
+
+            spider_config = config_value
+            steam_id = spider_config.get('crawl_account_id') or spider_config.get('steam_id') or spider_config.get('steamId')
+
+            if not steam_id:
+                self.log.write_log(f"搜索配置 {config_name} 缺少爬取账号", 'error')
+                return
+
+            weapon_list = spider_config.get('weapon_id') or []
+            if not weapon_list:
+                self.log.write_log(f"搜索配置 {config_name} 未配置监控的饰品ID", 'error')
+                return
+
+            spider_base_url = "http://127.0.0.1:9002"
+            url = f"{spider_base_url}{endpoint}"
+            payload = {
+                'steamId': steam_id,
+                'spider_config': spider_config
+            }
+
+            self.log.write_log(f"开始执行{task_desc}: 配置={config_name}, URL={url}", 'info')
+            response = requests.post(url, json=payload, timeout=600)
+
+            if response.status_code == 200:
+                try:
+                    response_data = response.json()
+                except ValueError:
+                    response_data = {}
+
+                if response_data.get('success'):
+                    self.log.write_log(f"{task_desc}任务启动成功: 配置={config_name}", 'info')
+                else:
+                    self.log.write_log(f"{task_desc}任务启动失败: 配置={config_name}, 消息={response_data.get('message', '')}", 'error')
+            else:
+                self.log.write_log(f"{task_desc}HTTP错误: 配置={config_name}, 状态码={response.status_code}", 'error')
+
+        except requests.exceptions.Timeout:
+            self.log.write_log(f"{task_desc}任务请求超时: 配置ID={search_config_id}", 'error')
+        except requests.exceptions.RequestException as e:
+            self.log.write_log(f"{task_desc}任务请求失败: {str(e)}", 'error')
+        except Exception as e:
+            self.log.write_log(f"{task_desc}任务处理失败: {str(e)}", 'error')
 
 
 # 全局调度器实例
