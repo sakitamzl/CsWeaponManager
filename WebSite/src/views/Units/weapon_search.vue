@@ -207,6 +207,9 @@
                 <span class="price-text" v-else-if="platformType === 'buff' && row.buff_Price">
                   ¥{{ row.buff_Price }}
                 </span>
+                <span class="price-text" v-else-if="platformType === 'steam' && row.yyyp_Price">
+                  ¥{{ row.yyyp_Price }}
+                </span>
                 <span v-else class="no-data">-</span>
               </template>
             </el-table-column>
@@ -233,6 +236,13 @@
             <el-table-column v-if="platformType === 'buff'" label="BUFF ID" width="110" align="center">
               <template #default="{ row }">
                 <el-tag type="info" v-if="row.buff_id">{{ row.buff_id }}</el-tag>
+                <span v-else class="no-data">-</span>
+              </template>
+            </el-table-column>
+            
+            <el-table-column v-if="platformType === 'steam'" label="Steam Hash Name" width="220" align="center">
+              <template #default="{ row }">
+                <el-tag type="info" v-if="row.steam_hash_name">{{ row.steam_hash_name }}</el-tag>
                 <span v-else class="no-data">-</span>
               </template>
             </el-table-column>
@@ -489,7 +499,7 @@ const handleAddWeapon = (row) => {
     return
   }
   
-  emit('add-weapon', { id, name })
+  emit('add-weapon', { id: id.toString(), name })
 }
 
 // 一键添加全部饰品ID
@@ -505,7 +515,7 @@ const handleAddAll = () => {
     const name = row.market_listing_item_name
     
     if (id && name) {
-      weaponsToAdd.push({ id, name })
+      weaponsToAdd.push({ id: id.toString(), name })
     }
   })
   
@@ -521,6 +531,9 @@ const getWeaponIdByPlatform = (row) => {
   if (props.platformType === 'buff') {
     return row.buff_id
   } else {
+    if (props.platformType === 'steam') {
+      return row.steam_hash_name || row.steamHashName || row.en_weapon_name
+    }
     return row.yyyp_id
   }
 }

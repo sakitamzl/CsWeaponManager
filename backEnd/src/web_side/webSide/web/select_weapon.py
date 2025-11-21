@@ -219,6 +219,14 @@ def searchWeaponDetail():
         # 组合查询条件（如果没有任何条件，where_clause为None，返回全部数据）
         where_clause = " AND ".join(where_clauses) if where_clauses else None
         
+        # 如果是Steam平台，要求必须存在hash name
+        if platform_type == 'steam':
+            extra_clause = "[steam_hash_name] IS NOT NULL AND [steam_hash_name] <> ''"
+            if where_clause:
+                where_clause = f"{where_clause} AND {extra_clause}"
+            else:
+                where_clause = extra_clause
+        
         # 查询数据库，返回所有匹配的记录
         records = WeaponClassIDModel.find_all(
             where=where_clause, 
@@ -227,8 +235,12 @@ def searchWeaponDetail():
         
         # 价格筛选、在售数量筛选以及自动过滤
         # 根据平台类型选择对应的价格字段和在售数量字段
-        price_field = 'yyyp_Price' if platform_type == 'youpin' else 'buff_Price'
-        on_sale_count_field = 'yyyp_OnSaleCount' if platform_type == 'youpin' else 'buff_OnSaleCount'
+        if platform_type == 'steam':
+            price_field = 'yyyp_Price'
+            on_sale_count_field = 'yyyp_OnSaleCount'
+        else:
+            price_field = 'yyyp_Price' if platform_type == 'youpin' else 'buff_Price'
+            on_sale_count_field = 'yyyp_OnSaleCount' if platform_type == 'youpin' else 'buff_OnSaleCount'
         
         filtered_records = []
         for record in records:
