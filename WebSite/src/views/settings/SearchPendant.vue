@@ -563,9 +563,14 @@ export default {
     const loadRecentSearchResults = async () => {
       try {
         console.log('[挂件] 尝试加载历史结果...')
+        // 获取搜索结果，根据选中的配置ID过滤
         const params = new URLSearchParams({
           dataType: 'pendant'
         })
+        // 如果选中了配置，则只查询该配置的数据
+        if (selectedConfigId.value) {
+          params.append('configId', selectedConfigId.value.toString())
+        }
         const response = await fetch(`${API_CONFIG.BASE_URL}/searchRename/items/list?${params.toString()}`)
         if (!response.ok) {
           console.warn('[挂件] 历史数据请求失败')
@@ -601,9 +606,14 @@ export default {
     const pollSearchResults = async () => {
       try {
         lastPollingTime.value = Date.now()
+        // 获取所有数据，根据选中的配置ID过滤
         const params = new URLSearchParams({
           dataType: 'pendant'
         })
+        // 如果选中了配置，则只查询该配置的数据
+        if (selectedConfigId.value) {
+          params.append('configId', selectedConfigId.value.toString())
+        }
         const response = await fetch(`${API_CONFIG.BASE_URL}/searchRename/items/list?${params.toString()}`)
         if (!response.ok) {
           console.error('[挂件] 轮询失败: HTTP', response.status)
@@ -1232,6 +1242,9 @@ export default {
 
       selectedConfigId.value = configId
       console.log('已设置selectedConfigId:', selectedConfigId.value)
+      
+      // 切换配置时，先清空当前结果，避免显示混合数据
+      crawlResult.value = { weapons: [] }
 
       try {
         const config = savedConfigs.value.find(c => c.id === configId)

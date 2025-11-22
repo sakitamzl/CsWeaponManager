@@ -917,8 +917,15 @@ export default {
       try {
         console.log('[页面加载] 尝试加载历史搜索结果...')
         
-        // 获取所有搜索结果（不指定sessionId）
-        const url = `${API_CONFIG.BASE_URL}/searchRename/items/list?dataType=rename`
+        // 获取搜索结果，根据选中的配置ID过滤
+        const params = new URLSearchParams({
+          dataType: 'rename'
+        })
+        // 如果选中了配置，则只查询该配置的数据
+        if (selectedConfigId.value) {
+          params.append('configId', selectedConfigId.value.toString())
+        }
+        const url = `${API_CONFIG.BASE_URL}/searchRename/items/list?${params.toString()}`
         const response = await fetch(url)
         
         if (!response.ok) {
@@ -1423,6 +1430,10 @@ export default {
 
       selectedConfigId.value = configId
       console.log('已设置selectedConfigId:', selectedConfigId.value)
+      
+      // 切换配置时，先清空当前结果，避免显示混合数据
+      crawlResult.value = { weapons: [] }
+      lastItemId.value = 0
 
       try {
         isApplyingConfigState.value = true
