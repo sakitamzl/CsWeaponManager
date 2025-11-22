@@ -1015,7 +1015,8 @@ export default {
             console.log('[数据映射] item 的所有键:', Object.keys(item))
             // 后端返回的已经是驼峰命名，直接使用
             const mappedItem = {
-              id: item.commodityId,
+              id: item.id,  // 数据库主键，用于后端查询商品详情
+              commodityId: item.commodityId,  // Steam的listing_id或悠悠有品的商品ID
               commodityNo: item.commodityNo,
               price: parseFloat(item.price) || 0,
               lowest_price: parseFloat(item.lowestPrice) || 0,
@@ -1032,6 +1033,11 @@ export default {
               commissionFee: parseFloat(item.commissionFee) || 0,
               priceDiff: parseFloat(item.priceDiff) || 0,
               steam_hash_name: item.steamHashName || item.steam_hash_name || '',
+              // 关键字段：用于判断数据来源和购买逻辑
+              dataType: item.dataType,  // 数据类型，Steam搜索结果可能为空或特定值
+              listing_id: item.listingId || item.listing_id || '',  // Steam市场的listing_id
+              listingId: item.listingId || item.listing_id || '',   // 兼容驼峰命名
+              configId: item.configId,  // 配置ID
               referencePrice: null // 参考价，稍后通过查询填充
             }
             console.log('[数据映射] 映射后item:', mappedItem)
@@ -1131,7 +1137,8 @@ export default {
           // 后端已通过 to_dict() 返回驼峰命名，直接使用
           const newItems = result.items.map(item => {
             return {
-              id: item.commodityId,
+              id: item.id,  // 数据库主键，用于后端查询商品详情
+              commodityId: item.commodityId,  // Steam的listing_id或悠悠有品的商品ID
               commodityNo: item.commodityNo,
               price: parseFloat(item.price) || 0,
               lowest_price: parseFloat(item.lowestPrice) || 0,
@@ -1148,6 +1155,11 @@ export default {
               commissionFee: parseFloat(item.commissionFee) || 0,
               priceDiff: parseFloat(item.priceDiff) || 0,
               steam_hash_name: item.steamHashName || item.steam_hash_name || '',
+              // 关键字段：用于判断数据来源和购买逻辑
+              dataType: item.dataType,
+              listing_id: item.listingId || item.listing_id || '',
+              listingId: item.listingId || item.listing_id || '',
+              configId: item.configId,
               referencePrice: null // 参考价，稍后通过查询填充
             }
           })
@@ -1559,7 +1571,8 @@ export default {
           console.log('  - 自定义配置:', restConfig)
           console.log('=== 配置加载完成 ===')
           
-          // 选择配置后，立即刷新结果列表（显示该配置的数据）
+          // 选择配置后，启动轮询并立即刷新结果列表（显示该配置的数据）
+          startPolling()
           await pollSearchResults()
           
           ElMessage.success(`已加载配置: ${config.dataName}`)
@@ -2230,39 +2243,36 @@ export default {
       const platformType = configPlatformType || formPlatformType
       const isSteamPlatform = platformType === 'steam' || platformType === 'steam市场' || platformType.includes('steam')
       
-      // 4. 检查 item 中是否有 Steam 相关字段
-      const hasSteamHashName = !!(item.steam_hash_name || item.steamHashName)
-      const hasSteamListingId = !!(item.listing_id || item.listingId)
-      const isSteamItem = hasSteamHashName || hasSteamListingId
+      // 4. 检查 item 中的关键字段
+      const hasListingId = !!(item.listing_id || item.listingId)
+      const hasAssetId = !!(item.assetId)
       
-      // 5. 最终判断：如果平台类型是 steam 或 item 有 Steam 字段，则使用 Steam 购买
-      // 优先使用 item 中的 Steam 字段判断（最可靠）
-      let isSteam = isSteamItem || isSteamPlatform
+      // 5. 综合判断：优先使用配置中的平台类型，其次检查是否有 listing_id
+      // 注意：不能仅用 steam_hash_name 判断，因为悠悠有品数据也可能包含此字段
+      let isSteam = false
       
-      // 如果 item 有 steam_hash_name，强制使用 Steam 购买（这是最可靠的判断）
+      // 判断逻辑：
+      // 1. 如果配置指定为 Steam 平台，则使用 Steam 购买
+      // 2. 如果 item 有 listing_id 和 assetId，说明来自 Steam 市场搜索
+      if (isSteamPlatform) {
+        isSteam = true
+        console.log('[购买] 根据配置判断为 Steam 平台')
+      } else if (hasListingId && hasAssetId) {
+        isSteam = true
+        console.log('[购买] 根据 item 字段判断为 Steam 市场物品')
+      }
 
       // 调试日志：确认平台类型
       console.log('[购买] ========== 平台类型判断 ==========')
       console.log('[购买] 选中的配置ID:', selectedConfigId.value)
       console.log('[购买] 配置中的平台类型:', configPlatformType || '无')
       console.log('[购买] 表单中的平台类型:', formPlatformType || '无')
-      console.log('[购买] 最终使用的平台类型:', platformType || '无')
       console.log('[购买] 是 Steam 平台:', isSteamPlatform)
-      console.log('[购买] Item 有 steam_hash_name:', hasSteamHashName)
-      console.log('[购买] Item 有 listing_id:', hasSteamListingId)
-      console.log('[购买] Item 是 Steam 物品:', isSteamItem)
-      console.log('[购买] 初始判断使用 Steam 购买:', isSteam)
-      console.log('[购买] Item steam_hash_name:', item.steam_hash_name || item.steamHashName || '无')
+      console.log('[购买] Item commodityId:', item.id)
       console.log('[购买] Item listing_id:', item.listing_id || item.listingId || '无')
-      
-      // 6. 如果判断结果不是 Steam，但平台类型包含 steam，强制使用 Steam 购买
-      // 这是一个安全措施，防止判断错误
-      if (!isSteam && (formPlatformType.includes('steam') || configPlatformType.includes('steam'))) {
-        console.log('[购买] ⚠️ 强制使用 Steam 购买（平台类型包含 steam）')
-        isSteam = true
-      }
-      
-      console.log('[购买] 最终使用 Steam 购买:', isSteam)
+      console.log('[购买] Item assetId:', item.assetId || '无')
+      console.log('[购买] Item steam_hash_name:', item.steam_hash_name || item.steamHashName || '无')
+      console.log('[购买] 最终判断使用 Steam 购买:', isSteam)
       console.log('[购买] ======================================')
       
       // 开始购买流程
@@ -2307,6 +2317,7 @@ export default {
           
           const requestData = {
             steamId: crawlForm.value.steamId,
+            commodityId: item.id, // 传递商品ID，用于从数据库获取 listing_id 和 token（与悠悠有品方法一致）
             market_hash_name: marketHashName,
             listing_id: listingId,
             price: item.price,
@@ -2523,16 +2534,14 @@ export default {
       toggleConfigSections()
     }
 
-    // 组件挂载时加载数据并启动轮询
+    // 组件挂载时加载数据（不自动启动搜索和轮询）
     onMounted(() => {
       if (crawlForm.value.platformType) {
         loadAccountsForPlatform(crawlForm.value.platformType)
       }
       loadConfigList()
       
-      // 从数据库加载最近的搜索结果（只查询一次）
-      loadRecentSearchResults()
-      startPolling()
+      // 不再自动加载搜索结果和启动轮询，需要点击配置卡片后才进行搜索
     })
 
     // 组件卸载时停止轮询

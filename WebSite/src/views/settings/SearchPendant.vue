@@ -1304,7 +1304,8 @@ export default {
           console.log('  - weaponId:', crawlForm.value.weaponId)
           console.log('=== 配置加载完成 ===')
           
-          // 选择配置后，立即刷新结果列表（显示该配置的数据）
+          // 选择配置后，启动轮询并立即刷新结果列表（显示该配置的数据）
+          startPolling()
           await pollSearchResults()
           
           ElMessage.success(`已加载配置: ${config.dataName}`)
@@ -2222,14 +2223,13 @@ export default {
       return rarityColorMap[rarity] || '#fff'
     }
 
-    // 组件挂载时加载数据并启动轮询
+    // 组件挂载时加载数据（不自动启动搜索和轮询）
     onMounted(() => {
       if (crawlForm.value.platformType) {
         loadAccountsForPlatform(crawlForm.value.platformType)
       }
       loadConfigList()
-      loadRecentSearchResults()
-      startPolling()
+      // 不再自动加载搜索结果和启动轮询，需要点击配置卡片后才进行搜索
       // 添加页面滚动监听
       window.addEventListener('scroll', handlePageScroll)
     })

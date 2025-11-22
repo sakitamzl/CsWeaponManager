@@ -89,6 +89,51 @@ def add_item():
         }), 500
 
 
+@search_rename_bp.route('/item/get/<int:item_id>', methods=['GET'])
+def get_item(item_id):
+    """
+    根据ID获取单个商品信息
+    
+    Args:
+        item_id: 商品ID（数据库主键）
+    
+    Returns:
+        {
+            "success": true,
+            "data": {
+                "id": 1,
+                "commodityId": "listing_id",
+                "steamHashName": "market_hash_name",
+                "price": 10.5,
+                ...
+            }
+        }
+    """
+    try:
+        # 使用 find_all 方法查询
+        records = AutoSearchWeaponModel.find_all("id = ?", (item_id,), limit=1)
+        
+        if not records or len(records) == 0:
+            return jsonify({
+                'success': False,
+                'message': f'未找到ID为 {item_id} 的商品'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'data': records[0].to_dict()
+        })
+    
+    except Exception as e:
+        logger.write_log(f"获取商品信息失败: {str(e)}", 'ERROR')
+        import traceback
+        logger.write_log(f"详细错误: {traceback.format_exc()}", 'ERROR')
+        return jsonify({
+            'success': False,
+            'message': f'获取商品信息失败: {str(e)}'
+        }), 500
+
+
 @search_rename_bp.route('/item/update-status', methods=['POST'])
 def update_item_status():
     """
