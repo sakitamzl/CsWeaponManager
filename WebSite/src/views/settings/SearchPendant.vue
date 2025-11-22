@@ -1111,6 +1111,11 @@ export default {
           饰品自动查询间隔: 3,
           ...customConfig
         }
+        
+        // 如果有选中的配置ID，传递给后端
+        if (selectedConfigId.value) {
+          spiderConfig.config_id = selectedConfigId.value
+        }
 
         const requestData = {
           steamId: crawlForm.value.crawlAccountId,
@@ -1287,6 +1292,9 @@ export default {
           console.log('  - platformType:', crawlForm.value.platformType)
           console.log('  - weaponId:', crawlForm.value.weaponId)
           console.log('=== 配置加载完成 ===')
+          
+          // 选择配置后，立即刷新结果列表（显示该配置的数据）
+          await pollSearchResults()
           
           ElMessage.success(`已加载配置: ${config.dataName}`)
         } else {
