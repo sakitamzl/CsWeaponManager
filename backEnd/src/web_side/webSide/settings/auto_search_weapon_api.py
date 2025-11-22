@@ -30,6 +30,7 @@ def add_item():
         weapon_name = data.get('weaponName')
         item_data = data.get('item')
         data_type = data.get('dataType', 'rename')
+        config_id = data.get('configId')
         pendants = data.get('pendants')
         pendant_count = data.get('pendantCount')
         pendant_total_price = data.get('pendantTotalPrice')
@@ -41,12 +42,21 @@ def add_item():
                 'message': '缺少必要参数'
             }), 400
         
+        # 转换 config_id 为整数（如果提供）
+        config_id_int = None
+        if config_id is not None:
+            try:
+                config_id_int = int(config_id)
+            except (ValueError, TypeError):
+                config_id_int = None
+        
         record = AutoSearchWeaponModel.create_from_search_result(
             steam_id=steam_id,
             weapon_id=weapon_id,
             weapon_name=weapon_name,
             item_data=item_data,
             data_type=data_type,
+            config_id=config_id_int,
             pendant_details=pendants,
             pendant_count=pendant_count,
             pendant_total_price=pendant_total_price,
@@ -90,12 +100,21 @@ def add_items_batch():
         steam_id = data.get('steamId')
         items = data.get('items', [])
         data_type = data.get('dataType', 'rename')
+        config_id = data.get('configId')
         
         if not all([steam_id, items]):
             return jsonify({
                 'success': False,
                 'message': '缺少必要参数'
             }), 400
+        
+        # 转换 config_id 为整数（如果提供）
+        config_id_int = None
+        if config_id is not None:
+            try:
+                config_id_int = int(config_id)
+            except (ValueError, TypeError):
+                config_id_int = None
         
         success_count = 0
         for item_wrapper in items:
@@ -106,6 +125,7 @@ def add_items_batch():
                     weapon_name=item_wrapper.get('weaponName'),
                     item_data=item_wrapper.get('item'),
                     data_type=data_type,
+                    config_id=config_id_int,
                     pendant_details=item_wrapper.get('pendants'),
                     pendant_count=item_wrapper.get('pendantCount'),
                     pendant_total_price=item_wrapper.get('pendantTotalPrice'),
@@ -144,6 +164,7 @@ def get_items_list():
     查询参数:
     - dataType: 数据类型（rename/pendant），默认 rename
     - steamId: 过滤指定 Steam ID 的数据（可选）
+    - configId: 过滤指定配置ID的数据（可选）
     - status: 状态过滤，默认 active
     - limit: 返回数量限制（可选）
     - offset: 偏移量（可选）
@@ -158,11 +179,12 @@ def get_items_list():
     try:
         data_type = request.args.get('dataType', 'rename')
         steam_id = request.args.get('steamId')
+        config_id = request.args.get('configId')
         status = request.args.get('status', 'active')
         limit = request.args.get('limit')
         offset = request.args.get('offset')
         
-        logger.write_log(f"查询搜索结果 - dataType: {data_type}, steamId: {steam_id}, status: {status}", 'INFO')
+        logger.write_log(f"查询搜索结果 - dataType: {data_type}, steamId: {steam_id}, configId: {config_id}, status: {status}", 'INFO')
         
         where_clause_parts = ["data_type = ?"]
         params = [data_type]
@@ -170,6 +192,14 @@ def get_items_list():
         if steam_id:
             where_clause_parts.append("steam_id = ?")
             params.append(steam_id)
+        
+        if config_id:
+            try:
+                config_id_int = int(config_id)
+                where_clause_parts.append("config_id = ?")
+                params.append(config_id_int)
+            except (ValueError, TypeError):
+                pass  # 忽略无效的 config_id
         
         if status:
             where_clause_parts.append("status = ?")
@@ -341,7 +371,11 @@ def get_latest_items():
 @search_rename_bp.route('/clear', methods=['POST'])
 def clear_all_rename_data():
     """
-    清空所有改名饰品数据（data_type='rename'）
+    清空改名饰品数据
+    
+    请求体:
+    - dataType: 数据类型（rename/pendant），默认 rename
+    - configId: 配置ID（可选），如果提供则只删除该配置的数据，否则删除所有数据
     
     返回:
     {
@@ -355,20 +389,38 @@ def clear_all_rename_data():
         
         data = request.get_json() or {}
         data_type = data.get('dataType', 'rename')
+        config_id = data.get('configId')
         
         db = DatabaseManager()
         table_name = AutoSearchWeaponModel.get_table_name()
         
+        # 构建查询条件
+        where_parts = ["data_type = ?"]
+        params = [data_type]
+        
+        if config_id:
+            try:
+                config_id_int = int(config_id)
+                where_parts.append("config_id = ?")
+                params.append(config_id_int)
+            except (ValueError, TypeError):
+                pass  # 忽略无效的 config_id
+        
+        where_clause = " AND ".join(where_parts)
+        
         # 先统计要删除的记录数
-        count_sql = f"SELECT COUNT(*) FROM {table_name} WHERE data_type = ?"
-        count_result = db.execute_query(count_sql, (data_type,))
+        count_sql = f"SELECT COUNT(*) FROM {table_name} WHERE {where_clause}"
+        count_result = db.execute_query(count_sql, tuple(params))
         count = count_result[0][0] if count_result else 0
         
-        # 删除所有指定 data_type 的数据
-        delete_sql = f"DELETE FROM {table_name} WHERE data_type = ?"
-        db.execute_update(delete_sql, (data_type,))
+        # 删除数据（硬删除）
+        delete_sql = f"DELETE FROM {table_name} WHERE {where_clause}"
+        db.execute_update(delete_sql, tuple(params))
         
-        logger.write_log(f"清空搜索数据(data_type={data_type}): 删除{count}条记录", 'INFO')
+        if config_id:
+            logger.write_log(f"清空搜索数据(data_type={data_type}, config_id={config_id}): 删除{count}条记录", 'INFO')
+        else:
+            logger.write_log(f"清空搜索数据(data_type={data_type}): 删除{count}条记录", 'INFO')
         
         return jsonify({
             'success': True,

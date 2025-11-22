@@ -548,9 +548,14 @@ export default {
     // 清空爬虫历史
     const clearCrawlHistory = async (skipConfirm = false) => {
       try {
+        // 如果有选中的配置，只清空该配置的数据；否则清空所有数据
+        const clearMessage = selectedConfigId.value
+          ? '确定要清空当前配置的查询结果吗？此操作将删除该配置的所有改名饰品数据，不可恢复。'
+          : '确定要清空所有查询结果吗？此操作将删除数据库中所有改名饰品数据，不可恢复。'
+        
         if (!skipConfirm) {
           await ElMessageBox.confirm(
-            '确定要清空所有查询结果吗？此操作将删除数据库中所有改名饰品数据，不可恢复。',
+            clearMessage,
             '确认清空',
             {
               confirmButtonText: '确定',
@@ -560,13 +565,21 @@ export default {
           )
         }
         
+        // 构建请求体
+        const requestBody = {
+          dataType: 'rename'
+        }
+        
+        // 如果有选中的配置，只清空该配置的数据
+        if (selectedConfigId.value) {
+          requestBody.configId = selectedConfigId.value
+        }
+        
         // 调用后端 API 清空数据库
         const response = await fetch(`${API_CONFIG.BASE_URL}/searchRename/clear`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            dataType: 'rename'
-          })
+          body: JSON.stringify(requestBody)
         })
         
         if (!response.ok) {
@@ -996,10 +1009,14 @@ export default {
       try {
         lastPollingTime.value = Date.now()
         
-        // 获取所有数据
+        // 获取所有数据，根据选中的配置ID过滤
         const params = new URLSearchParams({
           dataType: 'rename'
         })
+        // 如果选中了配置，则只查询该配置的数据
+        if (selectedConfigId.value) {
+          params.append('configId', selectedConfigId.value.toString())
+        }
         const url = `${API_CONFIG.BASE_URL}/searchRename/items/list?${params.toString()}`
         
         const response = await fetch(url)
@@ -1226,6 +1243,11 @@ export default {
         const spiderConfig = {
           weapon_id: crawlForm.value.weaponId,
           ...customConfig
+        }
+
+        // 如果有选中的配置ID，传递给后端
+        if (selectedConfigId.value) {
+          spiderConfig.config_id = selectedConfigId.value
         }
 
         if (platformKey === 'steam') {
@@ -1460,6 +1482,9 @@ export default {
           console.log('  - weaponId:', crawlForm.value.weaponId)
           console.log('  - 自定义配置:', restConfig)
           console.log('=== 配置加载完成 ===')
+          
+          // 选择配置后，立即刷新结果列表（显示该配置的数据）
+          await pollSearchResults()
           
           ElMessage.success(`已加载配置: ${config.dataName}`)
         } else {

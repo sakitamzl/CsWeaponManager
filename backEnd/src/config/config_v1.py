@@ -3,6 +3,7 @@ from src.log import Log
 from src.execution_db import Date_base
 from src.read_conf import read_conf
 from src.db_manager.index.config import ConfigModel
+from src.db_manager.index.auto_search_weapon import AutoSearchWeaponModel
 import requests
 import json
 
@@ -216,8 +217,42 @@ def list_configs():
 
 @configV1.route('/delete/<int:config_id>', methods=['DELETE'])
 def delete_config(config_id):
-    """删除配置"""
+    """删除配置，同时清理相关的搜索结果数据"""
     try:
+        # 先清理 auto_search_weapon 表中相关的数据（硬删除）
+        try:
+            from src.execution_db import DatabaseManager
+            
+            db = DatabaseManager()
+            table_name = AutoSearchWeaponModel.get_table_name()
+            
+            # 先统计要删除的记录数
+            count_sql = f"SELECT COUNT(*) FROM {table_name} WHERE config_id = ?"
+            count_result = db.execute_query(count_sql, (config_id,))
+            count = count_result[0][0] if count_result else 0
+            
+            if count > 0:
+                # 硬删除：直接删除记录
+                delete_sql = f"DELETE FROM {table_name} WHERE config_id = ?"
+                db.execute_update(delete_sql, (config_id,))
+                
+                Log().write_log(
+                    f"删除配置 {config_id} 时，已删除 {count} 条相关搜索结果数据",
+                    'info'
+                )
+            else:
+                Log().write_log(
+                    f"删除配置 {config_id} 时，未找到相关搜索结果数据",
+                    'info'
+                )
+        except Exception as cleanup_error:
+            # 清理数据失败不影响配置删除，只记录日志
+            Log().write_log(
+                f"清理配置 {config_id} 的搜索结果数据时出错: {str(cleanup_error)}",
+                'warning'
+            )
+        
+        # 删除配置
         sql = f"DELETE FROM config WHERE dataID = {config_id}"
         Date_base().delete(sql)
         

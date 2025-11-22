@@ -649,9 +649,14 @@ export default {
 
     const clearCrawlHistory = async (skipConfirm = false) => {
       try {
+        // 如果有选中的配置，只清空该配置的数据；否则清空所有数据
+        const clearMessage = selectedConfigId.value
+          ? '确定要清空当前配置的挂件搜索结果吗？此操作将删除该配置的所有挂件数据，不可恢复。'
+          : '确定要清空所有挂件搜索结果吗？此操作不可恢复。'
+        
         if (!skipConfirm) {
           await ElMessageBox.confirm(
-            '确定要清空所有挂件搜索结果吗？此操作不可恢复。',
+            clearMessage,
             '确认清空',
             {
               confirmButtonText: '确定',
@@ -661,12 +666,20 @@ export default {
           )
         }
 
+        // 构建请求体
+        const requestBody = {
+          dataType: 'pendant'
+        }
+        
+        // 如果有选中的配置，只清空该配置的数据
+        if (selectedConfigId.value) {
+          requestBody.configId = selectedConfigId.value
+        }
+
         const response = await fetch(`${API_CONFIG.BASE_URL}/searchRename/clear`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            dataType: 'pendant'
-          })
+          body: JSON.stringify(requestBody)
         })
 
         if (!response.ok) {

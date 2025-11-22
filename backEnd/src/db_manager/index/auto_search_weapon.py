@@ -37,6 +37,12 @@ class AutoSearchWeaponModel(BaseModel):
                 'not_null': True,
                 'comment': '执行搜索的Steam账号ID'
             },
+            'config_id': {
+                'type': 'INTEGER',
+                'not_null': False,
+                'default': None,
+                'comment': '配置ID（用于区分不同的搜索配置）'
+            },
             'data_type': {
                 'type': 'TEXT',
                 'not_null': True,
@@ -251,6 +257,7 @@ class AutoSearchWeaponModel(BaseModel):
         weapon_name: str,
         item_data: Dict[str, Any],
         data_type: str = 'rename',
+        config_id: int = None,
         pendant_details: List[Dict[str, Any]] = None,
         pendant_count: int = None,
         pendant_total_price: float = None,
@@ -291,6 +298,7 @@ class AutoSearchWeaponModel(BaseModel):
         # 创建记录
         record = cls(
             steam_id=steam_id,
+            config_id=config_id,
             data_type=data_type,
             weapon_id=weapon_id,
             weapon_name=weapon_name,
@@ -353,6 +361,7 @@ class AutoSearchWeaponModel(BaseModel):
 
         return {
             'id': self.id,
+            'configId': self.config_id,
             'dataType': self.data_type,
             'weaponId': weapon_id_value,
             'weaponName': weapon_name_value,
