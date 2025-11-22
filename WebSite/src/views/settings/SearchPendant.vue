@@ -52,9 +52,6 @@
                 </el-tag>
               </div>
             </div>
-            <div class="config-item-meta">
-              <span class="config-time">{{ formatTime(config.updated_at) }}</span>
-            </div>
             <div v-if="config.description" class="config-description">
               {{ config.description }}
             </div>

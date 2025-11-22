@@ -52,9 +52,6 @@
                 </el-tag>
               </div>
             </div>
-            <div class="config-item-meta">
-              <span class="config-time">{{ formatTime(config.updated_at) }}</span>
-            </div>
             <div v-if="config.description" class="config-description">
               {{ config.description }}
             </div>
@@ -186,6 +183,24 @@
                       <el-option
                         v-for="option in booleanOptions"
                         :key="`rename-auto-buy-${option.value}`"
+                        :label="option.label"
+                        :value="option.value"
+                      />
+                    </el-select>
+                  </div>
+                </div>
+
+                <div class="custom-config-field">
+                  <div class="field-label">只查询中文改名</div>
+                  <div class="field-control">
+                    <el-select
+                      v-model="customConfigForm['只查询中文改名']"
+                      placeholder="请选择"
+                      style="width: 100px;"
+                    >
+                      <el-option
+                        v-for="option in booleanOptions"
+                        :key="`rename-chinese-only-${option.value}`"
                         :label="option.label"
                         :value="option.value"
                       />
@@ -644,7 +659,8 @@ export default {
     const createDefaultCustomConfig = () => ({
       '饰品自动查询间隔': 3,
       '最大差价': 8,
-      '是否自动购买': false
+      '是否自动购买': false,
+      '只查询中文改名': true
     })
 
     const customConfigForm = ref(createDefaultCustomConfig())
