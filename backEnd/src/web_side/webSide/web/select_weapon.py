@@ -1,6 +1,8 @@
 from flask import jsonify, request, Blueprint
 from src.db_manager.index.weapon_classID import WeaponClassIDModel
+from src.log import Log
 
+logger = Log()
 webSelectWeaponV1 = Blueprint('webSelectWeaponV1', __name__)
 
 @webSelectWeaponV1.route('/getAllPendants', methods=['GET'])
@@ -349,5 +351,80 @@ def searchWeaponDetail():
             "error": str(e),
             "data": [],
             "count": 0
+        }), 500
+
+
+@webSelectWeaponV1.route('/getReferencePrices', methods=['POST'])
+def get_reference_prices():
+    """
+    批量查询参考价（通过 steam_hash_name 列表）
+    
+    请求体:
+    {
+        "steamHashNames": ["AK-47 | Redline (Field-Tested)", ...]
+    }
+    
+    返回:
+    {
+        "success": true,
+        "data": {
+            "steam_hash_name_1": "120.00",
+            "steam_hash_name_2": "150.00",
+            ...
+        }
+    }
+    """
+    try:
+        data = request.get_json()
+        steam_hash_names = data.get('steamHashNames', [])
+        
+        if not steam_hash_names:
+            return jsonify({
+                'success': True,
+                'data': {}
+            })
+        
+        # 构建查询条件
+        placeholders = ','.join(['?' for _ in steam_hash_names])
+        where_clause = f"[steam_hash_name] IN ({placeholders})"
+        
+        # 查询记录
+        records = WeaponClassIDModel.find_all(
+            where=where_clause,
+            params=tuple(steam_hash_names)
+        )
+        
+        # 构建返回数据：steam_hash_name -> yyyp_Price 的映射
+        price_map = {}
+        for record in records:
+            if record.steam_hash_name and record.yyyp_Price:
+                try:
+                    # 尝试转换为浮点数，如果失败则使用原值
+                    price_value = float(record.yyyp_Price) if record.yyyp_Price else None
+                    if price_value is not None:
+                        price_map[record.steam_hash_name] = price_value
+                except (ValueError, TypeError):
+                    # 如果转换失败，使用原值
+                    if record.yyyp_Price:
+                        price_map[record.steam_hash_name] = record.yyyp_Price
+        
+        logger.write_log(
+            f"批量查询参考价: 请求{len(steam_hash_names)}个，找到{len(price_map)}个",
+            'INFO'
+        )
+        
+        return jsonify({
+            'success': True,
+            'data': price_map
+        })
+    
+    except Exception as e:
+        logger.write_log(f"批量查询参考价失败: {str(e)}", 'ERROR')
+        import traceback
+        logger.write_log(f"详细错误: {traceback.format_exc()}", 'ERROR')
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'data': {}
         }), 500
 

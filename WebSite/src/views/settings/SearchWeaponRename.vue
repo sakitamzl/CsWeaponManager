@@ -345,9 +345,24 @@
             </template>
           </el-table-column>
           
-          <el-table-column label="价格" width="110" resizable>
+            <el-table-column label="价格" width="110" resizable>
               <template #default="scope">
                 <span class="price">¥{{ scope.row.price }}</span>
+              </template>
+            </el-table-column>
+            
+            <el-table-column 
+              v-if="crawlForm.platformType === 'steam'"
+              label="参考价" 
+              width="110" 
+              resizable
+            >
+              <template #default="scope">
+                <span class="reference-price">
+                  {{ scope.row.referencePrice !== null && scope.row.referencePrice !== undefined 
+                    ? '¥' + (typeof scope.row.referencePrice === 'number' ? scope.row.referencePrice.toFixed(2) : scope.row.referencePrice)
+                    : '-' }}
+                </span>
               </template>
             </el-table-column>
             
@@ -632,6 +647,50 @@ export default {
     const buyingItems = ref({})  // 正在购买的商品 {itemId: true/false}
     const purchasedItems = ref(new Set())  // 已成功购买的商品ID集合
     
+    // 批量查询参考价（仅 Steam 平台）
+    const loadReferencePrices = async (items) => {
+      if (!items || items.length === 0) {
+        return
+      }
+      
+      // 收集所有有效的 steam_hash_name
+      const steamHashNames = items
+        .map(item => item.steam_hash_name || item.steamHashName)
+        .filter(name => name && name.trim())
+      
+      if (steamHashNames.length === 0) {
+        return
+      }
+      
+      try {
+        const response = await axios.post(
+          `${API_CONFIG.BASE_URL}/webSelectWeaponV1/getReferencePrices`,
+          {
+            steamHashNames: steamHashNames
+          }
+        )
+        
+        if (response.data.success && response.data.data) {
+          const priceMap = response.data.data
+          
+          // 更新 items 中的参考价
+          items.forEach(item => {
+            const hashName = item.steam_hash_name || item.steamHashName
+            if (hashName && priceMap[hashName] !== undefined) {
+              item.referencePrice = typeof priceMap[hashName] === 'number' 
+                ? priceMap[hashName] 
+                : parseFloat(priceMap[hashName]) || null
+            }
+          })
+          
+          console.log(`[参考价] 已更新 ${Object.keys(priceMap).length} 个商品的参考价`)
+        }
+      } catch (error) {
+        console.error('[参考价] 查询失败:', error)
+        // 不影响主流程，静默失败
+      }
+    }
+    
     // 获取购买按钮类型
     const getBuyButtonType = (item) => {
       if (purchasedItems.value.has(item.id)) {
@@ -757,6 +816,10 @@ export default {
         customConfigForm.value['是否自动购买'],
         false
       ),
+      '只查询中文改名': normalizeBooleanValue(
+        customConfigForm.value['只查询中文改名'],
+        true
+      ),
       '是否授权': true
     })
 
@@ -788,6 +851,10 @@ export default {
         '是否自动购买': normalizeBooleanValue(
           config['是否自动购买'],
           defaults['是否自动购买']
+        ),
+        '只查询中文改名': normalizeBooleanValue(
+          config['只查询中文改名'],
+          defaults['只查询中文改名']
         )
       }
       nextTick(() => {
@@ -963,7 +1030,9 @@ export default {
               weaponName: item.weaponName,
               weaponId: item.weaponId,
               commissionFee: parseFloat(item.commissionFee) || 0,
-              priceDiff: parseFloat(item.priceDiff) || 0
+              priceDiff: parseFloat(item.priceDiff) || 0,
+              steam_hash_name: item.steamHashName || item.steam_hash_name || '',
+              referencePrice: null // 参考价，稍后通过查询填充
             }
             console.log('[数据映射] 映射后item:', mappedItem)
             return mappedItem
@@ -989,6 +1058,11 @@ export default {
           }))
           
           crawlResult.value = { weapons }
+          
+          // 如果是 Steam 平台，查询参考价
+          if (crawlForm.value.platformType === 'steam') {
+            await loadReferencePrices(historyItems)
+          }
           
           console.log(`[页面加载] 已加载 ${result.items.length} 条历史搜索结果`)
           console.log(`[页面加载] 第一条原始数据:`, result.items[0])
@@ -1072,7 +1146,9 @@ export default {
               weaponName: item.weaponName,
               weaponId: item.weaponId,
               commissionFee: parseFloat(item.commissionFee) || 0,
-              priceDiff: parseFloat(item.priceDiff) || 0
+              priceDiff: parseFloat(item.priceDiff) || 0,
+              steam_hash_name: item.steamHashName || item.steam_hash_name || '',
+              referencePrice: null // 参考价，稍后通过查询填充
             }
           })
           
@@ -1109,6 +1185,11 @@ export default {
             if (maxId > lastItemId.value) {
               lastItemId.value = maxId
             }
+          }
+          
+          // 如果是 Steam 平台，查询参考价
+          if (crawlForm.value.platformType === 'steam') {
+            await loadReferencePrices(allItems)
           }
           
           await nextTick()
