@@ -620,19 +620,17 @@ export default {
           return
         }
         const result = await response.json()
-        if (result.success && Array.isArray(result.items) && result.items.length > 0) {
+        
+        // 如果没有查询到数据，直接返回，不进行其他操作
+        if (!result.success || !Array.isArray(result.items) || result.items.length === 0) {
+          return
+        }
+        
+        if (result.items.length > 0) {
           const mappedItems = normalizeApiItems(result.items)
           updateCrawlResultWithItems(mappedItems)
           if (isCrawling.value) {
             noDataCount.value = 0
-          }
-        } else if (isCrawling.value) {
-          noDataCount.value++
-          if (noDataCount.value >= MAX_NO_DATA_COUNT) {
-            console.log('[挂件] 连续无新数据，结束搜索状态')
-            isCrawling.value = false
-            const totalItems = crawlResult.value?.weapons?.flatMap(w => w.items).length || 0
-            ElMessage.success(`搜索完成！找到 ${totalItems} 个符合条件的商品`)
           }
         }
       } catch (error) {

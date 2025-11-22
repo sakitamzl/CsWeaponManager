@@ -1036,7 +1036,12 @@ export default {
         const result = await response.json()
         console.log('[轮询] API返回:', result)
         
-        if (result.success && result.items && result.items.length > 0) {
+        // 如果没有查询到数据，直接返回，不进行其他操作
+        if (!result.success || !result.items || result.items.length === 0) {
+          return
+        }
+        
+        if (result.items.length > 0) {
           console.log(`[轮询] 获取到 ${result.items.length} 条数据`)
           console.log('[轮询] 第一条数据示例 (驼峰命名):', result.items[0])
           console.log('[轮询] 第一条weaponName:', result.items[0].weaponName)
@@ -1107,27 +1112,6 @@ export default {
           }
           
           await nextTick()
-        } else {
-          // 没有新数据
-          if (isCrawling.value) {
-            // 只有在搜索中才增加计数
-            noDataCount.value++
-            
-            // 如果连续多次无数据，认为搜索完成
-            if (noDataCount.value >= MAX_NO_DATA_COUNT) {
-              console.log('[轮询] 连续无新数据，认为搜索完成')
-              isCrawling.value = false
-              stopPolling() // 停止轮询
-              
-              const totalItems = crawlResult.value?.weapons?.[0]?.items?.length || 0
-              console.log(`[轮询] 搜索完成，共找到 ${totalItems} 个符合条件的商品`)
-              ElMessage.success(`搜索完成！找到 ${totalItems} 个符合条件的商品`)
-              
-              if (crawlResult.value) {
-                saveCrawlResultToStorage(crawlResult.value)
-              }
-            }
-          }
         }
       } catch (error) {
         console.error('[轮询] 请求失败:', error)
