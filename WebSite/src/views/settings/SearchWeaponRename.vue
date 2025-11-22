@@ -468,11 +468,11 @@ export default {
         }
       })
 
-      // 按差价从高到低排序
+      // 按溢价从小到大排序（溢价最小的在最上面）
       items.sort((a, b) => {
-        const diffA = a.priceDiff !== undefined ? a.priceDiff : -Infinity
-        const diffB = b.priceDiff !== undefined ? b.priceDiff : -Infinity
-        return diffB - diffA  // 从高到低
+        const spreadA = a.spread !== undefined ? a.spread : Infinity
+        const spreadB = b.spread !== undefined ? b.spread : Infinity
+        return spreadA - spreadB  // 从小到大
       })
 
       console.log(`[allCrawlItems] ✅ 计算完成，总计 ${items.length} 件商品`)
@@ -933,8 +933,8 @@ export default {
             return mappedItem
           })
           
-          // 按收益排序
-          historyItems.sort((a, b) => (b.priceDiff || 0) - (a.priceDiff || 0))
+          // 按溢价从小到大排序（溢价最小的在最上面）
+          historyItems.sort((a, b) => (a.spread || 0) - (b.spread || 0))
           
           // 按武器名称分组显示历史数据
           const weaponGroups = {}
@@ -970,6 +970,13 @@ export default {
 
     // 轮询获取数据库中的搜索结果（页面打开期间持续执行）
     const pollSearchResults = async () => {
+      // 如果搜索已完成，停止轮询
+      if (!isCrawling.value && pollingTimer.value) {
+        console.log('[轮询] 搜索已完成，停止轮询')
+        stopPolling()
+        return
+      }
+      
       try {
         lastPollingTime.value = Date.now()
         
@@ -1030,8 +1037,8 @@ export default {
           newItems.forEach(item => itemMap.set(item.id, item))
           const allItems = Array.from(itemMap.values())
           
-          // 按收益排序
-          allItems.sort((a, b) => (b.priceDiff || 0) - (a.priceDiff || 0))
+          // 按溢价从小到大排序（溢价最小的在最上面）
+          allItems.sort((a, b) => (a.spread || 0) - (b.spread || 0))
           
           // 按武器名称分组显示数据
           const weaponGroups = {}
@@ -1070,6 +1077,7 @@ export default {
             if (noDataCount.value >= MAX_NO_DATA_COUNT) {
               console.log('[轮询] 连续无新数据，认为搜索完成')
               isCrawling.value = false
+              stopPolling() // 停止轮询
               
               const totalItems = crawlResult.value?.weapons?.[0]?.items?.length || 0
               console.log(`[轮询] 搜索完成，共找到 ${totalItems} 个符合条件的商品`)
@@ -1258,6 +1266,7 @@ export default {
           console.error(`[前端] 启动搜索任务失败: ${error.message}`)
           ElMessage.error(`启动搜索失败: ${error.message}`)
           isCrawling.value = false
+          stopPolling() // 停止轮询
         })
 
         // 设置最大搜索时间（5分钟后自动停止搜索状态和轮询）
@@ -1265,6 +1274,7 @@ export default {
           if (isCrawling.value) {
             console.log('[前端] 搜索超时，结束搜索状态')
             isCrawling.value = false
+            stopPolling() // 停止轮询
             const totalItems = crawlResult.value?.weapons?.[0]?.items?.length || 0
             console.log(`[前端] 搜索超时结束，共找到 ${totalItems} 个商品`)
             ElMessage.warning(`搜索已超时结束，找到 ${totalItems} 个商品`)
@@ -1286,6 +1296,7 @@ export default {
         ElMessage.error(errorMessage)
         console.error(`[前端] 搜索失败: ${errorMessage}`)
         isCrawling.value = false
+        stopPolling() // 停止轮询
       }
     }
 
