@@ -367,6 +367,8 @@ class AutoSearchWeaponModel(BaseModel):
             'weaponName': weapon_name_value,
             'commodityId': self.commodity_id,
             'commodityNo': self.commodity_no,
+            'listing_id': self.commodity_id,  # Steam 市场的 listing_id 存储在 commodity_id 中
+            'listingId': self.commodity_id,   # 兼容驼峰命名
             'price': self.price,
             'lowestPrice': self.lowest_price,
             'spread': self.spread,
@@ -377,6 +379,7 @@ class AutoSearchWeaponModel(BaseModel):
             'assetId': self.asset_id,
             'iconUrl': self.icon_url,
             'steamHashName': self.steam_hash_name,
+            'steam_hash_name': self.steam_hash_name,  # 兼容下划线命名
             'commissionFee': self.commission_fee,
             'priceDiff': self.price_diff,
             'pendantCount': self.pendant_count or 0,

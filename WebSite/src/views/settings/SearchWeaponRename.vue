@@ -2175,7 +2175,15 @@ export default {
 
     // 购买饰品
     const handleBuyWeapon = async (item) => {
-      console.log('购买商品:', item)
+      // 输出完整的 item 数据用于调试
+      console.log('========== 购买商品 ==========')
+      console.log('购买商品 (完整数据):', JSON.parse(JSON.stringify(item)))
+      console.log('商品ID:', item.id)
+      console.log('商品所有字段:', Object.keys(item))
+      console.log('steam_hash_name:', item.steam_hash_name || item.steamHashName || '无')
+      console.log('listing_id:', item.listing_id || item.listingId || '无')
+      console.log('当前表单平台类型:', crawlForm.value.platformType)
+      console.log('================================')
       
       // 确认购买
       try {
@@ -2195,52 +2203,133 @@ export default {
         return
       }
       
+      // 检查购买账号
+      if (!crawlForm.value.steamId) {
+        ElMessage.warning('请先选择购买账号')
+        return
+      }
+      
       // 设置购买中状态
       buyingItems.value[item.id] = true
       
+      // 根据平台类型选择不同的购买流程
+      // 1. 优先从选中的配置中获取平台类型
+      let configPlatformType = ''
+      if (selectedConfigId.value) {
+        const selectedConfig = savedConfigs.value.find(c => c.id === selectedConfigId.value)
+        if (selectedConfig) {
+          configPlatformType = (selectedConfig.platformType || selectedConfig.key2 || '').toLowerCase().trim()
+          console.log('[购买] 从配置中获取平台类型:', configPlatformType)
+        }
+      }
+      
+      // 2. 检查表单中的平台类型（支持多种可能的格式）
+      const formPlatformType = (crawlForm.value.platformType || '').toLowerCase().trim()
+      
+      // 3. 使用配置中的平台类型（如果存在），否则使用表单中的平台类型
+      const platformType = configPlatformType || formPlatformType
+      const isSteamPlatform = platformType === 'steam' || platformType === 'steam市场' || platformType.includes('steam')
+      
+      // 4. 检查 item 中是否有 Steam 相关字段
+      const hasSteamHashName = !!(item.steam_hash_name || item.steamHashName)
+      const hasSteamListingId = !!(item.listing_id || item.listingId)
+      const isSteamItem = hasSteamHashName || hasSteamListingId
+      
+      // 5. 最终判断：如果平台类型是 steam 或 item 有 Steam 字段，则使用 Steam 购买
+      // 优先使用 item 中的 Steam 字段判断（最可靠）
+      let isSteam = isSteamItem || isSteamPlatform
+      
+      // 如果 item 有 steam_hash_name，强制使用 Steam 购买（这是最可靠的判断）
+
+      // 调试日志：确认平台类型
+      console.log('[购买] ========== 平台类型判断 ==========')
+      console.log('[购买] 选中的配置ID:', selectedConfigId.value)
+      console.log('[购买] 配置中的平台类型:', configPlatformType || '无')
+      console.log('[购买] 表单中的平台类型:', formPlatformType || '无')
+      console.log('[购买] 最终使用的平台类型:', platformType || '无')
+      console.log('[购买] 是 Steam 平台:', isSteamPlatform)
+      console.log('[购买] Item 有 steam_hash_name:', hasSteamHashName)
+      console.log('[购买] Item 有 listing_id:', hasSteamListingId)
+      console.log('[购买] Item 是 Steam 物品:', isSteamItem)
+      console.log('[购买] 初始判断使用 Steam 购买:', isSteam)
+      console.log('[购买] Item steam_hash_name:', item.steam_hash_name || item.steamHashName || '无')
+      console.log('[购买] Item listing_id:', item.listing_id || item.listingId || '无')
+      
+      // 6. 如果判断结果不是 Steam，但平台类型包含 steam，强制使用 Steam 购买
+      // 这是一个安全措施，防止判断错误
+      if (!isSteam && (formPlatformType.includes('steam') || configPlatformType.includes('steam'))) {
+        console.log('[购买] ⚠️ 强制使用 Steam 购买（平台类型包含 steam）')
+        isSteam = true
+      }
+      
+      console.log('[购买] 最终使用 Steam 购买:', isSteam)
+      console.log('[购买] ======================================')
+      
       // 开始购买流程
       const loadingMessage = ElMessage({
-        message: '正在创建订单...',
+        message: isSteam ? '正在购买Steam市场物品...' : '正在创建订单...',
         type: 'info',
         duration: 0
       })
       
       try {
-        const requestData = {
-          steamId: crawlForm.value.steamId,  // ✅ 使用购买账号
-          commodityId: item.id,
-          buyQuantity: 1,
-          price: item.price,
-          autoConfirmPayment: true,  // 自动使用余额支付
-          pollPayment: true  // 轮询支付状态
-        }
+        // 使用之前判断的结果（isSteam），确保一致性
+        // 如果之前判断是 Steam，这里也应该是 Steam
+        console.log('[购买] ========== 开始购买流程 ==========')
+        console.log('[购买] 最终判断结果 isSteam:', isSteam)
+        console.log('[购买] 将进入:', isSteam ? 'Steam 购买分支' : 'youping 购买分支')
+        console.log('[购买] ======================================')
         
-        console.log('购买请求数据 (使用购买账号):', requestData)
-        console.log('  - 购买账号:', crawlForm.value.steamId)
-        console.log('  - 爬取账号:', crawlForm.value.crawlAccountId)
-        
-        // 调用完整购买接口（创建订单+自动支付）
-        const response = await axios.post(
-          `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/buyCommodity`,
-          requestData
-        )
-        
-        console.log('购买响应:', response.data)
-        
-        loadingMessage.close()
-        
-        if (response.data.success) {
-          const orderData = response.data.data?.order || {}
-          const paymentStatus = response.data.data?.payment_status || {}
-          const orderNo = orderData.orderNo || '未知'
-          const paymentAmount = item.price || '未知'
+        if (isSteam) {
+          // Steam市场购买流程
+          console.log('[购买] ✅ 进入 Steam 市场购买流程')
+          const marketHashName = item.steam_hash_name || item.steamHashName || ''
+          const listingId = item.listing_id || item.listingId || ''
           
-          // 检查支付状态
-          const payStatus = paymentStatus.payStatus
-          let message = ''
+          console.log('[购买] Steam 物品信息:', {
+            marketHashName: marketHashName || '无',
+            listingId: listingId || '无',
+            price: item.price
+          })
           
-          if (payStatus === 2) {
-            // 支付成功 - 标记为已购买
+          if (!marketHashName && !listingId) {
+            loadingMessage.close()
+            ElMessageBox.alert(
+              '无法购买：缺少Steam市场物品信息\n\n请确保物品包含 market_hash_name 或 listing_id 字段。\n\n如果这是 Steam 市场的查询结果，请联系开发者检查数据格式。',
+              '购买失败',
+              {
+                confirmButtonText: '知道了',
+                type: 'error'
+              }
+            )
+            return
+          }
+          
+          const requestData = {
+            steamId: crawlForm.value.steamId,
+            market_hash_name: marketHashName,
+            listing_id: listingId,
+            price: item.price,
+            currency: 'USD',
+            max_price: item.price ? item.price * 1.2 : undefined  // 允许20%的价格波动
+          }
+          
+          console.log('[购买] Steam市场购买请求数据:', requestData)
+          console.log('[购买] 调用接口:', `${API_CONFIG.SPIDER_BASE_URL}${API_CONFIG.ENDPOINTS.STEAM_BUY_MARKET_ITEM}`)
+          
+          // 调用Steam市场购买接口 - 对接 market_buy.py 中的 SteamMarketBuyer
+          // 接口路径: /steamSpiderV1/buyMarketItem -> steam_index.py -> SteamMarketBuyer (market_buy.py)
+          const response = await axios.post(
+            `${API_CONFIG.SPIDER_BASE_URL}${API_CONFIG.ENDPOINTS.STEAM_BUY_MARKET_ITEM}`,
+            requestData
+          )
+          
+          console.log('Steam市场购买响应:', response.data)
+          
+          loadingMessage.close()
+          
+          if (response.data.success) {
+            // 购买成功 - 标记为已购买
             purchasedItems.value.add(item.id)
             
             // 更新数据库中的状态为 buyed
@@ -2258,36 +2347,135 @@ export default {
               // 不影响购买成功的提示
             }
             
-            message = `购买成功！\n\n商品：${item.nameTag || '改名饰品'}\n订单号：${orderNo}\n金额：¥${paymentAmount}\n状态：支付成功✅\n\n饰品将发送至您的库存。`
-          } else if (payStatus === 1) {
-            // 支付处理中
-            message = `订单已创建！\n\n订单号：${orderNo}\n金额：¥${paymentAmount}\n状态：支付处理中⏳\n\n请稍后查看订单状态。`
+            const buyData = response.data.data || {}
+            const message = `购买成功！\n\n商品：${item.nameTag || '改名饰品'}\n价格：$${buyData.price || item.price}\n状态：购买成功✅\n\n物品将发送至您的Steam库存。`
+            
+            ElMessageBox.alert(
+              message,
+              '购买完成',
+              {
+                confirmButtonText: '知道了',
+                type: 'success',
+                callback: () => {
+                  ElMessage.success('购买成功！')
+                }
+              }
+            )
           } else {
-            // 订单创建成功但支付未完成
-            message = `订单创建成功！\n\n订单号：${orderNo}\n金额：¥${paymentAmount}\n\n已自动使用余额支付，请稍后查看订单状态。`
+            ElMessageBox.alert(
+              `购买失败：${response.data.message || '未知错误'}\n\n请检查配置或稍后重试。`,
+              '购买失败',
+              {
+                confirmButtonText: '知道了',
+                type: 'error'
+              }
+            )
+          }
+        } else {
+          // 悠悠有品购买流程（原有逻辑）
+          console.log('[购买] ========== ⚠️ 使用 悠悠有品 购买流程 ==========')
+          console.log('[购买] ⚠️ 警告：平台类型不是 steam，使用 youping 接口')
+          console.log('[购买] 当前表单平台类型:', crawlForm.value.platformType)
+          console.log('[购买] 标准化表单平台类型:', formPlatformType)
+          console.log('[购买] 配置平台类型:', configPlatformType || '无')
+          console.log('[购买] 最终平台类型:', platformType || '无')
+          console.log('[购买] isSteamPlatform:', isSteamPlatform)
+          console.log('[购买] isSteamItem:', isSteamItem)
+          console.log('[购买] 最终 isSteam:', isSteam)
+          console.log('[购买] 如果这是 Steam 市场商品，请检查平台类型设置')
+          console.log('[购买] ================================================')
+          
+          // 如果平台类型明显是 Steam 但进入了 else 分支，给出警告
+          if (formPlatformType.includes('steam') || configPlatformType.includes('steam')) {
+            console.error('[购买] ❌ 错误：检测到平台类型包含 steam，但进入了 youping 分支！')
+            console.error('[购买] 这可能是代码逻辑错误，请检查判断条件')
+            ElMessage.warning('检测到平台类型可能是 Steam，但使用了 youping 接口。如果这是 Steam 市场商品，请联系开发者。')
           }
           
-          // 显示购买成功信息
-          ElMessageBox.alert(
-            message,
-            '购买完成',
-            {
-              confirmButtonText: '知道了',
-              type: 'success',
-              callback: () => {
-                ElMessage.success(payStatus === 2 ? '购买成功！' : '订单已创建')
+          const requestData = {
+            steamId: crawlForm.value.steamId,  // ✅ 使用购买账号
+            commodityId: item.id,
+            buyQuantity: 1,
+            price: item.price,
+            autoConfirmPayment: true,  // 自动使用余额支付
+            pollPayment: true  // 轮询支付状态
+          }
+          
+          console.log('[购买] 购买请求数据 (使用购买账号):', requestData)
+          console.log('[购买]   - 购买账号:', crawlForm.value.steamId)
+          console.log('[购买]   - 爬取账号:', crawlForm.value.crawlAccountId)
+          console.log('[购买] 调用接口:', `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/buyCommodity`)
+          
+          // 调用完整购买接口（创建订单+自动支付）
+          const response = await axios.post(
+            `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/buyCommodity`,
+            requestData
+          )
+          
+          console.log('购买响应:', response.data)
+          
+          loadingMessage.close()
+          
+          if (response.data.success) {
+            const orderData = response.data.data?.order || {}
+            const paymentStatus = response.data.data?.payment_status || {}
+            const orderNo = orderData.orderNo || '未知'
+            const paymentAmount = item.price || '未知'
+            
+            // 检查支付状态
+            const payStatus = paymentStatus.payStatus
+            let message = ''
+            
+            if (payStatus === 2) {
+              // 支付成功 - 标记为已购买
+              purchasedItems.value.add(item.id)
+              
+              // 更新数据库中的状态为 buyed
+              try {
+                await axios.post(
+                  `${API_CONFIG.BASE_URL}/searchRename/item/update-status`,
+                  {
+                    commodityId: item.id,
+                    status: 'buyed'
+                  }
+                )
+                console.log('数据库状态已更新为 buyed')
+              } catch (updateError) {
+                console.error('更新数据库状态失败:', updateError)
+                // 不影响购买成功的提示
               }
+              
+              message = `购买成功！\n\n商品：${item.nameTag || '改名饰品'}\n订单号：${orderNo}\n金额：¥${paymentAmount}\n状态：支付成功✅\n\n饰品将发送至您的库存。`
+            } else if (payStatus === 1) {
+              // 支付处理中
+              message = `订单已创建！\n\n订单号：${orderNo}\n金额：¥${paymentAmount}\n状态：支付处理中⏳\n\n请稍后查看订单状态。`
+            } else {
+              // 订单创建成功但支付未完成
+              message = `订单创建成功！\n\n订单号：${orderNo}\n金额：¥${paymentAmount}\n\n已自动使用余额支付，请稍后查看订单状态。`
             }
-          )
-        } else {
-          ElMessageBox.alert(
-            `购买失败：${response.data.message || '未知错误'}\n\n请检查配置或稍后重试。`,
-            '购买失败',
-            {
-              confirmButtonText: '知道了',
-              type: 'error'
-            }
-          )
+            
+            // 显示购买成功信息
+            ElMessageBox.alert(
+              message,
+              '购买完成',
+              {
+                confirmButtonText: '知道了',
+                type: 'success',
+                callback: () => {
+                  ElMessage.success(payStatus === 2 ? '购买成功！' : '订单已创建')
+                }
+              }
+            )
+          } else {
+            ElMessageBox.alert(
+              `购买失败：${response.data.message || '未知错误'}\n\n请检查配置或稍后重试。`,
+              '购买失败',
+              {
+                confirmButtonText: '知道了',
+                type: 'error'
+              }
+            )
+          }
         }
       } catch (error) {
         loadingMessage.close()

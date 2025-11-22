@@ -110,6 +110,7 @@ export const API_CONFIG = {
     STEAM_FULL_SPIDER: '/steamSpiderV1/NoneData',  // Steam全量采集
     STEAM_COLLECT_HASH_NAMES: '/steamSpiderV1/collectMarketHashNames',  // 采集Steam市场Hash Names
     STEAM_SEARCH_RENAME: '/steamSpiderV1/searchRenameWeapon',  // Steam 改名饰品搜索
+    STEAM_BUY_MARKET_ITEM: '/steamSpiderV1/buyMarketItem',  // Steam 市场购买物品
     CSQAQ_GET_GOODS: '/csqaqSpiderV1/getGoodsList',  // CSQAQ同步获取商品
     CSQAQ_GET_GOODS_ASYNC: '/csqaqSpiderV1/getGoodsListAsync',  // CSQAQ异步获取商品
     CSQAQ_TASK_STATUS: '/csqaqSpiderV1/getTaskStatus',  // CSQAQ获取任务状态
