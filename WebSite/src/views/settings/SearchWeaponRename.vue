@@ -2161,6 +2161,22 @@ export default {
           if (payStatus === 2) {
             // 支付成功 - 标记为已购买
             purchasedItems.value.add(item.id)
+            
+            // 更新数据库中的状态为 buyed
+            try {
+              await axios.post(
+                `${API_CONFIG.BASE_URL}/searchRename/item/update-status`,
+                {
+                  commodityId: item.id,
+                  status: 'buyed'
+                }
+              )
+              console.log('数据库状态已更新为 buyed')
+            } catch (updateError) {
+              console.error('更新数据库状态失败:', updateError)
+              // 不影响购买成功的提示
+            }
+            
             message = `购买成功！\n\n商品：${item.nameTag || '改名饰品'}\n订单号：${orderNo}\n金额：¥${paymentAmount}\n状态：支付成功✅\n\n饰品将发送至您的库存。`
           } else if (payStatus === 1) {
             // 支付处理中

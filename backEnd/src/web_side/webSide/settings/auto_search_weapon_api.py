@@ -89,6 +89,78 @@ def add_item():
         }), 500
 
 
+@search_rename_bp.route('/item/update-status', methods=['POST'])
+def update_item_status():
+    """
+    更新商品状态
+    
+    请求体:
+    - commodityId: 商品ID
+    - status: 新状态（如 'buyed', 'deleted' 等）
+    
+    返回:
+    {
+        "success": true,
+        "message": "状态更新成功"
+    }
+    """
+    try:
+        data = request.get_json()
+        commodity_id = data.get('commodityId')
+        new_status = data.get('status')
+        
+        if not commodity_id or not new_status:
+            return jsonify({
+                'success': False,
+                'message': '缺少必要参数：commodityId 和 status'
+            }), 400
+        
+        # 查找记录
+        records = AutoSearchWeaponModel.find_all(
+            "commodity_id = ? AND status = 'active'",
+            (str(commodity_id),)
+        )
+        
+        if not records:
+            return jsonify({
+                'success': False,
+                'message': '未找到对应的商品记录'
+            }), 404
+        
+        # 更新所有匹配的记录的状态
+        updated_count = 0
+        from datetime import datetime
+        for record in records:
+            record.status = new_status
+            record.updated_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            if record.save():
+                updated_count += 1
+        
+        if updated_count > 0:
+            logger.write_log(
+                f"更新商品状态: commodity_id={commodity_id}, status={new_status}, 更新了{updated_count}条记录",
+                'INFO'
+            )
+            return jsonify({
+                'success': True,
+                'message': f'状态更新成功，更新了{updated_count}条记录'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': '状态更新失败'
+            }), 500
+    
+    except Exception as e:
+        logger.write_log(f"更新商品状态失败: {str(e)}", 'ERROR')
+        import traceback
+        logger.write_log(f"详细错误: {traceback.format_exc()}", 'ERROR')
+        return jsonify({
+            'success': False,
+            'message': f'更新失败: {str(e)}'
+        }), 500
+
+
 @search_rename_bp.route('/items/batch', methods=['POST'])
 def add_items_batch():
     """
