@@ -168,10 +168,10 @@
         
         <div v-show="!isCollapsed">
           <el-table 
-            :data="searchResults" 
-            style="width: 100%"
-            :row-class-name="getRowClassName"
-          >
+              :data="searchResults" 
+              style="width: 100%"
+              :row-class-name="getRowClassName"
+            >
             <el-table-column type="index" label="#" width="60" align="center" />
             
             <el-table-column label="饰品名称" min-width="250" show-overflow-tooltip>
@@ -259,7 +259,7 @@
                 </el-button>
               </template>
             </el-table-column>
-          </el-table>
+            </el-table>
         </div>
       </div>
     </div>
@@ -267,7 +267,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Document, ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import axios from 'axios'
@@ -304,6 +304,7 @@ const currentPage = ref(1)
 const pageSize = ref(50)
 const hasMore = ref(true)
 const isLoadingMore = ref(false)
+let scrollTimer = null
 
 // 切换搜索结果折叠
 const toggleResults = () => {
@@ -449,16 +450,26 @@ const loadWeaponData = async () => {
         searchResults.value = newData
         if (newData.length === 0) {
           ElMessage.info('未找到匹配的饰品')
+          hasMore.value = false
         } else {
           ElMessage.success(`找到 ${newData.length} 件饰品`)
         }
       } else {
         // 追加数据
         searchResults.value.push(...newData)
+        console.log(`📥 追加 ${newData.length} 条数据，总计 ${searchResults.value.length} 条`)
       }
       
       // 判断是否还有更多数据
       hasMore.value = newData.length >= pageSize.value
+      
+      console.log('📊 加载状态', {
+        hasMore: hasMore.value,
+        currentTotal: searchResults.value.length,
+        newDataLength: newData.length,
+        pageSize: pageSize.value,
+        currentPage: currentPage.value
+      })
     } else {
       ElMessage.error(response.data.message || '搜索失败')
     }
@@ -471,6 +482,26 @@ const loadWeaponData = async () => {
     isLoadingMore.value = false
   }
 }
+
+// 加载更多数据
+const loadMoreWeapons = async () => {
+  if (isLoadingMore.value || !hasMore.value) {
+    return
+  }
+  
+  console.log('🔄 开始加载更多', {
+    currentPage: currentPage.value,
+    hasMore: hasMore.value,
+    isLoadingMore: isLoadingMore.value
+  })
+  
+  currentPage.value++
+  await loadWeaponData()
+  
+  // 等待 DOM 更新
+  await nextTick()
+}
+
 
 // 清除搜索结果
 const handleClear = () => {
@@ -558,6 +589,66 @@ const getRarityColor = (rarity) => {
 const getRowClassName = ({ row, rowIndex }) => {
   return rowIndex % 2 === 0 ? 'even-row' : 'odd-row'
 }
+
+// 处理页面滚动事件（监听 window 滚动，因为表格可能没有自己的滚动容器）
+const handlePageScroll = () => {
+  // 如果没有搜索结果，不处理滚动
+  if (searchResults.value.length === 0) {
+    return
+  }
+  
+  // 如果正在加载或没有更多数据，不处理
+  if (isLoadingMore.value || !hasMore.value) {
+    return
+  }
+  
+  // 如果表格区域被折叠，不处理
+  if (isCollapsed.value) {
+    return
+  }
+  
+  // 防抖处理
+  if (scrollTimer) {
+    clearTimeout(scrollTimer)
+  }
+  
+  scrollTimer = setTimeout(() => {
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+    const scrollHeight = document.documentElement.scrollHeight
+    const clientHeight = window.innerHeight
+    const distanceToBottom = scrollHeight - scrollTop - clientHeight
+    
+    console.log('📏 页面滚动位置检查', {
+      scrollTop: Math.round(scrollTop),
+      scrollHeight,
+      clientHeight,
+      distanceToBottom: Math.round(distanceToBottom),
+      hasMore: hasMore.value,
+      isLoadingMore: isLoadingMore.value,
+      currentPage: currentPage.value,
+      resultsCount: searchResults.value.length
+    })
+    
+    // 滚动到底部触发加载更多（距离底部200px时触发）
+    if (distanceToBottom < 200 && hasMore.value && !isLoadingMore.value) {
+      console.log('✅ 触发加载更多数据')
+      loadMoreWeapons()
+    }
+  }, 100) // 100ms 防抖延迟
+}
+
+// 组件挂载时添加滚动监听
+onMounted(() => {
+  window.addEventListener('scroll', handlePageScroll)
+})
+
+// 组件卸载时移除滚动监听
+onUnmounted(() => {
+  window.removeEventListener('scroll', handlePageScroll)
+  if (scrollTimer) {
+    clearTimeout(scrollTimer)
+  }
+})
 
 // 暴露方法给父组件
 defineExpose({
