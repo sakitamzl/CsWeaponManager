@@ -2328,12 +2328,40 @@ export default {
           console.log('[购买] Steam市场购买请求数据:', requestData)
           console.log('[购买] 调用接口:', `${API_CONFIG.SPIDER_BASE_URL}${API_CONFIG.ENDPOINTS.STEAM_BUY_MARKET_ITEM}`)
           
+          let confirmationTipTimer = null
+          let confirmationTipMessage = null
+          
+          const stopConfirmationTip = () => {
+            if (confirmationTipTimer) {
+              clearTimeout(confirmationTipTimer)
+              confirmationTipTimer = null
+            }
+            if (confirmationTipMessage) {
+              confirmationTipMessage.close?.()
+              confirmationTipMessage = null
+            }
+          }
+          
+          confirmationTipTimer = setTimeout(() => {
+            confirmationTipMessage = ElMessage({
+              type: 'warning',
+              message: '请在 Steam 手机令牌中确认本次交易，系统会自动轮询直到成功。',
+              duration: 0,
+              showClose: true
+            })
+          }, 1200)
+          
           // 调用Steam市场购买接口 - 对接 market_buy.py 中的 SteamMarketBuyer
           // 接口路径: /steamSpiderV1/buyMarketItem -> steam_index.py -> SteamMarketBuyer (market_buy.py)
-          const response = await axios.post(
-            `${API_CONFIG.SPIDER_BASE_URL}${API_CONFIG.ENDPOINTS.STEAM_BUY_MARKET_ITEM}`,
-            requestData
-          )
+          let response
+          try {
+            response = await axios.post(
+              `${API_CONFIG.SPIDER_BASE_URL}${API_CONFIG.ENDPOINTS.STEAM_BUY_MARKET_ITEM}`,
+              requestData
+            )
+          } finally {
+            stopConfirmationTip()
+          }
           
           console.log('Steam市场购买响应:', response.data)
           
@@ -2359,6 +2387,9 @@ export default {
             }
             
             const buyData = response.data.data || {}
+            if (buyData.confirmation_waited) {
+              ElMessage.info('已检测到手机令牌确认，系统完成后已自动继续。')
+            }
             const message = `购买成功！\n\n商品：${item.nameTag || '改名饰品'}\n价格：$${buyData.price || item.price}\n状态：购买成功✅\n\n物品将发送至您的Steam库存。`
             
             ElMessageBox.alert(
