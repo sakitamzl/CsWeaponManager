@@ -144,7 +144,7 @@
               </el-form-item>
             </div>
 
-            <el-form-item>
+            <el-form-item label-width="0px" class="custom-config-form-item">
               <div class="custom-config-grid">
                 <div class="custom-config-field">
                   <div class="field-label">自动查询间隔</div>
@@ -3193,7 +3193,7 @@ export default {
 .custom-config-field .field-label {
   width: 100px;
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: #ffffff;
   text-align: left;
   margin-right: 8px;
 }
@@ -3208,10 +3208,18 @@ export default {
   width: 100%;
 }
 
+.custom-config-form-item :deep(.el-form-item__content) {
+  margin-left: 0 !important;
+}
+
 .form-row {
   display: flex;
   gap: 1rem;
   margin-bottom: 0;
+}
+
+.form-row :deep(.el-form-item__label) {
+  color: #ffffff !important;
 }
 
 .form-item-half {
