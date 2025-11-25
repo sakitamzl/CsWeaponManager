@@ -209,7 +209,7 @@
                 </div>
 
                 <div class="custom-config-field">
-                  <div class="field-label">只查询中文改名</div>
+                  <div class="field-label">只查询中文</div>
                   <div class="field-control">
                     <el-select
                       v-model="customConfigForm['只查询中文改名']"
@@ -3177,30 +3177,30 @@ export default {
 
 .custom-config-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  column-gap: 50px;
-  row-gap: 12px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  column-gap: 20px;
+  row-gap: 8px;
   width: 100%;
 }
 
 .custom-config-field {
   display: flex;
   align-items: center;
-  min-height: 48px;
+  min-height: 44px;
   min-width: 0;
 }
 
 .custom-config-field .field-label {
-  width: 120px;
+  width: 100px;
   font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.8);
   text-align: left;
-  margin-right: 10px;
+  margin-right: 8px;
 }
 
 .custom-config-field .field-control {
   flex: 1;
-  min-width: 130px;
+  min-width: 90px;
 }
 
 .custom-config-field .field-control :deep(.el-select),
