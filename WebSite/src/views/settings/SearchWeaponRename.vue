@@ -147,7 +147,7 @@
             <el-form-item>
               <div class="custom-config-grid">
                 <div class="custom-config-field">
-                  <div class="field-label">饰品自动查询间隔 (秒)</div>
+                  <div class="field-label">自动查询间隔</div>
                   <div class="field-control no-spinner">
                     <el-input
                       v-model.number="customConfigForm['饰品自动查询间隔']"
@@ -3176,29 +3176,36 @@ export default {
 }
 
 .custom-config-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.25rem 2.5rem;
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  column-gap: 50px;
+  row-gap: 12px;
+  width: 100%;
 }
 
 .custom-config-field {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
   min-height: 48px;
-  flex: 0 0 auto;
+  min-width: 0;
 }
 
 .custom-config-field .field-label {
-  min-width: 140px;
+  width: 120px;
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.8);
+  text-align: left;
+  margin-right: 10px;
 }
 
 .custom-config-field .field-control {
-  flex: 0 0 100px;
-  width: 100px;
+  flex: 1;
+  min-width: 130px;
+}
+
+.custom-config-field .field-control :deep(.el-select),
+.custom-config-field .field-control :deep(.el-input) {
+  width: 100%;
 }
 
 .form-row {
