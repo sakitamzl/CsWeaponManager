@@ -368,6 +368,17 @@
                 <span class="price">¥{{ scope.row.price }}</span>
               </template>
             </el-table-column>
+
+            <el-table-column 
+              v-if="crawlForm.platformType === 'steam'"
+              label="Steam底价" 
+              width="130" 
+              resizable
+            >
+              <template #default="scope">
+                <span class="price">¥{{ getSteamBottomPrice(scope.row).toFixed(2) }}</span>
+              </template>
+            </el-table-column>
             
             <el-table-column 
               v-if="crawlForm.platformType === 'steam'"
@@ -392,12 +403,6 @@
               </template>
             </el-table-column>
             
-            <el-table-column label="手续费" width="130" align="center" resizable>
-              <template #default="scope">
-                <span class="commission-fee">¥{{ scope.row.commissionFee !== undefined && scope.row.commissionFee !== null && typeof scope.row.commissionFee === 'number' ? scope.row.commissionFee.toFixed(2) : '0.00' }}</span>
-              </template>
-            </el-table-column>
-            
             <el-table-column label="磨损" width="240" resizable>
               <template #default="scope">
                 {{ scope.row.abrade }}
@@ -407,12 +412,6 @@
             <el-table-column label="改名" min-width="220" resizable>
               <template #default="scope">
                 <span class="name-tag">{{ scope.row.nameTag || '-' }}</span>
-              </template>
-            </el-table-column>
-            
-            <el-table-column label="卖家" min-width="180" resizable>
-              <template #default="scope">
-                {{ scope.row.userNickName || '未知' }}
               </template>
             </el-table-column>
             
@@ -779,6 +778,20 @@ export default {
         console.error('[参考价] 查询失败:', error)
         // 不影响主流程，静默失败
       }
+    }
+    
+    const getSteamBottomPrice = (item) => {
+      if (!item) return 0
+      const lowest = Number(item.lowest_price ?? item.lowestPrice)
+      if (Number.isFinite(lowest)) {
+        return lowest
+      }
+      const price = Number(item.price)
+      const spread = Number(item.spread)
+      if (Number.isFinite(price) && Number.isFinite(spread)) {
+        return price - spread
+      }
+      return 0
     }
     
     // 获取购买按钮类型
@@ -2760,6 +2773,7 @@ export default {
       purchasedItems,
       handleBuyWeapon,
       getBuyButtonType,
+      getSteamBottomPrice,
       // 历史结果管理
       clearCrawlHistory,
       // 工具区域折叠
@@ -3195,7 +3209,7 @@ export default {
   font-size: 0.9rem;
   color: #ffffff;
   text-align: left;
-  margin-right: 8px;
+  margin-right: 10px;
 }
 
 .custom-config-field .field-control {
@@ -3220,6 +3234,17 @@ export default {
 
 .form-row :deep(.el-form-item__label) {
   color: #ffffff !important;
+  justify-content: flex-start;
+  text-align: left;
+  padding: 0 10px 0 0;
+  width: auto !important;
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+.form-row :deep(.el-form-item__content) {
+  margin-left: 0 !important;
+  flex: 1 1 auto;
 }
 
 .form-item-half {
