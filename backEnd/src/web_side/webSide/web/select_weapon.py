@@ -375,8 +375,12 @@ def get_reference_prices():
     }
     """
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         steam_hash_names = data.get('steamHashNames', [])
+        reference_price_source = data.get('referencePriceSource', 'youpin')
+        reference_price_source = (reference_price_source or '').strip().lower()
+        if reference_price_source not in ('youpin', 'buff'):
+            reference_price_source = 'youpin'
         
         if not steam_hash_names:
             return jsonify({
@@ -395,21 +399,25 @@ def get_reference_prices():
         )
         
         # 构建返回数据：steam_hash_name -> yyyp_Price 的映射
+        price_field = 'yyyp_Price' if reference_price_source == 'youpin' else 'buff_Price'
+
         price_map = {}
         for record in records:
-            if record.steam_hash_name and record.yyyp_Price:
-                try:
-                    # 尝试转换为浮点数，如果失败则使用原值
-                    price_value = float(record.yyyp_Price) if record.yyyp_Price else None
-                    if price_value is not None:
-                        price_map[record.steam_hash_name] = price_value
-                except (ValueError, TypeError):
-                    # 如果转换失败，使用原值
-                    if record.yyyp_Price:
-                        price_map[record.steam_hash_name] = record.yyyp_Price
+            hash_name = record.steam_hash_name
+            if not hash_name:
+                continue
+            raw_value = getattr(record, price_field, None)
+            if raw_value in (None, '', 'None'):
+                price_map[hash_name] = 0
+                continue
+            try:
+                price_value = float(raw_value)
+            except (ValueError, TypeError):
+                price_value = 0
+            price_map[hash_name] = price_value
         
         logger.write_log(
-            f"批量查询参考价: 请求{len(steam_hash_names)}个，找到{len(price_map)}个",
+            f"批量查询参考价({reference_price_source}): 请求{len(steam_hash_names)}个，找到{len(price_map)}个",
             'INFO'
         )
         

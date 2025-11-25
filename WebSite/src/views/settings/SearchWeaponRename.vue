@@ -173,6 +173,24 @@
                 </div>
 
                 <div class="custom-config-field">
+                  <div class="field-label">参考价来源</div>
+                  <div class="field-control">
+                    <el-select
+                      v-model="customConfigForm['参考价来源']"
+                      placeholder="请选择"
+                      style="width: 120px;"
+                    >
+                      <el-option
+                        v-for="option in referencePriceSources"
+                        :key="`reference-source-${option.value}`"
+                        :label="option.label"
+                        :value="option.value"
+                      />
+                    </el-select>
+                  </div>
+                </div>
+
+                <div class="custom-config-field">
                   <div class="field-label">是否自动购买</div>
                   <div class="field-control">
                     <el-select
@@ -450,6 +468,11 @@ export default {
     const accountLoadingStates = ref({})
     const isCrawling = ref(false)
     const crawlResult = ref(null)
+    const referencePriceCache = ref({})
+    const referencePriceSources = [
+      { label: '悠悠有品', value: 'youpin' },
+      { label: 'BUFF', value: 'buff' }
+    ]
     
     // 轮询相关变量
     const pollingTimer = ref(null) // 轮询定时器
@@ -647,43 +670,110 @@ export default {
     const buyingItems = ref({})  // 正在购买的商品 {itemId: true/false}
     const purchasedItems = ref(new Set())  // 已成功购买的商品ID集合
     
-    // 批量查询参考价（仅 Steam 平台）
-    const loadReferencePrices = async (items) => {
+    const normalizeReferencePriceSource = (value, defaultValue = 'youpin') => {
+      const normalized = (value || '').toString().trim().toLowerCase()
+      if (normalized === 'buff') {
+        return 'buff'
+      }
+      if (normalized === 'youpin') {
+        return 'youpin'
+      }
+      return defaultValue
+    }
+
+    const ensureCacheBucket = (sourceKey) => {
+      if (!referencePriceCache.value[sourceKey]) {
+        referencePriceCache.value = {
+          ...referencePriceCache.value,
+          [sourceKey]: {}
+        }
+      }
+      return referencePriceCache.value[sourceKey]
+    }
+
+    const normalizeReferencePrice = (value) => {
+      const numericValue = Number(value)
+      return Number.isFinite(numericValue) ? numericValue : 0
+    }
+
+    const applyReferencePricesToItems = (items) => {
       if (!items || items.length === 0) {
         return
       }
-      
-      // 收集所有有效的 steam_hash_name
-      const steamHashNames = items
+      const sourceKey = referencePriceSource.value
+      const cacheBucket = ensureCacheBucket(sourceKey)
+      items.forEach(item => {
+        const hashName = item.steam_hash_name || item.steamHashName
+        if (!hashName) {
+          return
+        }
+        const cachedValue = cacheBucket[hashName]
+        if (cachedValue !== undefined) {
+          item.referencePrice = normalizeReferencePrice(cachedValue)
+        }
+      })
+    }
+
+    // 批量查询参考价（Steam Hash Name -> weapon_classID.yyyp_Price）
+    const loadReferencePrices = async (items = []) => {
+      const targetItems = items && items.length > 0 ? items : allCrawlItems.value
+      if (!targetItems || targetItems.length === 0) {
+        return
+      }
+      const sourceKey = referencePriceSource.value
+      const cacheBucket = ensureCacheBucket(sourceKey)
+
+      const steamHashNames = targetItems
         .map(item => item.steam_hash_name || item.steamHashName)
-        .filter(name => name && name.trim())
-      
+        .filter(name => !!(name && name.trim()))
+
       if (steamHashNames.length === 0) {
         return
       }
-      
+
+      const uniqueHashNames = Array.from(new Set(steamHashNames))
+      const namesToFetch = uniqueHashNames.filter(name => cacheBucket[name] === undefined)
+
+      // 先尝试应用已有缓存，避免界面闪烁
+      applyReferencePricesToItems(targetItems)
+
+      if (namesToFetch.length === 0) {
+        return
+      }
+
       try {
         const response = await axios.post(
           `${API_CONFIG.BASE_URL}/webSelectWeaponV1/getReferencePrices`,
           {
-            steamHashNames: steamHashNames
+            steamHashNames: namesToFetch,
+            referencePriceSource: sourceKey
           }
         )
-        
+
         if (response.data.success && response.data.data) {
           const priceMap = response.data.data
-          
-          // 更新 items 中的参考价
-          items.forEach(item => {
-            const hashName = item.steam_hash_name || item.steamHashName
-            if (hashName && priceMap[hashName] !== undefined) {
-              item.referencePrice = typeof priceMap[hashName] === 'number' 
-                ? priceMap[hashName] 
-                : parseFloat(priceMap[hashName]) || null
+          const normalizedPriceMap = {}
+
+          Object.keys(priceMap).forEach(key => {
+            normalizedPriceMap[key] = normalizeReferencePrice(priceMap[key])
+          })
+
+          namesToFetch.forEach(name => {
+            if (normalizedPriceMap[name] === undefined) {
+              normalizedPriceMap[name] = 0
             }
           })
-          
-          console.log(`[参考价] 已更新 ${Object.keys(priceMap).length} 个商品的参考价`)
+
+          referencePriceCache.value = {
+            ...referencePriceCache.value,
+            [sourceKey]: {
+              ...cacheBucket,
+              ...normalizedPriceMap
+            }
+          }
+
+          applyReferencePricesToItems(targetItems)
+          console.log(`[参考价] 已更新 ${Object.keys(normalizedPriceMap).length} 个商品的参考价`)
         }
       } catch (error) {
         console.error('[参考价] 查询失败:', error)
@@ -732,10 +822,12 @@ export default {
       '饰品自动查询间隔': 3,
       '最大差价': 8,
       '是否自动购买': false,
-      '只查询中文改名': true
+      '只查询中文改名': true,
+      '参考价来源': 'youpin'
     })
 
     const customConfigForm = ref(createDefaultCustomConfig())
+    const referencePriceSource = computed(() => normalizeReferencePriceSource(customConfigForm.value['参考价来源']))
     const isProgrammaticCustomConfigChange = ref(false)
 
     const weaponIdList = computed(() => {
@@ -820,6 +912,10 @@ export default {
         customConfigForm.value['只查询中文改名'],
         true
       ),
+      '参考价来源': normalizeReferencePriceSource(
+        customConfigForm.value['参考价来源'],
+        'youpin'
+      ),
       '是否授权': true
     })
 
@@ -855,6 +951,10 @@ export default {
         '只查询中文改名': normalizeBooleanValue(
           config['只查询中文改名'],
           defaults['只查询中文改名']
+        ),
+        '参考价来源': normalizeReferencePriceSource(
+          config['参考价来源'],
+          defaults['参考价来源']
         )
       }
       nextTick(() => {
@@ -1065,10 +1165,8 @@ export default {
           
           crawlResult.value = { weapons }
           
-          // 如果是 Steam 平台，查询参考价
-          if (crawlForm.value.platformType === 'steam') {
-            await loadReferencePrices(historyItems)
-          }
+          // 查询参考价
+          await loadReferencePrices(historyItems)
           
           console.log(`[页面加载] 已加载 ${result.items.length} 条历史搜索结果`)
           console.log(`[页面加载] 第一条原始数据:`, result.items[0])
@@ -1199,10 +1297,8 @@ export default {
             }
           }
           
-          // 如果是 Steam 平台，查询参考价
-          if (crawlForm.value.platformType === 'steam') {
-            await loadReferencePrices(allItems)
-          }
+          // 查询参考价
+          await loadReferencePrices(allItems)
           
           await nextTick()
         }
@@ -1674,6 +1770,24 @@ export default {
         scheduleAutoSave()
       },
       { deep: true }
+    )
+
+    watch(
+      () => allCrawlItems.value,
+      (items) => {
+        if (items && items.length > 0) {
+          loadReferencePrices(items)
+        }
+      },
+      { immediate: true, deep: false }
+    )
+
+    watch(
+      referencePriceSource,
+      () => {
+        applyReferencePricesToItems(allCrawlItems.value)
+        loadReferencePrices()
+      }
     )
 
     watch(
@@ -2591,6 +2705,7 @@ export default {
       crawlForm,
       customConfigForm,
       booleanOptions,
+      referencePriceSources,
       crawlResult,
       allCrawlItems,
       canStartCrawl,
