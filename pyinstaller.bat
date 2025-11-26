@@ -2,7 +2,7 @@
 echo Starting PyInstaller packaging process...
 
 :: Set version number (modify this for each release)
-set VERSION=v1.2.2
+set VERSION=v1.2.3
 
 :: Activate conda environment
 call conda activate CS2DB
