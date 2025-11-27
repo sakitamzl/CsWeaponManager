@@ -225,6 +225,18 @@
                     </el-select>
                   </div>
                 </div>
+
+                <div class="custom-config-field">
+                  <div class="field-label">搜索参数</div>
+                  <div class="field-control">
+                    <el-input
+                      v-model="customConfigForm['搜索参数']"
+                      placeholder="例如 sticker"
+                      clearable
+                      style="width: 160px;"
+                    />
+                  </div>
+                </div>
               </div>
             </el-form-item>
 
@@ -836,7 +848,8 @@ export default {
       '最大差价': 8,
       '是否自动购买': false,
       '只查询中文改名': true,
-      '参考价来源': 'youpin'
+      '参考价来源': 'youpin',
+      '搜索参数': ''
     })
 
     const customConfigForm = ref(createDefaultCustomConfig())
@@ -929,6 +942,7 @@ export default {
         customConfigForm.value['参考价来源'],
         'youpin'
       ),
+      '搜索参数': (customConfigForm.value['搜索参数'] || '').trim(),
       '是否授权': true
     })
 
@@ -968,7 +982,10 @@ export default {
         '参考价来源': normalizeReferencePriceSource(
           config['参考价来源'],
           defaults['参考价来源']
-        )
+        ),
+        '搜索参数': typeof config['搜索参数'] === 'string'
+          ? config['搜索参数']
+          : (config['搜索参数'] ?? defaults['搜索参数'] ?? '')
       }
       nextTick(() => {
         isProgrammaticCustomConfigChange.value = false
