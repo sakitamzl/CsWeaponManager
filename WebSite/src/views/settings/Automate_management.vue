@@ -140,7 +140,30 @@
 
     <!-- 任务列表 -->
     <div class="task-list-section">
-      <h3>定时任务列表</h3>
+      <div class="task-list-header">
+        <h3>定时任务列表</h3>
+        <div class="task-list-actions">
+          <el-button 
+            type="success" 
+            size="small" 
+            :disabled="bulkStarting || runningTasks.length === 0"
+            :loading="bulkStarting"
+            @click="startAllTasks"
+          >
+            启动全部
+          </el-button>
+          <el-button 
+            type="danger" 
+            size="small" 
+            plain
+            :disabled="bulkStopping || runningTasks.length === 0"
+            :loading="bulkStopping"
+            @click="stopAllTasks"
+          >
+            停止全部
+          </el-button>
+        </div>
+      </div>
       <el-table :data="runningTasks" style="width: 100%">
         <el-table-column prop="type" label="自动化类型" min-width="120" />
         <el-table-column prop="taskName" label="任务名称" min-width="150" />
@@ -225,6 +248,8 @@ const customInterval = ref(automateForm.value.interval)
 
 // 执行状态
 const executing = ref(false)
+const bulkStarting = ref(false)
+const bulkStopping = ref(false)
 
 // 编辑状态
 const isEditing = ref(false)
@@ -965,12 +990,15 @@ const startScheduledTask = async () => {
 
 // 启动单个任务
 // 启动任务 (后端执行)
-const startTask = async (task) => {
+const startTask = async (task, options = {}) => {
+  const { silent = false } = options
   try {
     // 验证任务ID
     if (!task.id || task.id === 0) {
-      ElMessage.warning('任务正在初始化,请稍后再试')
-      return
+      if (!silent) {
+        ElMessage.warning('任务正在初始化,请稍后再试')
+      }
+      return false
     }
     
     // 调用后端API切换状态为启用
@@ -991,23 +1019,35 @@ const startTask = async (task) => {
         task.lastRun = response.data.lastRun
       }
       
-      ElMessage.success('任务已启用,后台将立即执行一次')
+      if (!silent) {
+        ElMessage.success('任务已启用,后台将立即执行一次')
+      }
+      return true
     } else {
-      ElMessage.error('启动任务失败: ' + response.data.message)
+      if (!silent) {
+        ElMessage.error('启动任务失败: ' + response.data.message)
+      }
+      return false
     }
   } catch (error) {
     console.error('启动任务失败:', error)
     
     if (error.response && error.response.status === 404) {
-      ElMessage.error('任务不存在,请刷新页面')
+      if (!silent) {
+        ElMessage.error('任务不存在,请刷新页面')
+      }
     } else {
-      ElMessage.error('启动任务失败: ' + (error.response?.data?.message || error.message))
+      if (!silent) {
+        ElMessage.error('启动任务失败: ' + (error.response?.data?.message || error.message))
+      }
     }
+    return false
   }
 }
 
 // 停止任务 (后端执行)
-const stopTask = async (taskId) => {
+const stopTask = async (taskId, options = {}) => {
+  const { silent = false } = options
   try {
     // 调用后端API停止任务
     const response = await axios.post(`${API_CONFIG.BASE_URL}/autoManagerPageV1/api/auto-manager/task/${taskId}/toggle`)
@@ -1020,13 +1060,80 @@ const stopTask = async (taskId) => {
         task.nextRun = '-'
       }
       
-      ElMessage.success('任务已停止')
+      if (!silent) {
+        ElMessage.success('任务已停止')
+      }
+      return true
     } else {
-      ElMessage.error('停止任务失败: ' + response.data.message)
+      if (!silent) {
+        ElMessage.error('停止任务失败: ' + response.data.message)
+      }
+      return false
     }
   } catch (error) {
     console.error('停止任务失败:', error)
-    ElMessage.error('停止任务失败: ' + error.message)
+    if (!silent) {
+      ElMessage.error('停止任务失败: ' + error.message)
+    }
+    return false
+  }
+}
+
+const startAllTasks = async () => {
+  const stoppedTasks = runningTasks.value.filter(task => task.status === '已停止')
+  
+  if (stoppedTasks.length === 0) {
+    ElMessage.info('暂无需要启动的任务')
+    return
+  }
+  
+  bulkStarting.value = true
+  let successCount = 0
+  
+  try {
+    for (const task of stoppedTasks) {
+      const success = await startTask(task, { silent: true })
+      if (success) {
+        successCount++
+      }
+    }
+    
+    await loadSavedTasks()
+    ElMessage.success(`已启动 ${successCount}/${stoppedTasks.length} 个任务`)
+  } catch (error) {
+    console.error('批量启动任务失败:', error)
+    ElMessage.error('批量启动任务失败: ' + error.message)
+  } finally {
+    bulkStarting.value = false
+  }
+}
+
+const stopAllTasks = async () => {
+  const running = runningTasks.value.filter(task => task.status === '运行中')
+  
+  if (running.length === 0) {
+    ElMessage.info('暂无运行中的任务')
+    return
+  }
+  
+  bulkStopping.value = true
+  let successCount = 0
+  
+  try {
+    for (const task of running) {
+      const success = await stopTask(task.id, { silent: true })
+      if (success) {
+        successCount++
+      }
+    }
+    
+    await loadSavedTasks()
+    ElMessage.success(`已停止 ${successCount}/${running.length} 个任务`)
+  } catch (error) {
+    console.error('批量停止任务失败:', error)
+    ElMessage.error('批量停止任务失败: ' + error.message)
+  } finally {
+    bulkStopping.value = false
   }
 }
 
@@ -1505,6 +1612,20 @@ onMounted(async () => {
   color: #e8e8e8;
   margin: 0 0 16px 0;
   font-weight: 600;
+}
+
+.task-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.task-list-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .empty-placeholder {
