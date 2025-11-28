@@ -74,20 +74,30 @@ def insert_inventory():
         inventory_record.weapon_name = parsed_name.get('weapon_name')
         inventory_record.item_name = parsed_name.get('item_name') or data.get('name')
         
+        # Steam hash name - 从market_hash_name获取
+        inventory_record.steam_hash_name = data.get('market_hash_name')
+        
         # 外观信息 - 从tags中获取
         exterior = tags.get('Exterior', {})
         inventory_record.float_range = exterior.get('localized_tag_name')
         
         # 磨损值 - 优先使用前端传来的weapon_float（用于库存存储组件的数量），否则从asset_properties中获取
         weapon_float = data.get('weapon_float')
-        if weapon_float is None:
-            # 从asset_properties中获取磨损值
+        rename_value = data.get('rename')  # 从前端传来的名称标签
+        
+        if weapon_float is None or rename_value is None:
+            # 从asset_properties中获取磨损值和名称标签
             asset_properties = data.get('asset_properties', [])
             for prop in asset_properties:
                 if prop.get('propertyid') == 2:  # propertyid 2 是磨损率
-                    weapon_float = prop.get('float_value')
-                    break
+                    if weapon_float is None:
+                        weapon_float = prop.get('float_value')
+                elif prop.get('propertyid') == 5:  # propertyid 5 是名称标签
+                    if rename_value is None:
+                        rename_value = prop.get('string_value')
+        
         inventory_record.weapon_float = weapon_float
+        inventory_record.rename = rename_value if rename_value else None
         
         # 交易相关
         # remark 存储交易保护信息，如果没有则为NULL
@@ -316,20 +326,30 @@ def insert_inventory_batch():
                 inventory_record.weapon_name = parsed_name.get('weapon_name')
                 inventory_record.item_name = parsed_name.get('item_name') or item_data.get('name')
                 
+                # Steam hash name - 从market_hash_name获取
+                inventory_record.steam_hash_name = item_data.get('market_hash_name')
+                
                 # 外观信息 - 从tags中获取
                 exterior = tags.get('Exterior', {})
                 inventory_record.float_range = exterior.get('localized_tag_name')
                 
                 # 磨损值 - 优先使用前端传来的weapon_float（用于库存存储组件的数量），否则从asset_properties中获取
                 weapon_float = item_data.get('weapon_float')
-                if weapon_float is None:
-                    # 从asset_properties中获取磨损值
+                rename_value = item_data.get('rename')  # 从前端传来的名称标签
+                
+                if weapon_float is None or rename_value is None:
+                    # 从asset_properties中获取磨损值和名称标签
                     asset_properties = item_data.get('asset_properties', [])
                     for prop in asset_properties:
                         if prop.get('propertyid') == 2:  # propertyid 2 是磨损率
-                            weapon_float = prop.get('float_value')
-                            break
+                            if weapon_float is None:
+                                weapon_float = prop.get('float_value')
+                        elif prop.get('propertyid') == 5:  # propertyid 5 是名称标签
+                            if rename_value is None:
+                                rename_value = prop.get('string_value')
+                
                 inventory_record.weapon_float = weapon_float
+                inventory_record.rename = rename_value if rename_value else None
                 
                 # 交易相关
                 # remark 存储交易保护信息，如果没有则为NULL
@@ -384,7 +404,7 @@ def insert_inventory_batch():
                     UPDATE {SteamInventoryModel.get_table_name()} 
                     SET instanceid = ?, classid = ?, item_name = ?, weapon_name = ?, 
                         float_range = ?, weapon_type = ?, weapon_float = ?, remark = ?, 
-                        data_user = ?, buy_price = ?, if_inventory = '1'
+                        data_user = ?, buy_price = ?, steam_hash_name = ?, rename = ?, if_inventory = '1'
                     WHERE assetid = ?
                     """
                     
@@ -399,6 +419,8 @@ def insert_inventory_batch():
                         inventory_record.remark,
                         steam_id,
                         inventory_record.buy_price,
+                        inventory_record.steam_hash_name,
+                        inventory_record.rename,
                         assetid
                     ))
                     

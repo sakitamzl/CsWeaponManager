@@ -354,6 +354,7 @@ src/get_app_token/certificates/*
 
 weapon_imgs
 Spider
+test_JSON
 
 Releases
 csweaponmanager.db*
