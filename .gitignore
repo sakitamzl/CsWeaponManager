@@ -346,6 +346,8 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
+WebSite/public/weapon_imgs/
+
 conf.ini 
 test.json
 src/get_app_token/certificates/*
