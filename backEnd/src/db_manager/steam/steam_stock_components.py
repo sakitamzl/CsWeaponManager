@@ -49,6 +49,12 @@ class SteamStockComponentsModel(BaseModel):
                 'default': None,
                 'comment': '武器名称'
             },
+            'steam_hash_name': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None,
+                'comment': 'Steam 市场 hash name'
+            },
             'float_range': {
                 'type': 'TEXT',
                 'not_null': False,
@@ -108,6 +114,24 @@ class SteamStockComponentsModel(BaseModel):
                 'not_null': False,
                 'default': None,
                 'comment': 'Steam价格'
+            },
+            'sticker': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None,
+                'comment': '印花信息(JSON)'
+            },
+            'pendant': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None,
+                'comment': '挂件信息(JSON)'
+            },
+            'rename': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None,
+                'comment': '改名信息'
             }
         }
     

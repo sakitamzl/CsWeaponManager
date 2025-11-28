@@ -4,3 +4,8 @@ v1.2.5 --   爬取改名中的 steam市场类型添加搜素参数
 v1.2.6 --   1、auto-manager自动化管理页面添加 启动全部 停止全部按钮
             2、修改csfloat的订单查询状态限制
             3、添加使用yyyp的URL进行ICON的下载 脱离在线图片库的依赖
+
+v1.2.7 --   1、表 buy sell  steam_stockComponents  steam_inventory steam_buy steam_sell 新增字段 steam_hash_name
+            2、修改yyyp 获取商品详情的时候 添加获取贴纸信息 挂件信息
+
+            

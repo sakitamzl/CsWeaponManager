@@ -67,6 +67,11 @@ class SteamSellModel(BaseModel):
                 'not_null': False,
                 'default': None
             },
+            'steam_hash_name': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None
+            },
             'float_range': {
                 'type': 'TEXT',
                 'not_null': False,
@@ -83,6 +88,21 @@ class SteamSellModel(BaseModel):
                 'default': None
             },
             'data_user': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None
+            },
+            'sticker': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None
+            },
+            'pendant': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None
+            },
+            'rename': {
                 'type': 'TEXT',
                 'not_null': False,
                 'default': None

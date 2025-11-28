@@ -37,6 +37,30 @@ class BuyModel(BaseModel):
                 'not_null': False,
                 'default': None
             },
+            'steam_hash_name': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None,
+                'comment': 'Steam 市场 hash name'
+            },
+            'sticker': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None,
+                'comment': '饰品印花信息(JSON)'
+            },
+            'pendant': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None,
+                'comment': '挂件信息(JSON)'
+            },
+            'rename': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None,
+                'comment': '改名信息'
+            },
             'weapon_float': {
                 'type': 'REAL',
                 'not_null': False,
