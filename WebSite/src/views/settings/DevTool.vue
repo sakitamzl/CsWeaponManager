@@ -214,23 +214,7 @@
     <div class="sync-section">
       <h2 class="section-title">图片资源包</h2>
 
-      <div class="tool-description">
-        <p class="tool-desc-text">
-          批量下载 weapon_classID 表中的 icon_url 图片到 <code>WebSite/public/weapon_imgs</code>，
-          已下载的记录会写入 <code>if_down</code> 避免重复。
-        </p>
-      </div>
-
       <div class="sync-controls">
-        <el-input-number
-          v-model="iconDownloadLimit"
-          :min="10"
-          :max="500"
-          :step="10"
-          :disabled="isDownloadingIcons"
-          class="page-input"
-        />
-
         <el-button
           type="primary"
           @click="downloadWeaponIcons"
@@ -309,7 +293,6 @@ export default {
 
     // 图片下载相关
     const isDownloadingIcons = ref(false)
-    const iconDownloadLimit = ref(200)
     const iconDownloadResult = ref(null)
 
     // ========== ADB设备管理功能 ==========
@@ -953,7 +936,7 @@ export default {
 
       try {
         const response = await axios.post(apiUrls.downloadWeaponIcons(), {
-          limit: iconDownloadLimit.value,
+          limit: 200,
           skipExisting: true
         })
 
@@ -1019,7 +1002,6 @@ export default {
       collectHashNamesFull,
       // 图片下载
       isDownloadingIcons,
-      iconDownloadLimit,
       iconDownloadResult,
       downloadWeaponIcons,
       // CSQAQ 相关
