@@ -1,5 +1,7 @@
 from flask import jsonify, request, Blueprint
+import json
 from src.db_manager.steam.steam_inventory import SteamInventoryModel
+from src.db_manager.index.weapon_classID import WeaponClassIDModel
 
 steamInventoryV1 = Blueprint('steamInventoryV1', __name__)
 
@@ -103,6 +105,56 @@ def insert_inventory():
         # remark 存储交易保护信息，如果没有则为NULL
         trade_lock_info = data.get('trade_lock_info')
         inventory_record.remark = trade_lock_info if trade_lock_info else None
+        
+        # 印花和挂件信息 - 查询steam_hash_name并一起存储
+        sticker_info = data.get('sticker')
+        pendant_info = data.get('pendant')
+        
+        # 处理印花信息：查询每个印花名称对应的steam_hash_name
+        if sticker_info:
+            try:
+                sticker_list = json.loads(sticker_info)
+                sticker_with_hash = []
+                for sticker_name in sticker_list:
+                    # 使用LIKE查询market_listing_item_name，排除印花板
+                    records = WeaponClassIDModel.find_all(
+                        where="[market_listing_item_name] LIKE ? AND [weapon_type] != ?",
+                        params=(f'%{sticker_name}%', '印花板')
+                    )
+                    steam_hash_name = records[0].steam_hash_name if records else None
+                    sticker_with_hash.append({
+                        'name': sticker_name,
+                        'steam_hash_name': steam_hash_name
+                    })
+                inventory_record.sticker = json.dumps(sticker_with_hash, ensure_ascii=False)
+            except Exception as e:
+                print(f"处理印花信息时出错: {str(e)}")
+                # 如果出错，仍然存储原始信息
+                inventory_record.sticker = sticker_info
+        else:
+            inventory_record.sticker = None
+        
+        # 处理挂件信息：查询挂件名称对应的steam_hash_name
+        if pendant_info:
+            try:
+                pendant_name = json.loads(pendant_info) if isinstance(pendant_info, str) else pendant_info
+                # 使用LIKE查询market_listing_item_name
+                records = WeaponClassIDModel.find_all(
+                    where="[market_listing_item_name] LIKE ?",
+                    params=(f'%{pendant_name}%',)
+                )
+                steam_hash_name = records[0].steam_hash_name if records else None
+                pendant_with_hash = {
+                    'name': pendant_name,
+                    'steam_hash_name': steam_hash_name
+                }
+                inventory_record.pendant = json.dumps(pendant_with_hash, ensure_ascii=False)
+            except Exception as e:
+                print(f"处理挂件信息时出错: {str(e)}")
+                # 如果出错，仍然存储原始信息
+                inventory_record.pendant = pendant_info
+        else:
+            inventory_record.pendant = None
         
         # buy_price 字段 - 自动填充价格
         buy_price = data.get('buy_price')
@@ -356,6 +408,56 @@ def insert_inventory_batch():
                 trade_lock_info = item_data.get('trade_lock_info')
                 inventory_record.remark = trade_lock_info if trade_lock_info else None
                 
+                # 印花和挂件信息 - 查询steam_hash_name并一起存储
+                sticker_info = item_data.get('sticker')
+                pendant_info = item_data.get('pendant')
+                
+                # 处理印花信息：查询每个印花名称对应的steam_hash_name
+                if sticker_info:
+                    try:
+                        sticker_list = json.loads(sticker_info)
+                        sticker_with_hash = []
+                        for sticker_name in sticker_list:
+                            # 使用LIKE查询market_listing_item_name，排除印花板
+                            records = WeaponClassIDModel.find_all(
+                                where="[market_listing_item_name] LIKE ? AND [weapon_type] != ?",
+                                params=(f'%{sticker_name}%', '印花板')
+                            )
+                            steam_hash_name = records[0].steam_hash_name if records else None
+                            sticker_with_hash.append({
+                                'name': sticker_name,
+                                'steam_hash_name': steam_hash_name
+                            })
+                        inventory_record.sticker = json.dumps(sticker_with_hash, ensure_ascii=False)
+                    except Exception as e:
+                        print(f"处理印花信息时出错: {str(e)}")
+                        # 如果出错，仍然存储原始信息
+                        inventory_record.sticker = sticker_info
+                else:
+                    inventory_record.sticker = None
+                
+                # 处理挂件信息：查询挂件名称对应的steam_hash_name
+                if pendant_info:
+                    try:
+                        pendant_name = json.loads(pendant_info) if isinstance(pendant_info, str) else pendant_info
+                        # 使用LIKE查询market_listing_item_name
+                        records = WeaponClassIDModel.find_all(
+                            where="[market_listing_item_name] LIKE ?",
+                            params=(f'%{pendant_name}%',)
+                        )
+                        steam_hash_name = records[0].steam_hash_name if records else None
+                        pendant_with_hash = {
+                            'name': pendant_name,
+                            'steam_hash_name': steam_hash_name
+                        }
+                        inventory_record.pendant = json.dumps(pendant_with_hash, ensure_ascii=False)
+                    except Exception as e:
+                        print(f"处理挂件信息时出错: {str(e)}")
+                        # 如果出错，仍然存储原始信息
+                        inventory_record.pendant = pendant_info
+                else:
+                    inventory_record.pendant = None
+                
                 # 检查数据库中是否已存在该assetid的记录
                 assetid = item_data.get('assetid')
                 existing_record = SteamInventoryModel.find_by_assetid(assetid)
@@ -404,7 +506,8 @@ def insert_inventory_batch():
                     UPDATE {SteamInventoryModel.get_table_name()} 
                     SET instanceid = ?, classid = ?, item_name = ?, weapon_name = ?, 
                         float_range = ?, weapon_type = ?, weapon_float = ?, remark = ?, 
-                        data_user = ?, buy_price = ?, steam_hash_name = ?, rename = ?, if_inventory = '1'
+                        data_user = ?, buy_price = ?, steam_hash_name = ?, rename = ?, 
+                        sticker = ?, pendant = ?, if_inventory = '1'
                     WHERE assetid = ?
                     """
                     
@@ -421,6 +524,8 @@ def insert_inventory_batch():
                         inventory_record.buy_price,
                         inventory_record.steam_hash_name,
                         inventory_record.rename,
+                        inventory_record.sticker,
+                        inventory_record.pendant,
                         assetid
                     ))
                     
