@@ -67,6 +67,22 @@
           inactive-text="列表显示"
           @change="handleGroupChange"
         />
+        <el-button-group>
+          <el-button 
+            :type="displayMode === 'list' ? 'primary' : ''" 
+            @click="displayMode = 'list'"
+            icon="List"
+          >
+            列表
+          </el-button>
+          <el-button 
+            :type="displayMode === 'card' ? 'primary' : ''" 
+            @click="displayMode = 'card'"
+            icon="Grid"
+          >
+            卡片
+          </el-button>
+        </el-button-group>
       </div>
     </div>
 
@@ -111,7 +127,7 @@
     </div>
 
     <!-- 列表显示 -->
-    <div class="table-container" v-if="!groupByItem">
+    <div class="table-container" v-if="!groupByItem && displayMode === 'list'">
       <el-table
         :data="inventoryData"
         v-loading="loading"
@@ -274,7 +290,91 @@
       
       <div class="table-footer">
         <span>共 {{ inventoryData.length }} 条数据</span>
+        <span v-if="hasMore && !loadingMore" style="margin-left: 1rem; color: #999;">滚动加载更多...</span>
+        <span v-if="loadingMore" style="margin-left: 1rem; color: #4CAF50;">正在加载更多...</span>
+        <span v-if="!hasMore && inventoryData.length > 0" style="margin-left: 1rem; color: #999;">已加载全部数据</span>
       </div>
+      <!-- 滚动触发元素 -->
+      <div id="load-more-trigger" style="height: 1px;"></div>
+    </div>
+
+    <!-- 卡片显示 -->
+    <div class="card-container" v-if="!groupByItem && displayMode === 'card'">
+      <div v-loading="loading" class="card-grid">
+        <div 
+          v-for="item in inventoryData" 
+          :key="item.assetid" 
+          class="inventory-card"
+        >
+          <div class="card-image">
+            <img 
+              :src="getWeaponImage(item.steam_hash_name)" 
+              :alt="item.item_name"
+              @error="handleImageError"
+            />
+          </div>
+          <div class="card-content">
+            <div class="card-title" :title="item.item_name">{{ item.item_name }}</div>
+            <div class="card-info">
+              <div class="card-info-row">
+                <span class="info-label">武器:</span>
+                <span class="info-value">{{ item.weapon_name }}</span>
+              </div>
+              <div class="card-info-row">
+                <span class="info-label">类型:</span>
+                <span class="info-value">{{ item.weapon_type }}</span>
+              </div>
+              <div class="card-info-row" v-if="item.float_range">
+                <span class="info-label">磨损:</span>
+                <span class="info-value">{{ item.float_range }}</span>
+              </div>
+              <div class="card-info-row" v-if="item.weapon_float">
+                <span class="info-label">磨损值:</span>
+                <span class="info-value">{{ item.weapon_float }}</span>
+              </div>
+            </div>
+            <div class="card-prices">
+              <div class="price-row" v-if="item.buy_price">
+                <span class="price-label">购入:</span>
+                <span class="price-value buy-price">¥{{ parseFloat(item.buy_price).toFixed(2) }}</span>
+              </div>
+              <div class="price-row" v-if="item.yyyp_price">
+                <span class="price-label">悠悠:</span>
+                <span 
+                  class="price-value" 
+                  :class="getPriceDiffClass(item.yyyp_price, item.buy_price)"
+                >
+                  ¥{{ parseFloat(item.yyyp_price).toFixed(2) }}
+                </span>
+              </div>
+              <div class="price-row" v-if="item.buff_price">
+                <span class="price-label">BUFF:</span>
+                <span 
+                  class="price-value" 
+                  :class="getPriceDiffClass(item.buff_price, item.buy_price)"
+                >
+                  ¥{{ parseFloat(item.buff_price).toFixed(2) }}
+                </span>
+              </div>
+              <div class="price-row" v-if="item.steam_price">
+                <span class="price-label">Steam:</span>
+                <span class="price-value">¥{{ parseFloat(item.steam_price).toFixed(2) }}</span>
+              </div>
+            </div>
+            <div class="card-footer" v-if="item.remark">
+              <el-tag type="warning" size="small">交易限制</el-tag>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="table-footer">
+        <span>共 {{ inventoryData.length }} 条数据</span>
+        <span v-if="hasMore && !loadingMore" style="margin-left: 1rem; color: #999;">滚动加载更多...</span>
+        <span v-if="loadingMore" style="margin-left: 1rem; color: #4CAF50;">正在加载更多...</span>
+        <span v-if="!hasMore && inventoryData.length > 0" style="margin-left: 1rem; color: #999;">已加载全部数据</span>
+      </div>
+      <!-- 滚动触发元素 -->
+      <div id="load-more-trigger-card" style="height: 1px;"></div>
     </div>
 
     <!-- 分组显示 -->
@@ -414,7 +514,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
 import { API_CONFIG } from '@/config/api.js'
@@ -432,10 +532,16 @@ export default {
     const weaponTypeFilter = ref('')
     const floatRangeFilter = ref('')
     const groupByItem = ref(false)
+    const displayMode = ref('list') // 'list' 或 'card'
     const expandedRows = ref([])
     const editingAssetId = ref(null) // 正在编辑的资产ID
     const editingPrice = ref('') // 编辑中的价格
     const originalPrice = ref('') // 原始价格
+    // 懒加载相关
+    const pageSize = ref(50) // 每页加载数量
+    const currentOffset = ref(0) // 当前偏移量
+    const hasMore = ref(true) // 是否还有更多数据
+    const loadingMore = ref(false) // 是否正在加载更多
     const statsData = ref({
       total_count: 0,
       by_type: [],
@@ -624,17 +730,24 @@ export default {
       }
     }
 
-    const loadInventoryData = async () => {
+    const loadInventoryData = async (reset = true) => {
       if (!selectedSteamId.value) {
         ElMessage.warning('请选择Steam账号')
         return
+      }
+      
+      // 如果是重置加载，清空数据和分页状态
+      if (reset) {
+        inventoryData.value = []
+        currentOffset.value = 0
+        hasMore.value = true
       }
       
       loading.value = true
       try {
         console.log('正在加载库存数据，Steam ID:', selectedSteamId.value)
         if (groupByItem.value) {
-          // 加载分组数据 - 全部数据
+          // 加载分组数据 - 全部数据（分组模式不支持分页）
           const url = `${API_BASE}/inventory/grouped/${selectedSteamId.value}`
           console.log('请求URL:', url)
           const response = await axios.get(url)
@@ -656,13 +769,13 @@ export default {
             console.log('分组数据已加载，总计:', groupedData.value.length)
           }
         } else {
-          // 加载列表数据 - 全部数据，不使用limit
+          // 加载列表数据 - 使用分页
           const params = {
             search: searchText.value,
             weapon_type: weaponTypeFilter.value,
             float_range: floatRangeFilter.value,
-            limit: 9999, // 获取全部数据
-            offset: 0
+            limit: pageSize.value,
+            offset: currentOffset.value
           }
           
           const url = `${API_BASE}/inventory/${selectedSteamId.value}`
@@ -670,27 +783,96 @@ export default {
           const response = await axios.get(url, { params })
           console.log('列表数据响应:', response.data)
           if (response.data.success) {
-            inventoryData.value = response.data.data
+            const newData = response.data.data || []
+            
+            // 如果是重置，直接替换数据；否则追加数据
+            if (reset) {
+              inventoryData.value = newData
+            } else {
+              inventoryData.value = [...inventoryData.value, ...newData]
+            }
+            
+            // 检查是否还有更多数据
+            hasMore.value = newData.length === pageSize.value
+            
+            // 更新偏移量
+            currentOffset.value += newData.length
             
             // 应用排序（包括默认排序）
             if (sortConfig.value.prop) {
               applySorting()
             }
             
-            console.log('数据已加载，总计:', inventoryData.value.length, '排序:', sortConfig.value)
+            console.log('数据已加载，当前:', inventoryData.value.length, '条，还有更多:', hasMore.value, '排序:', sortConfig.value)
           } else {
             ElMessage.error(response.data.error || '加载数据失败')
           }
         }
         
-        // 加载统计数据
-        await loadStats()
+        // 加载统计数据（只在重置时加载，避免频繁请求）
+        if (reset) {
+          await loadStats()
+        }
       } catch (error) {
         console.error('加载库存数据失败:', error)
         ElMessage.error('加载数据失败: ' + (error.response?.data?.error || error.message))
       } finally {
         loading.value = false
       }
+    }
+
+    // 加载更多数据
+    const loadMoreData = async () => {
+      if (loadingMore.value || !hasMore.value || groupByItem.value) {
+        return
+      }
+      
+      loadingMore.value = true
+      try {
+        await loadInventoryData(false)
+      } finally {
+        loadingMore.value = false
+      }
+    }
+
+    // 设置滚动监听（使用 Intersection Observer）
+    const setupScrollObserver = () => {
+      nextTick(() => {
+        const triggerId = displayMode.value === 'card' ? 'load-more-trigger-card' : 'load-more-trigger'
+        const trigger = document.getElementById(triggerId)
+        if (trigger) {
+          // 如果已有观察器，先断开
+          if (trigger._observer) {
+            trigger._observer.disconnect()
+          }
+          
+          // 找到滚动容器
+          let scrollContainer = null
+          if (displayMode.value === 'card') {
+            scrollContainer = trigger.closest('.card-container')
+          } else {
+            // 对于 el-table，找到表格的滚动容器
+            const tableWrapper = trigger.closest('.table-container')
+            if (tableWrapper) {
+              scrollContainer = tableWrapper.querySelector('.el-table__body-wrapper')
+            }
+          }
+          
+          const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+              if (entry.isIntersecting && hasMore.value && !loadingMore.value && !loading.value && !groupByItem.value) {
+                loadMoreData()
+              }
+            })
+          }, {
+            root: scrollContainer,
+            rootMargin: '100px'
+          })
+          
+          observer.observe(trigger)
+          trigger._observer = observer
+        }
+      })
     }
 
     const loadStats = async () => {
@@ -707,7 +889,7 @@ export default {
 
     const handleSteamIdChange = () => {
       console.log('Steam ID已切换:', selectedSteamId.value)
-      loadInventoryData()
+      loadInventoryData(true) // 重置加载
     }
 
     const handleReset = () => {
@@ -715,12 +897,12 @@ export default {
       weaponTypeFilter.value = ''
       floatRangeFilter.value = ''
       sortConfig.value = { prop: '', order: '' }
-      loadInventoryData()
+      loadInventoryData(true) // 重置加载
     }
 
     const handleGroupChange = () => {
       expandedRows.value = []
-      loadInventoryData()
+      loadInventoryData(true) // 重置加载
     }
 
     // 统一的排序函数
@@ -784,7 +966,7 @@ export default {
       if (!order) {
         // 取消排序
         sortConfig.value = { prop: '', order: '' }
-        loadInventoryData()
+        loadInventoryData(true)
         return
       }
       
@@ -882,6 +1064,28 @@ export default {
         console.error('更新价格失败:', error)
         ElMessage.error('更新价格失败: ' + error.message)
       }
+    }
+
+    // 获取武器图片路径
+    const getWeaponImage = (steamHashName) => {
+      if (!steamHashName) {
+        return '/weapon_imgs/default.png' // 默认图片
+      }
+      // 将空格替换为下划线，并添加.png扩展名
+      const imageName = steamHashName.replace(/\s+/g, '_') + '.png'
+      return `/weapon_imgs/${imageName}`
+    }
+
+    // 处理图片加载错误
+    const handleImageError = (event) => {
+      event.target.src = '/weapon_imgs/default.png' // 加载失败时显示默认图片
+    }
+
+    // 获取价格差异样式类
+    const getPriceDiffClass = (marketPrice, buyPrice) => {
+      if (!marketPrice || !buyPrice) return ''
+      const diff = parseFloat(marketPrice) - parseFloat(buyPrice)
+      return diff >= 0 ? 'price-profit' : 'price-loss'
     }
 
     // 单独加载统计数据（不重新加载列表）
@@ -1003,8 +1207,21 @@ export default {
     onMounted(async () => {
       await loadSteamIdList()
       if (selectedSteamId.value) {
-        loadInventoryData()
+        loadInventoryData(true)
       }
+      
+      // 设置滚动监听
+      setupScrollObserver()
+      
+      // 监听显示模式变化，重新设置观察器
+      watch(displayMode, () => {
+        setupScrollObserver()
+      })
+      
+      // 监听数据变化，重新设置观察器（数据加载后）
+      watch(inventoryData, () => {
+        setupScrollObserver()
+      })
     })
 
     return {
@@ -1023,15 +1240,23 @@ export default {
       weaponTypeFilter,
       floatRangeFilter,
       groupByItem,
+      displayMode,
       expandedRows,
       steamIdList,
       selectedSteamId,
       sortConfig,
+      getWeaponImage,
+      handleImageError,
+      getPriceDiffClass,
       loadInventoryData,
+      loadMoreData,
+      handleScroll,
       handleReset,
       handleGroupChange,
       handleSteamIdChange,
       handleSortChange,
+      hasMore,
+      loadingMore,
       isExpanded,
       toggleExpand,
       handleExpandChange,
@@ -1081,6 +1306,15 @@ export default {
   margin-bottom: clamp(1rem, 3vw, 1.25rem);
 }
 
+.table-container {
+  position: relative;
+}
+
+.table-wrapper {
+  max-height: calc(100vh - 400px);
+  overflow-y: auto;
+}
+
 .table-footer {
   padding: 1rem;
   text-align: right;
@@ -1088,6 +1322,9 @@ export default {
   font-size: 14px;
   background: var(--bg-tertiary);
   border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .stat-number {
@@ -1213,6 +1450,169 @@ export default {
 
 :deep(.el-table__header th) {
   user-select: none;
+}
+
+/* 卡片显示样式 */
+.card-container {
+  margin-top: 1rem;
+  max-height: calc(100vh - 400px);
+  overflow-y: auto;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  padding: 1rem;
+}
+
+.inventory-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  aspect-ratio: 1;
+}
+
+.inventory-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-color: var(--el-color-primary);
+}
+
+.card-image {
+  width: 100%;
+  aspect-ratio: 1;
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+}
+
+.card-content {
+  padding: 1rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.card-title {
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.4;
+  min-height: 2.8em;
+}
+
+.card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+}
+
+.card-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.info-label {
+  color: #999;
+  font-size: 0.75rem;
+}
+
+.info-value {
+  color: #ccc;
+  font-size: 0.75rem;
+  text-align: right;
+  flex: 1;
+  margin-left: 0.5rem;
+}
+
+.card-prices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-top: auto;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+}
+
+.price-label {
+  color: #999;
+  font-size: 0.75rem;
+}
+
+.price-value {
+  color: #fff;
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+.buy-price {
+  color: #4CAF50;
+}
+
+.price-profit {
+  color: #f56c6c;
+}
+
+.price-loss {
+  color: #4CAF50;
+}
+
+.card-footer {
+  margin-top: 0.5rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 768px) {
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    padding: 0.5rem;
+  }
+
+  .card-content {
+    padding: 0.75rem;
+  }
+
+  .card-title {
+    font-size: 0.85rem;
+  }
+
+  .info-label,
+  .info-value,
+  .price-label,
+  .price-value {
+    font-size: 0.7rem;
+  }
 }
 
 @media (max-width: 768px) {
