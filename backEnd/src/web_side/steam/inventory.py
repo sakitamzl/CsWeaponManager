@@ -223,7 +223,16 @@ def get_inventory_by_user(data_user):
                 'weapon_type': record.weapon_type,
                 'weapon_float': record.weapon_float,
                 'float_range': record.float_range,
-                'remark': record.remark
+                'remark': record.remark,
+                'steam_hash_name': record.steam_hash_name,  # 添加steam_hash_name字段
+                'buy_price': record.buy_price,  # 添加buy_price字段
+                'yyyp_price': record.yyyp_price,  # 添加yyyp_price字段
+                'buff_price': record.buff_price,  # 添加buff_price字段
+                'steam_price': record.steam_price,  # 添加steam_price字段
+                'order_time': record.order_time,  # 添加order_time字段
+                'rename': record.rename,  # 添加rename字段
+                'sticker': record.sticker,  # 添加sticker字段
+                'pendant': record.pendant  # 添加pendant字段
             })
         
         return jsonify({

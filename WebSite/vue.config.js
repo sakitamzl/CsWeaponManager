@@ -33,6 +33,8 @@ module.exports = defineConfig({
         // API 请求不重写
         { from: /^\/api/, to: context => context.parsedUrl.pathname },
         { from: /^\/spider/, to: context => context.parsedUrl.pathname },
+        // weapon_imgs 请求不重写
+        { from: /^\/weapon_imgs/, to: context => context.parsedUrl.pathname },
         // 其他所有请求重写到 index.html
         { from: /./, to: '/index.html' }
       ],

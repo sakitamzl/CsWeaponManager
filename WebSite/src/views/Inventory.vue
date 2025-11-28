@@ -1081,21 +1081,31 @@ export default {
       if (image404Cache.value.has(steamHashName)) {
         return null // 如果之前404过，直接返回null，不显示图片
       }
-      // 将空格替换为下划线，并添加.png扩展名
-      const imageName = steamHashName.replace(/\s+/g, '_') + '.png'
+      // 将每个空格替换为下划线，并添加.png扩展名
+      // 例如: "★ Bayonet   Autotronic (Battle-Scarred)" -> "★_Bayonet___Autotronic_(Battle-Scarred).png"
+      const imageName = steamHashName.replace(/\s/g, '_') + '.png'
       return `/weapon_imgs/${imageName}`
     }
 
     // 处理图片加载错误
     const handleImageError = (event, steamHashName) => {
+      // 阻止默认行为，防止无限循环
+      event.preventDefault()
+      event.stopPropagation()
+      
       // 将失败的steam_hash_name添加到404缓存中
       if (steamHashName) {
         image404Cache.value.add(steamHashName)
       }
-      // 隐藏图片或显示占位符
+      
+      // 移除错误监听器，防止重复触发
+      event.target.onerror = null
+      
+      // 隐藏图片
       event.target.style.display = 'none'
-      // 或者可以设置一个占位符图片
-      // event.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iIzMzMzMzMyIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjE0IiBmaWxsPSIjOTk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+'
+      
+      // 设置一个空的data URI，防止浏览器继续尝试加载
+      event.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMSIgaGVpZ2h0PSIxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjwvc3ZnPg=='
     }
 
     // 获取价格差异样式类
