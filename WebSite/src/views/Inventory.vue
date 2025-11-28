@@ -61,13 +61,7 @@
         <el-button type="success" @click="fetchBuffPrice" :loading="fetchingBuffPrice" icon="Money" class="action-button">
           获取BUFF价格
         </el-button>
-        <el-switch
-          v-model="groupByItem"
-          active-text="分组显示"
-          inactive-text="列表显示"
-          @change="handleGroupChange"
-        />
-        <el-button-group>
+        <el-button-group style="margin-left: auto;">
           <el-button 
             :type="displayMode === 'list' ? 'primary' : ''" 
             @click="displayMode = 'list'"
@@ -127,7 +121,7 @@
     </div>
 
     <!-- 列表显示 -->
-    <div class="table-container" v-if="!groupByItem && displayMode === 'list'">
+    <div class="table-container" v-if="displayMode === 'list'">
       <el-table
         :data="inventoryData"
         v-loading="loading"
@@ -287,7 +281,6 @@
           </template>
         </el-table-column>
       </el-table>
-      
       <div class="table-footer">
         <span>共 {{ inventoryData.length }} 条数据</span>
         <span v-if="hasMore && !loadingMore" style="margin-left: 1rem; color: #999;">滚动加载更多...</span>
@@ -299,7 +292,7 @@
     </div>
 
     <!-- 卡片显示 -->
-    <div class="card-container" v-if="!groupByItem && displayMode === 'card'">
+    <div class="card-container" v-if="displayMode === 'card'">
       <div v-loading="loading" class="card-grid">
         <div 
           v-for="item in inventoryData" 
@@ -380,140 +373,6 @@
       <!-- 滚动触发元素 -->
       <div id="load-more-trigger-card" style="height: 1px;"></div>
     </div>
-
-    <!-- 分组显示 -->
-    <div class="table-container" v-else>
-      <el-table
-        :data="groupedData"
-        v-loading="loading"
-        element-loading-text="加载中..."
-        style="width: 100%"
-        :row-style="{ backgroundColor: 'transparent' }"
-        :header-row-style="{ backgroundColor: 'var(--bg-tertiary)' }"
-        row-key="item_name"
-        :expand-row-keys="expandedRows"
-        @expand-change="handleExpandChange"
-        height="calc(100vh - 400px)"
-      >
-        <el-table-column type="expand">
-          <template #default="scope">
-            <div class="expand-content">
-              <el-table
-                :data="scope.row.details"
-                style="width: 100%"
-                size="small"
-                :row-style="{ backgroundColor: 'transparent' }"
-                :header-row-style="{ backgroundColor: 'var(--bg-tertiary)' }"
-              >
-                <el-table-column prop="order_time" label="入库时间" min-width="160">
-                  <template #default="props">
-                    <span v-if="props.row.order_time" style="color: #9E9E9E;">
-                      {{ props.row.order_time }}
-                    </span>
-                    <span v-else style="color: #888;">-</span>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="assetid" label="Asset ID" min-width="150" />
-                <el-table-column prop="weapon_float" label="磨损值" min-width="150">
-                  <template #default="props">
-                    <span v-if="props.row.weapon_float" style="font-family: monospace;">
-                      {{ props.row.weapon_float }}
-                    </span>
-                    <span v-else style="color: #888;">N/A</span>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="buy_price" label="购入价格" min-width="120">
-                  <template #default="props">
-                    <div v-if="props.row.buy_price">
-                      <span style="color: #fff; font-weight: bold;">¥{{ parseFloat(props.row.buy_price).toFixed(2) }}</span>
-                      <el-tag v-if="!props.row.weapon_float" type="info" size="small" style="margin-left: 5px;">均</el-tag>
-                    </div>
-                    <span v-else style="color: #888;">-</span>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="yyyp_price" label="悠悠有品" min-width="160">
-                  <template #default="props">
-                    <div v-if="props.row.yyyp_price && props.row.buy_price" style="display: flex; flex-direction: column; align-items: flex-start; gap: 2px;">
-                      <span style="color: #fff; font-weight: bold;">
-                        ¥{{ parseFloat(props.row.yyyp_price).toFixed(2) }}
-                      </span>
-                      <span 
-                        :style="{
-                          color: parseFloat(props.row.yyyp_price) < parseFloat(props.row.buy_price) ? '#4CAF50' : '#f56c6c',
-                          fontSize: '12px',
-                          fontWeight: 'bold'
-                        }"
-                      >
-                        {{ parseFloat(props.row.yyyp_price) < parseFloat(props.row.buy_price) ? '-' : '+' }}
-                        ¥{{ Math.abs(parseFloat(props.row.yyyp_price) - parseFloat(props.row.buy_price)).toFixed(2) }}
-                      </span>
-                    </div>
-                    <span v-else-if="props.row.yyyp_price" style="color: #fff; font-weight: bold;">
-                      ¥{{ parseFloat(props.row.yyyp_price).toFixed(2) }}
-                    </span>
-                    <span v-else style="color: #888;">-</span>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="buff_price" label="BUFF" min-width="160">
-                  <template #default="props">
-                    <div v-if="props.row.buff_price && props.row.buy_price" style="display: flex; flex-direction: column; align-items: flex-start; gap: 2px;">
-                      <span style="color: #fff; font-weight: bold;">
-                        ¥{{ parseFloat(props.row.buff_price).toFixed(2) }}
-                      </span>
-                      <span 
-                        :style="{
-                          color: parseFloat(props.row.buff_price) < parseFloat(props.row.buy_price) ? '#4CAF50' : '#f56c6c',
-                          fontSize: '12px',
-                          fontWeight: 'bold'
-                        }"
-                      >
-                        {{ parseFloat(props.row.buff_price) < parseFloat(props.row.buy_price) ? '-' : '+' }}
-                        ¥{{ Math.abs(parseFloat(props.row.buff_price) - parseFloat(props.row.buy_price)).toFixed(2) }}
-                      </span>
-                    </div>
-                    <span v-else-if="props.row.buff_price" style="color: #fff; font-weight: bold;">
-                      ¥{{ parseFloat(props.row.buff_price).toFixed(2) }}
-                    </span>
-                    <span v-else style="color: #888;">-</span>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="steam_price" label="Steam" min-width="120">
-                  <template #default="props">
-                    <span v-if="props.row.steam_price" style="color: #fff; font-weight: bold;">
-                      ¥{{ parseFloat(props.row.steam_price).toFixed(2) }}
-                    </span>
-                    <span v-else style="color: #888;">-</span>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="remark" label="备注" min-width="250">
-                  <template #default="props">
-                    <el-tooltip v-if="props.row.remark" :content="props.row.remark" placement="top" effect="dark">
-                      <div style="cursor: help; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                        {{ props.row.remark }}
-                      </div>
-                    </el-tooltip>
-                    <span v-else style="color: #888;">-</span>
-                  </template>
-                </el-table-column>
-              </el-table>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="weapon_name" label="武器" min-width="120" />
-        <el-table-column prop="weapon_type" label="类型" min-width="100" />
-        <el-table-column prop="item_name" label="饰品名称" min-width="250" show-overflow-tooltip />
-        <el-table-column prop="float_range" label="磨损" min-width="100" />
-        <el-table-column prop="count" label="数量" min-width="80">
-          <template #default="scope">
-            <el-tag type="primary" size="small">{{ scope.row.count }}</el-tag>
-          </template>
-        </el-table-column>
-      </el-table>
-      
-      <div class="table-footer">
-        <span>共 {{ groupedData.length }} 组数据</span>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -531,13 +390,10 @@ export default {
     const fetchingYYYPPrice = ref(false) // 获取悠悠有品价格中
     const fetchingBuffPrice = ref(false) // 获取BUFF价格中
     const inventoryData = ref([])
-    const groupedData = ref([])
     const searchText = ref('')
     const weaponTypeFilter = ref('')
     const floatRangeFilter = ref('')
-    const groupByItem = ref(false)
-    const displayMode = ref('list') // 'list' 或 'card'
-    const expandedRows = ref([])
+    const displayMode = ref('card') // 默认卡片显示
     const editingAssetId = ref(null) // 正在编辑的资产ID
     const editingPrice = ref('') // 编辑中的价格
     const originalPrice = ref('') // 原始价格
@@ -752,67 +608,43 @@ export default {
       loading.value = true
       try {
         console.log('正在加载库存数据，Steam ID:', selectedSteamId.value)
-        if (groupByItem.value) {
-          // 加载分组数据 - 全部数据（分组模式不支持分页）
-          const url = `${API_BASE}/inventory/grouped/${selectedSteamId.value}`
-          console.log('请求URL:', url)
-          const response = await axios.get(url)
-          console.log('分组数据响应:', response.data)
-          if (response.data.success) {
-            groupedData.value = response.data.data.map(item => ({
-              ...item,
-              details: item.assetids.map((assetid, index) => ({
-                assetid,
-                weapon_float: item.weapon_floats[index],
-                remark: item.remarks[index],
-                buy_price: item.buy_prices && item.buy_prices[index] ? item.buy_prices[index] : null,
-                yyyp_price: item.yyyp_prices && item.yyyp_prices[index] ? item.yyyp_prices[index] : null,
-                buff_price: item.buff_prices && item.buff_prices[index] ? item.buff_prices[index] : null,
-                steam_price: item.steam_prices && item.steam_prices[index] ? item.steam_prices[index] : null,
-                order_time: item.order_times && item.order_times[index] ? item.order_times[index] : null
-              }))
-            }))
-            console.log('分组数据已加载，总计:', groupedData.value.length)
-          }
-        } else {
-          // 加载列表数据 - 使用分页
-          const params = {
-            search: searchText.value,
-            weapon_type: weaponTypeFilter.value,
-            float_range: floatRangeFilter.value,
-            limit: pageSize.value,
-            offset: currentOffset.value
+        // 加载卡片数据 - 使用分页
+        const params = {
+          search: searchText.value,
+          weapon_type: weaponTypeFilter.value,
+          float_range: floatRangeFilter.value,
+          limit: pageSize.value,
+          offset: currentOffset.value
+        }
+        
+        const url = `${API_BASE}/inventory/${selectedSteamId.value}`
+        console.log('请求URL:', url, '参数:', params)
+        const response = await axios.get(url, { params })
+        console.log('数据响应:', response.data)
+        if (response.data.success) {
+          const newData = response.data.data || []
+          
+          // 如果是重置，直接替换数据；否则追加数据
+          if (reset) {
+            inventoryData.value = newData
+          } else {
+            inventoryData.value = [...inventoryData.value, ...newData]
           }
           
-          const url = `${API_BASE}/inventory/${selectedSteamId.value}`
-          console.log('请求URL:', url, '参数:', params)
-          const response = await axios.get(url, { params })
-          console.log('列表数据响应:', response.data)
-          if (response.data.success) {
-            const newData = response.data.data || []
-            
-            // 如果是重置，直接替换数据；否则追加数据
-            if (reset) {
-              inventoryData.value = newData
-            } else {
-              inventoryData.value = [...inventoryData.value, ...newData]
-            }
-            
-            // 检查是否还有更多数据
-            hasMore.value = newData.length === pageSize.value
-            
-            // 更新偏移量
-            currentOffset.value += newData.length
-            
-            // 应用排序（包括默认排序）
-            if (sortConfig.value.prop) {
-              applySorting()
-            }
-            
-            console.log('数据已加载，当前:', inventoryData.value.length, '条，还有更多:', hasMore.value, '排序:', sortConfig.value)
-          } else {
-            ElMessage.error(response.data.error || '加载数据失败')
+          // 检查是否还有更多数据
+          hasMore.value = newData.length === pageSize.value
+          
+          // 更新偏移量
+          currentOffset.value += newData.length
+          
+          // 应用排序（包括默认排序）
+          if (sortConfig.value.prop) {
+            applySorting()
           }
+          
+          console.log('数据已加载，当前:', inventoryData.value.length, '条，还有更多:', hasMore.value, '排序:', sortConfig.value)
+        } else {
+          ElMessage.error(response.data.error || '加载数据失败')
         }
         
         // 加载统计数据（只在重置时加载，避免频繁请求）
@@ -829,7 +661,7 @@ export default {
 
     // 加载更多数据
     const loadMoreData = async () => {
-      if (loadingMore.value || !hasMore.value || groupByItem.value) {
+      if (loadingMore.value || !hasMore.value) {
         return
       }
       
@@ -864,13 +696,13 @@ export default {
             }
           }
           
-          const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-              if (entry.isIntersecting && hasMore.value && !loadingMore.value && !loading.value && !groupByItem.value) {
-                loadMoreData()
-              }
-            })
-          }, {
+            const observer = new IntersectionObserver((entries) => {
+              entries.forEach(entry => {
+                if (entry.isIntersecting && hasMore.value && !loadingMore.value && !loading.value) {
+                  loadMoreData()
+                }
+              })
+            }, {
             root: scrollContainer,
             rootMargin: '100px'
           })
@@ -906,10 +738,6 @@ export default {
       loadInventoryData(true) // 重置加载
     }
 
-    const handleGroupChange = () => {
-      expandedRows.value = []
-      loadInventoryData(true) // 重置加载
-    }
 
     // 统一的排序函数
     const applySorting = () => {
@@ -986,22 +814,6 @@ export default {
       applySorting()
     }
 
-    const isExpanded = (itemName) => {
-      return expandedRows.value.includes(itemName)
-    }
-
-    const toggleExpand = (row) => {
-      const index = expandedRows.value.indexOf(row.item_name)
-      if (index > -1) {
-        expandedRows.value.splice(index, 1)
-      } else {
-        expandedRows.value.push(row.item_name)
-      }
-    }
-
-    const handleExpandChange = (row, expandedRowsArray) => {
-      expandedRows.value = expandedRowsArray.map(r => r.item_name)
-    }
 
     // 开始编辑价格
     const startEdit = (row) => {
@@ -1257,7 +1069,6 @@ export default {
       fetchingYYYPPrice,
       fetchingBuffPrice,
       inventoryData,
-      groupedData,
       inventoryStats,
       priceStats,
       yyypPriceStats,
@@ -1266,9 +1077,7 @@ export default {
       searchText,
       weaponTypeFilter,
       floatRangeFilter,
-      groupByItem,
       displayMode,
-      expandedRows,
       steamIdList,
       selectedSteamId,
       sortConfig,
@@ -1278,14 +1087,10 @@ export default {
       loadInventoryData,
       loadMoreData,
       handleReset,
-      handleGroupChange,
       handleSteamIdChange,
       handleSortChange,
       hasMore,
       loadingMore,
-      isExpanded,
-      toggleExpand,
-      handleExpandChange,
       editingAssetId,
       editingPrice,
       startEdit,
