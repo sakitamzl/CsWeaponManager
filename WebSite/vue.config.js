@@ -61,7 +61,13 @@ module.exports = defineConfig({
         timeout: 0,
         onProxyReq: prepareSseProxyReq,
         onProxyRes: ensureSseProxyResHeaders
-      }
+      },
+    },
+    // 添加静态文件服务配置 - 将 weapon_imgs 映射到项目根目录
+    static: {
+      directory: require('path').join(__dirname, '..', 'weapon_imgs'),
+      publicPath: '/weapon_imgs',
+      serveIndex: false
     }
   },
 

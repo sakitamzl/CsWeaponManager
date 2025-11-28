@@ -308,10 +308,14 @@
         >
           <div class="card-image">
             <img 
+              v-if="getWeaponImage(item.steam_hash_name)"
               :src="getWeaponImage(item.steam_hash_name)" 
               :alt="item.item_name"
-              @error="handleImageError"
+              @error="(e) => handleImageError(e, item.steam_hash_name)"
             />
+            <div v-else class="image-placeholder">
+              <span>无图片</span>
+            </div>
           </div>
           <div class="card-content">
             <div class="card-title" :title="item.item_name">{{ item.item_name }}</div>
@@ -542,6 +546,8 @@ export default {
     const currentOffset = ref(0) // 当前偏移量
     const hasMore = ref(true) // 是否还有更多数据
     const loadingMore = ref(false) // 是否正在加载更多
+    // 图片404缓存，避免重复请求
+    const image404Cache = ref(new Set())
     const statsData = ref({
       total_count: 0,
       by_type: [],
@@ -1069,7 +1075,11 @@ export default {
     // 获取武器图片路径
     const getWeaponImage = (steamHashName) => {
       if (!steamHashName) {
-        return '/weapon_imgs/default.png' // 默认图片
+        return null // 如果没有steam_hash_name，返回null，不显示图片
+      }
+      // 检查是否已经在404缓存中
+      if (image404Cache.value.has(steamHashName)) {
+        return null // 如果之前404过，直接返回null，不显示图片
       }
       // 将空格替换为下划线，并添加.png扩展名
       const imageName = steamHashName.replace(/\s+/g, '_') + '.png'
@@ -1077,8 +1087,15 @@ export default {
     }
 
     // 处理图片加载错误
-    const handleImageError = (event) => {
-      event.target.src = '/weapon_imgs/default.png' // 加载失败时显示默认图片
+    const handleImageError = (event, steamHashName) => {
+      // 将失败的steam_hash_name添加到404缓存中
+      if (steamHashName) {
+        image404Cache.value.add(steamHashName)
+      }
+      // 隐藏图片或显示占位符
+      event.target.style.display = 'none'
+      // 或者可以设置一个占位符图片
+      // event.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iIzMzMzMzMyIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjE0IiBmaWxsPSIjOTk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+'
     }
 
     // 获取价格差异样式类
@@ -1250,7 +1267,6 @@ export default {
       getPriceDiffClass,
       loadInventoryData,
       loadMoreData,
-      handleScroll,
       handleReset,
       handleGroupChange,
       handleSteamIdChange,
@@ -1498,6 +1514,17 @@ export default {
   height: 100%;
   object-fit: contain;
   background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+}
+
+.image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  color: #999;
+  font-size: 0.9rem;
 }
 
 .card-content {
