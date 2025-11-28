@@ -352,7 +352,7 @@ conf.ini
 test.json
 src/get_app_token/certificates/*
 
-
+weapon_imgs
 Spider
 
 Releases
@@ -368,3 +368,4 @@ pyinstaller.bat
 APK
 .claude
 1.cookie
+test2.json

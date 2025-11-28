@@ -207,13 +207,9 @@ def getIconStatus():
 def fetchWeaponIcons():
     """为爬虫提供待下载的饰品图标列表"""
     try:
-        data = request.get_json(silent=True) or {}
-        limit = int(data.get('limit', 200))
-        limit = max(1, min(limit, 1000))
-
         where_clause = "[icon_url] IS NOT NULL AND TRIM([icon_url]) != '' AND ([if_down] IS NULL OR [if_down] = 0)"
         pending_total = WeaponClassIDModel.count(where=where_clause)
-        records = WeaponClassIDModel.find_all(where=where_clause, limit=limit)
+        records = WeaponClassIDModel.find_all(where=where_clause)
 
         icon_list = []
         for record in records:
