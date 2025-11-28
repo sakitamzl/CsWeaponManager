@@ -131,6 +131,11 @@ class WeaponClassIDModel(BaseModel):
                 'type': 'TEXT',
                 'not_null': False,
                 'default': None
+            },
+            'if_down': {
+                'type': 'INTEGER',
+                'not_null': False,
+                'default': None
             }
         }
 

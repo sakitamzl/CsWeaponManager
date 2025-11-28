@@ -210,6 +210,57 @@
           <span class="sync-time">最后采集时间: {{ lastCsqaqTime }}</span>
         </div>
     </div>
+
+    <div class="sync-section">
+      <h2 class="section-title">图片资源包</h2>
+
+      <div class="tool-description">
+        <p class="tool-desc-text">
+          批量下载 weapon_classID 表中的 icon_url 图片到 <code>WebSite/public/weapon_imgs</code>，
+          已下载的记录会写入 <code>if_down</code> 避免重复。
+        </p>
+      </div>
+
+      <div class="sync-controls">
+        <el-input-number
+          v-model="iconDownloadLimit"
+          :min="10"
+          :max="500"
+          :step="10"
+          :disabled="isDownloadingIcons"
+          class="page-input"
+        />
+
+        <el-button
+          type="primary"
+          @click="downloadWeaponIcons"
+          :loading="isDownloadingIcons"
+        >
+          {{ isDownloadingIcons ? '下载中...' : '下载武器图标' }}
+        </el-button>
+      </div>
+
+      <div v-if="iconDownloadResult" class="sync-info" style="margin-top: 1rem;">
+        <div class="status-row">
+          <span class="status-label">本次待处理:</span>
+          <span class="status-value">{{ iconDownloadResult.total }}</span>
+        </div>
+        <div class="status-row">
+          <span class="status-label">成功下载:</span>
+          <span class="status-value success-text">{{ iconDownloadResult.downloaded }}</span>
+        </div>
+        <div class="status-row">
+          <span class="status-label">跳过/失败:</span>
+          <span class="status-value">
+            {{ iconDownloadResult.skipped }} / {{ iconDownloadResult.failed }}
+          </span>
+        </div>
+        <div class="status-row">
+          <span class="status-label">剩余待下载:</span>
+          <span class="status-value">{{ iconDownloadResult.pending_remaining }}</span>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -255,6 +306,11 @@ export default {
       duration: null
     })
     const lastCsqaqTime = ref('')
+
+    // 图片下载相关
+    const isDownloadingIcons = ref(false)
+    const iconDownloadLimit = ref(200)
+    const iconDownloadResult = ref(null)
 
     // ========== ADB设备管理功能 ==========
     
@@ -887,6 +943,44 @@ export default {
       }
     }
 
+    const downloadWeaponIcons = async () => {
+      if (isDownloadingIcons.value) {
+        return
+      }
+
+      isDownloadingIcons.value = true
+      iconDownloadResult.value = null
+
+      try {
+        const response = await axios.post(apiUrls.downloadWeaponIcons(), {
+          limit: iconDownloadLimit.value,
+          skipExisting: true
+        })
+
+        if (response.data.success) {
+          iconDownloadResult.value = response.data.data
+          const downloaded = response.data.data?.downloaded || 0
+          const total = response.data.data?.total || 0
+          ElMessage.success(`已完成 ${downloaded}/${total} 张图片下载`)
+        } else {
+          ElMessage.error(response.data.message || '下载失败')
+        }
+      } catch (error) {
+        console.error('下载武器图标失败:', error)
+        let errorMessage = '下载失败'
+        if (error.response) {
+          errorMessage = error.response.data?.message || `下载失败 (${error.response.status})`
+        } else if (error.request) {
+          errorMessage = '无法连接到爬虫服务器，请检查服务是否运行'
+        } else {
+          errorMessage = error.message || errorMessage
+        }
+        ElMessage.error(errorMessage)
+      } finally {
+        isDownloadingIcons.value = false
+      }
+    }
+
     // 组件挂载时加载Steam ID列表
     onMounted(() => {
       loadSteamIdList()
@@ -923,6 +1017,11 @@ export default {
       lastCollectTime,
       collectProgress,
       collectHashNamesFull,
+      // 图片下载
+      isDownloadingIcons,
+      iconDownloadLimit,
+      iconDownloadResult,
+      downloadWeaponIcons,
       // CSQAQ 相关
       isCrawlingCsqaq,
       csqaqStatus,
@@ -1173,6 +1272,11 @@ export default {
 
 .status-value.error {
   color: #F56C6C;
+  font-weight: 600;
+}
+
+.status-value.success-text {
+  color: #67C23A;
   font-weight: 600;
 }
 
