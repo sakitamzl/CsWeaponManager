@@ -203,6 +203,117 @@ def getIconStatus():
         }), 500
 
 
+@youpin898SelectWeaponV1.route('/fetchWeaponIcons', methods=['POST'])
+def fetchWeaponIcons():
+    """为爬虫提供待下载的饰品图标列表"""
+    try:
+        data = request.get_json(silent=True) or {}
+        limit = int(data.get('limit', 200))
+        limit = max(1, min(limit, 1000))
+
+        where_clause = "[icon_url] IS NOT NULL AND TRIM([icon_url]) != '' AND ([if_down] IS NULL OR [if_down] = 0)"
+        pending_total = WeaponClassIDModel.count(where=where_clause)
+        records = WeaponClassIDModel.find_all(where=where_clause, limit=limit)
+
+        icon_list = []
+        for record in records:
+            icon_list.append({
+                'steam_hash_name': record.steam_hash_name,
+                'icon_url': record.icon_url,
+                'market_listing_item_name': record.market_listing_item_name
+            })
+
+        return jsonify({
+            'success': True,
+            'data': icon_list,
+            'count': len(icon_list),
+            'pending_total': pending_total
+        }), 200
+    except Exception as e:
+        print(f"获取待下载图标列表失败: {e}")
+        import traceback
+        print(f"详细错误信息: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'error': f'服务器错误: {str(e)}'
+        }), 500
+
+
+@youpin898SelectWeaponV1.route('/updateIconStatus', methods=['POST'])
+def updateIconStatus():
+    """批量更新图标下载状态"""
+    try:
+        data = request.get_json(silent=True) or {}
+        items = data.get('items', [])
+
+        if not isinstance(items, list):
+            return jsonify({
+                'success': False,
+                'error': 'items 需要为数组'
+            }), 400
+
+        if not items:
+            return jsonify({
+                'success': True,
+                'updated': 0
+            }), 200
+
+        table_name = WeaponClassIDModel.get_table_name()
+        sql = f"UPDATE {table_name} SET [if_down] = ? WHERE [steam_hash_name] = ?"
+        db = WeaponClassIDModel().db
+
+        updated = 0
+        for item in items:
+            steam_hash_name = item.get('steam_hash_name')
+            status = item.get('status')
+
+            if not steam_hash_name or status is None:
+                continue
+
+            try:
+                normalized_status = int(status)
+            except (TypeError, ValueError):
+                normalized_status = 0
+
+            normalized_status = max(-1, min(normalized_status, 1))
+            affected = db.execute_update(sql, (normalized_status, steam_hash_name))
+            if affected:
+                updated += 1
+
+        return jsonify({
+            'success': True,
+            'updated': updated
+        }), 200
+    except Exception as e:
+        print(f"更新图标状态失败: {e}")
+        import traceback
+        print(f"详细错误信息: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'error': f'服务器错误: {str(e)}'
+        }), 500
+
+
+@youpin898SelectWeaponV1.route('/pendingWeaponIconsCount', methods=['GET'])
+def pendingWeaponIconsCount():
+    """统计待下载图标数量"""
+    try:
+        where_clause = "[icon_url] IS NOT NULL AND TRIM([icon_url]) != '' AND ([if_down] IS NULL OR [if_down] = 0)"
+        count = WeaponClassIDModel.count(where=where_clause)
+        return jsonify({
+            'success': True,
+            'count': count
+        }), 200
+    except Exception as e:
+        print(f"统计待下载图标数量失败: {e}")
+        import traceback
+        print(f"详细错误信息: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'error': f'服务器错误: {str(e)}'
+        }), 500
+
+
 
 
 @youpin898SelectWeaponV1.route('/searchWeapon', methods=['POST'])
