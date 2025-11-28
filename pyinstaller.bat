@@ -73,10 +73,15 @@ if exist "WebSite" (
     :: Create WebSite directory
     if not exist "Releases\%VERSION%\WebSite" mkdir "Releases\%VERSION%\WebSite"
     
-    :: Copy public folder
+    :: Copy public folder (exclude weapon_imgs)
     if exist "WebSite\public" (
         xcopy "WebSite\public" "Releases\%VERSION%\WebSite\public\" /E /I /H /Y /Q
-        echo - public folder copied
+        if exist "Releases\%VERSION%\WebSite\public\weapon_imgs" (
+            rmdir /s /q "Releases\%VERSION%\WebSite\public\weapon_imgs"
+            echo - excluded weapon_imgs folder from public copy
+        ) else (
+            echo - public folder copied
+        )
     )
     
     :: Copy src folder
