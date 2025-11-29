@@ -555,6 +555,12 @@ export default {
         console.log('数据响应:', response.data)
         if (response.data.success) {
           const newData = response.data.data || []
+
+          // 调试：查看前3条数据的 steam_hash_name
+          console.log('前3条数据的 steam_hash_name:', newData.slice(0, 3).map(item => ({
+            item_name: item.item_name,
+            steam_hash_name: item.steam_hash_name
+          })))
           
           // 如果是重置，直接替换数据；否则追加数据
           if (reset) {
@@ -835,20 +841,28 @@ export default {
 
     // 获取武器图片路径
     const getWeaponImage = (steamHashName) => {
+      console.log('getWeaponImage 调用，steamHashName:', steamHashName)
+
       if (!steamHashName) {
+        console.log('steam_hash_name 为空，返回 null')
         return null // 如果没有steam_hash_name，返回null，不显示图片
       }
       // 检查是否已经在404缓存中
       if (image404Cache.value.has(steamHashName)) {
+        console.log('steam_hash_name 在404缓存中，返回 null')
         return null // 如果之前404过，直接返回null，不显示图片
       }
       // 将空格和竖线分别替换为下划线，并添加.png扩展名
-      // 例如: "XM1014 | Blue Spruce (Factory New)" -> "XM1014___Blue_Spruce_(Factory_New).png"
+      // 例如: "AK-47 | Neon Revolution (Factory New)" -> "AK-47___Neon_Revolution_(Factory_New).png"
       const imageName = steamHashName
-        .replace(/\s/g, '_')   // 所有空格 -> "_"
-        .replace(/\|/g, '_')   // 所有竖线 -> "_"
+        .replace(/\s*\|\s*/g, '___')  // " | " -> "___" (竖线及其两侧空格替换为三个下划线)
+        .replace(/\s/g, '_')          // 剩余所有空格 -> "_"
         + '.png'
-      return `/weapon_imgs/${imageName}`
+
+      const imagePath = `/weapon_imgs/${imageName}`
+      console.log('生成的图片路径:', imagePath)
+
+      return imagePath
     }
 
     // 处理图片加载错误
