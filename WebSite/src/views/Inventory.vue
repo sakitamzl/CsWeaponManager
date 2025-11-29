@@ -375,10 +375,6 @@
               {{ getCardTitle(item) }}
             </div>
             <div class="card-info">
-              <div class="card-info-row" v-if="item.weapon_float">
-                <span class="info-label">磨损值:</span>
-                <span class="info-value">{{ item.weapon_float }}</span>
-              </div>
               <!-- 磨损值显示条 -->
               <div class="float-bar-container" v-if="item.weapon_float">
                 <div class="float-bar">
@@ -395,6 +391,10 @@
                     :title="`磨损值: ${item.weapon_float}`"
                   ></div>
                 </div>
+              </div>
+              <div class="card-info-row" v-if="item.weapon_float">
+                <span class="info-label">磨损值:</span>
+                <span class="info-value">{{ item.weapon_float }}</span>
               </div>
             </div>
             <div class="card-prices">
