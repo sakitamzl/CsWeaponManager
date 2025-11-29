@@ -392,37 +392,42 @@
                   ></div>
                 </div>
               </div>
-              <div class="card-info-row" v-if="item.weapon_float">
-                <span class="info-label">磨损值:</span>
-                <span class="info-value">{{ item.weapon_float }}</span>
+              <div class="float-value" v-if="item.weapon_float">
+                {{ item.weapon_float }}
               </div>
             </div>
             <div class="card-prices">
-              <div class="price-row" v-if="item.buy_price">
-                <span class="price-label">购入:</span>
-                <span class="price-value buy-price">¥{{ parseFloat(item.buy_price).toFixed(2) }}</span>
+              <!-- 购入和Steam合并为一行 -->
+              <div class="price-row" v-if="item.buy_price || item.steam_price">
+                <div class="price-group" v-if="item.buy_price">
+                  <span class="price-label">购入:</span>
+                  <span class="price-value buy-price">¥{{ parseFloat(item.buy_price).toFixed(2) }}</span>
+                </div>
+                <div class="price-group" v-if="item.steam_price">
+                  <span class="price-label">Steam:</span>
+                  <span class="price-value">¥{{ parseFloat(item.steam_price).toFixed(2) }}</span>
+                </div>
               </div>
-              <div class="price-row" v-if="item.yyyp_price">
-                <span class="price-label">悠悠:</span>
-                <span 
-                  class="price-value" 
-                  :class="getPriceDiffClass(item.yyyp_price, item.buy_price)"
-                >
-                  ¥{{ parseFloat(item.yyyp_price).toFixed(2) }}
-                </span>
-              </div>
-              <div class="price-row" v-if="item.buff_price">
-                <span class="price-label">BUFF:</span>
-                <span 
-                  class="price-value" 
-                  :class="getPriceDiffClass(item.buff_price, item.buy_price)"
-                >
-                  ¥{{ parseFloat(item.buff_price).toFixed(2) }}
-                </span>
-              </div>
-              <div class="price-row" v-if="item.steam_price">
-                <span class="price-label">Steam:</span>
-                <span class="price-value">¥{{ parseFloat(item.steam_price).toFixed(2) }}</span>
+              <!-- 悠悠和BUFF合并为一行 -->
+              <div class="price-row" v-if="item.yyyp_price || item.buff_price">
+                <div class="price-group" v-if="item.yyyp_price">
+                  <span class="price-label">悠悠:</span>
+                  <span
+                    class="price-value"
+                    :class="getPriceDiffClass(item.yyyp_price, item.buy_price)"
+                  >
+                    ¥{{ parseFloat(item.yyyp_price).toFixed(2) }}
+                  </span>
+                </div>
+                <div class="price-group" v-if="item.buff_price">
+                  <span class="price-label">BUFF:</span>
+                  <span
+                    class="price-value"
+                    :class="getPriceDiffClass(item.buff_price, item.buy_price)"
+                  >
+                    ¥{{ parseFloat(item.buff_price).toFixed(2) }}
+                  </span>
+                </div>
               </div>
             </div>
             <div class="card-footer">
@@ -1520,11 +1525,20 @@ export default {
   justify-content: space-between;
   align-items: center;
   font-size: 0.75rem;
+  gap: 0.5rem;
+}
+
+.price-group {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex: 1;
 }
 
 .price-label {
   color: #999;
   font-size: 0.7rem;
+  white-space: nowrap;
 }
 
 .price-value {
@@ -1624,6 +1638,16 @@ export default {
   color: #999;
   font-size: 1rem;
   background: rgba(255, 255, 255, 0.05);
+}
+
+/* 磨损值数字显示 */
+.float-value {
+  text-align: left;
+  font-size: 0.75rem;
+  color: #ccc;
+  font-family: monospace;
+  margin-top: 0.3rem;
+  font-weight: 500;
 }
 
 /* 磨损值显示条样式 */
