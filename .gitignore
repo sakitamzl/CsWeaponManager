@@ -1,3 +1,5 @@
+# Spider
+
 
 # Logs
 logs
@@ -353,7 +355,7 @@ test.json
 src/get_app_token/certificates/*
 
 weapon_imgs
-Spider
+
 test_JSON
 
 Releases
@@ -370,3 +372,4 @@ APK
 .claude
 1.cookie
 test2.json
+weapon_imgs.zip

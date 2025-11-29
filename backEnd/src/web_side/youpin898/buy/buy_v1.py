@@ -196,6 +196,10 @@ def insert_webside_buydata():
         price_all = data['price_all']
         payment = data['payment']
         tradeType = data['tradeType']
+        steam_hash_name = data.get('steam_hash_name')
+        sticker = data.get('sticker')
+        pendant = data.get('pendant')
+        rename = data.get('rename')
 
         # 插入到yyyp_buy表
         print(f"插入悠悠有品购买记录到yyyp_buy表，ID: {ID}")
@@ -242,6 +246,10 @@ def insert_webside_buydata():
             buy_record.payment = payment
             buy_record.trade_type = tradeType
             buy_record.data_user = data_user
+            buy_record.steam_hash_name = steam_hash_name
+            buy_record.sticker = sticker
+            buy_record.pendant = pendant
+            buy_record.rename = rename
             setattr(buy_record, 'from', 'yyyp')
             buy_saved = buy_record.save()
             print(f"buy表保存结果: {buy_saved}")
@@ -289,6 +297,10 @@ def insert_main_buydata():
         payment = data['payment']
         tradeType = data['tradeType']
         data_user = data['data_user']
+        steam_hash_name = data.get('steam_hash_name')
+        sticker = data.get('sticker')
+        pendant = data.get('pendant')
+        rename = data.get('rename')
 
         # 插入到通用buy表
         print(f"插入主购买记录到buy表，ID: {ID}")
@@ -308,6 +320,10 @@ def insert_main_buydata():
         buy_record.payment = payment
         buy_record.trade_type = tradeType
         buy_record.data_user = data_user
+        buy_record.steam_hash_name = steam_hash_name
+        buy_record.sticker = sticker
+        buy_record.pendant = pendant
+        buy_record.rename = rename
         setattr(buy_record, 'from', 'yyyp')  # from是Python保留关键字，使用setattr设置
         
         buy_saved = buy_record.save()

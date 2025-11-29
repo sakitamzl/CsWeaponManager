@@ -200,6 +200,10 @@ def insert_webside_selldata():
         except (TypeError, ValueError):
             err_number = None
         price_all = data['price_all']
+        steam_hash_name = data.get('steam_hash_name')
+        sticker = data.get('sticker')
+        pendant = data.get('pendant')
+        rename = data.get('rename')
 
         # 插入到yyyp_sell表
         print(f"插入悠悠有品销售记录到yyyp_sell表，ID: {ID}")
@@ -245,6 +249,10 @@ def insert_webside_selldata():
             sell_record.order_time = order_time
             sell_record.steam_id = steamid
             sell_record.data_user = data_user
+            sell_record.steam_hash_name = steam_hash_name
+            sell_record.sticker = sticker
+            sell_record.pendant = pendant
+            sell_record.rename = rename
             setattr(sell_record, 'from', 'yyyp')
             
             sell_saved = sell_record.save()
@@ -293,6 +301,10 @@ def insert_main_selldata():
         order_time = data['order_time']
         steamid = data['steam_id']
         data_user = data['data_user']
+        steam_hash_name = data.get('steam_hash_name')
+        sticker = data.get('sticker')
+        pendant = data.get('pendant')
+        rename = data.get('rename')
         
         # 处理weapon_float字符串'NULL'转换为None
         if weapon_float == 'NULL':
@@ -320,6 +332,10 @@ def insert_main_selldata():
         sell_record.order_time = order_time
         sell_record.steam_id = steamid
         sell_record.data_user = data_user
+        sell_record.steam_hash_name = steam_hash_name
+        sell_record.sticker = sticker
+        sell_record.pendant = pendant
+        sell_record.rename = rename
         setattr(sell_record, 'from', data_from)
         
         sell_saved = sell_record.save()
