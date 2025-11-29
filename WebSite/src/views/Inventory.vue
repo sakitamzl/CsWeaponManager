@@ -555,12 +555,6 @@ export default {
         console.log('数据响应:', response.data)
         if (response.data.success) {
           const newData = response.data.data || []
-
-          // 调试：查看前3条数据的 steam_hash_name
-          console.log('前3条数据的 steam_hash_name:', newData.slice(0, 3).map(item => ({
-            item_name: item.item_name,
-            steam_hash_name: item.steam_hash_name
-          })))
           
           // 如果是重置，直接替换数据；否则追加数据
           if (reset) {
@@ -841,15 +835,11 @@ export default {
 
     // 获取武器图片路径
     const getWeaponImage = (steamHashName) => {
-      console.log('getWeaponImage 调用，steamHashName:', steamHashName)
-
       if (!steamHashName) {
-        console.log('steam_hash_name 为空，返回 null')
         return null // 如果没有steam_hash_name，返回null，不显示图片
       }
       // 检查是否已经在404缓存中
       if (image404Cache.value.has(steamHashName)) {
-        console.log('steam_hash_name 在404缓存中，返回 null')
         return null // 如果之前404过，直接返回null，不显示图片
       }
       // 将空格和竖线分别替换为下划线，并添加.png扩展名
@@ -859,10 +849,7 @@ export default {
         .replace(/\s/g, '_')          // 剩余所有空格 -> "_"
         + '.png'
 
-      const imagePath = `/weapon_imgs/${imageName}`
-      console.log('生成的图片路径:', imagePath)
-
-      return imagePath
+      return `/weapon_imgs/${imageName}`
     }
 
     // 处理图片加载错误

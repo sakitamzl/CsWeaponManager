@@ -159,6 +159,7 @@ def get_inventory(steam_id):
                 WHEN si.weapon_type = '未知物品' THEN 1
                 ELSE 0
             END,
+            CAST(si.buy_price AS REAL) DESC NULLS LAST,
             si.ROWID
         LIMIT ? OFFSET ?
         """
