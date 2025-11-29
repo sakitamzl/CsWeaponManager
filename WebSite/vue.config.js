@@ -1,5 +1,6 @@
 const { defineConfig } = require('@vue/cli-service')
 const webpack = require('webpack')
+const path = require('path')
 
 const SPIDER_PROXY_TARGET = 'http://127.0.0.1:9002'
 
@@ -33,8 +34,6 @@ module.exports = defineConfig({
         // API 请求不重写
         { from: /^\/api/, to: context => context.parsedUrl.pathname },
         { from: /^\/spider/, to: context => context.parsedUrl.pathname },
-        // weapon_imgs 请求不重写
-        { from: /^\/weapon_imgs/, to: context => context.parsedUrl.pathname },
         // 其他所有请求重写到 index.html
         { from: /./, to: '/index.html' }
       ],
@@ -65,15 +64,15 @@ module.exports = defineConfig({
         onProxyRes: ensureSseProxyResHeaders
       },
     },
-    // 添加静态文件服务配置 - 将 weapon_imgs 映射到项目根目录
+    // 映射项目根目录的 weapon_imgs 到 /weapon_imgs 路径
     static: {
-      directory: require('path').join(__dirname, '..', 'weapon_imgs'),
+      directory: path.join(__dirname, '..', 'weapon_imgs'),
       publicPath: '/weapon_imgs',
       serveIndex: false
     }
   },
 
-  publicPath: process.env.NODE_ENV === 'production' ? './' : '/',
+  publicPath: '/',
 
   configureWebpack: {
     plugins: [

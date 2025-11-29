@@ -304,6 +304,7 @@
               v-if="getWeaponImage(item.steam_hash_name)"
               :src="getWeaponImage(item.steam_hash_name)" 
               :alt="item.item_name"
+              loading="lazy"
               @error="(e) => handleImageError(e, item.steam_hash_name)"
             />
             <div v-else class="image-placeholder">
@@ -852,10 +853,6 @@ export default {
 
     // 处理图片加载错误
     const handleImageError = (event, steamHashName) => {
-      // 阻止默认行为，防止无限循环
-      event.preventDefault()
-      event.stopPropagation()
-      
       // 将失败的steam_hash_name添加到404缓存中
       if (steamHashName) {
         image404Cache.value.add(steamHashName)
@@ -864,11 +861,8 @@ export default {
       // 移除错误监听器，防止重复触发
       event.target.onerror = null
       
-      // 隐藏图片
+      // 隐藏图片，不设置data URI，避免将图片数据加载到内存
       event.target.style.display = 'none'
-      
-      // 设置一个空的data URI，防止浏览器继续尝试加载
-      event.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMSIgaGVpZ2h0PSIxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjwvc3ZnPg=='
     }
 
     // 获取价格差异样式类
