@@ -970,10 +970,26 @@ export default {
         if (!Array.isArray(stickers)) return []
 
         // 返回贴纸数组，每个贴纸包含name和image
-        return stickers.map(sticker => ({
-          name: sticker.name || sticker.sticker_name || '未知贴纸',
-          image: sticker.image || sticker.sticker_img || null
-        }))
+        return stickers.map(sticker => {
+          const name = sticker.name || sticker.sticker_name || '未知贴纸'
+          const steamHashName = sticker.steam_hash_name || sticker.image || sticker.sticker_img
+
+          // 根据steam_hash_name生成图片URL
+          let imageUrl = null
+          if (steamHashName) {
+            // 使用getWeaponImage相同的逻辑转换路径
+            const imageName = steamHashName
+              .replace(/\s*\|\s*/g, '___')
+              .replace(/\s/g, '_')
+              + '.png'
+            imageUrl = `/weapon_imgs/${imageName}`
+          }
+
+          return {
+            name: name,
+            image: imageUrl
+          }
+        })
       } catch (e) {
         console.error('解析贴纸JSON失败:', e)
         return []
