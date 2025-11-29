@@ -340,14 +340,14 @@ def get_inventory_stats(steam_id):
     """获取库存统计信息"""
     try:
         from src.db_manager.database import DatabaseManager
-        
+
         db = DatabaseManager()
-        
+
         # 统计总数（只统计在库存中的物品）
         total_sql = "SELECT COUNT(*) FROM steam_inventory WHERE data_user = ? AND if_inventory = '1'"
         total_result = db.execute_query(total_sql, (steam_id,))
         total_count = total_result[0][0] if total_result else 0
-        
+
         # 按武器类型统计（只统计在库存中的物品）
         type_sql = """
         SELECT weapon_type, COUNT(*) as count 
@@ -375,7 +375,7 @@ def get_inventory_stats(steam_id):
         ORDER BY count DESC
         """
         wear_results = db.execute_query(wear_sql, (steam_id,))
-        
+
         wear_stats = []
         for row in wear_results:
             float_range, count = row
@@ -383,7 +383,7 @@ def get_inventory_stats(steam_id):
                 'float_range': float_range,
                 'count': count
             })
-        
+
         # 统计购入价格总和（只统计在库存中的物品）
         price_sql = """
         SELECT 
@@ -396,7 +396,7 @@ def get_inventory_stats(steam_id):
         WHERE data_user = ? AND if_inventory = '1'
         """
         price_result = db.execute_query(price_sql, (steam_id,))
-        
+
         price_stats = {
             'priced_count': 0,
             'total_price': 0,
@@ -404,7 +404,7 @@ def get_inventory_stats(steam_id):
             'min_price': 0,
             'max_price': 0
         }
-        
+
         if price_result and len(price_result) > 0:
             priced_count, total_price, avg_price, min_price, max_price = price_result[0]
             price_stats = {
@@ -414,7 +414,7 @@ def get_inventory_stats(steam_id):
                 'min_price': round(min_price, 2) if min_price else 0,
                 'max_price': round(max_price, 2) if max_price else 0
             }
-        
+
         # 统计悠悠有品价格总和
         yyyp_price_sql = """
         SELECT 
@@ -425,13 +425,13 @@ def get_inventory_stats(steam_id):
         WHERE data_user = ? AND if_inventory = '1'
         """
         yyyp_price_result = db.execute_query(yyyp_price_sql, (steam_id,))
-        
+
         yyyp_price_stats = {
             'priced_count': 0,
             'total_price': 0,
             'avg_price': 0
         }
-        
+
         if yyyp_price_result and len(yyyp_price_result) > 0:
             priced_count, total_price, avg_price = yyyp_price_result[0]
             yyyp_price_stats = {
@@ -439,7 +439,7 @@ def get_inventory_stats(steam_id):
                 'total_price': round(total_price, 2) if total_price else 0,
                 'avg_price': round(avg_price, 2) if avg_price else 0
             }
-        
+
         # 统计BUFF价格总和
         buff_price_sql = """
         SELECT 
@@ -450,13 +450,13 @@ def get_inventory_stats(steam_id):
         WHERE data_user = ? AND if_inventory = '1'
         """
         buff_price_result = db.execute_query(buff_price_sql, (steam_id,))
-        
+
         buff_price_stats = {
             'priced_count': 0,
             'total_price': 0,
             'avg_price': 0
         }
-        
+
         if buff_price_result and len(buff_price_result) > 0:
             priced_count, total_price, avg_price = buff_price_result[0]
             buff_price_stats = {
@@ -464,7 +464,32 @@ def get_inventory_stats(steam_id):
                 'total_price': round(total_price, 2) if total_price else 0,
                 'avg_price': round(avg_price, 2) if avg_price else 0
             }
-        
+
+        # 统计 Steam 参考价总和
+        steam_price_sql = """
+        SELECT 
+            COUNT(CASE WHEN CAST(steam_price AS REAL) > 0 THEN 1 END) as priced_count,
+            SUM(CAST(steam_price AS REAL)) as total_price,
+            AVG(CAST(steam_price AS REAL)) as avg_price
+        FROM steam_inventory
+        WHERE data_user = ? AND if_inventory = '1'
+        """
+        steam_price_result = db.execute_query(steam_price_sql, (steam_id,))
+
+        steam_price_stats = {
+            'priced_count': 0,
+            'total_price': 0,
+            'avg_price': 0
+        }
+
+        if steam_price_result and len(steam_price_result) > 0:
+            priced_count, total_price, avg_price = steam_price_result[0]
+            steam_price_stats = {
+                'priced_count': priced_count if priced_count else 0,
+                'total_price': round(total_price, 2) if total_price else 0,
+                'avg_price': round(avg_price, 2) if avg_price else 0
+            }
+
         return jsonify({
             'success': True,
             'data': {
@@ -473,7 +498,8 @@ def get_inventory_stats(steam_id):
                 'by_wear': wear_stats,
                 'price_stats': price_stats,
                 'yyyp_price_stats': yyyp_price_stats,
-                'buff_price_stats': buff_price_stats
+                'buff_price_stats': buff_price_stats,
+                'steam_price_stats': steam_price_stats
             }
         }), 200
         

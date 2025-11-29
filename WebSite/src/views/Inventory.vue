@@ -415,14 +415,13 @@ export default {
     const CONFIG_API = `${API_CONFIG.BASE_URL}/configV1`
 
     const inventoryStats = computed(() => {
-      // 基于当前显示的数据计算统计
-      const currentData = inventoryData.value || []
-      const totalCount = currentData.length
-      
+      // 基于后端返回的整库统计数据计算
+      const totalCount = statsData.value.total_count || 0
+
       const typeDistribution = statsData.value.by_type.length > 0
         ? statsData.value.by_type.slice(0, 3).map(t => `${t.weapon_type}(${t.count})`).join(', ')
         : '暂无数据'
-      
+
       const wearDistribution = statsData.value.by_wear.length > 0
         ? statsData.value.by_wear.slice(0, 3).map(w => `${w.float_range}(${w.count})`).join(', ')
         : '暂无数据'
@@ -435,130 +434,72 @@ export default {
     })
 
     const priceStats = computed(() => {
-      // 基于当前显示的数据计算购入价格统计
-      const currentData = inventoryData.value || []
-      let total_price = 0
-      let priced_count = 0
-      
-      currentData.forEach(item => {
-        if (item.buy_price) {
-          const price = parseFloat(item.buy_price)
-          if (!isNaN(price)) {
-            total_price += price
-            priced_count++
-          }
-        }
-      })
-      
+      // 使用后端返回的整库购入价格统计
+      const ps = statsData.value.price_stats || {}
+      const priced_count = ps.priced_count || 0
+      const total_price = typeof ps.total_price === 'number' ? ps.total_price : Number(ps.total_price || 0)
+      const avg_price = typeof ps.avg_price === 'number' ? ps.avg_price : Number(ps.avg_price || 0)
+
       return {
-        priced_count: priced_count,
+        priced_count,
         total_price: total_price.toFixed(2),
-        avg_price: priced_count > 0 ? (total_price / priced_count).toFixed(2) : '0.00',
-        min_price: '0.00',
-        max_price: '0.00'
+        avg_price: avg_price.toFixed(2),
+        min_price: ps.min_price !== undefined ? Number(ps.min_price || 0).toFixed(2) : '0.00',
+        max_price: ps.max_price !== undefined ? Number(ps.max_price || 0).toFixed(2) : '0.00'
       }
     })
 
     const yyypPriceStats = computed(() => {
-      // 基于当前显示的数据计算悠悠有品价格统计
-      const currentData = inventoryData.value || []
-      let yyyp_total = 0
-      let buy_total = 0
-      let priced_count = 0
-      
-      currentData.forEach(item => {
-        if (item.yyyp_price) {
-          const price = parseFloat(item.yyyp_price)
-          if (!isNaN(price)) {
-            yyyp_total += price
-            priced_count++
-          }
-        }
-        if (item.buy_price) {
-          const price = parseFloat(item.buy_price)
-          if (!isNaN(price)) {
-            buy_total += price
-          }
-        }
-      })
-      
-      const diff = (yyyp_total - buy_total).toFixed(2)
-      
+      // 基于后端整库统计的悠悠有品价格 + 购入总价计算
+      const yy = statsData.value.yyyp_price_stats || {}
+      const ps = statsData.value.price_stats || {}
+      const priced_count = yy.priced_count || 0
+      const yy_total = typeof yy.total_price === 'number' ? yy.total_price : Number(yy.total_price || 0)
+      const buy_total = typeof ps.total_price === 'number' ? ps.total_price : Number(ps.total_price || 0)
+      const avg_price = typeof yy.avg_price === 'number' ? yy.avg_price : Number(yy.avg_price || 0)
+      const diff = (yy_total - buy_total).toFixed(2)
+
       return {
-        priced_count: priced_count,
-        total_price: yyyp_total.toFixed(2),
-        avg_price: priced_count > 0 ? (yyyp_total / priced_count).toFixed(2) : '0.00',
-        diff: diff
+        priced_count,
+        total_price: yy_total.toFixed(2),
+        avg_price: avg_price.toFixed(2),
+        diff
       }
     })
 
     const buffPriceStats = computed(() => {
-      // 基于当前显示的数据计算BUFF价格统计（扣除2.5%手续费）
-      const currentData = inventoryData.value || []
-      let buff_total = 0
-      let buff_total_after_fee = 0
-      let buy_total = 0
-      let priced_count = 0
-      
-      currentData.forEach(item => {
-        if (item.buff_price) {
-          const price = parseFloat(item.buff_price)
-          if (!isNaN(price)) {
-            buff_total += price
-            // 扣除2.5%手续费
-            buff_total_after_fee += price * 0.975
-            priced_count++
-          }
-        }
-        if (item.buy_price) {
-          const price = parseFloat(item.buy_price)
-          if (!isNaN(price)) {
-            buy_total += price
-          }
-        }
-      })
-      
-      // 差价基于扣除手续费后的价格计算
+      // 基于后端整库统计的 BUFF 价格 + 购入总价计算（扣除2.5%手续费）
+      const buff = statsData.value.buff_price_stats || {}
+      const ps = statsData.value.price_stats || {}
+      const priced_count = buff.priced_count || 0
+      const buff_total = typeof buff.total_price === 'number' ? buff.total_price : Number(buff.total_price || 0)
+      const buff_total_after_fee = buff_total * 0.975
+      const buy_total = typeof ps.total_price === 'number' ? ps.total_price : Number(ps.total_price || 0)
       const diff = (buff_total_after_fee - buy_total).toFixed(2)
-      
+
       return {
-        priced_count: priced_count,
+        priced_count,
         total_price: buff_total_after_fee.toFixed(2),
         avg_price: priced_count > 0 ? (buff_total_after_fee / priced_count).toFixed(2) : '0.00',
-        diff: diff
+        diff
       }
     })
 
     const steamPriceStats = computed(() => {
-      // 基于当前显示的数据计算Steam价格统计
-      const currentData = inventoryData.value || []
-      let steam_total = 0
-      let buy_total = 0
-      let priced_count = 0
-      
-      currentData.forEach(item => {
-        if (item.steam_price) {
-          const price = parseFloat(item.steam_price)
-          if (!isNaN(price)) {
-            steam_total += price
-            priced_count++
-          }
-        }
-        if (item.buy_price) {
-          const price = parseFloat(item.buy_price)
-          if (!isNaN(price)) {
-            buy_total += price
-          }
-        }
-      })
-      
+      // 基于后端整库统计的 Steam 价格 + 购入总价计算
+      const steam = statsData.value.steam_price_stats || {}
+      const ps = statsData.value.price_stats || {}
+      const priced_count = steam.priced_count || 0
+      const steam_total = typeof steam.total_price === 'number' ? steam.total_price : Number(steam.total_price || 0)
+      const buy_total = typeof ps.total_price === 'number' ? ps.total_price : Number(ps.total_price || 0)
+      const avg_price = typeof steam.avg_price === 'number' ? steam.avg_price : Number(steam.avg_price || 0)
       const diff = (steam_total - buy_total).toFixed(2)
-      
+
       return {
-        priced_count: priced_count,
+        priced_count,
         total_price: steam_total.toFixed(2),
-        avg_price: priced_count > 0 ? (steam_total / priced_count).toFixed(2) : '0.00',
-        diff: diff
+        avg_price: avg_price.toFixed(2),
+        diff
       }
     })
 
@@ -944,7 +885,7 @@ export default {
           `${API_CONFIG.BASE_URL}/webInventoryV1/inventory/stats/${selectedSteamId.value}`
         )
         if (statsResponse.data.success) {
-          inventoryStats.value = statsResponse.data.data
+          statsData.value = statsResponse.data.data
         }
       } catch (error) {
         console.error('加载统计数据失败:', error)
