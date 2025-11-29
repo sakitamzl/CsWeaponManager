@@ -151,7 +151,8 @@ def get_inventory(steam_id):
         sql = f"""
         SELECT
             si.assetid, si.instanceid, si.classid, si.item_name, si.weapon_name, si.float_range,
-            si.weapon_type, si.weapon_float, si.remark, si.data_user, si.buy_price, si.yyyp_price, si.buff_price, si.steam_price, si.order_time, si.steam_hash_name
+            si.weapon_type, si.weapon_float, si.remark, si.data_user, si.buy_price, si.yyyp_price, si.buff_price, si.steam_price, si.order_time, si.steam_hash_name,
+            si.sticker, si.pendant, si.rename
         FROM {SteamInventoryModel.get_table_name()} si
         WHERE {where_clause.replace('data_user', 'si.data_user').replace('weapon_type', 'si.weapon_type').replace('float_range', 'si.float_range').replace('item_name', 'si.item_name').replace('weapon_name', 'si.weapon_name')}
         ORDER BY
@@ -225,7 +226,10 @@ def get_inventory(steam_id):
                     'buff_price': row[12] if len(row) > 12 else None,
                     'steam_price': row[13] if len(row) > 13 else None,
                     'order_time': row[14] if len(row) > 14 else None,
-                    'steam_hash_name': row[15] if len(row) > 15 else None
+                    'steam_hash_name': row[15] if len(row) > 15 else None,
+                    'sticker': row[16] if len(row) > 16 else None,
+                    'pendant': row[17] if len(row) > 17 else None,
+                    'rename': row[18] if len(row) > 18 else None
                 }
                 records.append(record)
         

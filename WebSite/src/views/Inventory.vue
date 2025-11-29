@@ -155,16 +155,30 @@
           min-width="100" 
           sortable="custom"
         />
-        <el-table-column 
-          prop="weapon_float" 
-          label="磨损值" 
-          min-width="150" 
+        <el-table-column
+          prop="weapon_float"
+          label="磨损值"
+          min-width="220"
           sortable="custom"
         >
           <template #default="scope">
-            <span v-if="scope.row.weapon_float" style="font-family: monospace;">
-              {{ scope.row.weapon_float }}
-            </span>
+            <div v-if="scope.row.weapon_float">
+              <div style="font-family: monospace; font-size: 0.85rem; margin-bottom: 4px;">
+                {{ scope.row.weapon_float }}
+              </div>
+              <!-- 磨损值显示条 -->
+              <div class="float-bar">
+                <div class="float-segment fn"></div>
+                <div class="float-segment mw"></div>
+                <div class="float-segment ft"></div>
+                <div class="float-segment ww"></div>
+                <div class="float-segment bs"></div>
+                <div
+                  class="float-pointer"
+                  :style="{ left: `${parseFloat(scope.row.weapon_float) * 100}%` }"
+                ></div>
+              </div>
+            </div>
             <span v-else style="color: #888;">N/A</span>
           </template>
         </el-table-column>
@@ -264,20 +278,47 @@
             <span v-else style="color: #888;">-</span>
           </template>
         </el-table-column>
-        <el-table-column 
-          prop="remark" 
-          label="备注" 
-          width="120" 
-          fixed="right" 
-          sortable="custom"
+        <el-table-column
+          label="附加信息"
+          width="250"
+          fixed="right"
         >
           <template #default="scope">
-            <el-tooltip v-if="scope.row.remark" :content="scope.row.remark" placement="left" effect="dark">
-              <el-tag type="warning" size="small" style="cursor: help;">
-                交易限制
-              </el-tag>
-            </el-tooltip>
-            <span v-else style="color: #888;">-</span>
+            <div class="table-info-container">
+              <div class="table-tags">
+                <el-tooltip v-if="scope.row.remark" :content="scope.row.remark" placement="left" effect="dark">
+                  <el-tag type="warning" size="small" style="cursor: help; margin: 2px;">
+                    交易限制
+                  </el-tag>
+                </el-tooltip>
+                <el-tooltip v-if="scope.row.rename" :content="`名称标签: ${scope.row.rename}`" placement="left" effect="dark">
+                  <el-tag type="info" size="small" style="cursor: help; margin: 2px;">
+                    🏷️{{ scope.row.rename.length > 6 ? scope.row.rename.substring(0, 6) + '...' : scope.row.rename }}
+                  </el-tag>
+                </el-tooltip>
+                <el-tag v-if="scope.row.pendant" type="primary" size="small" style="margin: 2px;">
+                  🎗️挂件
+                </el-tag>
+              </div>
+              <!-- 贴纸图片显示 -->
+              <div v-if="scope.row.sticker" class="sticker-images-table">
+                <div
+                  v-for="(sticker, index) in parseStickers(scope.row.sticker)"
+                  :key="index"
+                  class="sticker-item-table"
+                  :title="sticker.name || '未知贴纸'"
+                >
+                  <img
+                    v-if="sticker.image"
+                    :src="sticker.image"
+                    :alt="sticker.name"
+                    class="sticker-img-table"
+                    @error="(e) => e.target.style.display = 'none'"
+                  />
+                  <div v-else class="sticker-placeholder-table">?</div>
+                </div>
+              </div>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -300,15 +341,33 @@
           class="inventory-card"
         >
           <div class="card-image">
-            <img 
+            <img
               v-if="getWeaponImage(item.steam_hash_name)"
-              :src="getWeaponImage(item.steam_hash_name)" 
+              :src="getWeaponImage(item.steam_hash_name)"
               :alt="item.item_name"
               loading="lazy"
               @error="(e) => handleImageError(e, item.steam_hash_name)"
             />
             <div v-else class="image-placeholder">
               <span>无图片</span>
+            </div>
+            <!-- 贴纸图片覆盖层 - 左下角 -->
+            <div v-if="item.sticker" class="sticker-overlay">
+              <div
+                v-for="(sticker, index) in parseStickers(item.sticker)"
+                :key="index"
+                class="sticker-item-overlay"
+                :title="sticker.name || '未知贴纸'"
+              >
+                <img
+                  v-if="sticker.image"
+                  :src="sticker.image"
+                  :alt="sticker.name"
+                  class="sticker-img-overlay"
+                  @error="(e) => e.target.style.display = 'none'"
+                />
+                <div v-else class="sticker-placeholder-overlay">?</div>
+              </div>
             </div>
           </div>
           <div class="card-content">
@@ -319,6 +378,23 @@
               <div class="card-info-row" v-if="item.weapon_float">
                 <span class="info-label">磨损值:</span>
                 <span class="info-value">{{ item.weapon_float }}</span>
+              </div>
+              <!-- 磨损值显示条 -->
+              <div class="float-bar-container" v-if="item.weapon_float">
+                <div class="float-bar">
+                  <!-- 五个磨损等级的颜色区域 -->
+                  <div class="float-segment fn" title="崭新出厂 (0.00 - 0.07)"></div>
+                  <div class="float-segment mw" title="略有磨损 (0.07 - 0.15)"></div>
+                  <div class="float-segment ft" title="久经沙场 (0.15 - 0.38)"></div>
+                  <div class="float-segment ww" title="破损不堪 (0.38 - 0.45)"></div>
+                  <div class="float-segment bs" title="战痕累累 (0.45 - 1.00)"></div>
+                  <!-- 磨损值指针 -->
+                  <div
+                    class="float-pointer"
+                    :style="{ left: `${parseFloat(item.weapon_float) * 100}%` }"
+                    :title="`磨损值: ${item.weapon_float}`"
+                  ></div>
+                </div>
               </div>
             </div>
             <div class="card-prices">
@@ -349,8 +425,16 @@
                 <span class="price-value">¥{{ parseFloat(item.steam_price).toFixed(2) }}</span>
               </div>
             </div>
-            <div class="card-footer" v-if="item.remark">
-              <el-tag type="warning" size="small">交易限制</el-tag>
+            <div class="card-footer">
+              <div class="card-tags">
+                <el-tag v-if="item.remark" type="warning" size="small">交易限制</el-tag>
+                <el-tag v-if="item.rename" type="info" size="small" class="rename-tag">
+                  <span class="tag-icon">🏷️</span>{{ item.rename }}
+                </el-tag>
+                <el-tag v-if="item.pendant" type="primary" size="small" class="pendant-tag">
+                  <span class="tag-icon">🎗️</span>挂件
+                </el-tag>
+              </div>
             </div>
           </div>
         </div>
@@ -873,6 +957,36 @@ export default {
       return diff >= 0 ? 'price-profit' : 'price-loss'
     }
 
+    // 解析贴纸JSON数据
+    const parseStickers = (stickerJson) => {
+      if (!stickerJson) return []
+      try {
+        const stickers = JSON.parse(stickerJson)
+        if (!Array.isArray(stickers)) return []
+
+        // 返回贴纸数组，每个贴纸包含name和image
+        return stickers.map(sticker => ({
+          name: sticker.name || sticker.sticker_name || '未知贴纸',
+          image: sticker.image || sticker.sticker_img || null
+        }))
+      } catch (e) {
+        console.error('解析贴纸JSON失败:', e)
+        return []
+      }
+    }
+
+    // 获取贴纸数量
+    const getStickerCount = (stickerJson) => {
+      return parseStickers(stickerJson).length
+    }
+
+    // 获取贴纸提示信息
+    const getStickerTooltip = (stickerJson) => {
+      const stickers = parseStickers(stickerJson)
+      if (stickers.length === 0) return ''
+      return '贴纸列表:\n' + stickers.map((s, i) => `${i + 1}. ${s.name}`).join('\n')
+    }
+
     // 单独加载统计数据（不重新加载列表）
     const loadInventoryStats = async () => {
       try {
@@ -1031,6 +1145,9 @@ export default {
       getWeaponImage,
       handleImageError,
       getPriceDiffClass,
+      parseStickers,
+      getStickerCount,
+      getStickerTooltip,
       loadInventoryData,
       loadMoreData,
       handleReset,
@@ -1239,8 +1356,8 @@ export default {
 
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
   padding: 1rem;
 }
 
@@ -1252,7 +1369,7 @@ export default {
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
-  aspect-ratio: 1;
+  height: 380px; /* 缩小卡片高度 */
 }
 
 .inventory-card:hover {
@@ -1263,19 +1380,72 @@ export default {
 
 .card-image {
   width: 100%;
-  aspect-ratio: 1;
+  height: 150px; /* 缩小图片区域高度 */
   background: var(--bg-tertiary);
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  overflow: visible; /* 允许贴纸溢出 */
+  flex-shrink: 0; /* 防止压缩 */
+  position: relative; /* 为贴纸覆盖层定位 */
 }
 
 .card-image img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: contain; /* 保持比例，完整显示 */
   background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+}
+
+/* 贴纸覆盖层 - 左下角 */
+.sticker-overlay {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  display: flex;
+  gap: 3px;
+  z-index: 5;
+  pointer-events: none; /* 不阻挡鼠标事件 */
+}
+
+.sticker-item-overlay {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+  pointer-events: auto; /* 贴纸本身可以交互 */
+  cursor: pointer;
+}
+
+.sticker-item-overlay:hover {
+  transform: scale(1.3);
+  z-index: 10;
+  border-color: rgba(76, 175, 80, 0.8);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+}
+
+.sticker-img-overlay {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
+.sticker-placeholder-overlay {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 1rem;
+  font-weight: bold;
 }
 
 .image-placeholder {
@@ -1290,15 +1460,15 @@ export default {
 }
 
 .card-content {
-  padding: 1rem;
+  padding: 0.75rem;
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .card-title {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-weight: bold;
   color: #fff;
   overflow: hidden;
@@ -1306,15 +1476,15 @@ export default {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  line-height: 1.4;
-  min-height: 2.8em;
+  line-height: 1.3;
+  min-height: 2.6em;
 }
 
 .card-info {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  font-size: 0.8rem;
+  gap: 0.3rem;
+  font-size: 0.75rem;
 }
 
 .card-info-row {
@@ -1325,12 +1495,12 @@ export default {
 
 .info-label {
   color: #999;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
 }
 
 .info-value {
   color: #ccc;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   text-align: right;
   flex: 1;
   margin-left: 0.5rem;
@@ -1339,9 +1509,9 @@ export default {
 .card-prices {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.25rem;
   margin-top: auto;
-  padding-top: 0.5rem;
+  padding-top: 0.4rem;
   border-top: 1px solid var(--border-color);
 }
 
@@ -1349,18 +1519,18 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
 
 .price-label {
   color: #999;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
 }
 
 .price-value {
   color: #fff;
   font-weight: bold;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
 }
 
 .buy-price {
@@ -1377,8 +1547,174 @@ export default {
 
 .card-footer {
   margin-top: 0.5rem;
+}
+
+.card-tags {
   display: flex;
-  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.tag-icon {
+  margin-right: 0.2rem;
+}
+
+.rename-tag {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-bottom: 0.3rem;
+}
+
+.table-info-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+/* 贴纸图片样式 - 列表视图 */
+.sticker-images-table {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  padding: 0.2rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 3px;
+}
+
+.sticker-item-table {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sticker-item-table:hover {
+  transform: scale(1.2);
+  z-index: 10;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  border-color: rgba(76, 175, 80, 0.5);
+}
+
+.sticker-img-table {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.2), rgba(255, 255, 255, 0.1));
+}
+
+.sticker-placeholder-table {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* 磨损值显示条样式 */
+.float-bar-container {
+  margin-top: 0.5rem;
+  padding: 0.3rem 0;
+}
+
+.float-bar {
+  position: relative;
+  height: 8px;
+  display: flex;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.float-segment {
+  height: 100%;
+  transition: opacity 0.2s;
+}
+
+.float-segment:hover {
+  opacity: 0.8;
+}
+
+/* CS2 标准磨损等级颜色 */
+.float-segment.fn {
+  flex: 7;  /* 0.00 - 0.07 */
+  background: linear-gradient(to right, #4CAF50, #66BB6A);
+}
+
+.float-segment.mw {
+  flex: 8;  /* 0.07 - 0.15 */
+  background: linear-gradient(to right, #8BC34A, #9CCC65);
+}
+
+.float-segment.ft {
+  flex: 23; /* 0.15 - 0.38 */
+  background: linear-gradient(to right, #FFC107, #FFB300);
+}
+
+.float-segment.ww {
+  flex: 7;  /* 0.38 - 0.45 */
+  background: linear-gradient(to right, #FF9800, #FB8C00);
+}
+
+.float-segment.bs {
+  flex: 55; /* 0.45 - 1.00 */
+  background: linear-gradient(to right, #F44336, #E53935);
+}
+
+/* 磨损值指针 */
+.float-pointer {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 3px;
+  height: 16px;
+  background: #fff;
+  border-radius: 2px;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5), 0 0 8px rgba(255, 255, 255, 0.8);
+  z-index: 10;
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.float-pointer::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid #fff;
+}
+
+.float-pointer::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 5px solid #fff;
 }
 
 @media (max-width: 768px) {
@@ -1386,6 +1722,14 @@ export default {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 1rem;
     padding: 0.5rem;
+  }
+
+  .inventory-card {
+    height: 400px; /* 移动端卡片高度 */
+  }
+
+  .card-image {
+    height: 150px; /* 移动端图片区域高度 */
   }
 
   .card-content {
@@ -1401,6 +1745,19 @@ export default {
   .price-label,
   .price-value {
     font-size: 0.7rem;
+  }
+
+  .float-bar {
+    height: 6px;
+  }
+
+  .float-pointer {
+    height: 12px;
+  }
+
+  .sticker-item-overlay {
+    width: 28px;
+    height: 28px;
   }
 }
 
