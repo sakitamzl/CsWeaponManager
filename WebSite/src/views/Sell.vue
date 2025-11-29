@@ -369,8 +369,9 @@
     >
       <div v-if="previewItem" class="preview-content">
         <div class="preview-main-layout">
-          <!-- 左侧图片区域 -->
+          <!-- 左侧区域 -->
           <div class="preview-left-section">
+            <!-- 图片区域 -->
             <div class="preview-image-section">
               <img
                 v-if="getWeaponImage(previewItem.steam_hash_name)"
@@ -381,126 +382,134 @@
               <div v-else class="preview-image-placeholder">
                 <span>无图片</span>
               </div>
-              <!-- 挂件覆盖层 - 右上角 -->
-              <div v-if="previewItem.pendant" class="preview-pendant-overlay">
-                <div
-                  class="preview-pendant-item"
-                  :title="parsePendant(previewItem.pendant)?.name || '挂件'"
-                >
-                  <img
-                    v-if="parsePendant(previewItem.pendant)?.image"
-                    :src="parsePendant(previewItem.pendant).image"
-                    :alt="parsePendant(previewItem.pendant).name"
-                    class="preview-pendant-img"
-                    @error="(e) => e.target.style.display = 'none'"
-                  />
-                  <div v-else class="preview-pendant-placeholder">🎗️</div>
+            </div>
+
+            <!-- 详细信息区域 -->
+            <div class="preview-info-section">
+              <!-- 磨损信息 -->
+              <div v-if="previewItem.weapon_float" class="preview-float-section">
+                <div class="preview-float-bar-container">
+                  <div class="float-bar">
+                    <div class="float-segment fn"></div>
+                    <div class="float-segment mw"></div>
+                    <div class="float-segment ft"></div>
+                    <div class="float-segment ww"></div>
+                    <div class="float-segment bs"></div>
+                    <div
+                      class="float-pointer"
+                      :style="{ left: `${parseFloat(previewItem.weapon_float) * 100}%` }"
+                    ></div>
+                  </div>
+                </div>
+                <div class="preview-float-value">{{ previewItem.weapon_float }}</div>
+                <div class="preview-float-range" v-if="previewItem.float_range">
+                  {{ previewItem.float_range }}
+                </div>
+              </div>
+
+              <!-- 价格信息 -->
+              <div class="preview-prices">
+                <div class="preview-price-row">
+                  <div class="preview-price-item" v-if="previewItem.price">
+                    <span class="preview-price-label">出售价格:</span>
+                    <span class="preview-price-value buy-price">¥{{ parseFloat(previewItem.price).toFixed(2) }}</span>
+                  </div>
+                </div>
+                <div class="preview-info-row" v-if="previewItem.order_id">
+                  <div class="preview-info-item">
+                    <span class="preview-info-label">订单编号:</span>
+                    <span class="preview-info-value">{{ previewItem.order_id }}</span>
+                  </div>
+                </div>
+                <div class="preview-info-row">
+                  <div class="preview-info-item" v-if="previewItem.weapon_type">
+                    <span class="preview-info-label">类型:</span>
+                    <span class="preview-info-value">{{ previewItem.weapon_type }}</span>
+                  </div>
+                  <div class="preview-info-item" v-if="previewItem.from">
+                    <span class="preview-info-label">来源:</span>
+                    <span class="preview-info-value">{{ sourceLabel(previewItem.from) }}</span>
+                  </div>
+                </div>
+                <div class="preview-info-row" v-if="previewItem.order_time">
+                  <div class="preview-info-item">
+                    <span class="preview-info-label">出售时间:</span>
+                    <span class="preview-info-value">{{ formatTime(previewItem.order_time) }}</span>
+                  </div>
+                </div>
+                <div class="preview-info-row" v-if="previewItem.status">
+                  <div class="preview-info-item">
+                    <span class="preview-info-label">状态:</span>
+                    <el-tag 
+                      :type="getStatusType(previewItem.status)" 
+                      size="default"
+                      :style="{
+                        backgroundColor: getStatusColor(previewItem.status),
+                        borderColor: getStatusColor(previewItem.status),
+                        color: getStatusTextColor(previewItem.status)
+                      }"
+                    >
+                      {{ previewItem.status }}
+                    </el-tag>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- 右侧详细信息区域 -->
+          <!-- 右侧区域 -->
           <div class="preview-right-section">
-            <!-- 详细信息区域 -->
-            <div class="preview-info-section">
-          <!-- 改名标签 -->
-          <div class="preview-rename" v-if="previewItem.rename">
-            <span class="preview-rename-icon">🏷️</span>
-            <span class="preview-rename-text">{{ previewItem.rename }}</span>
-          </div>
+            <!-- 改名标签 -->
+            <div class="preview-rename" v-if="previewItem.rename">
+              <span class="preview-rename-icon">🏷️</span>
+              <span class="preview-rename-text">{{ previewItem.rename }}</span>
+            </div>
 
-          <!-- 磨损信息 -->
-          <div v-if="previewItem.weapon_float" class="preview-float-section">
-            <div class="preview-float-bar-container">
-              <div class="float-bar">
-                <div class="float-segment fn"></div>
-                <div class="float-segment mw"></div>
-                <div class="float-segment ft"></div>
-                <div class="float-segment ww"></div>
-                <div class="float-segment bs"></div>
+            <!-- 贴纸列表 -->
+            <div v-if="previewItem.sticker && parseStickers(previewItem.sticker).length > 0" class="preview-sticker-list-section">
+              <div class="preview-sticker-list-title">贴纸列表</div>
+              <div class="preview-sticker-list">
                 <div
-                  class="float-pointer"
-                  :style="{ left: `${parseFloat(previewItem.weapon_float) * 100}%` }"
-                ></div>
-              </div>
-            </div>
-            <div class="preview-float-value">{{ previewItem.weapon_float }}</div>
-            <div class="preview-float-range" v-if="previewItem.float_range">
-              {{ previewItem.float_range }}
-            </div>
-          </div>
-
-          <!-- 价格信息 -->
-          <div class="preview-prices">
-            <div class="preview-price-row">
-              <div class="preview-price-item" v-if="previewItem.price">
-                <span class="preview-price-label">出售价格:</span>
-                <span class="preview-price-value buy-price">¥{{ parseFloat(previewItem.price).toFixed(2) }}</span>
-              </div>
-            </div>
-            <div class="preview-info-row" v-if="previewItem.order_id">
-              <div class="preview-info-item">
-                <span class="preview-info-label">订单编号:</span>
-                <span class="preview-info-value">{{ previewItem.order_id }}</span>
-              </div>
-            </div>
-            <div class="preview-info-row">
-              <div class="preview-info-item" v-if="previewItem.weapon_type">
-                <span class="preview-info-label">类型:</span>
-                <span class="preview-info-value">{{ previewItem.weapon_type }}</span>
-              </div>
-              <div class="preview-info-item" v-if="previewItem.from">
-                <span class="preview-info-label">来源:</span>
-                <span class="preview-info-value">{{ sourceLabel(previewItem.from) }}</span>
-              </div>
-            </div>
-            <div class="preview-info-row" v-if="previewItem.order_time">
-              <div class="preview-info-item">
-                <span class="preview-info-label">出售时间:</span>
-                <span class="preview-info-value">{{ formatTime(previewItem.order_time) }}</span>
-              </div>
-            </div>
-            <div class="preview-info-row" v-if="previewItem.status">
-              <div class="preview-info-item">
-                <span class="preview-info-label">状态:</span>
-                <el-tag 
-                  :type="getStatusType(previewItem.status)" 
-                  size="default"
-                  :style="{
-                    backgroundColor: getStatusColor(previewItem.status),
-                    borderColor: getStatusColor(previewItem.status),
-                    color: getStatusTextColor(previewItem.status)
-                  }"
+                  v-for="(sticker, index) in parseStickers(previewItem.sticker)"
+                  :key="index"
+                  class="preview-sticker-list-item"
                 >
-                  {{ previewItem.status }}
-                </el-tag>
+                  <el-tooltip :content="sticker.name || '未知贴纸'" placement="left">
+                    <div class="preview-sticker-list-img-wrapper">
+                      <img
+                        v-if="sticker.image"
+                        :src="sticker.image"
+                        :alt="sticker.name"
+                        class="preview-sticker-list-img"
+                        @error="(e) => e.target.style.display = 'none'"
+                      />
+                      <div v-else class="preview-sticker-list-placeholder">?</div>
+                    </div>
+                  </el-tooltip>
+                  <div class="preview-sticker-list-name">{{ sticker.name || '未知贴纸' }}</div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- 贴纸列表 -->
-          <div v-if="previewItem.sticker && parseStickers(previewItem.sticker).length > 0" class="preview-sticker-list-section">
-            <div class="preview-sticker-list-title">贴纸列表</div>
-            <div class="preview-sticker-list">
-              <div
-                v-for="(sticker, index) in parseStickers(previewItem.sticker)"
-                :key="index"
-                class="preview-sticker-list-item"
-              >
-                <el-tooltip :content="sticker.name || '未知贴纸'" placement="left">
-                  <div class="preview-sticker-list-img-wrapper">
-                    <img
-                      v-if="sticker.image"
-                      :src="sticker.image"
-                      :alt="sticker.name"
-                      class="preview-sticker-list-img"
-                      @error="(e) => e.target.style.display = 'none'"
-                    />
-                    <div v-else class="preview-sticker-list-placeholder">?</div>
-                  </div>
-                </el-tooltip>
-                <div class="preview-sticker-list-name">{{ sticker.name || '未知贴纸' }}</div>
+            <!-- 挂件信息 -->
+            <div v-if="previewItem.pendant" class="preview-pendant-section">
+              <div class="preview-pendant-title">挂件</div>
+              <div class="preview-pendant-list">
+                <div class="preview-pendant-list-item">
+                  <el-tooltip :content="parsePendant(previewItem.pendant)?.name || '挂件'" placement="left">
+                    <div class="preview-pendant-list-img-wrapper">
+                      <img
+                        v-if="parsePendant(previewItem.pendant)?.image"
+                        :src="parsePendant(previewItem.pendant).image"
+                        :alt="parsePendant(previewItem.pendant).name"
+                        class="preview-pendant-list-img"
+                        @error="(e) => e.target.style.display = 'none'"
+                      />
+                      <div v-else class="preview-pendant-list-placeholder">🎗️</div>
+                    </div>
+                  </el-tooltip>
+                  <div class="preview-pendant-list-name">{{ parsePendant(previewItem.pendant)?.name || '挂件' }}</div>
+                </div>
               </div>
             </div>
           </div>
@@ -2355,6 +2364,9 @@ export default {
 .preview-left-section {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .preview-right-section {
@@ -2417,8 +2429,7 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  max-height: 300px;
-  overflow-y: auto;
+  height: auto;
 }
 
 .preview-sticker-list-item {
@@ -2482,50 +2493,89 @@ export default {
   white-space: nowrap;
 }
 
-/* 预览弹窗中的挂件覆盖层 - 右上角 */
-.preview-pendant-overlay {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 5;
+/* 预览弹窗中的挂件信息 */
+.preview-pendant-section {
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
 }
 
-.preview-pendant-item {
-  position: relative;
-  width: 70px;
-  height: 70px;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
+.preview-pendant-title {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: bold;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.preview-pendant-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  height: auto;
+}
+
+.preview-pendant-list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.02);
   border-radius: 6px;
-  overflow: hidden;
-  border: 2px solid rgba(255, 215, 0, 0.4);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   transition: all 0.2s ease;
+}
+
+.preview-pendant-list-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 215, 0, 0.5);
+}
+
+.preview-pendant-list-img-wrapper {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  transition: transform 0.2s ease;
   cursor: pointer;
 }
 
-.preview-pendant-item:hover {
-  transform: scale(1.5);
+.preview-pendant-list-img-wrapper:hover {
+  transform: scale(1.2);
   border-color: rgba(255, 215, 0, 0.8);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
+  z-index: 10;
 }
 
-.preview-pendant-img {
+.preview-pendant-list-img {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
 }
 
-.preview-pendant-placeholder {
+.preview-pendant-list-placeholder {
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #ffd700;
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: bold;
+}
+
+.preview-pendant-list-name {
+  color: #fff;
+  font-size: 0.9rem;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .preview-info-section {
@@ -2667,7 +2717,7 @@ export default {
   }
 
   .preview-sticker-list {
-    max-height: 200px;
+    height: auto;
   }
 }
 </style>
