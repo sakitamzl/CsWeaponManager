@@ -311,20 +311,10 @@
             </div>
           </div>
           <div class="card-content">
-            <div class="card-title" :title="item.item_name">{{ item.item_name }}</div>
+            <div class="card-title" :title="getCardTitle(item)">
+              {{ getCardTitle(item) }}
+            </div>
             <div class="card-info">
-              <div class="card-info-row">
-                <span class="info-label">武器:</span>
-                <span class="info-value">{{ item.weapon_name }}</span>
-              </div>
-              <div class="card-info-row">
-                <span class="info-label">类型:</span>
-                <span class="info-value">{{ item.weapon_type }}</span>
-              </div>
-              <div class="card-info-row" v-if="item.float_range">
-                <span class="info-label">磨损:</span>
-                <span class="info-value">{{ item.float_range }}</span>
-              </div>
               <div class="card-info-row" v-if="item.weapon_float">
                 <span class="info-label">磨损值:</span>
                 <span class="info-value">{{ item.weapon_float }}</span>
@@ -884,6 +874,23 @@ export default {
       }
     }
 
+    // 生成卡片标题（组合显示）
+    const getCardTitle = (item) => {
+      const parts = []
+      if (item.weapon_name) {
+        parts.push(item.weapon_name)
+      }
+      if (item.item_name) {
+        parts.push(item.item_name)
+      }
+      // 组合格式: "AK-47 | 轨道 Mk01 （崭新出厂）"
+      let title = parts.join(' | ')
+      if (item.float_range) {
+        title += ` （${item.float_range}）`
+      }
+      return title
+    }
+
     // 获取武器图片路径
     const getWeaponImage = (steamHashName) => {
       if (!steamHashName) {
@@ -1081,6 +1088,7 @@ export default {
       steamIdList,
       selectedSteamId,
       sortConfig,
+      getCardTitle,
       getWeaponImage,
       handleImageError,
       getPriceDiffClass,
