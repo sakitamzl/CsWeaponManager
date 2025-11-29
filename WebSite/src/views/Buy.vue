@@ -233,7 +233,7 @@
       >
         <el-table-column label="图片" width="144" align="center">
           <template #default="scope">
-            <div class="weapon-image-cell">
+            <div class="weapon-image-cell" @click="openPreview(scope.row)" style="cursor: pointer;">
               <img
                 v-if="getWeaponImage(scope.row.steam_hash_name)"
                 :src="getWeaponImage(scope.row.steam_hash_name)"
@@ -252,14 +252,21 @@
               <div class="item-extras" v-if="hasExtras(scope.row)">
                 <!-- 印花图片 -->
                 <div class="sticker-list" v-if="scope.row.sticker">
-                  <img
+                  <div
                     v-for="(sticker, idx) in parseStickers(scope.row.sticker)"
                     :key="idx"
-                    :src="getStickerImage(sticker)"
-                    :alt="sticker.name"
-                    class="sticker-img"
-                    @error="(e) => e.target.style.display = 'none'"
-                  />
+                    class="sticker-item"
+                    :title="sticker.name || '未知贴纸'"
+                  >
+                    <img
+                      v-if="sticker.image"
+                      :src="sticker.image"
+                      :alt="sticker.name"
+                      class="sticker-img"
+                      @error="(e) => e.target.style.display = 'none'"
+                    />
+                    <div v-else class="sticker-placeholder">?</div>
+                  </div>
                 </div>
                 <!-- 挂件图片 -->
                 <div class="pendant-list" v-if="scope.row.pendant">
@@ -273,7 +280,6 @@
                 </div>
                 <!-- 改名显示 -->
                 <div class="rename-text" v-if="scope.row.rename">
-                  <span class="rename-label">改名:</span>
                   <span class="rename-value">{{ scope.row.rename }}</span>
                 </div>
               </div>
@@ -351,6 +357,156 @@
         />
       </div>
     </div>
+
+    <!-- 预览弹窗 -->
+    <el-dialog
+      v-model="previewVisible"
+      :title="previewItem ? getItemTitle(previewItem) : ''"
+      width="800px"
+      :close-on-click-modal="true"
+      :close-on-press-escape="true"
+      class="preview-dialog"
+    >
+      <div v-if="previewItem" class="preview-content">
+        <div class="preview-main-layout">
+          <!-- 左侧图片区域 -->
+          <div class="preview-left-section">
+            <div class="preview-image-section">
+              <img
+                v-if="getWeaponImage(previewItem.steam_hash_name)"
+                :src="getWeaponImage(previewItem.steam_hash_name)"
+                :alt="previewItem.item_name"
+                class="preview-image"
+              />
+              <div v-else class="preview-image-placeholder">
+                <span>无图片</span>
+              </div>
+              <!-- 挂件覆盖层 - 右上角 -->
+              <div v-if="previewItem.pendant" class="preview-pendant-overlay">
+                <div
+                  class="preview-pendant-item"
+                  :title="parsePendant(previewItem.pendant)?.name || '挂件'"
+                >
+                  <img
+                    v-if="parsePendant(previewItem.pendant)?.image"
+                    :src="parsePendant(previewItem.pendant).image"
+                    :alt="parsePendant(previewItem.pendant).name"
+                    class="preview-pendant-img"
+                    @error="(e) => e.target.style.display = 'none'"
+                  />
+                  <div v-else class="preview-pendant-placeholder">🎗️</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 右侧详细信息区域 -->
+          <div class="preview-right-section">
+            <!-- 详细信息区域 -->
+            <div class="preview-info-section">
+          <!-- 改名标签 -->
+          <div class="preview-rename" v-if="previewItem.rename">
+            <span class="preview-rename-icon">🏷️</span>
+            <span class="preview-rename-text">{{ previewItem.rename }}</span>
+          </div>
+
+          <!-- 磨损信息 -->
+          <div v-if="previewItem.weapon_float" class="preview-float-section">
+            <div class="preview-float-bar-container">
+              <div class="float-bar">
+                <div class="float-segment fn"></div>
+                <div class="float-segment mw"></div>
+                <div class="float-segment ft"></div>
+                <div class="float-segment ww"></div>
+                <div class="float-segment bs"></div>
+                <div
+                  class="float-pointer"
+                  :style="{ left: `${parseFloat(previewItem.weapon_float) * 100}%` }"
+                ></div>
+              </div>
+            </div>
+            <div class="preview-float-value">{{ previewItem.weapon_float }}</div>
+            <div class="preview-float-range" v-if="previewItem.float_range">
+              {{ previewItem.float_range }}
+            </div>
+          </div>
+
+          <!-- 价格信息 -->
+          <div class="preview-prices">
+            <div class="preview-price-row">
+              <div class="preview-price-item" v-if="previewItem.price">
+                <span class="preview-price-label">购入价格:</span>
+                <span class="preview-price-value buy-price">¥{{ parseFloat(previewItem.price).toFixed(2) }}</span>
+              </div>
+            </div>
+            <div class="preview-info-row" v-if="previewItem.order_id">
+              <div class="preview-info-item">
+                <span class="preview-info-label">订单编号:</span>
+                <span class="preview-info-value">{{ previewItem.order_id }}</span>
+              </div>
+            </div>
+            <div class="preview-info-row">
+              <div class="preview-info-item" v-if="previewItem.weapon_type">
+                <span class="preview-info-label">类型:</span>
+                <span class="preview-info-value">{{ previewItem.weapon_type }}</span>
+              </div>
+              <div class="preview-info-item" v-if="previewItem.from">
+                <span class="preview-info-label">来源:</span>
+                <span class="preview-info-value">{{ sourceLabel(previewItem.from) }}</span>
+              </div>
+            </div>
+            <div class="preview-info-row" v-if="previewItem.order_time">
+              <div class="preview-info-item">
+                <span class="preview-info-label">购入时间:</span>
+                <span class="preview-info-value">{{ formatTime(previewItem.order_time) }}</span>
+              </div>
+            </div>
+            <div class="preview-info-row" v-if="previewItem.status">
+              <div class="preview-info-item">
+                <span class="preview-info-label">状态:</span>
+                <el-tag 
+                  :type="getStatusType(previewItem.status)" 
+                  size="default"
+                  :style="{
+                    backgroundColor: getStatusColor(previewItem.status),
+                    borderColor: getStatusColor(previewItem.status),
+                    color: getStatusTextColor(previewItem.status)
+                  }"
+                >
+                  {{ previewItem.status }}
+                </el-tag>
+              </div>
+            </div>
+          </div>
+
+          <!-- 贴纸列表 -->
+          <div v-if="previewItem.sticker && parseStickers(previewItem.sticker).length > 0" class="preview-sticker-list-section">
+            <div class="preview-sticker-list-title">贴纸列表</div>
+            <div class="preview-sticker-list">
+              <div
+                v-for="(sticker, index) in parseStickers(previewItem.sticker)"
+                :key="index"
+                class="preview-sticker-list-item"
+              >
+                <el-tooltip :content="sticker.name || '未知贴纸'" placement="left">
+                  <div class="preview-sticker-list-img-wrapper">
+                    <img
+                      v-if="sticker.image"
+                      :src="sticker.image"
+                      :alt="sticker.name"
+                      class="preview-sticker-list-img"
+                      @error="(e) => e.target.style.display = 'none'"
+                    />
+                    <div v-else class="preview-sticker-list-placeholder">?</div>
+                  </div>
+                </el-tooltip>
+                <div class="preview-sticker-list-name">{{ sticker.name || '未知贴纸' }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -384,6 +540,10 @@ export default {
     const dateRange = ref(null)
     const isTimeSearchMode = ref(false)
     const sortOrder = ref('descending') // 'ascending' 或 'descending'
+    
+    // 预览弹窗相关
+    const previewVisible = ref(false)
+    const previewItem = ref(null)
     
     // 高级搜索相关
     const hasAdvancedFilters = computed(() => {
@@ -1385,12 +1545,32 @@ export default {
       return !!(item.sticker || item.pendant || item.rename)
     }
 
-    // 解析印花数据
+    // 解析印花数据 - 与Inventory页面逻辑一致
     const parseStickers = (stickerData) => {
       if (!stickerData) return []
       try {
         const parsed = typeof stickerData === 'string' ? JSON.parse(stickerData) : stickerData
-        return Array.isArray(parsed) ? parsed : []
+        if (!Array.isArray(parsed)) return []
+        
+        // 返回贴纸数组，每个贴纸包含name和image
+        return parsed.map(sticker => {
+          const name = sticker.name || '未知贴纸'
+          const hashName = sticker.hashName || sticker.steam_hash_name
+          
+          // 根据hashName生成图片URL，添加"Sticker___"前缀
+          let imageUrl = null
+          if (hashName) {
+            const imageName = hashName
+              .replace(/\s*\|\s*/g, '___')
+              .replace(/\s/g, '_')
+            imageUrl = `/weapon_imgs/Sticker___${imageName}.png`
+          }
+          
+          return {
+            name: name,
+            image: imageUrl
+          }
+        })
       } catch (e) {
         console.error('解析印花数据失败:', e)
         return []
@@ -1409,36 +1589,25 @@ export default {
       }
     }
 
-    // 获取印花图片路径 - 使用hashName获取图片
-    const getStickerImage = (sticker) => {
-      if (!sticker) return null
-      // 从sticker对象中获取hashName字段
-      const hashName = sticker.hashName || sticker.steam_hash_name
-      if (!hashName) return null
-      // 将hashName转换为图片文件名：替换特殊字符
-      const imageName = hashName
-        .replace(/\s*\|\s*/g, '___')  // 替换 | 为 ___
-        .replace(/\s+/g, '_')        // 替换空格为 _
-        .replace(/[()]/g, '')         // 移除括号
-        .replace(/[^\w_]/g, '_')       // 其他特殊字符替换为 _
-        + '.png'
-      return `/weapon_imgs/${imageName}`
-    }
 
-    // 获取挂件图片路径 - 使用hashName获取图片
+    // 获取挂件图片路径 - 使用hashName获取图片，与武器图片获取方式一致
     const getPendantImage = (pendant) => {
       if (!pendant) return null
       // 从pendant对象中获取hashName字段
       const hashName = pendant.hashName || pendant.steam_hash_name
       if (!hashName) return null
-      // 将hashName转换为图片文件名：替换特殊字符
+      // 使用与武器图片相同的转换方式
       const imageName = hashName
-        .replace(/\s*\|\s*/g, '___')  // 替换 | 为 ___
-        .replace(/\s+/g, '_')        // 替换空格为 _
-        .replace(/[()]/g, '')         // 移除括号
-        .replace(/[^\w_]/g, '_')       // 其他特殊字符替换为 _
+        .replace(/\s*\|\s*/g, '___')
+        .replace(/\s/g, '_')
         + '.png'
       return `/weapon_imgs/${imageName}`
+    }
+
+    // 打开预览弹窗
+    const openPreview = (item) => {
+      previewItem.value = item
+      previewVisible.value = true
     }
 
     onMounted(() => {
@@ -1508,8 +1677,10 @@ export default {
       hasExtras,
       parseStickers,
       parsePendant,
-      getStickerImage,
-      getPendantImage
+      getPendantImage,
+      previewVisible,
+      previewItem,
+      openPreview
     }
   }
 }
@@ -2248,12 +2419,43 @@ export default {
   flex-wrap: wrap;
 }
 
-.sticker-img {
+.sticker-item {
+  position: relative;
   width: 32px;
   height: 32px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sticker-item:hover {
+  transform: scale(2);
+  z-index: 10;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  border-color: rgba(76, 175, 80, 0.5);
+}
+
+.sticker-img {
+  width: 100%;
+  height: 100%;
   object-fit: contain;
-  border-radius: 2px;
   background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
+.sticker-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 1rem;
+  font-weight: bold;
+  background: rgba(255, 255, 255, 0.05);
 }
 
 /* 挂件样式 */
@@ -2286,6 +2488,355 @@ export default {
 .rename-value {
   color: #4CAF50;
   font-weight: 500;
+}
+
+/* 预览弹窗样式 */
+.preview-dialog :deep(.el-dialog__header) {
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  padding: 1rem 1.5rem;
+}
+
+.preview-dialog :deep(.el-dialog__title) {
+  color: #fff;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.preview-dialog :deep(.el-dialog__body) {
+  background: var(--bg-secondary);
+  padding: 1.5rem;
+}
+
+.preview-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.preview-main-layout {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.preview-left-section {
+  flex: 1;
+  min-width: 0;
+}
+
+.preview-right-section {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.preview-image-section {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+}
+
+.preview-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 1.2rem;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+}
+
+/* 预览弹窗中的贴纸列表 */
+.preview-sticker-list-section {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.preview-sticker-list-title {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: bold;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.preview-sticker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.preview-sticker-list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.preview-sticker-list-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(76, 175, 80, 0.5);
+}
+
+.preview-sticker-list-img-wrapper {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: transform 0.2s ease;
+  cursor: pointer;
+}
+
+.preview-sticker-list-img-wrapper:hover {
+  transform: scale(1.2);
+  border-color: rgba(76, 175, 80, 0.8);
+  z-index: 10;
+}
+
+.preview-sticker-list-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.preview-sticker-list-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.preview-sticker-list-name {
+  color: #fff;
+  font-size: 0.9rem;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 预览弹窗中的挂件覆盖层 - 右上角 */
+.preview-pendant-overlay {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 5;
+}
+
+.preview-pendant-item {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 215, 0, 0.4);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.preview-pendant-item:hover {
+  transform: scale(1.5);
+  border-color: rgba(255, 215, 0, 0.8);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
+}
+
+.preview-pendant-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.preview-pendant-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffd700;
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.preview-info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* 改名标签 */
+.preview-rename {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(64, 158, 255, 0.1);
+  border: 1px solid rgba(64, 158, 255, 0.3);
+  border-radius: 6px;
+}
+
+.preview-rename-icon {
+  font-size: 1.2rem;
+}
+
+.preview-rename-text {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+/* 磨损信息 */
+.preview-float-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.preview-float-bar-container {
+  width: 100%;
+}
+
+.preview-float-value {
+  font-size: 1.1rem;
+  font-family: monospace;
+  color: #fff;
+  font-weight: bold;
+}
+
+.preview-float-range {
+  font-size: 0.9rem;
+  color: #999;
+}
+
+/* 价格信息 */
+.preview-prices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.preview-price-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.preview-price-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.preview-price-label {
+  color: #999;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.preview-price-value {
+  color: #fff;
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+.preview-price-value.buy-price {
+  color: #4CAF50;
+}
+
+.preview-info-row {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.preview-info-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.preview-info-label {
+  color: #999;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.preview-info-value {
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .preview-dialog {
+    width: 95% !important;
+  }
+
+  .preview-main-layout {
+    flex-direction: column;
+  }
+
+  .preview-image-section {
+    height: 200px;
+  }
+
+  .preview-pendant-item {
+    width: 50px;
+    height: 50px;
+  }
+
+  .preview-price-row {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .preview-sticker-list {
+    max-height: 200px;
+  }
 }
 </style>
 
