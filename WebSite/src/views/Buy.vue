@@ -231,7 +231,7 @@
         :flexible="true"
         :scrollbar-always-on="true"
       >
-        <el-table-column label="图片" width="100" align="center">
+        <el-table-column label="图片" width="144" align="center">
           <template #default="scope">
             <div class="weapon-image-cell">
               <img
@@ -250,7 +250,7 @@
             {{ getItemTitle(scope.row) }}
           </template>
         </el-table-column>
-        <el-table-column prop="weapon_float" label="磨损值" min-width="150" align="left">
+        <el-table-column prop="weapon_float" label="磨损值" width="200" align="left">
           <template #default="scope">
             <div v-if="scope.row.weapon_float">
               <div style="font-family: monospace; font-size: 0.85rem; margin-bottom: 4px;">
@@ -1407,20 +1407,27 @@ export default {
 <style scoped>
 /* 武器图片单元格样式 */
 .weapon-image-cell {
-  width: 80px;
-  height: 60px;
+  width: 100%;
+  height: 100%;
+  min-height: 90px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto;
+  padding: 4px;
+  box-sizing: border-box;
 }
 
 .weapon-img {
+  width: 100%;
+  height: auto;
   max-width: 100%;
-  max-height: 100%;
+  max-height: 90px;
   object-fit: contain;
+  object-position: center;
   background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
   border-radius: 4px;
+  display: block;
 }
 
 .no-image {
@@ -1541,11 +1548,23 @@ export default {
   font-size: clamp(0.75rem, 1.2vw, 0.875rem);
 }
 
+/* 确保表格行有足够的高度显示完整图片 */
+:deep(.el-table .el-table__row) {
+  min-height: 90px;
+}
+
+/* 确保图片列单元格有足够空间 */
+:deep(.el-table td:first-child) {
+  height: auto;
+  min-height: 90px;
+  vertical-align: middle;
+}
+
 :deep(.el-table th) {
   background-color: var(--bg-tertiary) !important;
   color: #fff;
   border-bottom: 1px solid var(--border-default);
-  padding: clamp(0.5rem, 1.5vw, 0.75rem);
+  padding: 0.375rem 2px;
 }
 
 :deep(.el-table thead th) {
@@ -1560,7 +1579,13 @@ export default {
   background-color: transparent !important;
   border-bottom: 1px solid var(--border-default);
   color: #fff;
-  padding: clamp(0.5rem, 1.5vw, 0.75rem);
+  padding: 0.375rem 2px;
+  overflow: visible;
+}
+
+/* 确保图片列有足够的空间显示完整图片 */
+:deep(.el-table td:first-child) {
+  overflow: visible !important;
 }
 
 :deep(.el-table tr:hover > td) {
@@ -1837,7 +1862,7 @@ export default {
   
   :deep(.el-table th),
   :deep(.el-table td) {
-    padding: 0.5rem 0.25rem;
+    padding: 0.5rem 2px;
   }
   
   :deep(.el-button) {
@@ -1863,7 +1888,7 @@ export default {
   
   :deep(.el-table th),
   :deep(.el-table td) {
-    padding: 0.375rem 0.125rem;
+    padding: 0.375rem 2px;
     font-size: 0.625rem;
   }
   

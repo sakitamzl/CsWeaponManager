@@ -145,6 +145,12 @@ const routes = [
             name: 'BuffMessageBox',
             component: () => import('@/views/settings/buff_messagebox.vue'),
             meta: { title: 'BUFF消息' }
+          },
+          {
+            path: 'version-update',
+            name: 'VersionUpdate',
+            component: () => import('@/views/settings/VersionUpdate.vue'),
+            meta: { title: '版本更新' }
           }
         ]
       }

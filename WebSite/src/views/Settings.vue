@@ -105,6 +105,15 @@
             </el-icon>
             <span>BUFF消息</span>
           </li>
+          <li 
+            :class="{ active: $route.name === 'VersionUpdate' }"
+            @click="navigateTo('/settings/version-update')"
+          >
+            <el-icon :size="18">
+              <Refresh />
+            </el-icon>
+            <span>版本更新</span>
+          </li>
         </ul>
       </div>
     </aside>
@@ -127,7 +136,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { EditPen, SetUp, Setting, ShoppingCart, Box, Timer, DataBoard, ArrowLeft, ArrowRight, PriceTag, ChatLineRound } from '@element-plus/icons-vue'
+import { EditPen, SetUp, Setting, ShoppingCart, Box, Timer, DataBoard, ArrowLeft, ArrowRight, PriceTag, ChatLineRound, Refresh } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const sidebarCollapsed = ref(false)
