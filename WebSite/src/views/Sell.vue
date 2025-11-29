@@ -1352,12 +1352,15 @@ export default {
     // 获取印花图片路径 - 使用hashName获取图片
     const getStickerImage = (sticker) => {
       if (!sticker) return null
-      // 支持 hashName 或 steam_hash_name 字段
+      // 从sticker对象中获取hashName字段
       const hashName = sticker.hashName || sticker.steam_hash_name
       if (!hashName) return null
+      // 将hashName转换为图片文件名：替换特殊字符
       const imageName = hashName
-        .replace(/\s*\|\s*/g, '___')
-        .replace(/\s/g, '_')
+        .replace(/\s*\|\s*/g, '___')  // 替换 | 为 ___
+        .replace(/\s+/g, '_')        // 替换空格为 _
+        .replace(/[()]/g, '')         // 移除括号
+        .replace(/[^\w_]/g, '_')       // 其他特殊字符替换为 _
         + '.png'
       return `/weapon_imgs/${imageName}`
     }
@@ -1365,12 +1368,15 @@ export default {
     // 获取挂件图片路径 - 使用hashName获取图片
     const getPendantImage = (pendant) => {
       if (!pendant) return null
-      // 支持 hashName 或 steam_hash_name 字段
+      // 从pendant对象中获取hashName字段
       const hashName = pendant.hashName || pendant.steam_hash_name
       if (!hashName) return null
+      // 将hashName转换为图片文件名：替换特殊字符
       const imageName = hashName
-        .replace(/\s*\|\s*/g, '___')
-        .replace(/\s/g, '_')
+        .replace(/\s*\|\s*/g, '___')  // 替换 | 为 ___
+        .replace(/\s+/g, '_')        // 替换空格为 _
+        .replace(/[()]/g, '')         // 移除括号
+        .replace(/[^\w_]/g, '_')       // 其他特殊字符替换为 _
         + '.png'
       return `/weapon_imgs/${imageName}`
     }
