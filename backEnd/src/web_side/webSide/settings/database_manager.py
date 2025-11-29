@@ -447,7 +447,7 @@ def export_table(table_name):
 
 @database_manager_bp.route('/query', methods=['POST'])
 def execute_query():
-    """执行SQL查询"""
+    """执行SQL查询（支持多条语句）"""
     try:
         request_data = request.json
         sql = request_data.get('sql', '').strip()
@@ -458,45 +458,128 @@ def execute_query():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # 执行查询
-        cursor.execute(sql)
+        # 分割多条SQL语句（按分号分割）
+        statements = []
+        current_statement = ''
+        in_string = False
+        string_char = None
         
-        # 如果是SELECT查询，返回结果
-        if sql.upper().startswith('SELECT'):
-            rows = cursor.fetchall()
-            columns = [description[0] for description in cursor.description] if cursor.description else []
-            
-            data = []
-            for row in rows:
-                row_dict = {}
-                for key in row.keys():
-                    value = row[key]
-                    if value is None:
-                        row_dict[key] = None
-                    elif isinstance(value, bytes):
-                        row_dict[key] = value.decode('utf-8', errors='ignore')
-                    else:
-                        row_dict[key] = value
-                data.append(row_dict)
-            
+        for char in sql:
+            if char in ("'", '"') and (not current_statement or current_statement[-1] != '\\'):
+                if not in_string:
+                    in_string = True
+                    string_char = char
+                elif char == string_char:
+                    in_string = False
+                    string_char = None
+                current_statement += char
+            elif char == ';' and not in_string:
+                stmt = current_statement.strip()
+                if stmt:
+                    statements.append(stmt)
+                current_statement = ''
+            else:
+                current_statement += char
+        
+        # 处理最后一条语句（可能没有分号结尾）
+        if current_statement.strip():
+            statements.append(current_statement.strip())
+        
+        # 过滤空语句
+        statements = [stmt for stmt in statements if stmt and stmt.strip()]
+        
+        if not statements:
             conn.close()
-            
-            Log().write_log(f"执行查询成功，返回 {len(data)} 行", 'INFO')
+            return jsonify({'error': '没有有效的SQL语句'}), 400
+        
+        # 执行多条语句
+        total_affected_rows = 0
+        results = []
+        last_select_result = None
+        last_select_columns = []
+        execution_details = []
+        
+        for i, statement in enumerate(statements, 1):
+            try:
+                statement_upper = statement.upper().strip()
+                
+                # 执行语句
+                cursor.execute(statement)
+                
+                # 如果是SELECT查询，保存结果
+                if statement_upper.startswith('SELECT'):
+                    rows = cursor.fetchall()
+                    columns = [description[0] for description in cursor.description] if cursor.description else []
+                    
+                    data = []
+                    for row in rows:
+                        row_dict = {}
+                        for key in row.keys():
+                            value = row[key]
+                            if value is None:
+                                row_dict[key] = None
+                            elif isinstance(value, bytes):
+                                row_dict[key] = value.decode('utf-8', errors='ignore')
+                            else:
+                                row_dict[key] = value
+                        data.append(row_dict)
+                    
+                    last_select_result = data
+                    last_select_columns = columns
+                    execution_details.append({
+                        'statement': statement[:100] + ('...' if len(statement) > 100 else ''),
+                        'type': 'SELECT',
+                        'rows': len(data),
+                        'success': True
+                    })
+                else:
+                    # 其他语句（INSERT, UPDATE, DELETE等）
+                    affected_rows = cursor.rowcount
+                    total_affected_rows += affected_rows
+                    execution_details.append({
+                        'statement': statement[:100] + ('...' if len(statement) > 100 else ''),
+                        'type': statement_upper.split()[0] if statement_upper.split() else 'UNKNOWN',
+                        'affected_rows': affected_rows,
+                        'success': True
+                    })
+                    
+            except Exception as e:
+                conn.rollback()
+                conn.close()
+                error_msg = f"执行第 {i} 条语句时出错: {str(e)}"
+                Log().write_log(f"执行SQL失败: {error_msg}\n语句: {statement[:200]}", 'ERROR')
+                return jsonify({
+                    'error': error_msg,
+                    'statement_index': i,
+                    'statement': statement[:200],
+                    'execution_details': execution_details
+                }), 500
+        
+        # 提交事务
+        conn.commit()
+        conn.close()
+        
+        # 构建返回结果
+        if last_select_result is not None:
+            # 如果有SELECT查询，返回最后一条SELECT的结果
+            Log().write_log(f"执行 {len(statements)} 条SQL语句成功，最后一条SELECT返回 {len(last_select_result)} 行", 'INFO')
             return jsonify({
-                'rows': data,
-                'columns': columns
+                'rows': last_select_result,
+                'columns': last_select_columns,
+                'message': f'成功执行 {len(statements)} 条语句，最后一条SELECT返回 {len(last_select_result)} 行',
+                'execution_details': execution_details,
+                'total_statements': len(statements)
             })
         else:
-            # 其他语句（INSERT, UPDATE, DELETE等）
-            conn.commit()
-            affected_rows = cursor.rowcount
-            conn.close()
-            
-            Log().write_log(f"执行SQL成功，影响 {affected_rows} 行", 'INFO')
+            # 只有非SELECT语句
+            Log().write_log(f"执行 {len(statements)} 条SQL语句成功，总共影响 {total_affected_rows} 行", 'INFO')
             return jsonify({
                 'rows': [],
                 'columns': [],
-                'message': f'执行成功，影响 {affected_rows} 行'
+                'message': f'成功执行 {len(statements)} 条语句，总共影响 {total_affected_rows} 行',
+                'execution_details': execution_details,
+                'total_statements': len(statements),
+                'total_affected_rows': total_affected_rows
             })
     
     except Exception as e:

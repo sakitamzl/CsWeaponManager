@@ -27,7 +27,7 @@ def get_source_list():
 
 @webSellV1.route('/selectSellWeaponName/<itemName>', methods=['get'])
 def selectSellWeaponName(itemName):
-    sql = f"SELECT ID, item_name, weapon_name, weapon_type, weapon_float, float_range, price, \"from\", order_time, status, status_sub, steam_hash_name FROM sell WHERE item_name LIKE '%{itemName}%' OR weapon_name LIKE '%{itemName}%' ORDER BY order_time DESC;"
+    sql = f"SELECT ID, item_name, weapon_name, weapon_type, weapon_float, float_range, price, \"from\", order_time, status, status_sub, steam_hash_name, sticker, pendant, rename FROM sell WHERE item_name LIKE '%{itemName}%' OR weapon_name LIKE '%{itemName}%' ORDER BY order_time DESC;"
     result = Date_base().select(sql)
     if result and len(result) == 2:
         flag, data = result
@@ -41,7 +41,7 @@ def search_sell_by_time_range(start_date, end_date):
     """按时间范围搜索 sell 记录"""
     try:
         sql = """
-        SELECT ID, item_name, weapon_name, weapon_type, weapon_float, float_range, price, `from`, order_time, status, status_sub, steam_hash_name
+        SELECT ID, item_name, weapon_name, weapon_type, weapon_float, float_range, price, `from`, order_time, status, status_sub, steam_hash_name, sticker, pendant, rename
         FROM sell
         WHERE order_time BETWEEN ? AND ?
         ORDER BY order_time DESC
@@ -184,7 +184,7 @@ def get_sell_data_filtered():
         where_clause, params = _build_filter_clauses(filters)
 
         sql = f"""
-        SELECT ID, item_name, weapon_name, weapon_type, weapon_float, float_range, price, `from`, order_time, status, status_sub, steam_hash_name
+        SELECT ID, item_name, weapon_name, weapon_type, weapon_float, float_range, price, `from`, order_time, status, status_sub, steam_hash_name, sticker, pendant, rename
         FROM sell
         {where_clause}
         ORDER BY order_time DESC

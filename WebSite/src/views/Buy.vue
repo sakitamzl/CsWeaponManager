@@ -247,7 +247,37 @@
         </el-table-column>
         <el-table-column label="商品名称" min-width="250" show-overflow-tooltip>
           <template #default="scope">
-            {{ getItemTitle(scope.row) }}
+            <div class="item-name-cell">
+              <div class="item-title">{{ getItemTitle(scope.row) }}</div>
+              <div class="item-extras" v-if="hasExtras(scope.row)">
+                <!-- 印花图片 -->
+                <div class="sticker-list" v-if="scope.row.sticker">
+                  <img
+                    v-for="(sticker, idx) in parseStickers(scope.row.sticker)"
+                    :key="idx"
+                    :src="getStickerImage(sticker)"
+                    :alt="sticker.name"
+                    class="sticker-img"
+                    @error="(e) => e.target.style.display = 'none'"
+                  />
+                </div>
+                <!-- 挂件图片 -->
+                <div class="pendant-list" v-if="scope.row.pendant">
+                  <img
+                    v-if="parsePendant(scope.row.pendant)"
+                    :src="getPendantImage(parsePendant(scope.row.pendant))"
+                    :alt="parsePendant(scope.row.pendant)?.name"
+                    class="pendant-img"
+                    @error="(e) => e.target.style.display = 'none'"
+                  />
+                </div>
+                <!-- 改名显示 -->
+                <div class="rename-text" v-if="scope.row.rename">
+                  <span class="rename-label">改名:</span>
+                  <span class="rename-value">{{ scope.row.rename }}</span>
+                </div>
+              </div>
+            </div>
           </template>
         </el-table-column>
         <el-table-column prop="weapon_float" label="磨损值" width="200" align="left">
@@ -690,7 +720,10 @@ export default {
           order_time: item[8] || '',
           status: item[9] || '',
           status_sub: item[10] || '',
-          steam_hash_name: item[11] || ''
+          steam_hash_name: item[11] || '',
+          sticker: item[12] || null,
+          pendant: item[13] || null,
+          rename: item[14] || null
         }))
 
         // 进入搜索模式
@@ -813,7 +846,13 @@ export default {
             order_time: item[8] || '',   // 订单时间
             status: item[9] || '',       // 状态
             status_sub: item[10] || '',  // 状态详情
-            steam_hash_name: item[11] || ''  // Steam Hash Name
+            steam_hash_name: item[11] || '',
+          sticker: item[12] || null,
+          pendant: item[13] || null,
+          rename: item[14] || null,  // Steam Hash Name
+            sticker: item[12] || null,    // 印花信息
+            pendant: item[13] || null,    // 挂件信息
+            rename: item[14] || null      // 改名信息
           }
         }).filter(item => item !== null)
 
@@ -1048,7 +1087,10 @@ export default {
           order_time: item[8] || '',
           status: item[9] || '',
           status_sub: item[10] || '',
-          steam_hash_name: item[11] || ''
+          steam_hash_name: item[11] || '',
+          sticker: item[12] || null,
+          pendant: item[13] || null,
+          rename: item[14] || null
         }))
 
         // 进入时间搜索模式
@@ -1246,7 +1288,10 @@ export default {
               order_time: item[8] || '',
               status: item[9] || '',
               status_sub: item[10] || '',
-              steam_hash_name: item[11] || ''
+              steam_hash_name: item[11] || '',
+          sticker: item[12] || null,
+          pendant: item[13] || null,
+          rename: item[14] || null
             }
           })
           
@@ -1335,6 +1380,55 @@ export default {
       return title
     }
 
+    // 检查是否有额外信息（印花、挂件、改名）
+    const hasExtras = (item) => {
+      return !!(item.sticker || item.pendant || item.rename)
+    }
+
+    // 解析印花数据
+    const parseStickers = (stickerData) => {
+      if (!stickerData) return []
+      try {
+        const parsed = typeof stickerData === 'string' ? JSON.parse(stickerData) : stickerData
+        return Array.isArray(parsed) ? parsed : []
+      } catch (e) {
+        console.error('解析印花数据失败:', e)
+        return []
+      }
+    }
+
+    // 解析挂件数据
+    const parsePendant = (pendantData) => {
+      if (!pendantData) return null
+      try {
+        const parsed = typeof pendantData === 'string' ? JSON.parse(pendantData) : pendantData
+        return parsed && typeof parsed === 'object' ? parsed : null
+      } catch (e) {
+        console.error('解析挂件数据失败:', e)
+        return null
+      }
+    }
+
+    // 获取印花图片路径
+    const getStickerImage = (sticker) => {
+      if (!sticker || !sticker.steam_hash_name) return null
+      const imageName = sticker.steam_hash_name
+        .replace(/\s*\|\s*/g, '___')
+        .replace(/\s/g, '_')
+        + '.png'
+      return `/weapon_imgs/${imageName}`
+    }
+
+    // 获取挂件图片路径
+    const getPendantImage = (pendant) => {
+      if (!pendant || !pendant.steam_hash_name) return null
+      const imageName = pendant.steam_hash_name
+        .replace(/\s*\|\s*/g, '___')
+        .replace(/\s/g, '_')
+        + '.png'
+      return `/weapon_imgs/${imageName}`
+    }
+
     onMounted(() => {
       normalizeFilters()
       loadBuyData()
@@ -1398,7 +1492,12 @@ export default {
       handleSortChange,
       sortOrder,
       getWeaponImage,
-      getItemTitle
+      getItemTitle,
+      hasExtras,
+      parseStickers,
+      parsePendant,
+      getStickerImage,
+      getPendantImage
     }
   }
 }
@@ -2109,6 +2208,72 @@ export default {
   border-left: 4px solid transparent;
   border-right: 4px solid transparent;
   border-bottom: 5px solid #fff;
+}
+
+/* 商品名称单元格样式 */
+.item-name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.item-title {
+  line-height: 1.4;
+}
+
+.item-extras {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* 印花列表样式 */
+.sticker-list {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.sticker-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  border-radius: 2px;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+}
+
+/* 挂件样式 */
+.pendant-list {
+  display: flex;
+  gap: 4px;
+}
+
+.pendant-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  border-radius: 2px;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+}
+
+/* 改名文本样式 */
+.rename-text {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: #999;
+}
+
+.rename-label {
+  color: #666;
+}
+
+.rename-value {
+  color: #4CAF50;
+  font-weight: 500;
 }
 </style>
 

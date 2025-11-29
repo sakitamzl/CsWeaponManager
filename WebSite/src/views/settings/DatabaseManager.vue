@@ -108,6 +108,96 @@
                 </el-table-column>
               </el-table>
             </el-card>
+
+            <el-card class="info-card" style="margin-top: 20px;">
+              <template #header>
+                <div class="card-header">
+                  <span>SQL 语句执行</span>
+                </div>
+              </template>
+              <div class="sql-executor">
+                <div class="sql-toolbar">
+                  <el-button type="primary" @click="executeSQL" :loading="sqlExecuting">
+                    <el-icon><CaretRight /></el-icon>
+                    执行 (F5)
+                  </el-button>
+                  <el-button @click="clearSQL">
+                    <el-icon><Delete /></el-icon>
+                    清空
+                  </el-button>
+                  <el-button @click="formatSQL">
+                    <el-icon><MagicStick /></el-icon>
+                    格式化
+                  </el-button>
+                </div>
+                <el-input
+                  v-model="sqlStatement"
+                  type="textarea"
+                  :rows="8"
+                  placeholder="输入 SQL 语句...&#10;&#10;示例:&#10;SELECT * FROM table_name WHERE condition;&#10;UPDATE table_name SET column = value WHERE condition;&#10;DELETE FROM table_name WHERE condition;"
+                  @keydown.f5.prevent="executeSQL"
+                  class="sql-input"
+                />
+                <div class="sql-result" v-if="sqlResult.length > 0 || sqlError">
+                  <div class="result-header">
+                    <h4>执行结果</h4>
+                    <el-tag v-if="sqlResult.length > 0" type="success">
+                      {{ sqlResult.length }} 行
+                    </el-tag>
+                    <el-tag v-if="sqlExecutionTime" type="info">
+                      执行时间: {{ sqlExecutionTime }}ms
+                    </el-tag>
+                  </div>
+                  <el-alert
+                    v-if="sqlError"
+                    :title="sqlError"
+                    type="error"
+                    :closable="false"
+                    style="margin-bottom: 10px;"
+                  />
+                  <el-table
+                    v-if="sqlResult.length > 0"
+                    :data="sqlResult"
+                    style="width: 100%"
+                    max-height="300"
+                    border
+                    stripe
+                  >
+                    <el-table-column
+                      v-for="column in sqlResultColumns"
+                      :key="column"
+                      :prop="column"
+                      :label="column"
+                      show-overflow-tooltip
+                    />
+                  </el-table>
+                  <div v-if="sqlMessage" class="sql-message">
+                    <el-alert
+                      :title="sqlMessage"
+                      type="success"
+                      :closable="false"
+                    />
+                  </div>
+                  <div v-if="sqlExecutionDetails.length > 0" class="execution-details">
+                    <h5>执行详情：</h5>
+                    <el-table :data="sqlExecutionDetails" style="width: 100%" border size="small" max-height="200">
+                      <el-table-column prop="statement" label="语句" show-overflow-tooltip />
+                      <el-table-column prop="type" label="类型" width="100" />
+                      <el-table-column label="结果" width="120">
+                        <template #default="{ row }">
+                          <el-tag v-if="row.type === 'SELECT'" type="success" size="small">
+                            {{ row.rows }} 行
+                          </el-tag>
+                          <el-tag v-else type="info" size="small">
+                            {{ row.affected_rows }} 行
+                          </el-tag>
+                        </template>
+                      </el-table-column>
+                    </el-table>
+                  </div>
+                </div>
+              </div>
+            </el-card>
             </div>
           </div>
 
@@ -576,6 +666,17 @@ const savedQueries = ref([]);
 const selectedSavedQuery = ref('');
 const saveQueryDialogVisible = ref(false);
 const saveQueryForm = ref({ name: '' });
+
+// SQL 执行（数据库首页）
+const sqlStatement = ref('');
+const sqlResult = ref([]);
+const sqlResultColumns = ref([]);
+const sqlError = ref('');
+const sqlExecutionTime = ref(0);
+const sqlExecuting = ref(false);
+const sqlMessage = ref('');
+const sqlExecutionDetails = ref([]);
+const sqlTotalStatements = ref(0);
 
 // 计算属性
 const filteredTables = computed(() => {
@@ -1264,6 +1365,80 @@ const formatSize = (bytes) => {
   return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
 };
 
+// SQL 执行功能（数据库首页）
+const executeSQL = async () => {
+  if (!sqlStatement.value.trim()) {
+    ElMessage.warning('请输入 SQL 语句');
+    return;
+  }
+  
+  sqlExecuting.value = true;
+  sqlError.value = '';
+  sqlMessage.value = '';
+  sqlResult.value = [];
+  sqlResultColumns.value = [];
+  sqlExecutionDetails.value = [];
+  sqlTotalStatements.value = 0;
+  const startTime = Date.now();
+  
+  try {
+    const response = await axios.post('/api/database/query', {
+      sql: sqlStatement.value
+    });
+    
+    sqlExecutionTime.value = Date.now() - startTime;
+    sqlResult.value = response.data.rows || [];
+    sqlResultColumns.value = response.data.columns || [];
+    sqlMessage.value = response.data.message || '';
+    sqlExecutionDetails.value = response.data.execution_details || [];
+    sqlTotalStatements.value = response.data.total_statements || 0;
+    
+    if (sqlResult.value.length > 0) {
+      ElMessage.success(`查询成功，返回 ${sqlResult.value.length} 行`);
+    } else if (sqlMessage.value) {
+      ElMessage.success(sqlMessage.value);
+    } else {
+      ElMessage.success('执行成功');
+    }
+  } catch (error) {
+    sqlError.value = error.response?.data?.error || error.response?.data?.message || error.message;
+    sqlResult.value = [];
+    sqlResultColumns.value = [];
+    sqlExecutionDetails.value = error.response?.data?.execution_details || [];
+    
+    // 显示错误信息，包括哪条语句出错
+    if (error.response?.data?.statement_index) {
+      ElMessage.error(`执行失败：第 ${error.response.data.statement_index} 条语句出错 - ${sqlError.value}`);
+    } else {
+      ElMessage.error('执行失败：' + sqlError.value);
+    }
+  } finally {
+    sqlExecuting.value = false;
+  }
+};
+
+const clearSQL = () => {
+  sqlStatement.value = '';
+  sqlResult.value = [];
+  sqlResultColumns.value = [];
+  sqlError.value = '';
+  sqlMessage.value = '';
+  sqlExecutionTime.value = 0;
+  sqlExecutionDetails.value = [];
+  sqlTotalStatements.value = 0;
+};
+
+const formatSQL = () => {
+  // 简单的 SQL 格式化
+  let formatted = sqlStatement.value
+    .replace(/\s+/g, ' ')
+    .replace(/\s*,\s*/g, ',\n  ')
+    .replace(/\s+(FROM|WHERE|ORDER BY|GROUP BY|HAVING|LIMIT|SET|UPDATE|DELETE|INSERT INTO|VALUES)/gi, '\n$1')
+    .replace(/\s+(AND|OR)/gi, '\n  $1');
+  
+  sqlStatement.value = formatted.trim();
+};
+
 // 初始化
 onMounted(() => {
   refreshTables();
@@ -1607,5 +1782,64 @@ onMounted(() => {
   margin: 0;
   font-size: 16px;
   color: #e0e0e0;
+}
+
+/* SQL 执行器样式 */
+.sql-executor {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.sql-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sql-input {
+  width: 100%;
+}
+
+.sql-input :deep(.el-textarea__inner) {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  background: #1a1a1a;
+  color: #e0e0e0;
+  border: 1px solid #3a3a3a;
+}
+
+.sql-result {
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  padding: 15px;
+  background: #2a2a2a;
+}
+
+.sql-result .result-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.sql-result .result-header h4 {
+  margin: 0;
+  font-size: 16px;
+  color: #e0e0e0;
+}
+
+.sql-message {
+  margin-top: 10px;
+}
+
+.execution-details {
+  margin-top: 15px;
+}
+
+.execution-details h5 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: #e0e0e0;
+  font-weight: 600;
 }
 </style>
