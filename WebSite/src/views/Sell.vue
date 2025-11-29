@@ -245,13 +245,12 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="weapon_type" label="类型" width="120" />
         <el-table-column label="商品名称" min-width="250" show-overflow-tooltip>
           <template #default="scope">
             {{ getItemTitle(scope.row) }}
           </template>
         </el-table-column>
-        <el-table-column prop="weapon_float" label="Float" min-width="180" align="left">
+        <el-table-column prop="weapon_float" label="磨损值" min-width="180" align="left">
           <template #default="scope">
             <div v-if="scope.row.weapon_float">
               <div style="font-family: monospace; font-size: 0.85rem; margin-bottom: 4px;">
@@ -273,6 +272,7 @@
             <span v-else style="color: #888;">N/A</span>
           </template>
         </el-table-column>
+        <el-table-column prop="weapon_type" label="类型" width="120" />
         <el-table-column prop="price" label="出售价格" min-width="100">
           <template #default="scope">
             ¥{{ scope.row.price }}
