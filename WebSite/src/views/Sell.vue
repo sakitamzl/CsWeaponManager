@@ -1349,20 +1349,26 @@ export default {
       }
     }
 
-    // 获取印花图片路径
+    // 获取印花图片路径 - 使用hashName获取图片
     const getStickerImage = (sticker) => {
-      if (!sticker || !sticker.steam_hash_name) return null
-      const imageName = sticker.steam_hash_name
+      if (!sticker) return null
+      // 支持 hashName 或 steam_hash_name 字段
+      const hashName = sticker.hashName || sticker.steam_hash_name
+      if (!hashName) return null
+      const imageName = hashName
         .replace(/\s*\|\s*/g, '___')
         .replace(/\s/g, '_')
         + '.png'
       return `/weapon_imgs/${imageName}`
     }
 
-    // 获取挂件图片路径
+    // 获取挂件图片路径 - 使用hashName获取图片
     const getPendantImage = (pendant) => {
-      if (!pendant || !pendant.steam_hash_name) return null
-      const imageName = pendant.steam_hash_name
+      if (!pendant) return null
+      // 支持 hashName 或 steam_hash_name 字段
+      const hashName = pendant.hashName || pendant.steam_hash_name
+      if (!hashName) return null
+      const imageName = hashName
         .replace(/\s*\|\s*/g, '___')
         .replace(/\s/g, '_')
         + '.png'
