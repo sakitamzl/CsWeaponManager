@@ -900,9 +900,9 @@ export default {
       if (image404Cache.value.has(steamHashName)) {
         return null // 如果之前404过，直接返回null，不显示图片
       }
-      // 将每个空格替换为下划线，并添加.png扩展名
-      // 例如: "★ Bayonet   Autotronic (Battle-Scarred)" -> "★_Bayonet___Autotronic_(Battle-Scarred).png"
-      const imageName = steamHashName.replace(/\s/g, '_') + '.png'
+      // 将空格与竖线替换为下划线，并添加.png扩展名
+      // 例如: "XM1014 | Blue Spruce (Factory New)" -> "XM1014___Blue_Spruce_(Factory_New).png"
+      const imageName = steamHashName.replace(/[\s|]+/g, '_') + '.png'
       return `/weapon_imgs/${imageName}`
     }
 
