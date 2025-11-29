@@ -231,16 +231,48 @@
         :flexible="true"
         :scrollbar-always-on="true"
       >
-        <el-table-column prop="order_id" label="订单ID" width="180" show-overflow-tooltip align="left" />
-        <el-table-column prop="weapon_type" label="类型" width="120" />
-        <el-table-column prop="item_name" label="饰品名称" min-width="150" show-overflow-tooltip />
-        <el-table-column prop="weapon_name" label="武器名称" min-width="100" />
-        <el-table-column prop="weapon_float" label="Float" min-width="180" align="left">
+        <el-table-column label="图片" width="100" align="center">
           <template #default="scope">
-            {{ scope.row.weapon_float }}
+            <div class="weapon-image-cell">
+              <img
+                v-if="getWeaponImage(scope.row.steam_hash_name)"
+                :src="getWeaponImage(scope.row.steam_hash_name)"
+                :alt="scope.row.item_name"
+                class="weapon-img"
+                @error="(e) => e.target.style.display = 'none'"
+              />
+              <span v-else class="no-image">无图</span>
+            </div>
           </template>
         </el-table-column>
-        <el-table-column prop="float_range" label="磨损等级" min-width="100" />
+        <el-table-column prop="weapon_type" label="类型" width="120" />
+        <el-table-column label="商品名称" min-width="250" show-overflow-tooltip>
+          <template #default="scope">
+            {{ getItemTitle(scope.row) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="weapon_float" label="Float" min-width="180" align="left">
+          <template #default="scope">
+            <div v-if="scope.row.weapon_float">
+              <div style="font-family: monospace; font-size: 0.85rem; margin-bottom: 4px;">
+                {{ scope.row.weapon_float }}
+              </div>
+              <!-- 磨损值显示条 -->
+              <div class="float-bar">
+                <div class="float-segment fn"></div>
+                <div class="float-segment mw"></div>
+                <div class="float-segment ft"></div>
+                <div class="float-segment ww"></div>
+                <div class="float-segment bs"></div>
+                <div
+                  class="float-pointer"
+                  :style="{ left: `${parseFloat(scope.row.weapon_float) * 100}%` }"
+                ></div>
+              </div>
+            </div>
+            <span v-else style="color: #888;">N/A</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="price" label="购入价格" min-width="100">
           <template #default="scope">
             ¥{{ scope.row.price }}
@@ -648,7 +680,7 @@ export default {
         const searchResults = rawData.map((item, index) => ({
           id: index + 1,
           order_id: item[0] || '',
-          item_name: item[1] || '', 
+          item_name: item[1] || '',
           weapon_name: item[2] || '',
           weapon_type: item[3] || '',
           weapon_float: item[4] || 0,
@@ -657,9 +689,10 @@ export default {
           from: item[7] || '',
           order_time: item[8] || '',
           status: item[9] || '',
-          status_sub: item[10] || ''
+          status_sub: item[10] || '',
+          steam_hash_name: item[11] || ''
         }))
-        
+
         // 进入搜索模式
         isSearchMode.value = true
         allSearchResults.value = searchResults
@@ -779,7 +812,8 @@ export default {
             from: item[7] || '',         // 来源
             order_time: item[8] || '',   // 订单时间
             status: item[9] || '',       // 状态
-            status_sub: item[10] || ''   // 状态详情
+            status_sub: item[10] || '',  // 状态详情
+            steam_hash_name: item[11] || ''  // Steam Hash Name
           }
         }).filter(item => item !== null)
 
@@ -1004,7 +1038,7 @@ export default {
         const searchResults = rawData.map((item, index) => ({
           id: index + 1,
           order_id: item[0] || '',
-          item_name: item[1] || '', 
+          item_name: item[1] || '',
           weapon_name: item[2] || '',
           weapon_type: item[3] || '',
           weapon_float: item[4] || 0,
@@ -1013,7 +1047,8 @@ export default {
           from: item[7] || '',
           order_time: item[8] || '',
           status: item[9] || '',
-          status_sub: item[10] || ''
+          status_sub: item[10] || '',
+          steam_hash_name: item[11] || ''
         }))
 
         // 进入时间搜索模式
@@ -1211,7 +1246,7 @@ export default {
               order_time: item[8] || '',
               status: item[9] || '',
               status_sub: item[10] || '',
-              seller_name: item[11] || ''
+              steam_hash_name: item[11] || ''
             }
           })
           
@@ -1269,6 +1304,35 @@ export default {
       if (statusSubFilter.value === 'all') statusSubFilter.value = ''
       if (sourceFilter.value === 'all') sourceFilter.value = ''
       if (dataUserFilter.value === 'all') dataUserFilter.value = ''
+    }
+
+    // 获取武器图片路径
+    const getWeaponImage = (steamHashName) => {
+      if (!steamHashName) {
+        return null
+      }
+      const imageName = steamHashName
+        .replace(/\s*\|\s*/g, '___')
+        .replace(/\s/g, '_')
+        + '.png'
+      return `/weapon_imgs/${imageName}`
+    }
+
+    // 获取组合后的商品标题
+    const getItemTitle = (item) => {
+      const parts = []
+      if (item.weapon_name) {
+        parts.push(item.weapon_name)
+      }
+      if (item.item_name) {
+        parts.push(item.item_name)
+      }
+      // 组合格式: "AK-47 | 轨道 Mk01 （崭新出厂）"
+      let title = parts.join(' | ')
+      if (item.float_range) {
+        title += ` （${item.float_range}）`
+      }
+      return title
     }
 
     onMounted(() => {
@@ -1332,13 +1396,37 @@ export default {
       handleDateRangeChange,
       handleTimeSearch,
       handleSortChange,
-      sortOrder
+      sortOrder,
+      getWeaponImage,
+      getItemTitle
     }
   }
 }
 </script>
 
 <style scoped>
+/* 武器图片单元格样式 */
+.weapon-image-cell {
+  width: 80px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.weapon-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  border-radius: 4px;
+}
+
+.no-image {
+  color: #666;
+  font-size: 0.75rem;
+}
 
 .search-input {
   width: 200px;
@@ -1900,16 +1988,102 @@ export default {
     grid-template-columns: 1fr;
     grid-template-rows: repeat(6, 1fr);
   }
-  
+
   .grid-3 {
     grid-template-columns: 1fr;
   }
-  
+
   .stat-item {
     flex-direction: column;
     gap: 0.5rem;
     text-align: center;
   }
+}
+
+/* 磨损值显示条样式 */
+.float-bar {
+  position: relative;
+  height: 8px;
+  display: flex;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.float-segment {
+  height: 100%;
+  transition: opacity 0.2s;
+}
+
+.float-segment:hover {
+  opacity: 0.8;
+}
+
+/* CS2 标准磨损等级颜色 */
+.float-segment.fn {
+  flex: 7;  /* 0.00 - 0.07 */
+  background: linear-gradient(to right, #4CAF50, #66BB6A);
+}
+
+.float-segment.mw {
+  flex: 8;  /* 0.07 - 0.15 */
+  background: linear-gradient(to right, #8BC34A, #9CCC65);
+}
+
+.float-segment.ft {
+  flex: 23; /* 0.15 - 0.38 */
+  background: linear-gradient(to right, #FFC107, #FFB300);
+}
+
+.float-segment.ww {
+  flex: 7;  /* 0.38 - 0.45 */
+  background: linear-gradient(to right, #FF9800, #FB8C00);
+}
+
+.float-segment.bs {
+  flex: 55; /* 0.45 - 1.00 */
+  background: linear-gradient(to right, #F44336, #E53935);
+}
+
+/* 磨损值指针 */
+.float-pointer {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 3px;
+  height: 16px;
+  background: #fff;
+  border-radius: 2px;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5), 0 0 8px rgba(255, 255, 255, 0.8);
+  z-index: 10;
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.float-pointer::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid #fff;
+}
+
+.float-pointer::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 5px solid #fff;
 }
 </style>
 

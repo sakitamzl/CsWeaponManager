@@ -19,7 +19,7 @@ def countBuyNumber():
 
 @webBuyV1.route('/selectBuyWeaponName/<itemName>', methods=['get'])
 def selectBuyWeaponName(itemName):
-    sql = f"SELECT ID, item_name, weapon_name, weapon_type, weapon_float, float_range, price, \"from\", order_time, status, status_sub FROM buy WHERE item_name LIKE '%{itemName}%' OR weapon_name LIKE '%{itemName}%' ORDER BY order_time DESC;"
+    sql = f"SELECT ID, item_name, weapon_name, weapon_type, weapon_float, float_range, price, \"from\", order_time, status, status_sub, steam_hash_name FROM buy WHERE item_name LIKE '%{itemName}%' OR weapon_name LIKE '%{itemName}%' ORDER BY order_time DESC;"
     result = Date_base().select(sql)
     if result and len(result) == 2:
         flag, data = result
@@ -40,7 +40,7 @@ def search_buy_by_time_range(start_date, end_date):
     """按时间范围搜索 buy 记录"""
     try:
         sql = """
-        SELECT ID, item_name, weapon_name, weapon_type, weapon_float, float_range, price, `from`, order_time, status, status_sub
+        SELECT ID, item_name, weapon_name, weapon_type, weapon_float, float_range, price, `from`, order_time, status, status_sub, steam_hash_name
         FROM buy
         WHERE order_time BETWEEN ? AND ?
         ORDER BY order_time DESC
@@ -164,7 +164,7 @@ def get_buy_data_filtered():
         where_clause, params = _build_filter_clauses(filters)
 
         sql = f"""
-        SELECT ID, item_name, weapon_name, weapon_type, weapon_float, float_range, price, `from`, order_time, status, status_sub
+        SELECT ID, item_name, weapon_name, weapon_type, weapon_float, float_range, price, `from`, order_time, status, status_sub, steam_hash_name
         FROM buy
         {where_clause}
         ORDER BY order_time DESC
