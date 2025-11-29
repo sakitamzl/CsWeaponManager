@@ -467,7 +467,6 @@
 
             <!-- 贴纸列表 -->
             <div v-if="previewItem.sticker && parseStickers(previewItem.sticker).length > 0" class="preview-sticker-list-section">
-              <div class="preview-sticker-list-title">贴纸列表</div>
               <div class="preview-sticker-list">
                 <div
                   v-for="(sticker, index) in parseStickers(previewItem.sticker)"
@@ -493,7 +492,6 @@
 
             <!-- 挂件信息 -->
             <div v-if="previewItem.pendant" class="preview-pendant-section">
-              <div class="preview-pendant-title">挂件</div>
               <div class="preview-pendant-list">
                 <div class="preview-pendant-list-item">
                   <el-tooltip :content="parsePendant(previewItem.pendant)?.name || '挂件'" placement="left">
