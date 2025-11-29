@@ -335,10 +335,11 @@
     <!-- 卡片显示 -->
     <div class="card-container" v-if="displayMode === 'card'">
       <div v-loading="loading" class="card-grid">
-        <div 
-          v-for="item in inventoryData" 
-          :key="item.assetid" 
+        <div
+          v-for="item in inventoryData"
+          :key="item.assetid"
           class="inventory-card"
+          @click="openPreview(item)"
         >
           <div class="card-image">
             <img
@@ -453,6 +454,119 @@
       <!-- 滚动触发元素 -->
       <div id="load-more-trigger-card" style="height: 1px;"></div>
     </div>
+
+    <!-- 预览弹窗 -->
+    <el-dialog
+      v-model="previewVisible"
+      :title="previewItem ? getCardTitle(previewItem) : ''"
+      width="800px"
+      :close-on-click-modal="true"
+      :close-on-press-escape="true"
+      class="preview-dialog"
+    >
+      <div v-if="previewItem" class="preview-content">
+        <!-- 图片区域 -->
+        <div class="preview-image-section">
+          <img
+            v-if="getWeaponImage(previewItem.steam_hash_name)"
+            :src="getWeaponImage(previewItem.steam_hash_name)"
+            :alt="previewItem.item_name"
+            class="preview-image"
+          />
+          <div v-else class="preview-image-placeholder">
+            <span>无图片</span>
+          </div>
+          <!-- 贴纸覆盖层 -->
+          <div v-if="previewItem.sticker" class="preview-sticker-overlay">
+            <div
+              v-for="(sticker, index) in parseStickers(previewItem.sticker)"
+              :key="index"
+              class="preview-sticker-item"
+              :title="sticker.name || '未知贴纸'"
+            >
+              <img
+                v-if="sticker.image"
+                :src="sticker.image"
+                :alt="sticker.name"
+                class="preview-sticker-img"
+                @error="(e) => e.target.style.display = 'none'"
+              />
+              <div v-else class="preview-sticker-placeholder">?</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 详细信息区域 -->
+        <div class="preview-info-section">
+          <!-- 改名标签 -->
+          <div class="preview-rename" v-if="previewItem.rename">
+            <span class="preview-rename-icon">🏷️</span>
+            <span class="preview-rename-text">{{ previewItem.rename }}</span>
+          </div>
+
+          <!-- 磨损信息 -->
+          <div v-if="previewItem.weapon_float" class="preview-float-section">
+            <div class="preview-float-bar-container">
+              <div class="float-bar">
+                <div class="float-segment fn"></div>
+                <div class="float-segment mw"></div>
+                <div class="float-segment ft"></div>
+                <div class="float-segment ww"></div>
+                <div class="float-segment bs"></div>
+                <div
+                  class="float-pointer"
+                  :style="{ left: `${parseFloat(previewItem.weapon_float) * 100}%` }"
+                ></div>
+              </div>
+            </div>
+            <div class="preview-float-value">{{ previewItem.weapon_float }}</div>
+            <div class="preview-float-range" v-if="previewItem.float_range">
+              {{ previewItem.float_range }}
+            </div>
+          </div>
+
+          <!-- 价格信息 -->
+          <div class="preview-prices">
+            <div class="preview-price-row" v-if="previewItem.buy_price || previewItem.steam_price">
+              <div class="preview-price-item" v-if="previewItem.buy_price">
+                <span class="preview-price-label">购入:</span>
+                <span class="preview-price-value buy-price">¥{{ parseFloat(previewItem.buy_price).toFixed(2) }}</span>
+              </div>
+              <div class="preview-price-item" v-if="previewItem.steam_price">
+                <span class="preview-price-label">Steam:</span>
+                <span class="preview-price-value">¥{{ parseFloat(previewItem.steam_price).toFixed(2) }}</span>
+              </div>
+            </div>
+            <div class="preview-price-row" v-if="previewItem.yyyp_price || previewItem.buff_price">
+              <div class="preview-price-item" v-if="previewItem.yyyp_price">
+                <span class="preview-price-label">悠悠:</span>
+                <span
+                  class="preview-price-value"
+                  :class="getPriceDiffClass(previewItem.yyyp_price, previewItem.buy_price)"
+                >
+                  ¥{{ parseFloat(previewItem.yyyp_price).toFixed(2) }}
+                </span>
+              </div>
+              <div class="preview-price-item" v-if="previewItem.buff_price">
+                <span class="preview-price-label">BUFF:</span>
+                <span
+                  class="preview-price-value"
+                  :class="getPriceDiffClass(previewItem.buff_price, previewItem.buy_price)"
+                >
+                  ¥{{ parseFloat(previewItem.buff_price).toFixed(2) }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 标签信息 -->
+          <div class="preview-tags">
+            <el-tag v-if="previewItem.remark" type="warning" size="default">交易限制</el-tag>
+            <el-tag v-if="previewItem.pendant" type="primary" size="default">🎗️ 挂件</el-tag>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -499,6 +613,10 @@ export default {
     const steamIdList = ref([])
     const selectedSteamId = ref('')
     const sortConfig = ref({ prop: 'buy_price', order: 'desc' }) // 默认按购入价格降序排序
+
+    // 预览弹窗相关
+    const previewVisible = ref(false)
+    const previewItem = ref(null)
 
     // API 基础地址
     const API_BASE = `${API_CONFIG.BASE_URL}/webInventoryV1`
@@ -962,6 +1080,12 @@ export default {
       return diff >= 0 ? 'price-profit' : 'price-loss'
     }
 
+    // 打开预览弹窗
+    const openPreview = (item) => {
+      previewItem.value = item
+      previewVisible.value = true
+    }
+
     // 解析贴纸JSON数据
     const parseStickers = (stickerJson) => {
       if (!stickerJson) return []
@@ -1183,7 +1307,10 @@ export default {
       cancelEdit,
       fetchSteamInventory,
       fetchYYYPPrice,
-      fetchBuffPrice
+      fetchBuffPrice,
+      previewVisible,
+      previewItem,
+      openPreview
     }
   }
 }
@@ -1811,14 +1938,235 @@ export default {
     width: 100%;
     max-width: none;
   }
-  
+
   :deep(.el-table) {
     font-size: 0.75rem;
   }
-  
+
   :deep(.el-table th),
   :deep(.el-table td) {
     padding: 0.5rem 0.25rem;
+  }
+}
+
+/* 预览弹窗样式 */
+.preview-dialog :deep(.el-dialog__header) {
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  padding: 1rem 1.5rem;
+}
+
+.preview-dialog :deep(.el-dialog__title) {
+  color: #fff;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.preview-dialog :deep(.el-dialog__body) {
+  background: var(--bg-secondary);
+  padding: 1.5rem;
+}
+
+.preview-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.preview-image-section {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+}
+
+.preview-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 1.2rem;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+}
+
+/* 预览弹窗中的贴纸覆盖层 */
+.preview-sticker-overlay {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  display: flex;
+  gap: 6px;
+  z-index: 5;
+}
+
+.preview-sticker-item {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.preview-sticker-item:hover {
+  transform: scale(1.15);
+  border-color: rgba(76, 175, 80, 0.8);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
+}
+
+.preview-sticker-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.preview-sticker-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.preview-info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* 改名标签 */
+.preview-rename {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(64, 158, 255, 0.1);
+  border: 1px solid rgba(64, 158, 255, 0.3);
+  border-radius: 6px;
+}
+
+.preview-rename-icon {
+  font-size: 1.2rem;
+}
+
+.preview-rename-text {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+/* 磨损信息 */
+.preview-float-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.preview-float-bar-container {
+  width: 100%;
+}
+
+.preview-float-value {
+  font-size: 1.1rem;
+  font-family: monospace;
+  color: #fff;
+  font-weight: bold;
+}
+
+.preview-float-range {
+  font-size: 0.9rem;
+  color: #999;
+}
+
+/* 价格信息 */
+.preview-prices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.preview-price-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.preview-price-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.preview-price-label {
+  color: #999;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.preview-price-value {
+  color: #fff;
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+/* 标签信息 */
+.preview-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.preview-tags .el-tag {
+  font-size: 0.9rem;
+  padding: 0.5rem 1rem;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .preview-dialog {
+    width: 95% !important;
+  }
+
+  .preview-image-section {
+    height: 200px;
+  }
+
+  .preview-sticker-item {
+    width: 45px;
+    height: 45px;
+  }
+
+  .preview-price-row {
+    flex-direction: column;
+    gap: 0.5rem;
   }
 }
 </style>
