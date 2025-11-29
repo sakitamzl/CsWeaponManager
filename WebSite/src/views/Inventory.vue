@@ -1374,7 +1374,7 @@ export default {
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
-  height: 380px; /* 缩小卡片高度 */
+  height: 340px; /* 降低卡片高度 */
 }
 
 .inventory-card:hover {
@@ -1515,9 +1515,9 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  margin-top: auto;
-  padding-top: 0.4rem;
-  border-top: 1px solid var(--border-color);
+  margin-top: 0.3rem;
+  padding-top: 0;
+  border-top: none;
 }
 
 .price-row {
@@ -1646,14 +1646,16 @@ export default {
   font-size: 0.75rem;
   color: #ccc;
   font-family: monospace;
-  margin-top: 0.3rem;
+  margin-top: 0.2rem;
+  margin-bottom: 0;
   font-weight: 500;
 }
 
 /* 磨损值显示条样式 */
 .float-bar-container {
-  margin-top: 0.5rem;
-  padding: 0.3rem 0;
+  margin-top: 0.3rem;
+  padding: 0;
+  margin-bottom: 0;
 }
 
 .float-bar {
@@ -1749,11 +1751,11 @@ export default {
   }
 
   .inventory-card {
-    height: 400px; /* 移动端卡片高度 */
+    height: 320px; /* 移动端卡片高度 */
   }
 
   .card-image {
-    height: 150px; /* 移动端图片区域高度 */
+    height: 120px; /* 移动端图片区域高度 */
   }
 
   .card-content {
