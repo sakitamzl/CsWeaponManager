@@ -370,6 +370,22 @@
                 <div v-else class="sticker-placeholder-overlay">?</div>
               </div>
             </div>
+            <!-- 挂件图片覆盖层 - 右上角 -->
+            <div v-if="item.pendant" class="pendant-overlay">
+              <div
+                class="pendant-item-overlay"
+                :title="parsePendant(item.pendant).name || '挂件'"
+              >
+                <img
+                  v-if="parsePendant(item.pendant).image"
+                  :src="parsePendant(item.pendant).image"
+                  :alt="parsePendant(item.pendant).name"
+                  class="pendant-img-overlay"
+                  @error="(e) => e.target.style.display = 'none'"
+                />
+                <div v-else class="pendant-placeholder-overlay">🎗️</div>
+              </div>
+            </div>
           </div>
           <div class="card-content">
             <div class="card-title" :title="getCardTitle(item)">
@@ -437,9 +453,6 @@
                 <el-tag v-if="item.rename" type="info" size="small" class="rename-tag">
                   <span class="tag-icon">🏷️</span>{{ item.rename }}
                 </el-tag>
-                <el-tag v-if="item.pendant" type="primary" size="small" class="pendant-tag">
-                  <span class="tag-icon">🎗️</span>挂件
-                </el-tag>
               </div>
             </div>
           </div>
@@ -492,6 +505,22 @@
                 @error="(e) => e.target.style.display = 'none'"
               />
               <div v-else class="preview-sticker-placeholder">?</div>
+            </div>
+          </div>
+          <!-- 挂件覆盖层 - 右上角 -->
+          <div v-if="previewItem.pendant" class="preview-pendant-overlay">
+            <div
+              class="preview-pendant-item"
+              :title="parsePendant(previewItem.pendant).name || '挂件'"
+            >
+              <img
+                v-if="parsePendant(previewItem.pendant).image"
+                :src="parsePendant(previewItem.pendant).image"
+                :alt="parsePendant(previewItem.pendant).name"
+                class="preview-pendant-img"
+                @error="(e) => e.target.style.display = 'none'"
+              />
+              <div v-else class="preview-pendant-placeholder">🎗️</div>
             </div>
           </div>
         </div>
@@ -562,7 +591,6 @@
           <!-- 标签信息 -->
           <div class="preview-tags">
             <el-tag v-if="previewItem.remark" type="warning" size="default">交易限制</el-tag>
-            <el-tag v-if="previewItem.pendant" type="primary" size="default">🎗️ 挂件</el-tag>
           </div>
         </div>
       </div>
@@ -1120,6 +1148,34 @@ export default {
       }
     }
 
+    // 解析挂件JSON数据
+    const parsePendant = (pendantJson) => {
+      if (!pendantJson) return { name: null, image: null }
+      try {
+        const pendant = JSON.parse(pendantJson)
+        const name = pendant.name || '未知挂件'
+        const steamHashName = pendant.steam_hash_name
+
+        // 根据steam_hash_name生成图片URL
+        let imageUrl = null
+        if (steamHashName) {
+          const imageName = steamHashName
+            .replace(/\s*\|\s*/g, '___')
+            .replace(/\s/g, '_')
+            + '.png'
+          imageUrl = `/weapon_imgs/${imageName}`
+        }
+
+        return {
+          name: name,
+          image: imageUrl
+        }
+      } catch (e) {
+        console.error('解析挂件JSON失败:', e)
+        return { name: null, image: null }
+      }
+    }
+
     // 获取贴纸数量
     const getStickerCount = (stickerJson) => {
       return parseStickers(stickerJson).length
@@ -1310,7 +1366,8 @@ export default {
       fetchBuffPrice,
       previewVisible,
       previewItem,
-      openPreview
+      openPreview,
+      parsePendant
     }
   }
 }
@@ -1513,7 +1570,7 @@ export default {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  overflow: hidden;
+  overflow: visible; /* 允许印花和挂件hover时溢出 */
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
@@ -1533,9 +1590,9 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: visible; /* 允许贴纸溢出 */
+  overflow: visible; /* 允许贴纸和挂件溢出 */
   flex-shrink: 0; /* 防止压缩 */
-  position: relative; /* 为贴纸覆盖层定位 */
+  position: relative; /* 为贴纸和挂件覆盖层定位 */
 }
 
 .card-image img {
@@ -1556,6 +1613,15 @@ export default {
   pointer-events: none; /* 不阻挡鼠标事件 */
 }
 
+/* 挂件覆盖层 - 右上角 */
+.pendant-overlay {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 5;
+  pointer-events: none; /* 不阻挡鼠标事件 */
+}
+
 .sticker-item-overlay {
   position: relative;
   width: 36px;
@@ -1572,9 +1638,32 @@ export default {
 }
 
 .sticker-item-overlay:hover {
-  transform: scale(1.3);
+  transform: scale(2);
   z-index: 10;
   border-color: rgba(76, 175, 80, 0.8);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+}
+
+/* 挂件样式 - 右上角 */
+.pendant-item-overlay {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1.5px solid rgba(255, 215, 0, 0.4);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+  pointer-events: auto; /* 挂件本身可以交互 */
+  cursor: pointer;
+}
+
+.pendant-item-overlay:hover {
+  transform: scale(2);
+  z-index: 10;
+  border-color: rgba(255, 215, 0, 0.8);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
 }
 
@@ -1593,6 +1682,24 @@ export default {
   justify-content: center;
   color: #999;
   font-size: 1rem;
+  font-weight: bold;
+}
+
+.pendant-img-overlay {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
+.pendant-placeholder-overlay {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffd700;
+  font-size: 1.2rem;
   font-weight: bold;
 }
 
@@ -1928,6 +2035,11 @@ export default {
     width: 28px;
     height: 28px;
   }
+
+  .pendant-item-overlay {
+    width: 34px;
+    height: 34px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -2028,7 +2140,7 @@ export default {
 }
 
 .preview-sticker-item:hover {
-  transform: scale(1.15);
+  transform: scale(1.5);
   border-color: rgba(76, 175, 80, 0.8);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
 }
@@ -2048,6 +2160,52 @@ export default {
   justify-content: center;
   color: #999;
   font-size: 1.5rem;
+  font-weight: bold;
+}
+
+/* 预览弹窗中的挂件覆盖层 - 右上角 */
+.preview-pendant-overlay {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 5;
+}
+
+.preview-pendant-item {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 215, 0, 0.4);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.preview-pendant-item:hover {
+  transform: scale(1.5);
+  border-color: rgba(255, 215, 0, 0.8);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
+}
+
+.preview-pendant-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.preview-pendant-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffd700;
+  font-size: 2rem;
   font-weight: bold;
 }
 
@@ -2162,6 +2320,11 @@ export default {
   .preview-sticker-item {
     width: 45px;
     height: 45px;
+  }
+
+  .preview-pendant-item {
+    width: 50px;
+    height: 50px;
   }
 
   .preview-price-row {
