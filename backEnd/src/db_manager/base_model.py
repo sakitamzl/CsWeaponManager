@@ -94,6 +94,37 @@ class BaseModel(ABC):
             print(f"删除记录失败: {e}")
             return False
     
+    @classmethod
+    def delete_all(cls, where_clause: str = None, params: tuple = None) -> int:
+        """
+        删除满足条件的所有记录
+        
+        Args:
+            where_clause: WHERE 子句（不包含 WHERE 关键字）
+            params: 参数元组
+        
+        Returns:
+            int: 删除的记录数
+        """
+        from .database import DatabaseManager
+        db = DatabaseManager()
+        
+        table_name = cls.get_table_name()
+        sql = f"DELETE FROM {table_name}"
+        
+        if where_clause:
+            sql += f" WHERE {where_clause}"
+        
+        try:
+            if params:
+                affected_rows = db.execute_update(sql, params)
+            else:
+                affected_rows = db.execute_update(sql)
+            return affected_rows
+        except Exception as e:
+            print(f"删除 {table_name} 数据失败: {e}")
+            return 0
+    
     def _is_new_record(self) -> bool:
         """判断是否为新记录"""
         primary_keys = self._get_primary_keys()
