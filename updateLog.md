@@ -22,3 +22,8 @@ v1.2.8 --   1、添加sell buy列表的贴纸、挂件、改名的显示
             DELETE FROM "main"."buy" WHERE "from" = 'buff';
             DELETE FROM buff_sell;
             DELETE FROM buff_buy;
+            
+            DELETE FROM "main"."sell" WHERE "from" = 'csfloat';
+            DELETE FROM "main"."buy" WHERE "from" = 'csfloat';
+            DELETE FROM csfloat_sell;
+            DELETE FROM csfloat_buy;

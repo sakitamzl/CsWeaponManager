@@ -1,3 +1,4 @@
+import json
 from flask import Blueprint, jsonify, request
 
 from src.db_manager.csfloat import CsFloatSellModel
@@ -114,6 +115,19 @@ def insert_db():
         csfloat_record.market_hash_name = data.get("market_hash_name")
         csfloat_record.data_user = data.get("data_user")
         csfloat_record.role = data.get("role", "seller")
+        # 处理stickers和keychains数据，转换为JSON字符串存储
+        stickers = data.get("stickers")
+        if stickers:
+            csfloat_record.stickers = json.dumps(stickers, ensure_ascii=False)
+        else:
+            csfloat_record.stickers = None
+        
+        keychains = data.get("keychains")
+        if keychains:
+            csfloat_record.keychains = json.dumps(keychains, ensure_ascii=False)
+        else:
+            csfloat_record.keychains = None
+        
         setattr(csfloat_record, "from", "csfloat")
         csfloat_record.save()
 
@@ -132,6 +146,18 @@ def insert_db():
         sell_record.order_time = data.get("created_at")
         sell_record.data_user = data.get("data_user")
         sell_record.steam_id = data.get("steam_id")
+        sell_record.steam_hash_name = data.get("market_hash_name")  # 将market_hash_name存入steam_hash_name字段
+        # 处理stickers和keychains数据，转换为JSON字符串存储到sell表
+        if stickers:
+            sell_record.sticker = json.dumps(stickers, ensure_ascii=False)
+        else:
+            sell_record.sticker = None
+        
+        if keychains:
+            sell_record.pendant = json.dumps(keychains, ensure_ascii=False)
+        else:
+            sell_record.pendant = None
+        
         setattr(sell_record, "from", "csfloat")
         sell_record.save()
 

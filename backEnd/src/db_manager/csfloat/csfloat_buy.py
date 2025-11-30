@@ -43,6 +43,8 @@ class CsFloatBuyModel(BaseModel):
             "data_user": {"type": "TEXT", "not_null": False, "default": None},
             "from": {"type": "TEXT", "not_null": False, "default": "csfloat"},
             "role": {"type": "TEXT", "not_null": False, "default": "buyer"},
+            "stickers": {"type": "TEXT", "not_null": False, "default": None},  # JSON格式存储印花数据
+            "keychains": {"type": "TEXT", "not_null": False, "default": None},  # JSON格式存储挂件数据
         }
 
     @classmethod

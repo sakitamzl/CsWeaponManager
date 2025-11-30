@@ -1,3 +1,4 @@
+import json
 from flask import Blueprint, jsonify, request
 
 from src.db_manager.csfloat import CsFloatBuyModel
@@ -101,6 +102,35 @@ def resolve_weapon():
         return jsonify({"success": False, "error": str(exc)}), 500
 
 
+@csfloatBuyV1.route("/resolveAccessory", methods=["POST"])
+def resolve_accessory():
+    """解析饰品信息（印花/挂件），使用name查询steam_hash_name，返回market_listing_item_name"""
+    try:
+        data = request.get_json(force=True) or {}
+        name = data.get("name")
+        if not name:
+            return jsonify({"success": False, "message": "缺少 name"}), 400
+
+        # 使用name查询steam_hash_name字段
+        records = WeaponClassIDModel.find_by_steam_hash_name(name)
+        if not records:
+            return jsonify({"success": False, "message": "未找到匹配数据"}), 200
+
+        accessory = records[0]
+        return jsonify(
+            {
+                "success": True,
+                "data": {
+                    "market_listing_item_name": getattr(accessory, "market_listing_item_name", None),
+                    "steam_hash_name": getattr(accessory, "steam_hash_name", None),
+                },
+            }
+        ), 200
+    except Exception as exc:
+        print(f"解析 CSFloat 饰品信息失败: {exc}")
+        return jsonify({"success": False, "error": str(exc)}), 500
+
+
 @csfloatBuyV1.route("/insert_db", methods=["POST"])
 def insert_db():
     try:
@@ -144,6 +174,19 @@ def insert_db():
         csfloat_record.market_hash_name = data.get("market_hash_name")
         csfloat_record.data_user = data.get("data_user")
         csfloat_record.role = data.get("role", "buyer")
+        # 处理stickers和keychains数据，转换为JSON字符串存储
+        stickers = data.get("stickers")
+        if stickers:
+            csfloat_record.stickers = json.dumps(stickers, ensure_ascii=False)
+        else:
+            csfloat_record.stickers = None
+        
+        keychains = data.get("keychains")
+        if keychains:
+            csfloat_record.keychains = json.dumps(keychains, ensure_ascii=False)
+        else:
+            csfloat_record.keychains = None
+        
         setattr(csfloat_record, "from", "csfloat")
         csfloat_record.save()
 
@@ -163,6 +206,20 @@ def insert_db():
         buy_record.trade_type = None
         buy_record.data_user = data.get("data_user")
         buy_record.steam_id = data.get("steam_id")
+        buy_record.steam_hash_name = data.get("market_hash_name")  # 将market_hash_name存入steam_hash_name字段
+        # 处理stickers和keychains数据，转换为JSON字符串存储到buy表
+        stickers = data.get("stickers")
+        if stickers:
+            buy_record.sticker = json.dumps(stickers, ensure_ascii=False)
+        else:
+            buy_record.sticker = None
+        
+        keychains = data.get("keychains")
+        if keychains:
+            buy_record.pendant = json.dumps(keychains, ensure_ascii=False)
+        else:
+            buy_record.pendant = None
+        
         setattr(buy_record, "from", "csfloat")
         buy_record.save()
 
