@@ -230,6 +230,7 @@
         :header-row-style="{ backgroundColor: 'var(--bg-tertiary)' }"
         :flexible="true"
         :scrollbar-always-on="true"
+        @sort-change="handleSortChange"
       >
         <el-table-column label="图片" width="144" align="center">
           <template #default="scope">
@@ -315,7 +316,7 @@
           </template>
         </el-table-column>
         <el-table-column prop="from" label="来源" min-width="80" />
-        <el-table-column prop="order_time" label="购入时间" min-width="160" sortable="custom" @sort-change="handleSortChange">
+        <el-table-column prop="order_time" label="购入时间" min-width="160" sortable="custom">
           <template #default="scope">
             {{ formatTime(scope.row.order_time) }}
           </template>
@@ -1014,9 +1015,6 @@ export default {
             status: item[9] || '',       // 状态
             status_sub: item[10] || '',  // 状态详情
             steam_hash_name: item[11] || '',
-          sticker: item[12] || null,
-          pendant: item[13] || null,
-          rename: item[14] || null,  // Steam Hash Name
             sticker: item[12] || null,    // 印花信息
             pendant: item[13] || null,    // 挂件信息
             rename: item[14] || null      // 改名信息
@@ -1456,9 +1454,9 @@ export default {
               status: item[9] || '',
               status_sub: item[10] || '',
               steam_hash_name: item[11] || '',
-          sticker: item[12] || null,
-          pendant: item[13] || null,
-          rename: item[14] || null
+              sticker: item[12] || null,
+              pendant: item[13] || null,
+              rename: item[14] || null
             }
           })
           
