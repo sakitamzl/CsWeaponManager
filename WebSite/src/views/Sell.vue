@@ -270,10 +270,10 @@
                 </div>
                 <!-- 挂件图片 -->
                 <div class="pendant-list" v-if="scope.row.pendant">
-                  <img
-                    v-if="parsePendant(scope.row.pendant)"
-                    :src="getPendantImage(parsePendant(scope.row.pendant))"
-                    :alt="parsePendant(scope.row.pendant)?.name"
+                    <img
+                      v-if="parsePendant(scope.row.pendant)?.image"
+                      :src="parsePendant(scope.row.pendant).image"
+                      :alt="parsePendant(scope.row.pendant)?.name"
                     class="pendant-img"
                     @error="(e) => e.target.style.display = 'none'"
                   />
@@ -1502,7 +1502,7 @@ export default {
         // 返回贴纸数组，每个贴纸包含name和image
         return parsed.map(sticker => {
           const name = sticker.name || '未知贴纸'
-          const hashName = sticker.hashName || sticker.steam_hash_name
+          const hashName = sticker.hashName || sticker.steam_hash_name || sticker.steamHashName
           
           // 根据hashName生成图片URL，添加"Sticker___"前缀
           let imageUrl = null
@@ -1529,7 +1529,25 @@ export default {
       if (!pendantData) return null
       try {
         const parsed = typeof pendantData === 'string' ? JSON.parse(pendantData) : pendantData
-        return parsed && typeof parsed === 'object' ? parsed : null
+        if (!parsed || typeof parsed !== 'object') return null
+        
+        // 获取hashName，支持多种字段名以提高兼容性
+        const hashName = parsed.hashName || parsed.steam_hash_name || parsed.steamHashName
+        
+        // 生成图片URL
+        let imageUrl = null
+        if (hashName) {
+          const imageName = hashName
+            .replace(/\s*\|\s*/g, '___')
+            .replace(/\s/g, '_')
+            + '.png'
+          imageUrl = `/weapon_imgs/${imageName}`
+        }
+        
+        return {
+          name: parsed.name || '挂件',
+          image: imageUrl
+        }
       } catch (e) {
         console.error('解析挂件数据失败:', e)
         return null
@@ -1540,8 +1558,8 @@ export default {
     // 获取挂件图片路径 - 使用hashName获取图片，与武器图片获取方式一致
     const getPendantImage = (pendant) => {
       if (!pendant) return null
-      // 从pendant对象中获取hashName字段
-      const hashName = pendant.hashName || pendant.steam_hash_name
+      // 从pendant对象中获取hashName字段，支持多种字段名以提高兼容性
+      const hashName = pendant.hashName || pendant.steam_hash_name || pendant.steamHashName
       if (!hashName) return null
       // 使用与武器图片相同的转换方式
       const imageName = hashName
