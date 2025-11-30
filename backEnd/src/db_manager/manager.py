@@ -12,7 +12,7 @@ from .index import ConfigModel, FundsModel, BuyModel, SellModel, LeaseModel, Wea
 from .yyyp import YyypBuyModel, YyypSellModel, YyypLentModel, YyypMessageboxModel
 from .buff import BuffBuyModel, BuffSellModel, BuffLentModel, BuffMessageboxModel
 from .csfloat import CsFloatBuyModel, CsFloatSellModel
-from .steam import SteamBuyModel, SteamSellModel, SteamInventoryHistoryModel, SteamInventoryHistoryIndexModel, SteamInventoryModel, SteamStockComponentsModel
+from .steam import SteamBuyModel, SteamSellModel, SteamMarketModel, SteamInventoryHistoryModel, SteamInventoryHistoryIndexModel, SteamInventoryModel, SteamStockComponentsModel
 
 
 class DBManager:
@@ -49,6 +49,7 @@ class DBManager:
             # Steam表
             SteamBuyModel,
             SteamSellModel,
+            SteamMarketModel,
             SteamInventoryHistoryModel,
             SteamInventoryHistoryIndexModel,
             SteamInventoryModel,
@@ -60,8 +61,26 @@ class DBManager:
         ]
     
     def initialize_database(self) -> bool:
-        """初始化数据库 - 按顺序检查并创建所有表"""
+        """初始化数据库 - 按顺序检查并创建所有表，删除不存在的表"""
         print("正在初始化数据库...")
+
+        # 获取代码中定义的所有表名
+        defined_table_names = {model_class.get_table_name() for model_class in self.models}
+        
+        # 获取数据库中所有表名
+        db_tables = self.db.get_all_tables()
+        
+        # 找出数据库中存在但代码中不存在的表（需要删除的表）
+        tables_to_drop = [table for table in db_tables if table not in defined_table_names]
+        
+        # 删除不存在的表
+        if tables_to_drop:
+            print(f"发现 {len(tables_to_drop)} 个不在代码中定义的表，正在删除...")
+            for table_name in tables_to_drop:
+                if self.db.drop_table(table_name):
+                    print(f"✅ 已删除表: {table_name}")
+                else:
+                    print(f"❌ 删除表失败: {table_name}")
 
         success_count = 0
         total_count = len(self.models)

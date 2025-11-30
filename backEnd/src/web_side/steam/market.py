@@ -1,6 +1,7 @@
 from flask import jsonify, request, Blueprint
 from src.db_manager.steam.steam_buy import SteamBuyModel
 from src.db_manager.steam.steam_sell import SteamSellModel
+from src.db_manager.steam.steam_market import SteamMarketModel
 from src.db_manager.index.buy import BuyModel
 from src.db_manager.index.sell import SellModel
 from src.execution_db import Date_base
@@ -253,7 +254,7 @@ def parse_trade_date_to_datetime(trade_date_str):
 
 @steamMarketV1.route('/insertNewData', methods=['POST'])
 def insertNewData():
-    """插入新的Steam市场交易数据，同时同步到主表"""
+    """插入新的Steam市场交易数据到steam_market表，同时同步到主表"""
     try:
         data = request.get_json()
         if not data:
@@ -261,30 +262,48 @@ def insertNewData():
             return jsonify({'success': False, 'error': '无效的JSON数据'}), 400
         
         # 获取当前用户（这里需要根据实际认证机制获取）
-        trade_type = data.get('trade_type')
+        trade_type_raw = data.get('trade_type')  # '+' 或 '-'
         steam_id = data.get('steamId')
         trade_date_str = data.get('trade_date')
         
         # 解析交易日期
         order_time = parse_trade_date_to_datetime(trade_date_str)
         
-        if trade_type == '+':
-            # 购买记录 - 插入steam_buy表
-            buy_record = SteamBuyModel()
-            buy_record.ID = data.get('ID')
-            buy_record.asset_id = data.get('asset_id')
-            buy_record.price = data.get('price')
-            buy_record.trade_date = trade_date_str
-            buy_record.listing_date = data.get('listing_date')
-            buy_record.game_name = data.get('game_name')
-            buy_record.weapon_type = data.get('weapon_type')
-            buy_record.weapon_name = data.get('weapon_name')
-            buy_record.item_name = data.get('item_name')
-            buy_record.float_range = data.get('exterior_wear')
-            buy_record.inspect_link = data.get('inspect_link')
-            buy_record.data_user = steam_id
-            steam_saved = buy_record.save()
-            
+        # 将 trade_type 转换为 'buy' 或 'sell'
+        if trade_type_raw == '+':
+            trade_type = 'buy'
+            operation_type = '购买'
+        elif trade_type_raw == '-':
+            trade_type = 'sell'
+            operation_type = '销售'
+        else:
+            return jsonify({'success': False, 'error': '无效的交易类型'}), 400
+        
+        # 插入到steam_market表
+        market_record = SteamMarketModel()
+        market_record.ID = data.get('ID')
+        market_record.trade_type = trade_type  # 'buy' 或 'sell'
+        market_record.asset_id = data.get('asset_id')
+        market_record.price = data.get('price')
+        market_record.price_original = data.get('price_original') if trade_type == 'sell' else None
+        market_record.trade_date = trade_date_str
+        market_record.listing_date = data.get('listing_date')
+        market_record.game_name = data.get('game_name')
+        market_record.weapon_type = data.get('weapon_type')
+        market_record.weapon_name = data.get('weapon_name')
+        market_record.item_name = data.get('item_name')
+        market_record.steam_hash_name = None  # 如果需要可以从data中获取
+        market_record.float_range = data.get('exterior_wear')
+        market_record.weapon_float = None  # Steam数据中没有weapon_float
+        market_record.inspect_link = data.get('inspect_link')
+        market_record.data_user = steam_id
+        market_record.sticker = None  # 如果需要可以从data中获取
+        market_record.pendant = None  # 如果需要可以从data中获取
+        market_record.rename = None  # 如果需要可以从data中获取
+        steam_saved = market_record.save()
+        
+        # 同步到主表
+        if trade_type == 'buy':
             # 同步到buy主表
             main_buy_record = BuyModel()
             main_buy_record.ID = data.get('ID')
@@ -302,28 +321,7 @@ def insertNewData():
             main_buy_record.steam_id = steam_id
             main_buy_record.data_user = steam_id
             main_saved = main_buy_record.save()
-            
-            saved = steam_saved and main_saved
-            operation_type = '购买'
-            
-        elif trade_type == '-':
-            # 销售记录 - 插入steam_sell表
-            sell_record = SteamSellModel()
-            sell_record.ID = data.get('ID')
-            sell_record.asset_id = data.get('asset_id')
-            sell_record.price = data.get('price')
-            sell_record.price_original = data.get('price_original')
-            sell_record.trade_date = trade_date_str
-            sell_record.listing_date = data.get('listing_date')
-            sell_record.game_name = data.get('game_name')
-            sell_record.weapon_type = data.get('weapon_type')
-            sell_record.weapon_name = data.get('weapon_name')
-            sell_record.item_name = data.get('item_name')
-            sell_record.float_range = data.get('exterior_wear')
-            sell_record.inspect_link = data.get('inspect_link')
-            sell_record.data_user = steam_id
-            steam_saved = sell_record.save()
-            
+        else:
             # 同步到sell主表
             main_sell_record = SellModel()
             main_sell_record.ID = data.get('ID')
@@ -342,11 +340,8 @@ def insertNewData():
             main_sell_record.steam_id = steam_id
             main_sell_record.data_user = steam_id
             main_saved = main_sell_record.save()
-            
-            saved = steam_saved and main_saved
-            operation_type = '销售'
-        else:
-            return jsonify({'success': False, 'error': '无效的交易类型'}), 400
+        
+        saved = steam_saved and main_saved
         
         # 检查是否保存成功
         if saved:
@@ -363,7 +358,7 @@ def insertNewData():
                 }
             }), 200
         else:
-            error_msg = f'数据插入失败: steam表保存={steam_saved}, 主表保存={main_saved}'
+            error_msg = f'数据插入失败: steam_market表保存={steam_saved}, 主表保存={main_saved}'
             print(error_msg)
             return jsonify({'success': False, 'error': error_msg}), 500
             

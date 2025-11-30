@@ -271,6 +271,22 @@ class DatabaseManager:
             print(f"通过重建表删除列 {column_name} 从表 {table_name} 失败: {e}")
             return False
     
+    def get_all_tables(self) -> List[str]:
+        """获取数据库中所有表的名称列表"""
+        sql = "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+        tables = self.execute_query(sql)
+        return [table[0] for table in tables]
+    
+    def drop_table(self, table_name: str) -> bool:
+        """删除表"""
+        try:
+            sql = f"DROP TABLE IF EXISTS [{table_name}]"
+            self.execute_update(sql)
+            return True
+        except Exception as e:
+            print(f"删除表 {table_name} 失败: {e}")
+            return False
+    
     def get_database_info(self) -> Dict[str, Any]:
         """获取数据库信息"""
         info = {
