@@ -1529,10 +1529,14 @@ export default {
       if (!pendantData) return null
       try {
         const parsed = typeof pendantData === 'string' ? JSON.parse(pendantData) : pendantData
-        if (!parsed || typeof parsed !== 'object') return null
+        
+        // 如果是数组，取第一个元素
+        let pendantObj = Array.isArray(parsed) ? parsed[0] : parsed
+        
+        if (!pendantObj || typeof pendantObj !== 'object') return null
         
         // 获取hashName，支持多种字段名以提高兼容性
-        const hashName = parsed.hashName || parsed.steam_hash_name || parsed.steamHashName
+        const hashName = pendantObj.hashName || pendantObj.steam_hash_name || pendantObj.steamHashName
         
         // 生成图片URL
         let imageUrl = null
@@ -1545,7 +1549,7 @@ export default {
         }
         
         return {
-          name: parsed.name || '挂件',
+          name: pendantObj.name || '挂件',
           image: imageUrl
         }
       } catch (e) {
