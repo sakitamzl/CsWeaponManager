@@ -292,14 +292,14 @@ def insertNewData():
         market_record.weapon_type = data.get('weapon_type')
         market_record.weapon_name = data.get('weapon_name')
         market_record.item_name = data.get('item_name')
-        market_record.steam_hash_name = None  # 如果需要可以从data中获取
+        market_record.steam_hash_name = data.get('market_hash_name')  # 从data中获取market_hash_name
         market_record.float_range = data.get('exterior_wear')
         market_record.weapon_float = None  # Steam数据中没有weapon_float
         market_record.inspect_link = data.get('inspect_link')
         market_record.data_user = steam_id
-        market_record.sticker = None  # 如果需要可以从data中获取
-        market_record.pendant = None  # 如果需要可以从data中获取
-        market_record.rename = None  # 如果需要可以从data中获取
+        market_record.sticker = data.get('sticker')  # 从data中获取sticker（JSON格式的字符串）
+        market_record.pendant = data.get('pendant')  # 从data中获取pendant（挂件，JSON格式的字符串）
+        market_record.rename = data.get('rename')  # 从data中获取rename（改名）
         steam_saved = market_record.save()
         
         # 同步到主表
