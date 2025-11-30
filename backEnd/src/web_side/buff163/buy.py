@@ -2,8 +2,65 @@ from flask import jsonify, request, Blueprint
 from src.execution_db import Date_base
 from src.db_manager.buff.buff_buy import BuffBuyModel
 from src.db_manager.index.buy import BuyModel
+from src.db_manager.index.weapon_classID import WeaponClassIDModel
+import json
 
 buff163BuyV1 = Blueprint('buff163BuyV1', __name__)
+
+def process_accessory_data(accessory_json_str, accessory_type):
+    """
+    处理饰品数据(印花/挂件),为每个饰品添加steam_hash_name
+    :param accessory_json_str: 饰品JSON字符串
+    :param accessory_type: 饰品类型 '印花' 或 '挂件'
+    :return: 处理后的JSON字符串
+    """
+    if not accessory_json_str:
+        return None
+
+    try:
+        accessories = json.loads(accessory_json_str)
+        if not isinstance(accessories, list):
+            return accessory_json_str
+
+        # 为每个饰品添加steam_hash_name
+        for accessory in accessories:
+            accessory_name = accessory.get('name')
+            if accessory_name:
+                # 根据类型添加前缀
+                if accessory_type == '印花':
+                    search_name = f'印花 | {accessory_name}'
+                elif accessory_type == '挂件':
+                    search_name = f'挂件 | {accessory_name}'
+                else:
+                    search_name = accessory_name
+
+                # 查询weapon_classID表: market_listing_item_name = search_name AND weapon_type = accessory_type
+                records = WeaponClassIDModel.find_by_market_listing_item_name(search_name)
+
+                # 在结果中查找weapon_type匹配的记录
+                steam_hash_name = None
+                for record in records:
+                    if record.weapon_type == accessory_type:
+                        steam_hash_name = record.steam_hash_name
+                        break
+
+                # 如果是印花类型，裁剪steam_hash_name前面的"Sticker | "前缀
+                if accessory_type == '印花' and steam_hash_name:
+                    if steam_hash_name.startswith('Sticker | '):
+                        steam_hash_name = steam_hash_name[len('Sticker | '):]
+
+                accessory['steam_hash_name'] = steam_hash_name
+                if not steam_hash_name:
+                    print(f"警告: 未找到{accessory_type}的steam_hash_name: 原名={accessory_name}, 查询名={search_name}")
+            else:
+                accessory['steam_hash_name'] = None
+
+        return json.dumps(accessories, ensure_ascii=False)
+    except Exception as e:
+        print(f"处理{accessory_type}数据失败: {e}")
+        import traceback
+        print(f"错误堆栈: {traceback.format_exc()}")
+        return accessory_json_str
 
 @buff163BuyV1.route('/selectNotEnd/<user_id>', methods=['get'])
 def selectNotEnd(user_id):
@@ -105,6 +162,28 @@ def insert_db():
         seller_id = data['seller_id']
         weapon_float = data['weapon_float']
         data_user = data['data_user']
+        # 新增字段 - 只入库buy表
+        sticker = data.get('sticker')
+        pendant = data.get('pendant')
+        rename = data.get('rename')
+        market_hash_name = data.get('market_hash_name')
+        img_url = data.get('img_url')  # 获取图片URL,但不入库,仅用作备用值
+
+        # 处理印花数据,为每个印花添加steam_hash_name
+        if sticker:
+            sticker = process_accessory_data(sticker, '印花')
+
+        # 处理挂件数据,为每个挂件添加steam_hash_name
+        if pendant:
+            pendant = process_accessory_data(pendant, '挂件')
+
+        # steam_hash_name直接使用market_hash_name的值
+        steam_hash_name = market_hash_name if market_hash_name else None
+
+        # 如果steam_hash_name为None,则使用img_url的值
+        if steam_hash_name is None and img_url:
+            steam_hash_name = img_url
+            print(f"market_hash_name为空,使用img_url作为steam_hash_name: {img_url}")
 
         # 插入到buff_buy表
         print(f"插入BUFF购买记录到buff_buy表，ID: {item_id}")
@@ -142,6 +221,11 @@ def insert_db():
         buy_record.payment = pay_method_text
         buy_record.data_user = data_user
         buy_record.status_sub = state_sub
+        # 新增字段 - 只入库buy表
+        buy_record.sticker = sticker
+        buy_record.pendant = pendant
+        buy_record.rename = rename
+        buy_record.steam_hash_name = steam_hash_name
         setattr(buy_record, 'from', 'buff')
         buy_saved = buy_record.save()
         print(f"buy表保存结果: {buy_saved}")
