@@ -39,3 +39,4 @@ v1.2.9 --   1、添加stean市场、steam交易历史      stean_hash_name获取
             DELETE FROM steam_market;
             DELETE FROM steam_inventoryhistory_index;
             DELETE FROM steam_inventoryhistory;
+            DELETE FROM yyyp_messagebox
