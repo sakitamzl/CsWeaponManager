@@ -31,20 +31,9 @@ class CsFloatSellModel(BaseModel):
             "state_sub": {"type": "TEXT", "not_null": False, "default": None},
             "created_at": {"type": "DATETIME", "not_null": False, "default": None},
             "accepted_at": {"type": "DATETIME", "not_null": False, "default": None},
-            "verified_at": {"type": "DATETIME", "not_null": False, "default": None},
-            "trade_url": {"type": "TEXT", "not_null": False, "default": None},
-            "trade_token": {"type": "TEXT", "not_null": False, "default": None},
-            "steam_offer_id": {"type": "TEXT", "not_null": False, "default": None},
-            "steam_offer_state": {"type": "TEXT", "not_null": False, "default": None},
-            "verification_mode": {"type": "TEXT", "not_null": False, "default": None},
             "inventory_check_status": {"type": "INTEGER", "not_null": False, "default": None},
-            "icon_url": {"type": "TEXT", "not_null": False, "default": None},
             "market_hash_name": {"type": "TEXT", "not_null": False, "default": None},
             "data_user": {"type": "TEXT", "not_null": False, "default": None},
-            "from": {"type": "TEXT", "not_null": False, "default": "csfloat"},
-            "role": {"type": "TEXT", "not_null": False, "default": "seller"},
-            "stickers": {"type": "TEXT", "not_null": False, "default": None},  # JSON格式存储印花数据
-            "keychains": {"type": "TEXT", "not_null": False, "default": None},  # JSON格式存储挂件数据
         }
 
     @classmethod

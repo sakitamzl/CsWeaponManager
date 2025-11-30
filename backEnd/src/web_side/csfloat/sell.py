@@ -54,8 +54,6 @@ def update_order_status():
         if record:
             record.state = state
             record.state_sub = state_sub
-            if verified_at:
-                record.verified_at = verified_at
             record.save()
 
         sell_record = SellModel.find_by_id(ID=trade_id)
@@ -104,31 +102,9 @@ def insert_db():
         csfloat_record.state_sub = data.get("state_sub")
         csfloat_record.created_at = data.get("created_at")
         csfloat_record.accepted_at = data.get("accepted_at")
-        csfloat_record.verified_at = data.get("verified_at")
-        csfloat_record.trade_url = data.get("trade_url")
-        csfloat_record.trade_token = data.get("trade_token")
-        csfloat_record.steam_offer_id = data.get("steam_offer_id")
-        csfloat_record.steam_offer_state = data.get("steam_offer_state")
-        csfloat_record.verification_mode = data.get("verification_mode")
         csfloat_record.inventory_check_status = data.get("inventory_check_status")
-        csfloat_record.icon_url = data.get("icon_url")
         csfloat_record.market_hash_name = data.get("market_hash_name")
         csfloat_record.data_user = data.get("data_user")
-        csfloat_record.role = data.get("role", "seller")
-        # 处理stickers和keychains数据，转换为JSON字符串存储
-        stickers = data.get("stickers")
-        if stickers:
-            csfloat_record.stickers = json.dumps(stickers, ensure_ascii=False)
-        else:
-            csfloat_record.stickers = None
-        
-        keychains = data.get("keychains")
-        if keychains:
-            csfloat_record.keychains = json.dumps(keychains, ensure_ascii=False)
-        else:
-            csfloat_record.keychains = None
-        
-        setattr(csfloat_record, "from", "csfloat")
         csfloat_record.save()
 
         sell_record = SellModel()
@@ -148,11 +124,13 @@ def insert_db():
         sell_record.steam_id = data.get("steam_id")
         sell_record.steam_hash_name = data.get("market_hash_name")  # 将market_hash_name存入steam_hash_name字段
         # 处理stickers和keychains数据，转换为JSON字符串存储到sell表
+        stickers = data.get("stickers")
         if stickers:
             sell_record.sticker = json.dumps(stickers, ensure_ascii=False)
         else:
             sell_record.sticker = None
         
+        keychains = data.get("keychains")
         if keychains:
             sell_record.pendant = json.dumps(keychains, ensure_ascii=False)
         else:

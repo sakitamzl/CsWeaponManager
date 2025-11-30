@@ -324,16 +324,21 @@ class BaseModel(ABC):
     
     @classmethod
     def _check_and_update_table_structure(cls) -> bool:
-        """检查并更新表结构"""
+        """检查并更新表结构：添加缺失字段，删除多余字段"""
         db = DatabaseManager()
+        table_name = cls.get_table_name()
         
         # 获取现有列
-        existing_columns = {col['name']: col for col in db.get_table_columns(cls.get_table_name())}
+        existing_columns = {col['name']: col for col in db.get_table_columns(table_name)}
         
-        # 检查缺失的列
+        # 获取模型定义的字段
+        defined_fields = set(cls.get_fields().keys())
+        existing_field_names = set(existing_columns.keys())
+        
+        # 检查缺失的列并添加
         for field_name, field_def in cls.get_fields().items():
             if field_name not in existing_columns:
-                print(f"表 {cls.get_table_name()} 缺少字段 {field_name}，正在添加...")
+                print(f"表 {table_name} 缺少字段 {field_name}，正在添加...")
                 column_def = {
                     'name': field_name,
                     'type': field_def['type'],
@@ -341,8 +346,22 @@ class BaseModel(ABC):
                     'default': field_def.get('default')
                 }
                 
-                if not db.add_column(cls.get_table_name(), column_def):
+                if not db.add_column(table_name, column_def):
                     print(f"添加字段 {field_name} 失败")
                     return False
+        
+        # 检查多余的列并删除（排除主键列）
+        extra_columns = existing_field_names - defined_fields
+        for column_name in extra_columns:
+            # 检查是否是主键列，主键列不能删除
+            column_info = existing_columns.get(column_name, {})
+            if column_info.get('pk', False):
+                print(f"表 {table_name} 的字段 {column_name} 是主键，跳过删除")
+                continue
+            
+            print(f"表 {table_name} 存在多余字段 {column_name}，正在删除...")
+            if not db.drop_column(table_name, column_name):
+                print(f"删除字段 {column_name} 失败")
+                return False
         
         return True

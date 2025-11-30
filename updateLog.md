@@ -17,7 +17,9 @@ v1.2.7 --   1、表 buy sell  steam_stockComponents  steam_inventory steam_buy s
             DELETE FROM yyyp_buy;
 
 #2025-11-30
-v1.2.8 --   1、添加sell buy列表的贴纸、挂件、改名的显示      
+v1.2.8 --   1、添加sell buy列表的贴纸、挂件、改名的显示     
+            2、完成csfloat 饰品 印花 挂件获取
+
             DELETE FROM "main"."sell" WHERE "from" = 'buff';
             DELETE FROM "main"."buy" WHERE "from" = 'buff';
             DELETE FROM buff_sell;
