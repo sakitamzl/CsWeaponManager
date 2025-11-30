@@ -415,10 +415,11 @@
             </div>
             <div class="card-prices">
               <!-- 购入和Steam合并为一行 -->
-              <div class="price-row" v-if="item.buy_price || item.steam_price">
-                <div class="price-group" v-if="item.buy_price">
+              <div class="price-row" v-if="item.buy_price || item.steam_price || true">
+                <div class="price-group">
                   <span class="price-label">购入:</span>
-                  <span class="price-value buy-price">¥{{ parseFloat(item.buy_price).toFixed(2) }}</span>
+                  <span class="price-value buy-price" v-if="item.buy_price">¥{{ parseFloat(item.buy_price).toFixed(2) }}</span>
+                  <span class="price-value" v-else style="color: #888;">-</span>
                 </div>
                 <div class="price-group" v-if="item.steam_price">
                   <span class="price-label">Steam:</span>
@@ -519,10 +520,11 @@
 
               <!-- 价格信息 -->
               <div class="preview-prices">
-                <div class="preview-price-row" v-if="previewItem.buy_price || previewItem.steam_price">
-                  <div class="preview-price-item" v-if="previewItem.buy_price">
+                <div class="preview-price-row" v-if="previewItem.buy_price || previewItem.steam_price || true">
+                  <div class="preview-price-item">
                     <span class="preview-price-label">购入:</span>
-                    <span class="preview-price-value buy-price">¥{{ parseFloat(previewItem.buy_price).toFixed(2) }}</span>
+                    <span class="preview-price-value buy-price" v-if="previewItem.buy_price">¥{{ parseFloat(previewItem.buy_price).toFixed(2) }}</span>
+                    <span class="preview-price-value" v-else style="color: #888;">-</span>
                   </div>
                   <div class="preview-price-item" v-if="previewItem.steam_price">
                     <span class="preview-price-label">Steam:</span>
@@ -1818,7 +1820,7 @@ export default {
 }
 
 .buy-price {
-  color: #4CAF50;
+  color: #fff;
 }
 
 .price-profit {

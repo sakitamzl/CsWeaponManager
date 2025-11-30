@@ -10,6 +10,11 @@ v1.2.7 --   1、表 buy sell  steam_stockComponents  steam_inventory steam_buy s
             2、steam库存表添加 详细信息的获取
             3、修改steam库存、sell、buy页面的显示样式 
             4、修改yyyp 获取商品详情的时候 添加获取贴纸信息 挂件信息
+            5、更新执行语句 
+            DELETE FROM "main"."sell" WHERE "from" = 'yyyp';
+            DELETE FROM "main"."buy" WHERE "from" = 'yyyp';
+            DELETE FROM yyyp_sell;
+            DELETE FROM yyyp_buy;
 
 #2025-11-30
 v1.2.8 --   1、添加sell buy列表的贴纸、挂件、改名的显示      
