@@ -29,3 +29,7 @@ v1.2.8 --   1、添加sell buy列表的贴纸、挂件、改名的显示
             DELETE FROM "main"."buy" WHERE "from" = 'csfloat';
             DELETE FROM csfloat_sell;
             DELETE FROM csfloat_buy;
+
+#2025-12-1 
+v1.2.9 --   1、添加stean市场、steam交易历史      stean_hash_name获取
+            2、

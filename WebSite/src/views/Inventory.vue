@@ -2416,6 +2416,14 @@ export default {
   font-size: 1rem;
 }
 
+.preview-price-value.price-profit {
+  color: #f56c6c;
+}
+
+.preview-price-value.price-loss {
+  color: #4CAF50;
+}
+
 /* 标签信息 */
 .preview-tags {
   display: flex;
