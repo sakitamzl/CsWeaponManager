@@ -124,15 +124,26 @@ def resolve_weapon():
 
 @csfloatBuyV1.route("/resolveAccessory", methods=["POST"])
 def resolve_accessory():
-    """解析饰品信息（印花/挂件），使用name查询steam_hash_name，返回market_listing_item_name"""
+    """解析饰品信息（印花/挂件），使用name查询steam_hash_name，返回market_listing_item_name
+    支持两种查询方式：
+    1. 如果name以"印花 | "开头，使用market_listing_item_name字段查询
+    2. 否则，使用steam_hash_name字段查询
+    """
     try:
         data = request.get_json(force=True) or {}
         name = data.get("name")
         if not name:
             return jsonify({"success": False, "message": "缺少 name"}), 400
 
-        # 使用name查询steam_hash_name字段
-        records = WeaponClassIDModel.find_by_steam_hash_name(name)
+        records = None
+        
+        # 如果name以"印花 | "开头，使用market_listing_item_name字段查询
+        if name.startswith("印花 | "):
+            records = WeaponClassIDModel.find_by_market_listing_item_name(name)
+        else:
+            # 否则，使用steam_hash_name字段查询
+            records = WeaponClassIDModel.find_by_steam_hash_name(name)
+        
         if not records:
             return jsonify({"success": False, "message": "未找到匹配数据"}), 200
 

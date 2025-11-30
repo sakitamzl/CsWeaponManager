@@ -310,6 +310,10 @@ def insertNewData():
             main_buy_record.weapon_name = data.get('weapon_name')
             main_buy_record.weapon_type = data.get('weapon_type')
             main_buy_record.item_name = data.get('item_name')
+            main_buy_record.steam_hash_name = data.get('market_hash_name')  # 同步market_hash_name
+            main_buy_record.sticker = data.get('sticker')  # 同步sticker
+            main_buy_record.pendant = data.get('pendant')  # 同步pendant
+            main_buy_record.rename = data.get('rename')  # 同步rename
             main_buy_record.weapon_float = None  # Steam数据中没有weapon_float
             main_buy_record.float_range = data.get('exterior_wear')
             main_buy_record.price = data.get('price')
@@ -328,6 +332,10 @@ def insertNewData():
             main_sell_record.weapon_name = data.get('weapon_name')
             main_sell_record.weapon_type = data.get('weapon_type')
             main_sell_record.item_name = data.get('item_name')
+            main_sell_record.steam_hash_name = data.get('market_hash_name')  # 同步market_hash_name
+            main_sell_record.sticker = data.get('sticker')  # 同步sticker
+            main_sell_record.pendant = data.get('pendant')  # 同步pendant
+            main_sell_record.rename = data.get('rename')  # 同步rename
             main_sell_record.weapon_float = None  # Steam数据中没有weapon_float
             main_sell_record.float_range = data.get('exterior_wear')
             main_sell_record.price = data.get('price')

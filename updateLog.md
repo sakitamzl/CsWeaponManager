@@ -33,3 +33,9 @@ v1.2.8 --   1、添加sell buy列表的贴纸、挂件、改名的显示
 #2025-12-1 
 v1.2.9 --   1、添加stean市场、steam交易历史      stean_hash_name获取
             2、
+
+            DELETE FROM "main"."sell" WHERE "from" = 'SMK';
+            DELETE FROM "main"."buy" WHERE "from" = 'SMK';
+            DELETE FROM steam_market;
+            DELETE FROM steam_inventoryhistory_index;
+            DELETE FROM steam_inventoryhistory;

@@ -12,7 +12,7 @@ from .index import ConfigModel, FundsModel, BuyModel, SellModel, LeaseModel, Wea
 from .yyyp import YyypBuyModel, YyypSellModel, YyypLentModel, YyypMessageboxModel
 from .buff import BuffBuyModel, BuffSellModel, BuffLentModel, BuffMessageboxModel
 from .csfloat import CsFloatBuyModel, CsFloatSellModel
-from .steam import SteamBuyModel, SteamSellModel, SteamMarketModel, SteamInventoryHistoryModel, SteamInventoryHistoryIndexModel, SteamInventoryModel, SteamStockComponentsModel
+from .steam import SteamMarketModel, SteamInventoryHistoryModel, SteamInventoryHistoryIndexModel, SteamInventoryModel, SteamStockComponentsModel
 
 
 class DBManager:
@@ -47,8 +47,6 @@ class DBManager:
             BuffMessageboxModel,
             
             # Steam表
-            SteamBuyModel,
-            SteamSellModel,
             SteamMarketModel,
             SteamInventoryHistoryModel,
             SteamInventoryHistoryIndexModel,
