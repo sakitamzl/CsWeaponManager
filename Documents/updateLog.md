@@ -7,6 +7,7 @@
 1. 添加 Steam 市场、Steam 交易历史的 `steam_hash_name` 获取
 2. 添加 Steam 库存交易的详细信息获取
 3. 添加 Steam 库存组件的详细信息获取
+4、添加 在steam中获取hashname
 
 **数据库清理语句：**
 
@@ -17,6 +18,7 @@ DELETE FROM steam_market;
 DELETE FROM yyyp_messagebox;
 DELETE FROM steam_inventoryhistory_index;
 DELETE FROM steam_inventoryhistory;
+DELETE FROM weapon_classID;
 ```
 
 ---
