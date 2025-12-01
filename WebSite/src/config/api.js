@@ -222,6 +222,10 @@ export const API_CONFIG = {
 
     STEAM_COLLECT_HASH_NAMES: '/steamSpiderV1/collectMarketHashNames',  // 采集Steam市场Hash Names
 
+    STEAM_FETCH_HASH_NAMES: '/steamSpiderV1/fetchSteamHashNames',  // 获取Steam饰品哈希（批量）
+
+    STEAM_FETCH_HASH_NAMES_BY_WEAPON: '/steamSpiderV1/fetchSteamHashNamesByWeapon',  // 获取Steam饰品哈希（单个武器）
+
     STEAM_SEARCH_RENAME: '/steamSpiderV1/searchRenameWeapon',  // Steam 改名饰品搜索
 
     STEAM_BUY_MARKET_ITEM: '/steamSpiderV1/buyMarketItem',  // Steam 市场购买物品
@@ -555,6 +559,10 @@ export const apiUrls = {
   steamFullSpider: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_FULL_SPIDER),
 
   steamCollectHashNames: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_COLLECT_HASH_NAMES),
+
+  steamFetchHashNames: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_FETCH_HASH_NAMES),
+
+  steamFetchHashNamesByWeapon: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_FETCH_HASH_NAMES_BY_WEAPON),
 
   csqaqGetGoods: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_GET_GOODS),
 

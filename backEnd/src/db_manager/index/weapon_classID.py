@@ -18,10 +18,11 @@ class WeaponClassIDModel(BaseModel):
     @classmethod
     def get_fields(cls) -> Dict[str, Dict[str, Any]]:
         # 注意：字段顺序必须与数据库表的实际列顺序一致！
-        # 数据库列顺序：steam_hash_name, market_listing_item_name, yyyp_id, buff_id, steam_id, 
+        # 数据库列顺序：steam_hash_name, market_listing_item_name, yyyp_id, buff_id, steam_id,
         #              weapon_type, weapon_name, item_name, float_range, Rarity, yyyp_class_name, buff_class_name,
         #              yyyp_Price, yyyp_Rent, yyyp_OnSaleCount, yyyp_OnLeaseCount,
-        #              buff_Price, buff_Rent, buff_OnSaleCount, buff_OnLeaseCount, icon_url
+        #              buff_Price, buff_Rent, buff_OnSaleCount, buff_OnLeaseCount, icon_url, if_down,
+        #              classid, instanceid
         return {
             'steam_hash_name': {
                 'type': 'TEXT',
@@ -136,6 +137,16 @@ class WeaponClassIDModel(BaseModel):
                 'type': 'INTEGER',
                 'not_null': False,
                 'default': None
+            },
+            'classid': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None
+            },
+            'instanceid': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None
             }
         }
 
@@ -182,6 +193,14 @@ class WeaponClassIDModel(BaseModel):
             {
                 'name': 'idx_rarity',
                 'columns': ['Rarity']
+            },
+            {
+                'name': 'idx_classid',
+                'columns': ['classid']
+            },
+            {
+                'name': 'idx_instanceid',
+                'columns': ['instanceid']
             }
         ]
 
@@ -517,41 +536,81 @@ class WeaponClassIDModel(BaseModel):
     @classmethod
     def batch_update_steam_hash_name(cls, weapon_list: List[Dict[str, Any]]) -> int:
         """
-        Steam专用：批量插入steam_hash_name
-        :param weapon_list: 武器数据列表，每项包含 data_hash_name, market_listing_item_name, weapon_type, weapon_name, item_name
+        Steam专用：批量插入或更新steam_hash_name
+        :param weapon_list: 武器数据列表，每项包含 data_hash_name, market_listing_item_name, weapon_type,
+                           weapon_name, item_name, float_range, Rarity, icon_url, classid, instanceid
         :return: 成功处理的数量
         """
         success_count = 0
         skip_count = 0
+        update_count = 0
+        insert_count = 0
         db = cls().db
 
         for weapon_data in weapon_list:
             try:
                 data_hash_name = weapon_data.get('data_hash_name')
                 market_listing_item_name = weapon_data.get('market_listing_item_name')
-                weapon_type = weapon_data.get('weapon_type')
-                weapon_name = weapon_data.get('weapon_name')
-                item_name = weapon_data.get('item_name')
+                weapon_type = weapon_data.get('weapon_type', '')
+                weapon_name = weapon_data.get('weapon_name', '')
+                item_name = weapon_data.get('item_name', '')
+                float_range = weapon_data.get('float_range', '')
+                rarity = weapon_data.get('Rarity', '')
+                icon_url = weapon_data.get('icon_url', '')
+                classid = weapon_data.get('classid', '')
+                instanceid = weapon_data.get('instanceid', '')
 
                 if not data_hash_name:
                     skip_count += 1
                     continue
 
-                # 使用 INSERT OR IGNORE 避免主键冲突
-                sql_insert = f'''INSERT OR IGNORE INTO {cls.get_table_name()} 
-                                ([steam_hash_name], [weapon_type], [weapon_name], [item_name], [market_listing_item_name]) 
-                                VALUES (?, ?, ?, ?, ?)'''
-                affected_rows = db.execute_insert(sql_insert, (data_hash_name, weapon_type, weapon_name, item_name, market_listing_item_name))
-                
-                if affected_rows > 0:
-                    success_count += 1
+                # 先查询记录是否存在
+                existing_records = cls.find_by_steam_hash_name(data_hash_name)
+
+                if existing_records:
+                    # 记录已存在，执行更新操作（更新所有字段）
+                    sql_update = f'''UPDATE {cls.get_table_name()}
+                                    SET [market_listing_item_name] = ?,
+                                        [weapon_type] = ?,
+                                        [weapon_name] = ?,
+                                        [item_name] = ?,
+                                        [float_range] = ?,
+                                        [Rarity] = ?,
+                                        [icon_url] = ?,
+                                        [classid] = ?,
+                                        [instanceid] = ?
+                                    WHERE [steam_hash_name] = ?'''
+                    affected_rows = db.execute_update(sql_update, (
+                        market_listing_item_name, weapon_type, weapon_name, item_name,
+                        float_range, rarity, icon_url, classid, instanceid,
+                        data_hash_name
+                    ))
+
+                    if affected_rows > 0:
+                        success_count += 1
+                        update_count += 1
+                        print(f"✅ 更新Steam数据: steam_hash_name={data_hash_name}")
                 else:
-                    # 数据已存在，被忽略
-                    skip_count += 1
+                    # 使用 INSERT 插入新记录
+                    sql_insert = f'''INSERT INTO {cls.get_table_name()}
+                                    ([steam_hash_name], [market_listing_item_name], [weapon_type], [weapon_name],
+                                     [item_name], [float_range], [Rarity], [icon_url], [classid], [instanceid])
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'''
+                    affected_rows = db.execute_insert(sql_insert, (
+                        data_hash_name, market_listing_item_name, weapon_type, weapon_name,
+                        item_name, float_range, rarity, icon_url, classid, instanceid
+                    ))
+
+                    if affected_rows > 0:
+                        success_count += 1
+                        insert_count += 1
+                        print(f"✅ 插入新Steam数据: steam_hash_name={data_hash_name}")
 
             except Exception as e:
                 print(f"处理Steam数据失败: {e}")
+                import traceback
+                print(f"错误堆栈: {traceback.format_exc()}")
                 continue
 
-        print(f"Steam插入完成: 总成功 {success_count} 条, 跳过 {skip_count} 条（重复）")
+        print(f"Steam更新完成: 总成功 {success_count} 条 (更新 {update_count} 条, 插入 {insert_count} 条), 跳过 {skip_count} 条")
         return success_count
