@@ -45,15 +45,6 @@
             <span>爬取挂件</span>
           </li>
           <li 
-            :class="{ active: $route.name === 'SteamMarket' }"
-            @click="navigateTo('/settings/steam-market')"
-          >
-            <el-icon :size="18">
-              <ShoppingCart />
-            </el-icon>
-            <span>Steam市场历史</span>
-          </li>
-          <li 
             :class="{ active: $route.name === 'SteamInventoryHistory' }"
             @click="navigateTo('/settings/steam-inventory-history')"
           >
@@ -136,7 +127,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { EditPen, SetUp, Setting, ShoppingCart, Box, Timer, DataBoard, ArrowLeft, ArrowRight, PriceTag, ChatLineRound, Refresh } from '@element-plus/icons-vue'
+import { EditPen, SetUp, Setting, Box, Timer, DataBoard, ArrowLeft, ArrowRight, PriceTag, ChatLineRound, Refresh } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const sidebarCollapsed = ref(false)

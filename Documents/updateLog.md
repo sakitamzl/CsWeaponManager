@@ -14,9 +14,9 @@
 DELETE FROM "main"."sell" WHERE "from" = 'SMK';
 DELETE FROM "main"."buy" WHERE "from" = 'SMK';
 DELETE FROM steam_market;
+DELETE FROM yyyp_messagebox;
 DELETE FROM steam_inventoryhistory_index;
 DELETE FROM steam_inventoryhistory;
-DELETE FROM yyyp_messagebox;
 ```
 
 ---

@@ -105,12 +105,6 @@ const routes = [
             meta: { title: '爬取挂件' }
           },
           {
-            path: 'steam-market',
-            name: 'SteamMarket',
-            component: () => import('@/views/settings/SteamMarket.vue'),
-            meta: { title: 'Steam市场历史' }
-          },
-          {
             path: 'steam-inventory-history',
             name: 'SteamInventoryHistory',
             component: () => import('@/views/settings/SteamInventoryHistory.vue'),
