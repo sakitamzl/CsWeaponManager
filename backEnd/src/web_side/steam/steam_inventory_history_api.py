@@ -1,6 +1,7 @@
 from flask import jsonify, request, Blueprint
 from src.db_manager.steam.steam_inventory_history import SteamInventoryHistoryModel
 from src.db_manager.steam.steam_inventory_history_index import SteamInventoryHistoryIndexModel
+from src.db_manager.index.weapon_classID import WeaponClassIDModel
 from datetime import datetime
 import json
 import traceback
@@ -151,6 +152,12 @@ def insert_inventory_history():
                 inventory_record.float_range = i.get('float_range')
                 inventory_record.trade_type = trade_type
                 inventory_record.data_user = data_user
+
+                # 新增字段
+                inventory_record.market_hash_name = i.get('market_hash_name')
+                inventory_record.rename = i.get('rename')
+                inventory_record.sticker = i.get('sticker')
+                inventory_record.pendant = i.get('pendant')
                 
                 # 保存记录
                 saved = inventory_record.save()
@@ -227,3 +234,123 @@ def insert_inventory_history():
         print(f"  异常信息: {str(e)}")
         print(f"  堆栈跟踪:\n{traceback.format_exc()}")
         return jsonify({'success': False, 'error': f'服务器错误: {str(e)}'}), 500
+
+
+@steamInventoryHistoryV1.route('/resolve_sticker', methods=['POST'])
+def resolve_sticker():
+    """
+    解析印花信息，查询 steam_hash_name
+    支持单个印花名称查询
+
+    请求体示例:
+    {
+        "name": "JDC | 2022年里约热内卢锦标赛"
+    }
+
+    返回示例:
+    {
+        "success": true,
+        "data": {
+            "name": "JDC | 2022年里约热内卢锦标赛",
+            "steam_hash_name": "JDC | 2022年里约热内卢锦标赛"
+        }
+    }
+    """
+    try:
+        data = request.get_json(force=True) or {}
+        sticker_name = data.get("name")
+
+        if not sticker_name:
+            return jsonify({"success": False, "message": "缺少 name 参数"}), 400
+
+        # 拼接 "印花 | " 前缀进行查询
+        search_name = f"印花 | {sticker_name}"
+        records = WeaponClassIDModel.find_by_market_listing_item_name(search_name)
+
+        if not records:
+            return jsonify({
+                "success": False,
+                "message": "未找到匹配的印花数据",
+                "data": {
+                    "name": sticker_name,
+                    "steam_hash_name": ""
+                }
+            }), 200
+
+        accessory = records[0]
+        steam_hash_name = getattr(accessory, "steam_hash_name", "")
+
+        # 如果 steam_hash_name 以 "Sticker | " 开头，裁切掉前10个字符
+        if steam_hash_name.startswith('Sticker | '):
+            steam_hash_name = steam_hash_name[10:]
+
+        return jsonify({
+            "success": True,
+            "data": {
+                "name": sticker_name,
+                "steam_hash_name": steam_hash_name
+            }
+        }), 200
+
+    except Exception as exc:
+        print(f"解析印花信息失败: {exc}")
+        print(f"堆栈跟踪:\n{traceback.format_exc()}")
+        return jsonify({"success": False, "error": str(exc)}), 500
+
+
+@steamInventoryHistoryV1.route('/resolve_pendant', methods=['POST'])
+def resolve_pendant():
+    """
+    解析挂件信息，查询 steam_hash_name
+    支持单个挂件名称查询
+
+    请求体示例:
+    {
+        "name": "K金CT"
+    }
+
+    返回示例:
+    {
+        "success": true,
+        "data": {
+            "name": "K金CT",
+            "steam_hash_name": "Charm | Gold CT"
+        }
+    }
+    """
+    try:
+        data = request.get_json(force=True) or {}
+        pendant_name = data.get("name")
+
+        if not pendant_name:
+            return jsonify({"success": False, "message": "缺少 name 参数"}), 400
+
+        # 拼接 "挂件 | " 前缀进行查询
+        search_name = f"挂件 | {pendant_name}"
+        records = WeaponClassIDModel.find_by_market_listing_item_name(search_name)
+
+        if not records:
+            return jsonify({
+                "success": False,
+                "message": "未找到匹配的挂件数据",
+                "data": {
+                    "name": pendant_name,
+                    "steam_hash_name": ""
+                }
+            }), 200
+
+        accessory = records[0]
+        steam_hash_name = getattr(accessory, "steam_hash_name", "")
+
+        return jsonify({
+            "success": True,
+            "data": {
+                "name": pendant_name,
+                "steam_hash_name": steam_hash_name
+            }
+        }), 200
+
+    except Exception as exc:
+        print(f"解析挂件信息失败: {exc}")
+        print(f"堆栈跟踪:\n{traceback.format_exc()}")
+        return jsonify({"success": False, "error": str(exc)}), 500

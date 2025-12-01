@@ -83,6 +83,30 @@ class SteamInventoryHistoryModel(BaseModel):
                 'default': None,
                 'comment': '交易类型：+ 或 -'
             },
+            'market_hash_name': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None,
+                'comment': '市场哈希名称'
+            },
+            'rename': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None,
+                'comment': '改名（名称标签）'
+            },
+            'sticker': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None,
+                'comment': '印花信息（JSON格式）'
+            },
+            'pendant': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None,
+                'comment': '挂件信息（JSON格式）'
+            },
             'data_user': {
                 'type': 'TEXT',
                 'not_null': False,
