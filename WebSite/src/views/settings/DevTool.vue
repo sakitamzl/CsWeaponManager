@@ -869,11 +869,11 @@ export default {
       }
     }
 
-    // 获取Steam饰品哈希（常用武器）
+    // 获取Steam饰品哈希（所有武器）
     const fetchSteamHashNames = async () => {
       try {
         await ElMessageBox.confirm(
-          '确定要获取Steam常用武器的饰品哈希吗？将获取手枪、步枪、冲锋枪等常见武器的皮肤数据。',
+          '确定要获取Steam所有武器的饰品哈希吗？将获取所有武器（刀具、手套、步枪、手枪、冲锋枪等）的皮肤数据，预计需要较长时间。',
           '确认获取',
           {
             confirmButtonText: '确定',
@@ -887,37 +887,11 @@ export default {
 
       isFetchingHashNames.value = true
       fetchHashNamesResult.value = null
-      ElMessage.info('开始获取Steam饰品哈希数据...')
+      ElMessage.info('开始获取Steam饰品哈希数据，请耐心等待...')
 
       try {
-        // 常用武器标签列表
-        const weaponTags = [
-          // 手枪
-          'tag_weapon_glock', 'tag_weapon_usp_silencer', 'tag_weapon_p2000',
-          'tag_weapon_p250', 'tag_weapon_fiveseven', 'tag_weapon_cz75a',
-          'tag_weapon_tec9', 'tag_weapon_deagle', 'tag_weapon_revolver',
-          'tag_weapon_elite',
-          // 步枪
-          'tag_weapon_ak47', 'tag_weapon_m4a1', 'tag_weapon_m4a1_silencer',
-          'tag_weapon_awp', 'tag_weapon_aug', 'tag_weapon_famas',
-          'tag_weapon_galilar', 'tag_weapon_sg556', 'tag_weapon_ssg08',
-          'tag_weapon_scar20', 'tag_weapon_g3sg1',
-          // 冲锋枪
-          'tag_weapon_mp7', 'tag_weapon_mp9', 'tag_weapon_mac10',
-          'tag_weapon_p90', 'tag_weapon_ump45', 'tag_weapon_bizon',
-          'tag_weapon_mp5sd',
-          // 霰弹枪
-          'tag_weapon_nova', 'tag_weapon_xm1014', 'tag_weapon_sawedoff',
-          'tag_weapon_mag7',
-          // 机枪
-          'tag_weapon_m249', 'tag_weapon_negev'
-        ]
-
-        const response = await axios.post(apiUrls.steamFetchHashNames(), {
-          weapon_tags: weaponTags,
-          max_items_per_tag: null,  // 获取所有
-          delay: 2  // 每次请求间隔2秒
-        })
+        // 使用GET请求，服务端自动处理所有武器标签
+        const response = await axios.get(apiUrls.steamFetchHashNames())
 
         if (response.data.success) {
           fetchHashNamesResult.value = response.data.data
