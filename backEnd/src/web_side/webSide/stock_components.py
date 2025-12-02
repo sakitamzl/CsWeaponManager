@@ -641,3 +641,126 @@ def auto_fill_prices(steam_id):
             'success': False,
             'message': f'自动填充价格失败: {str(e)}'
         }), 500
+
+
+@webStockComponentsV1.route('/fill_reference_price/<steam_id>/<source>', methods=['POST'])
+def fill_reference_price(steam_id, source):
+    """
+    根据 weapon_classID 表中的价格，填充/更新库存组件的悠悠有品或BUFF参考价。
+
+    Args:
+        steam_id: Steam 用户 ID
+        source: 价格来源，支持 'yyyp'（悠悠有品）或 'buff'
+    """
+    source = (source or '').lower()
+    if source not in ('yyyp', 'buff'):
+        return jsonify({
+            'success': False,
+            'message': "source 参数只能是 'yyyp' 或 'buff'"
+        }), 400
+
+    try:
+        db = DatabaseManager()
+
+        component_column = 'yyyp_price' if source == 'yyyp' else 'buff_price'
+        weapon_column = 'yyyp_Price' if source == 'yyyp' else 'buff_Price'
+
+        # 取出当前账号下所有带 steam_hash_name 的组件
+        component_sql = f"""
+        SELECT goods_assetid, steam_hash_name, {component_column}
+        FROM steam_stockComponents
+        WHERE data_user = ?
+          AND steam_hash_name IS NOT NULL
+          AND steam_hash_name != ''
+        """
+        components = db.execute_query(component_sql, (steam_id,))
+
+        if not components:
+            return jsonify({
+                'success': True,
+                'message': '该账号没有可更新的组件或缺少 steam_hash_name',
+                'data': {
+                    'total': 0,
+                    'matched': 0,
+                    'updated': 0,
+                    'unchanged': 0,
+                    'missing_price': 0
+                }
+            })
+
+        steam_hash_names = list({row[1] for row in components if row[1]})
+        if not steam_hash_names:
+            return jsonify({
+                'success': True,
+                'message': '组件缺少 steam_hash_name，无法匹配价格',
+                'data': {
+                    'total': len(components),
+                    'matched': 0,
+                    'updated': 0,
+                    'unchanged': 0,
+                    'missing_price': len(components)
+                }
+            })
+
+        placeholders = ','.join(['?'] * len(steam_hash_names))
+        weapon_sql = f"""
+        SELECT steam_hash_name, {weapon_column}
+        FROM weapon_classID
+        WHERE steam_hash_name IN ({placeholders})
+        """
+        weapon_rows = db.execute_query(weapon_sql, tuple(steam_hash_names))
+
+        price_map = {}
+        for row in weapon_rows or []:
+            hash_name = row[0]
+            price_value = row[1]
+            if hash_name and price_value not in [None, '', 'None']:
+                price_map[hash_name] = str(price_value)
+
+        matched = len(price_map)
+        updated = 0
+        unchanged = 0
+        missing_price = 0
+
+        update_sql = f"""
+        UPDATE steam_stockComponents
+        SET {component_column} = ?
+        WHERE goods_assetid = ?
+        """
+
+        for goods_assetid, hash_name, current_price in components:
+            target_price = price_map.get(hash_name)
+            if not target_price:
+                missing_price += 1
+                continue
+
+            current_price_str = '' if current_price is None else str(current_price)
+            if current_price_str == target_price:
+                unchanged += 1
+                continue
+
+            db.execute_update(update_sql, (target_price, goods_assetid))
+            updated += 1
+
+        total = len(components)
+        message = f"{'悠悠有品' if source == 'yyyp' else 'BUFF'}价格同步完成：总计 {total}，匹配 {matched}，更新 {updated}，保持不变 {unchanged}，缺少价格 {missing_price}"
+
+        return jsonify({
+            'success': True,
+            'message': message,
+            'data': {
+                'total': total,
+                'matched': matched,
+                'updated': updated,
+                'unchanged': unchanged,
+                'missing_price': missing_price
+            }
+        })
+
+    except Exception as e:
+        print(f"❌ 同步参考价格失败 - steam_id: {steam_id}, source: {source}, 错误: {str(e)}")
+        print(f"错误详情: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'message': f"同步参考价格失败: {str(e)}"
+        }), 500

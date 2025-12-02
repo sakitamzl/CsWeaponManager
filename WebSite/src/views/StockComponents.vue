@@ -71,6 +71,12 @@
             <el-button type="info" @click="handleAutoFillPrices" :loading="autoFillLoading" :disabled="!selectedSteamId" icon="Money">
               自动获取购入价格
             </el-button>
+            <el-button type="primary" plain @click="handleFillReferencePrice('yyyp')" :loading="yyypFillLoading" :disabled="!selectedSteamId" icon="Coin">
+              获取悠悠有品价格
+            </el-button>
+            <el-button type="primary" plain @click="handleFillReferencePrice('buff')" :loading="buffFillLoading" :disabled="!selectedSteamId" icon="PriceTag">
+              获取BUFF价格
+            </el-button>
           </div>
         </div>
         
@@ -290,6 +296,8 @@ export default {
     const updateLoading = ref(false)
     const updateAllLoading = ref(false)
     const autoFillLoading = ref(false)
+    const yyypFillLoading = ref(false)
+    const buffFillLoading = ref(false)
     const componentData = ref([])
     const searchText = ref('')
     const currentPage = ref(1)
@@ -908,6 +916,44 @@ export default {
       }
     }
 
+    const handleFillReferencePrice = async (source) => {
+      if (!selectedSteamId.value) {
+        ElMessage.warning('请先选择Steam账号')
+        return
+      }
+
+      const isYyyp = source === 'yyyp'
+      const loadingRef = isYyyp ? yyypFillLoading : buffFillLoading
+      const label = isYyyp ? '悠悠有品' : 'BUFF'
+
+      loadingRef.value = true
+      try {
+        ElMessage.info(`正在同步${label}价格，请稍候...`)
+
+        const response = await axios.post(
+          `${API_COMPONENTS}/fill_reference_price/${selectedSteamId.value}/${source}`
+        )
+
+        if (response.data.success) {
+          const msg = response.data.message || `${label}价格同步完成`
+          ElMessage.success({
+            message: msg,
+            duration: 5000,
+            showClose: true
+          })
+
+          await loadComponentData()
+        } else {
+          ElMessage.error(response.data.message || `${label}价格同步失败`)
+        }
+      } catch (error) {
+        console.error(`${label}价格同步失败:`, error)
+        ElMessage.error(`${label}价格同步失败: ` + (error.response?.data?.message || error.message))
+      } finally {
+        loadingRef.value = false
+      }
+    }
+
     onMounted(async () => {
       await loadSteamIdList()
       if (selectedSteamId.value) {
@@ -921,6 +967,8 @@ export default {
       updateLoading,
       updateAllLoading,
       autoFillLoading,
+      yyypFillLoading,
+      buffFillLoading,
       componentData,
       filteredData,
       totalStats,
@@ -952,6 +1000,7 @@ export default {
       handleUpdateComponent,
       handleUpdateAllComponents,
       handleAutoFillPrices,
+      handleFillReferencePrice,
       startEdit,
       finishEdit,
       cancelEdit
