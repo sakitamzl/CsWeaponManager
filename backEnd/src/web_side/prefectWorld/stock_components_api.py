@@ -65,24 +65,24 @@ def batch_insert_components():
                         else:
                             filtered_item[key] = None
                 
-                # 检查是否有主键 assetid
-                if 'assetid' not in filtered_item or not filtered_item['assetid']:
+                # 检查是否有主键 goods_assetid
+                if 'goods_assetid' not in filtered_item or not filtered_item['goods_assetid']:
                     failed_count += 1
                     failed_items.append({
                         'index': item_index,
-                        'error': '缺少主键 assetid'
+                        'error': '缺少主键 goods_assetid'
                     })
                     continue
-                
-                # 检查记录是否已存在
-                assetid = filtered_item['assetid']
-                existing_record = SteamStockComponentsModel.find_by_assetid(assetid)
-                
+
+                # 检查记录是否已存在（使用 goods_assetid 作为主键）
+                goods_assetid = filtered_item['goods_assetid']
+                existing_record = SteamStockComponentsModel.find_by_id(goods_assetid=goods_assetid)
+
                 if existing_record:
                     # 如果记录已存在，更新记录
                     for key, value in filtered_item.items():
                         setattr(existing_record, key, value)
-                    
+
                     if existing_record.save():
                         success_count += 1
                         update_count += 1
@@ -90,13 +90,13 @@ def batch_insert_components():
                         failed_count += 1
                         failed_items.append({
                             'index': item_index,
-                            'assetid': assetid,
+                            'goods_assetid': goods_assetid,
                             'error': '更新记录失败'
                         })
                 else:
                     # 创建新记录
                     new_record = SteamStockComponentsModel(**filtered_item)
-                    
+
                     if new_record.save():
                         success_count += 1
                         insert_count += 1
@@ -104,7 +104,7 @@ def batch_insert_components():
                         failed_count += 1
                         failed_items.append({
                             'index': item_index,
-                            'assetid': assetid,
+                            'goods_assetid': goods_assetid,
                             'error': '插入记录失败'
                         })
                 
@@ -187,29 +187,29 @@ def insert_single_component():
                 else:
                     filtered_data[key] = None
         
-        # 检查是否有主键 assetid
-        if 'assetid' not in filtered_data or not filtered_data['assetid']:
+        # 检查是否有主键 goods_assetid
+        if 'goods_assetid' not in filtered_data or not filtered_data['goods_assetid']:
             return jsonify({
                 'code': 400,
-                'message': '缺少主键 assetid',
+                'message': '缺少主键 goods_assetid',
                 'result': None
             }), 400
-        
-        # 检查记录是否已存在
-        assetid = filtered_data['assetid']
-        existing_record = SteamStockComponentsModel.find_by_assetid(assetid)
-        
+
+        # 检查记录是否已存在（使用 goods_assetid 作为主键）
+        goods_assetid = filtered_data['goods_assetid']
+        existing_record = SteamStockComponentsModel.find_by_id(goods_assetid=goods_assetid)
+
         if existing_record:
             # 如果记录已存在，更新记录
             for key, value in filtered_data.items():
                 setattr(existing_record, key, value)
-            
+
             if existing_record.save():
                 return jsonify({
                     'code': 0,
                     'message': '记录更新成功',
                     'result': {
-                        'assetid': assetid,
+                        'goods_assetid': goods_assetid,
                         'action': 'update'
                     }
                 })
@@ -222,13 +222,13 @@ def insert_single_component():
         else:
             # 创建新记录
             new_record = SteamStockComponentsModel(**filtered_data)
-            
+
             if new_record.save():
                 return jsonify({
                     'code': 0,
                     'message': '记录插入成功',
                     'result': {
-                        'assetid': assetid,
+                        'goods_assetid': goods_assetid,
                         'action': 'insert'
                     }
                 })
@@ -247,11 +247,14 @@ def insert_single_component():
         }), 500
 
 
-@prefectWorldStockComponentsV1.route('/delete/<assetid>', methods=['DELETE'])
-def delete_component(assetid):
+@prefectWorldStockComponentsV1.route('/delete/<goods_assetid>', methods=['DELETE'])
+def delete_component(goods_assetid):
     """
     删除指定的库存组件记录
-    
+
+    参数:
+        goods_assetid: 物品资产ID（主键）
+
     返回:
     {
         "code": 0,
@@ -259,15 +262,15 @@ def delete_component(assetid):
     }
     """
     try:
-        record = SteamStockComponentsModel.find_by_assetid(assetid)
-        
+        record = SteamStockComponentsModel.find_by_id(goods_assetid=goods_assetid)
+
         if not record:
             return jsonify({
                 'code': 404,
                 'message': '记录不存在',
                 'result': None
             }), 404
-        
+
         if record.delete():
             return jsonify({
                 'code': 0,
@@ -280,7 +283,7 @@ def delete_component(assetid):
                 'message': '删除失败',
                 'result': None
             }), 500
-        
+
     except Exception as e:
         return jsonify({
             'code': 500,

@@ -83,12 +83,13 @@ def get_components(steam_id):
         
         where_clause = " AND ".join(where_conditions)
         
-        # 查询数据 - 查询所有字段
+        # 查询数据 - 查询所有字段，包含 steam_hash_name, sticker, pendant, rename
         sql = f"""
-        SELECT 
-            assetid, instanceid, classid, item_name, weapon_name, 
-            float_range, weapon_type, weapon_float, weapon_level, data_user, 
-            buy_price, yyyp_price, buff_price, order_time, steam_price
+        SELECT
+            assetid, goods_assetid, classid, item_name, weapon_name,
+            float_range, weapon_type, weapon_float, weapon_level, data_user,
+            buy_price, yyyp_price, buff_price, order_time, steam_price,
+            steam_hash_name, sticker, pendant, rename
         FROM steam_stockComponents
         WHERE {where_clause}
         ORDER BY order_time DESC
@@ -96,7 +97,7 @@ def get_components(steam_id):
         """
         params.extend([page_size, offset])
         results = db.execute_query(sql, tuple(params))
-        
+
         # 转换为字典列表
         components = []
         if results:
@@ -109,26 +110,35 @@ def get_components(steam_id):
                         return float(value)
                     except (ValueError, TypeError):
                         return default
-                
+
                 component = {
                     # 基本信息
-                    'component_id': row[0],  # assetid - 用于操作
+                    'assetid': row[0],  # 组件ID（库存组件的assetid）
+                    'goods_assetid': row[1],  # 物品资产ID（主键，物品的itemId）
+                    'component_id': row[1],  # 兼容：使用 goods_assetid 作为 component_id
+                    'classid': row[2],
                     'item_name': row[3],  # 物品名称
                     'weapon_name': row[4],  # 武器名称
                     'float_range': row[5],  # 磨损值范围
                     'weapon_type': row[6],  # 武器类型
                     'weapon_float': row[7],  # 武器磨损值/数量
                     'weapon_level': row[8],  # 武器等级
-                    
+
                     # 价格信息
                     'buy_price': safe_float(row[10]),  # 购入价格
                     'yyyp_price': safe_float(row[11]),  # 悠悠价格
                     'buff_price': safe_float(row[12]),  # BUFF价格
                     'steam_price': safe_float(row[14]),  # Steam价格
-                    
+
                     # 时间信息
                     'order_time': row[13],  # 入库时间
-                    
+
+                    # 图片和装饰信息
+                    'steam_hash_name': row[15],  # Steam市场hash名称
+                    'sticker': row[16],  # 印花信息
+                    'pendant': row[17],  # 挂件信息
+                    'rename': row[18],  # 改名信息
+
                     # 兼容旧字段
                     'component_name': row[3],
                     'component_type': row[6],
@@ -227,12 +237,12 @@ def get_components_by_time_range(steam_id, start_date, end_date):
         db = DatabaseManager()
         
         sql = f"""
-        SELECT 
-            assetid, instanceid, classid, item_name, weapon_name, 
-            float_range, weapon_type, weapon_float, weapon_level, data_user, 
+        SELECT
+            assetid, goods_assetid, classid, item_name, weapon_name,
+            float_range, weapon_type, weapon_float, weapon_level, data_user,
             buy_price, yyyp_price, buff_price, order_time, steam_price
         FROM steam_stockComponents
-        WHERE data_user = ? 
+        WHERE data_user = ?
             AND DATE(order_time) BETWEEN ? AND ?
         ORDER BY order_time DESC
         """
@@ -344,12 +354,12 @@ def get_component_detail(component_id):
         db = DatabaseManager()
         
         sql = f"""
-        SELECT 
-            assetid, instanceid, classid, item_name, weapon_name, 
-            float_range, weapon_type, weapon_float, weapon_level, data_user, 
+        SELECT
+            assetid, goods_assetid, classid, item_name, weapon_name,
+            float_range, weapon_type, weapon_float, weapon_level, data_user,
             buy_price, yyyp_price, buff_price, order_time, steam_price
         FROM steam_stockComponents
-        WHERE assetid = ?
+        WHERE goods_assetid = ?
         """
         
         results = db.execute_query(sql, (component_id,))
@@ -414,20 +424,20 @@ def get_component_detail(component_id):
         }), 500
 
 
-@webStockComponentsV1.route('/update/buy_price/<steam_id>/<assetid>', methods=['PUT'])
-def update_buy_price(steam_id, assetid):
+@webStockComponentsV1.route('/update/buy_price/<steam_id>/<goods_assetid>', methods=['PUT'])
+def update_buy_price(steam_id, goods_assetid):
     """
     更新指定组件的购入价格
-    
+
     参数:
         steam_id: Steam用户ID (对应data_user字段)
-        assetid: 资产ID
-    
+        goods_assetid: 物品资产ID（主键）
+
     请求体:
     {
         "buy_price": "100.50"
     }
-    
+
     返回:
     {
         "success": True,
@@ -436,15 +446,15 @@ def update_buy_price(steam_id, assetid):
     """
     try:
         data = request.get_json()
-        
+
         if not data or 'buy_price' not in data:
             return jsonify({
                 'success': False,
                 'message': '缺少 buy_price 参数'
             }), 400
-        
+
         buy_price = data.get('buy_price')
-        
+
         # 验证价格格式
         try:
             price_float = float(buy_price)
@@ -458,40 +468,40 @@ def update_buy_price(steam_id, assetid):
                 'success': False,
                 'message': '价格格式不正确'
             }), 400
-        
+
         db = DatabaseManager()
-        
+
         # 检查记录是否存在
         check_sql = """
-        SELECT COUNT(*) FROM steam_stockComponents 
-        WHERE assetid = ? AND data_user = ?
+        SELECT COUNT(*) FROM steam_stockComponents
+        WHERE goods_assetid = ? AND data_user = ?
         """
-        check_result = db.execute_query(check_sql, (assetid, steam_id))
-        
+        check_result = db.execute_query(check_sql, (goods_assetid, steam_id))
+
         if not check_result or check_result[0][0] == 0:
             return jsonify({
                 'success': False,
                 'message': '未找到该组件记录'
             }), 404
-        
+
         # 更新价格
         update_sql = """
-        UPDATE steam_stockComponents 
+        UPDATE steam_stockComponents
         SET buy_price = ?
-        WHERE assetid = ? AND data_user = ?
+        WHERE goods_assetid = ? AND data_user = ?
         """
-        
-        db.execute_update(update_sql, (str(buy_price), assetid, steam_id))
-        
-        print(f"✅ 价格更新成功 - assetid: {assetid}, steam_id: {steam_id}, buy_price: {buy_price}")
-        
+
+        db.execute_update(update_sql, (str(buy_price), goods_assetid, steam_id))
+
+        print(f"✅ 价格更新成功 - goods_assetid: {goods_assetid}, steam_id: {steam_id}, buy_price: {buy_price}")
+
         return jsonify({
             'success': True,
             'message': '价格更新成功'
         })
-        
+
     except Exception as e:
-        print(f"❌ 更新价格失败 - assetid: {assetid}, steam_id: {steam_id}")
+        print(f"❌ 更新价格失败 - goods_assetid: {goods_assetid}, steam_id: {steam_id}")
         print(f"错误详情: {traceback.format_exc()}")
         return jsonify({
             'success': False,
@@ -521,14 +531,14 @@ def auto_fill_prices(steam_id):
     try:
         db = DatabaseManager()
         
-        # 查询该用户的所有组件
+        # 查询该用户的所有组件 - 使用 goods_assetid 作为主键
         query_sql = """
-        SELECT assetid, item_name, buy_price
+        SELECT goods_assetid, item_name, weapon_float, buy_price
         FROM steam_stockComponents
         WHERE data_user = ?
         """
         components = db.execute_query(query_sql, (steam_id,))
-        
+
         if not components:
             return jsonify({
                 'success': True,
@@ -540,65 +550,76 @@ def auto_fill_prices(steam_id):
                 },
                 'message': '该用户没有组件记录'
             }), 200
-        
+
         # 统计数据
         total_count = len(components)
         filled_count = 0
         already_filled_count = 0
         not_found_count = 0
-        
+
         # 遍历每个组件
         for component in components:
-            assetid = component[0]
+            goods_assetid = component[0]
             item_name = component[1]
-            current_buy_price = component[2]
-            
+            weapon_float = component[2]
+            current_buy_price = component[3]
+
             # 如果已有价格（不为None且不为空字符串），跳过
-            if current_buy_price not in [None, '', 'None']:
+            if current_buy_price not in [None, '', 'None', '0', '0.0', '0.00']:
                 already_filled_count += 1
                 continue
-            
-            # 根据item_name从yyyp_buy表查询价格
-            # 优先查询该steam_id的购买记录，如果没有则查询所有记录的平均价格
-            price_sql = """
-            SELECT price
-            FROM yyyp_buy
-            WHERE item_name = ? AND steam_id = ?
-            ORDER BY order_time DESC
-            LIMIT 1
-            """
-            price_result = db.execute_query(price_sql, (item_name, steam_id))
-            
+
             buy_price = None
-            if price_result and price_result[0][0] is not None:
-                buy_price = price_result[0][0]
-            else:
-                # 如果没有找到该用户的购买记录，查询平均价格
+
+            # 策略1: 如果有磨损值，优先使用 item_name + weapon_float 精确匹配
+            if weapon_float and weapon_float not in ['', '0', '0.0', 'None']:
+                try:
+                    float_value = float(weapon_float)
+                    # 精确匹配：item_name + weapon_float
+                    exact_price_sql = """
+                    SELECT price
+                    FROM buy
+                    WHERE item_name = ? AND ABS(CAST(weapon_float AS REAL) - ?) < 0.0001
+                    ORDER BY order_time DESC
+                    LIMIT 1
+                    """
+                    exact_result = db.execute_query(exact_price_sql, (item_name, float_value))
+
+                    if exact_result and exact_result[0][0] is not None:
+                        buy_price = exact_result[0][0]
+                        print(f"✅ 精确匹配（磨损值） - goods_assetid: {goods_assetid}, item_name: {item_name}, float: {weapon_float}, price: {buy_price}")
+                except (ValueError, TypeError):
+                    pass
+
+            # 策略2: 如果没有找到或磨损值为空，使用 item_name 查询平均价格
+            if buy_price is None:
                 avg_price_sql = """
                 SELECT AVG(CAST(price AS REAL))
-                FROM yyyp_buy
-                WHERE item_name = ?
+                FROM buy
+                WHERE item_name = ? AND price IS NOT NULL AND price != ''
                 """
                 avg_result = db.execute_query(avg_price_sql, (item_name,))
+
                 if avg_result and avg_result[0][0] is not None:
                     buy_price = round(avg_result[0][0], 2)
-            
-            # 如果找到价格，更新
+                    print(f"✅ 平均价格匹配 - goods_assetid: {goods_assetid}, item_name: {item_name}, price: {buy_price}")
+
+            # 如果找到价格，更新（使用 goods_assetid 作为主键）
             if buy_price is not None:
                 update_sql = """
                 UPDATE steam_stockComponents
                 SET buy_price = ?
-                WHERE assetid = ? AND data_user = ?
+                WHERE goods_assetid = ? AND data_user = ?
                 """
-                affected_rows = db.execute_update(update_sql, (str(buy_price), assetid, steam_id))
+                affected_rows = db.execute_update(update_sql, (str(buy_price), goods_assetid, steam_id))
                 if affected_rows > 0:
                     filled_count += 1
-                    print(f"✅ 自动填充价格成功 - assetid: {assetid}, item_name: {item_name}, price: {buy_price}")
                 else:
                     not_found_count += 1
+                    print(f"⚠️  更新失败 - goods_assetid: {goods_assetid}, item_name: {item_name}")
             else:
                 not_found_count += 1
-                print(f"⚠️  未找到价格 - assetid: {assetid}, item_name: {item_name}")
+                print(f"⚠️  未找到价格 - goods_assetid: {goods_assetid}, item_name: {item_name}, float: {weapon_float}")
         
         print(f"📊 自动填充价格完成 - steamId: {steam_id}, 总数: {total_count}, 成功填充: {filled_count}, 已有价格: {already_filled_count}, 未找到: {not_found_count}")
         

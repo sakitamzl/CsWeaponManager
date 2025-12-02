@@ -17,18 +17,18 @@ class SteamStockComponentsModel(BaseModel):
     @classmethod
     def get_fields(cls) -> Dict[str, Dict[str, Any]]:
         return {
-            'instanceid': {
+            'goods_assetid': {
                 'type': 'TEXT',
                 'primary_key': True,
                 'not_null': True,
                 'default': None,
-                'comment': '实例ID'
+                'comment': '物品资产ID（主键）'
             },
             'assetid': {
                 'type': 'TEXT',
                 'primary_key': False,
                 'not_null': False,
-                'comment': '资产ID（主键）'
+                'comment': '组件资产ID'
             },
             'classid': {
                 'type': 'TEXT',

@@ -143,32 +143,102 @@
         :flexible="true"
         :scrollbar-always-on="true"
       >
-        <el-table-column prop="item_name" label="物品名称" min-width="250" show-overflow-tooltip fixed="left" />
-        <el-table-column prop="weapon_name" label="武器名称" min-width="180" show-overflow-tooltip />
+        <el-table-column label="图片" width="144" align="center" fixed="left">
+          <template #default="scope">
+            <div class="weapon-image-cell" style="cursor: pointer;">
+              <img
+                v-if="getWeaponImage(scope.row.steam_hash_name)"
+                :src="getWeaponImage(scope.row.steam_hash_name)"
+                :alt="scope.row.item_name"
+                class="weapon-img"
+                @error="(e) => e.target.style.display = 'none'"
+              />
+              <span v-else class="no-image">无图</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="物品名称" min-width="250" show-overflow-tooltip fixed="left">
+          <template #default="scope">
+            <div class="item-name-cell">
+              <div class="item-title">{{ getItemTitle(scope.row) }}</div>
+              <div class="item-extras" v-if="hasExtras(scope.row)">
+                <!-- 印花图片 -->
+                <div class="sticker-list" v-if="scope.row.sticker">
+                  <div
+                    v-for="(sticker, idx) in parseStickers(scope.row.sticker)"
+                    :key="idx"
+                    class="sticker-item"
+                    :title="sticker.name || '未知贴纸'"
+                  >
+                    <img
+                      v-if="sticker.image"
+                      :src="sticker.image"
+                      :alt="sticker.name"
+                      class="sticker-img"
+                      @error="(e) => e.target.style.display = 'none'"
+                    />
+                    <div v-else class="sticker-placeholder">?</div>
+                  </div>
+                </div>
+                <!-- 挂件图片 -->
+                <div class="pendant-list" v-if="scope.row.pendant">
+                  <img
+                    v-if="parsePendant(scope.row.pendant)?.image"
+                    :src="parsePendant(scope.row.pendant).image"
+                    :alt="parsePendant(scope.row.pendant)?.name"
+                    class="pendant-img"
+                    @error="(e) => e.target.style.display = 'none'"
+                  />
+                </div>
+                <!-- 改名显示 -->
+                <div class="rename-text" v-if="scope.row.rename">
+                  <span class="rename-value">{{ scope.row.rename }}</span>
+                </div>
+              </div>
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column prop="weapon_type" label="武器类型" min-width="120" />
         <el-table-column prop="weapon_level" label="武器等级" min-width="120" />
-        <el-table-column prop="weapon_float" label="磨损值" min-width="120">
+        <el-table-column prop="weapon_float" label="磨损值" width="200" align="left">
           <template #default="scope">
-            {{ formatWeaponFloat(scope.row.weapon_float) }}
+            <div v-if="scope.row.weapon_float && formatWeaponFloat(scope.row.weapon_float)">
+              <div style="font-family: monospace; font-size: 0.85rem; margin-bottom: 4px;">
+                {{ scope.row.weapon_float }}
+              </div>
+              <!-- 磨损值显示条 -->
+              <div class="float-bar">
+                <div class="float-segment fn"></div>
+                <div class="float-segment mw"></div>
+                <div class="float-segment ft"></div>
+                <div class="float-segment ww"></div>
+                <div class="float-segment bs"></div>
+                <div
+                  class="float-pointer"
+                  :style="{ left: `${parseFloat(scope.row.weapon_float) * 100}%` }"
+                ></div>
+              </div>
+            </div>
+            <span v-else style="color: #888;">N/A</span>
           </template>
         </el-table-column>
         <el-table-column prop="float_range" label="磨损范围" min-width="120" />
         <el-table-column prop="buy_price" label="购入价格" min-width="150" sortable>
           <template #default="scope">
-            <div v-if="editingAssetId !== scope.row.assetid" 
-                 @click="startEdit(scope.row)" 
+            <div v-if="editingGoodsAssetId !== scope.row.goods_assetid"
+                 @click="startEdit(scope.row)"
                  style="cursor: pointer; padding: 5px;">
               <div v-if="scope.row.buy_price" style="display: flex; align-items: center; gap: 5px;">
                 <span style="color: #fff; font-weight: bold;">¥{{ formatPrice(scope.row.buy_price) }}</span>
               </div>
               <span v-else style="color: #888;">点击输入</span>
             </div>
-            <el-input 
+            <el-input
               v-else
-              v-model="editingPrice" 
-              placeholder="输入价格" 
+              v-model="editingPrice"
+              placeholder="输入价格"
               size="small"
-              :id="'price-input-' + scope.row.assetid"
+              :id="'price-input-' + scope.row.goods_assetid"
               @blur="finishEdit(scope.row)"
               @keyup.enter="finishEdit(scope.row)"
               @keyup.esc="cancelEdit"
@@ -231,7 +301,7 @@ export default {
     const selectedComponent = ref('')
     
     // 编辑价格相关
-    const editingAssetId = ref(null)
+    const editingGoodsAssetId = ref(null)
     const editingPrice = ref('')
     const originalPrice = ref('')
     
@@ -277,35 +347,111 @@ export default {
       return str
     }
 
-    const getStatusType = (status) => {
-      const statusMap = {
-        '库存中': 'success',
-        '已使用': 'info',
-        '已出售': 'warning',
-        '已过期': 'danger'
-      }
-      return statusMap[status] || 'info'
-    }
-
-    const getStatusColor = (status) => {
-      const colorMap = {
-        '库存中': '#52c41a',
-        '已使用': '#1890ff',
-        '已出售': '#faad14',
-        '已过期': '#ff4d4f'
-      }
-      return colorMap[status] || '#909399'
-    }
-
-    const getStatusTextColor = (status) => {
-      return '#FFFFFF'
-    }
-
     const getQuantityType = (quantity) => {
       if (quantity === 0) return 'danger'
       if (quantity < 5) return 'warning'
       if (quantity < 10) return 'info'
       return 'success'
+    }
+
+    // 获取武器图片
+    const getWeaponImage = (steamHashName) => {
+      if (!steamHashName) {
+        return null
+      }
+      const imageName = steamHashName
+        .replace(/\s*\|\s*/g, '___')
+        .replace(/\s/g, '_')
+        + '.png'
+      return `/weapon_imgs/${imageName}`
+    }
+
+    // 获取组合后的商品标题
+    const getItemTitle = (item) => {
+      const parts = []
+      if (item.weapon_name) {
+        parts.push(item.weapon_name)
+      }
+      if (item.item_name) {
+        parts.push(item.item_name)
+      }
+      // 组合格式: "AK-47 | 轨道 Mk01 （崭新出厂）"
+      let title = parts.join(' | ')
+      if (item.float_range) {
+        title += ` （${item.float_range}）`
+      }
+      return title
+    }
+
+    // 检查是否有额外信息（印花、挂件、改名）
+    const hasExtras = (item) => {
+      return !!(item.sticker || item.pendant || item.rename)
+    }
+
+    // 解析印花数据
+    const parseStickers = (stickerData) => {
+      if (!stickerData) return []
+      try {
+        const parsed = typeof stickerData === 'string' ? JSON.parse(stickerData) : stickerData
+        if (!Array.isArray(parsed)) return []
+
+        // 返回贴纸数组，每个贴纸包含name和image
+        return parsed.map(sticker => {
+          const name = sticker.name || '未知贴纸'
+          const hashName = sticker.hashName || sticker.steam_hash_name || sticker.steamHashName
+
+          // 根据hashName生成图片URL，添加"Sticker___"前缀
+          let imageUrl = null
+          if (hashName) {
+            const imageName = hashName
+              .replace(/\s*\|\s*/g, '___')
+              .replace(/\s/g, '_')
+            imageUrl = `/weapon_imgs/Sticker___${imageName}.png`
+          }
+
+          return {
+            name: name,
+            image: imageUrl
+          }
+        })
+      } catch (e) {
+        console.error('解析印花数据失败:', e)
+        return []
+      }
+    }
+
+    // 解析挂件数据
+    const parsePendant = (pendantData) => {
+      if (!pendantData) return null
+      try {
+        const parsed = typeof pendantData === 'string' ? JSON.parse(pendantData) : pendantData
+
+        // 如果是数组，取第一个元素
+        let pendantObj = Array.isArray(parsed) ? parsed[0] : parsed
+
+        if (!pendantObj || typeof pendantObj !== 'object') return null
+
+        // 获取hashName，支持多种字段名以提高兼容性
+        const hashName = pendantObj.hashName || pendantObj.steam_hash_name || pendantObj.steamHashName
+
+        // 生成图片URL
+        let imageUrl = null
+        if (hashName) {
+          const imageName = hashName
+            .replace(/\s*\|\s*/g, '___')
+            .replace(/\s/g, '_')
+            + '.png'
+          imageUrl = `/weapon_imgs/${imageName}`
+        }
+
+        return {
+          name: pendantObj.name || '挂件',
+          image: imageUrl
+        }
+      } catch (e) {
+        console.error('解析挂件数据失败:', e)
+        return null
+      }
     }
 
     const loadSteamIdList = async () => {
@@ -586,13 +732,13 @@ export default {
 
     // 开始编辑价格
     const startEdit = (row) => {
-      editingAssetId.value = row.assetid || row.component_id
+      editingGoodsAssetId.value = row.goods_assetid || row.component_id
       originalPrice.value = row.buy_price || ''
       editingPrice.value = row.buy_price || ''
-      
+
       // 使用nextTick确保input已渲染后聚焦
       nextTick(() => {
-        const input = document.getElementById(`price-input-${row.assetid || row.component_id}`)
+        const input = document.getElementById(`price-input-${row.goods_assetid || row.component_id}`)
         if (input) {
           input.focus()
           input.select() // 选中所有文本，方便修改
@@ -602,7 +748,7 @@ export default {
 
     // 取消编辑
     const cancelEdit = () => {
-      editingAssetId.value = null
+      editingGoodsAssetId.value = null
       editingPrice.value = ''
       originalPrice.value = ''
     }
@@ -611,31 +757,31 @@ export default {
     const finishEdit = async (row) => {
       const newPrice = editingPrice.value
       const oldPrice = originalPrice.value
-      
+
       // 如果价格没有改变，直接取消编辑
       if (newPrice === oldPrice) {
         cancelEdit()
         return
       }
-      
+
       // 如果价格为空，提示用户
       if (!newPrice || newPrice.trim() === '') {
         ElMessage.warning('请输入有效的价格')
         return
       }
-      
+
       // 先更新UI（乐观更新）
       row.buy_price = newPrice
-      const currentAssetId = editingAssetId.value
+      const currentGoodsAssetId = editingGoodsAssetId.value
       cancelEdit()
-      
+
       // 异步发送请求到后端
       try {
         const response = await axios.put(
-          `${API_COMPONENTS}/update/buy_price/${selectedSteamId.value}/${currentAssetId}`,
+          `${API_COMPONENTS}/update/buy_price/${selectedSteamId.value}/${currentGoodsAssetId}`,
           { buy_price: newPrice }
         )
-        
+
         if (response.data.success) {
           ElMessage.success('价格更新成功')
           // 重新加载统计数据
@@ -786,12 +932,17 @@ export default {
       selectedSteamId,
       inventoryComponents,
       selectedComponent,
-      editingAssetId,
+      editingGoodsAssetId,
       editingPrice,
       formatTime,
       formatPrice,
       formatWeaponFloat,
       getQuantityType,
+      getWeaponImage,
+      getItemTitle,
+      hasExtras,
+      parseStickers,
+      parsePendant,
       handleSizeChange,
       handleCurrentChange,
       handleSearch,
@@ -888,6 +1039,199 @@ export default {
   font-size: 1rem;
   font-weight: 600;
   margin-top: 0.25rem;
+}
+
+.weapon-image-cell {
+  width: 100%;
+  height: 100%;
+  min-height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.weapon-img {
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  max-height: 90px;
+  object-fit: contain;
+}
+
+.no-image {
+  color: #666;
+  font-size: 0.875rem;
+}
+
+.item-name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.item-title {
+  color: #fff;
+  font-weight: 500;
+}
+
+.item-extras {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.sticker-list {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.sticker-item {
+  width: 32px;
+  height: 32px;
+  border-radius: 2px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.sticker-item:hover {
+  transform: scale(1.1);
+  border-color: rgba(76, 175, 80, 0.5);
+  z-index: 10;
+}
+
+.sticker-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
+.sticker-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-size: 0.75rem;
+}
+
+.pendant-list {
+  display: flex;
+  align-items: center;
+}
+
+.pendant-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  border-radius: 2px;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.rename-text {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: #999;
+}
+
+.rename-value {
+  color: #4CAF50;
+  font-weight: 500;
+}
+
+/* 磨损值显示条 */
+.float-bar {
+  position: relative;
+  height: 8px;
+  display: flex;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.float-segment {
+  height: 100%;
+  transition: opacity 0.2s;
+}
+
+.float-segment:hover {
+  opacity: 0.8;
+}
+
+/* CS2 标准磨损等级颜色 */
+.float-segment.fn {
+  flex: 7;  /* 0.00 - 0.07 */
+  background: linear-gradient(to right, #4CAF50, #66BB6A);
+}
+
+.float-segment.mw {
+  flex: 8;  /* 0.07 - 0.15 */
+  background: linear-gradient(to right, #8BC34A, #9CCC65);
+}
+
+.float-segment.ft {
+  flex: 23; /* 0.15 - 0.38 */
+  background: linear-gradient(to right, #FFC107, #FFB300);
+}
+
+.float-segment.ww {
+  flex: 7;  /* 0.38 - 0.45 */
+  background: linear-gradient(to right, #FF9800, #FB8C00);
+}
+
+.float-segment.bs {
+  flex: 55; /* 0.45 - 1.00 */
+  background: linear-gradient(to right, #F44336, #E53935);
+}
+
+/* 磨损值指针 */
+.float-pointer {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 3px;
+  height: 16px;
+  background: #fff;
+  border-radius: 2px;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5), 0 0 8px rgba(255, 255, 255, 0.8);
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* 磨损值指针箭头 */
+.float-pointer::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid #fff;
+}
+
+.float-pointer::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 5px solid #fff;
 }
 
 .steam-id-select {
