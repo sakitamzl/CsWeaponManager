@@ -50,8 +50,8 @@ def batchInsertSteamHashName():
                 'error': 'weapons数组不能为空'
             }), 400
         
-        # 批量插入或更新
-        success_count = WeaponClassIDModel.batch_update_steam_hash_name(weapons)
+        # 批量插入（仅当不存在时），不更新已有记录
+        success_count = WeaponClassIDModel.batch_insert_steam_hash_name_if_not_exists(weapons)
         
         return jsonify({
             'success': True,
