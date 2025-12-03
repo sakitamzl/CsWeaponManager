@@ -7,6 +7,7 @@
 1、添加库存组件 图片 印花等获取
 
 ```sql
+ALTER TABLE steam_stockComponents RENAME COLUMN instanceid TO goods_assetid;
 DELETE FROM steam_stockComponents;
 ```
 

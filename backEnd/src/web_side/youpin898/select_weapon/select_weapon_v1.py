@@ -216,7 +216,9 @@ def fetchWeaponIcons():
             icon_list.append({
                 'steam_hash_name': record.steam_hash_name,
                 'icon_url': record.icon_url,
-                'market_listing_item_name': record.market_listing_item_name
+                'market_listing_item_name': record.market_listing_item_name,
+                # 图标来源，例如: 'steam'
+                'icon_from': getattr(record, 'icon_from', None)
             })
 
         return jsonify({

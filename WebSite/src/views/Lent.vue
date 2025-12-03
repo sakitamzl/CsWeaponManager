@@ -197,6 +197,18 @@
       </div>
 
       <div class="table-container">
+        <div class="pagination pagination-top">
+          <el-pagination
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            :total="totalItems"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+          />
+        </div>
+
         <el-table
           :data="filteredLentData"
           v-loading="loading"
@@ -204,61 +216,139 @@
           style="width: 100%"
           :row-style="{ backgroundColor: 'transparent' }"
           :header-row-style="{ backgroundColor: 'var(--bg-tertiary)' }"
+          :flexible="true"
+          :scrollbar-always-on="true"
+          @sort-change="handleSortChange"
         >
-          <el-table-column prop="ID" label="订单ID" width="180" show-overflow-tooltip />
-          <el-table-column prop="weapon_float" label="Float" min-width="160" show-overflow-tooltip>
+          <!-- 图片列，与 /buy 一致的样式 -->
+          <el-table-column label="图片" width="144" align="center">
             <template #default="scope">
-              {{ scope.row.weapon_float || '' }}
+              <div
+                class="weapon-image-cell"
+                @click="openPreview(scope.row)"
+                style="cursor: pointer;"
+              >
+                <img
+                  v-if="getWeaponImage(scope.row.steam_hash_name)"
+                  :src="getWeaponImage(scope.row.steam_hash_name)"
+                  :alt="getItemTitle(scope.row)"
+                  class="weapon-img"
+                  @error="(e) => e.target.style.display = 'none'"
+                />
+                <span v-else class="no-image">无图</span>
+              </div>
             </template>
           </el-table-column>
-          <el-table-column prop="weapon_type" label="武器类型" width="120" />
-          <el-table-column prop="weapon_name" label="武器名称" width="150" />
-          <el-table-column prop="item_name" label="饰品名称" min-width="200" show-overflow-tooltip />
-          <el-table-column prop="float_range" label="磨损" min-width="80" />
-          <el-table-column prop="price" label="租金" min-width="100">
+
+          <!-- 名称列：组合武器名+饰品名+磨损，与 /buy 风格一致 -->
+          <el-table-column label="商品名称" min-width="260" show-overflow-tooltip>
+            <template #default="scope">
+              <div class="item-name-cell">
+                <div class="item-title">{{ getItemTitle(scope.row) }}</div>
+              </div>
+            </template>
+          </el-table-column>
+
+          <!-- 磨损值与进度条 -->
+          <el-table-column prop="weapon_float" label="磨损值" width="200" align="left">
+            <template #default="scope">
+              <div v-if="scope.row.weapon_float">
+                <div
+                  style="font-family: monospace; font-size: 0.85rem; margin-bottom: 4px;"
+                >
+                  {{ scope.row.weapon_float }}
+                </div>
+                <div class="float-bar">
+                  <div class="float-segment fn"></div>
+                  <div class="float-segment mw"></div>
+                  <div class="float-segment ft"></div>
+                  <div class="float-segment ww"></div>
+                  <div class="float-segment bs"></div>
+                  <div
+                    class="float-pointer"
+                    :style="{ left: `${parseFloat(scope.row.weapon_float) * 100}%` }"
+                  ></div>
+                </div>
+              </div>
+              <span v-else style="color: #888;">N/A</span>
+            </template>
+          </el-table-column>
+
+          <el-table-column prop="weapon_type" label="类型" width="120" />
+
+          <!-- 出租相关信息 -->
+          <el-table-column prop="price" label="租金/天" min-width="100">
             <template #default="scope">
               ¥{{ scope.row.price }}
             </template>
           </el-table-column>
-          <el-table-column prop="lenter_name" label="承租人" width="100" show-overflow-tooltip />
-          <el-table-column prop="lean_start_time" label="开始时间" min-width="140" sortable="custom" @sort-change="handleSortChange">
+
+          <el-table-column prop="lenter_name" label="承租人" width="120" show-overflow-tooltip />
+
+          <el-table-column
+            prop="lean_start_time"
+            label="开始时间"
+            min-width="160"
+            sortable="custom"
+          >
             <template #default="scope">
               {{ formatTime(scope.row.lean_start_time) }}
             </template>
           </el-table-column>
-          <el-table-column prop="lean_end_time" label="结束时间" min-width="140">
+
+          <el-table-column
+            prop="lean_end_time"
+            label="结束时间"
+            min-width="160"
+          >
             <template #default="scope">
               {{ formatTime(scope.row.lean_end_time) }}
             </template>
           </el-table-column>
-          <el-table-column prop="total_Lease_Days" label="租期" min-width="80">
+
+          <el-table-column
+            prop="total_Lease_Days"
+            label="租期"
+            min-width="80"
+          >
             <template #default="scope">
               {{ scope.row.total_Lease_Days }} 天
             </template>
           </el-table-column>
-          <el-table-column prop="status" label="状态" min-width="80">
+
+          <el-table-column prop="status" label="状态" min-width="90">
             <template #default="scope">
-              <el-tooltip 
-                :content="scope.row.status_sub || scope.row.status" 
+              <el-tooltip
+                :content="scope.row.status_sub || scope.row.status"
                 placement="top"
                 :disabled="!scope.row.status_sub"
               >
-                <el-tag 
-                  :type="getStatusType(scope.row.status)" 
-                  size="small"
-                  :style="{
-                    backgroundColor: getStatusColor(scope.row.status),
-                    borderColor: getStatusColor(scope.row.status),
-                    color: getStatusTextColor(scope.row.status)
-                  }"
-                >
-                  {{ scope.row.status }}
-                </el-tag>
+                <span>
+                  <el-tag
+                    :type="getStatusType(scope.row.status)"
+                    size="small"
+                    :style="{
+                      backgroundColor: getStatusColor(scope.row.status),
+                      borderColor: getStatusColor(scope.row.status),
+                      color: getStatusTextColor(scope.row.status)
+                    }"
+                  >
+                    {{ scope.row.status }}
+                  </el-tag>
+                </span>
               </el-tooltip>
             </template>
           </el-table-column>
+
+          <!-- 订单ID 放到最后，避免挤占主要信息 -->
+          <el-table-column
+            prop="ID"
+            label="订单ID"
+            width="180"
+            show-overflow-tooltip
+          />
         </el-table>
-        
+
         <div class="pagination">
           <el-pagination
             v-model:current-page="currentPage"
@@ -271,6 +361,153 @@
           />
         </div>
       </div>
+
+      <!-- 预览弹窗，样式与 /buy 一致，字段按出租场景简化 -->
+      <el-dialog
+        v-model="previewVisible"
+        :title="previewItem ? getItemTitle(previewItem) : ''"
+        width="800px"
+        :close-on-click-modal="true"
+        :close-on-press-escape="true"
+        class="preview-dialog"
+      >
+        <div v-if="previewItem" class="preview-content">
+          <div class="preview-main-layout">
+            <!-- 左侧：图片 + 磨损 + 基本信息 -->
+            <div class="preview-left-section">
+              <div class="preview-image-section">
+                <img
+                  v-if="getWeaponImage(previewItem.steam_hash_name)"
+                  :src="getWeaponImage(previewItem.steam_hash_name)"
+                  :alt="getItemTitle(previewItem)"
+                  class="preview-image"
+                />
+                <div v-else class="preview-image-placeholder">
+                  <span>无图片</span>
+                </div>
+              </div>
+
+              <div class="preview-info-section">
+                <div
+                  v-if="previewItem.weapon_float"
+                  class="preview-float-section"
+                >
+                  <div class="preview-float-bar-container">
+                    <div class="float-bar">
+                      <div class="float-segment fn"></div>
+                      <div class="float-segment mw"></div>
+                      <div class="float-segment ft"></div>
+                      <div class="float-segment ww"></div>
+                      <div class="float-segment bs"></div>
+                      <div
+                        class="float-pointer"
+                        :style="{
+                          left: `${parseFloat(previewItem.weapon_float) * 100}%`
+                        }"
+                      ></div>
+                    </div>
+                  </div>
+                  <div class="preview-float-value">
+                    {{ previewItem.weapon_float }}
+                  </div>
+                  <div
+                    class="preview-float-range"
+                    v-if="previewItem.float_range"
+                  >
+                    {{ previewItem.float_range }}
+                  </div>
+                </div>
+
+                <div class="preview-prices">
+                  <div class="preview-price-row">
+                    <div
+                      class="preview-price-item"
+                      v-if="previewItem.price"
+                    >
+                      <span class="preview-price-label">租金/天:</span>
+                      <span class="preview-price-value buy-price">
+                        ¥{{ parseFloat(previewItem.price).toFixed(2) }}
+                      </span>
+                    </div>
+                    <div
+                      class="preview-price-item"
+                      v-if="previewItem.total_Lease_Days"
+                    >
+                      <span class="preview-price-label">租期:</span>
+                      <span class="preview-price-value">
+                        {{ previewItem.total_Lease_Days }} 天
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="preview-info-row">
+                    <div
+                      class="preview-info-item"
+                      v-if="previewItem.lenter_name"
+                    >
+                      <span class="preview-info-label">承租人:</span>
+                      <span class="preview-info-value">
+                        {{ previewItem.lenter_name }}
+                      </span>
+                    </div>
+                    <div
+                      class="preview-info-item"
+                      v-if="previewItem.status"
+                    >
+                      <span class="preview-info-label">状态:</span>
+                      <el-tag
+                        :type="getStatusType(previewItem.status)"
+                        size="default"
+                        :style="{
+                          backgroundColor: getStatusColor(previewItem.status),
+                          borderColor: getStatusColor(previewItem.status),
+                          color: getStatusTextColor(previewItem.status)
+                        }"
+                      >
+                        {{ previewItem.status }}
+                      </el-tag>
+                    </div>
+                  </div>
+
+                  <div
+                    class="preview-info-row"
+                    v-if="previewItem.lean_start_time || previewItem.lean_end_time"
+                  >
+                    <div
+                      class="preview-info-item"
+                      v-if="previewItem.lean_start_time"
+                    >
+                      <span class="preview-info-label">开始时间:</span>
+                      <span class="preview-info-value">
+                        {{ formatTime(previewItem.lean_start_time) }}
+                      </span>
+                    </div>
+                    <div
+                      class="preview-info-item"
+                      v-if="previewItem.lean_end_time"
+                    >
+                      <span class="preview-info-label">结束时间:</span>
+                      <span class="preview-info-value">
+                        {{ formatTime(previewItem.lean_end_time) }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 右侧：预留扩展区域，目前简单显示订单信息 -->
+            <div class="preview-right-section">
+              <div class="preview-rename" v-if="previewItem.ID">
+                <span class="preview-rename-icon">🧾</span>
+                <span class="preview-rename-text">
+                  订单 ID：{{ previewItem.ID }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </el-dialog>
     </div>
   </div>
 </template>
@@ -299,6 +536,7 @@ export default {
     const totalItems = ref(0)
     const dateRange = ref(null)
     const isTimeSearchMode = ref(false)
+    const sortOrder = ref('descending')
     
     // 高级搜索相关
     const hasAdvancedFilters = computed(() => {
@@ -351,6 +589,10 @@ export default {
         cancelledCount
       }
     })
+
+    // 预览弹窗
+    const previewVisible = ref(false)
+    const previewItem = ref(null)
 
     // 存储所有搜索结果，用于前端分页
     const allSearchResults = ref([])
@@ -415,6 +657,36 @@ export default {
       return '#FFFFFF'
     }
 
+    // 获取武器图片路径，优先使用 steam_hash_name
+    const getWeaponImage = (item) => {
+      const steamHashName = item?.steam_hash_name
+      if (!steamHashName && !(item?.weapon_name && item?.item_name)) {
+        return null
+      }
+
+      const baseName =
+        steamHashName || `${item.weapon_name || ''} | ${item.item_name || ''}`.trim()
+      if (!baseName) return null
+
+      const imageName = baseName
+        .replace(/\s*\|\s*/g, '___')
+        .replace(/\s/g, '_') + '.png'
+
+      return `/weapon_imgs/${imageName}`
+    }
+
+    // 组合标题：武器名 | 饰品名 （磨损）
+    const getItemTitle = (item) => {
+      const parts = []
+      if (item.weapon_name) parts.push(item.weapon_name)
+      if (item.item_name) parts.push(item.item_name)
+      let title = parts.join(' | ')
+      if (item.float_range) {
+        title += ` （${item.float_range}）`
+      }
+      return title || item.ID || ''
+    }
+
     const searchByName = async (itemName) => {
       loading.value = true
       try {
@@ -456,7 +728,8 @@ export default {
           lean_start_time: item[11] || '',
           lean_end_time: item[12] || '',
           total_Lease_Days: item[13] || 0,
-          max_Lease_Days: item[14] || 0
+          max_Lease_Days: item[14] || 0,
+          steam_hash_name: item[15] || ''
         }))
         
         // 进入搜索模式
@@ -638,7 +911,8 @@ export default {
             lean_start_time: item[11] || '',
             lean_end_time: item[12] || '',
             total_Lease_Days: item[13] || 0,
-            max_Lease_Days: item[14] || 0
+            max_Lease_Days: item[14] || 0,
+            steam_hash_name: item[15] || ''
           }
         }).filter(item => item !== null)
         
@@ -694,6 +968,23 @@ export default {
     const handleCurrentChange = (val) => {
       currentPage.value = val
       loadLentData()
+    }
+
+    const handleSortChange = ({ prop, order }) => {
+      if (prop === 'lean_start_time') {
+        sortOrder.value = order || 'descending'
+        const sortFn = (a, b) => {
+          const ta = new Date(a.lean_start_time || 0).getTime()
+          const tb = new Date(b.lean_start_time || 0).getTime()
+          return sortOrder.value === 'ascending' ? ta - tb : tb - ta
+        }
+
+        if (isSearchMode.value && allSearchResults.value.length > 0) {
+          allSearchResults.value.sort(sortFn)
+        } else {
+          lentData.value.sort(sortFn)
+        }
+      }
     }
 
     const handleSearch = () => {
@@ -819,7 +1110,8 @@ export default {
           lean_start_time: item[11] || '',
           lean_end_time: item[12] || '',
           total_Lease_Days: item[13] || 0,
-          max_Lease_Days: item[14] || 0
+          max_Lease_Days: item[14] || 0,
+          steam_hash_name: item[15] || ''
         }))
         
         // 进入时间搜索模式
@@ -1041,7 +1333,8 @@ export default {
               lean_start_time: item[11] || '',
               lean_end_time: item[12] || '',
               total_Lease_Days: item[13] || 0,
-              max_Lease_Days: item[14] || 0
+              max_Lease_Days: item[14] || 0,
+              steam_hash_name: item[15] || ''
             }
           })
           
@@ -1096,6 +1389,11 @@ export default {
       }
     }
 
+    const openPreview = (item) => {
+      previewItem.value = item
+      previewVisible.value = true
+    }
+
     onMounted(() => {
       loadLentData()
       loadAllDataStats()
@@ -1128,6 +1426,9 @@ export default {
       activeTab,
       isSearchMode,
       allSearchResults,
+      sortOrder,
+      previewVisible,
+      previewItem,
       formatTime,
       getStatusType,
       getStatusColor,
@@ -1135,6 +1436,7 @@ export default {
       handleTabClick,
       handleSizeChange,
       handleCurrentChange,
+      handleSortChange,
       handleSearch,
       handleClearSearch,
       handleStatusChange,
@@ -1146,7 +1448,10 @@ export default {
       handleAdvancedSearch,
       hasAdvancedFilters,
       handleDateRangeChange,
-      handleTimeSearch
+      handleTimeSearch,
+      getWeaponImage,
+      getItemTitle,
+      openPreview
     }
   }
 }
@@ -1187,6 +1492,11 @@ export default {
   margin-top: clamp(1rem, 3vw, 1.25rem);
   display: flex;
   justify-content: center;
+}
+
+.pagination-top {
+  margin-top: 0;
+  margin-bottom: clamp(1rem, 3vw, 1.25rem);
 }
 
 .stats-summary {
@@ -1297,6 +1607,310 @@ export default {
   font-weight: bold;
   color: #fff;
   font-size: clamp(0.875rem, 1.4vw, 1rem);
+}
+
+/* 图片与名称样式，保持与 /buy 一致 */
+.weapon-image-cell {
+  width: 100%;
+  height: 100%;
+  min-height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  padding: 4px;
+  box-sizing: border-box;
+}
+
+.weapon-img {
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  max-height: 90px;
+  object-fit: contain;
+  object-position: center;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  border-radius: 4px;
+  display: block;
+}
+
+.no-image {
+  color: #666;
+  font-size: 0.75rem;
+}
+
+.item-name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.item-title {
+  line-height: 1.4;
+}
+
+/* 磨损值进度条，与 /buy 一致 */
+.float-bar {
+  position: relative;
+  height: 8px;
+  display: flex;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.float-segment {
+  height: 100%;
+  transition: opacity 0.2s;
+}
+
+.float-segment:hover {
+  opacity: 0.8;
+}
+
+.float-segment.fn {
+  flex: 7;
+  background: linear-gradient(to right, #4CAF50, #66BB6A);
+}
+
+.float-segment.mw {
+  flex: 8;
+  background: linear-gradient(to right, #8BC34A, #9CCC65);
+}
+
+.float-segment.ft {
+  flex: 23;
+  background: linear-gradient(to right, #FFC107, #FFB300);
+}
+
+.float-segment.ww {
+  flex: 7;
+  background: linear-gradient(to right, #FF9800, #FB8C00);
+}
+
+.float-segment.bs {
+  flex: 55;
+  background: linear-gradient(to right, #F44336, #E53935);
+}
+
+.float-pointer {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 3px;
+  height: 16px;
+  background: #fff;
+  border-radius: 2px;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5), 0 0 8px rgba(255, 255, 255, 0.8);
+  z-index: 10;
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.float-pointer::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid #fff;
+}
+
+.float-pointer::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 5px solid #fff;
+}
+
+/* 预览弹窗样式，参考 /buy */
+.preview-dialog :deep(.el-dialog__header) {
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  padding: 1rem 1.5rem;
+}
+
+.preview-dialog :deep(.el-dialog__title) {
+  color: #fff;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.preview-dialog :deep(.el-dialog__body) {
+  background: var(--bg-secondary);
+  padding: 1.5rem;
+}
+
+.preview-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.preview-main-layout {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.preview-left-section,
+.preview-right-section {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.preview-image-section {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+}
+
+.preview-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 1.2rem;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+}
+
+.preview-info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.preview-float-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.preview-float-bar-container {
+  width: 100%;
+}
+
+.preview-float-value {
+  font-size: 1.1rem;
+  font-family: monospace;
+  color: #fff;
+  font-weight: bold;
+}
+
+.preview-float-range {
+  font-size: 0.9rem;
+  color: #999;
+}
+
+.preview-prices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.preview-price-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.preview-price-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.preview-price-label {
+  color: #999;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.preview-price-value {
+  color: #fff;
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+.preview-price-value.buy-price {
+  color: #4CAF50;
+}
+
+.preview-info-row {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.preview-info-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.preview-info-label {
+  color: #999;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.preview-info-value {
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.preview-rename {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.preview-rename-icon {
+  font-size: 1.2rem;
+}
+
+.preview-rename-text {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 500;
 }
 
 :deep(.el-table) {
@@ -1545,6 +2159,18 @@ export default {
   :deep(.el-table) {
     font-size: 0.75rem;
     min-width: 1000px;
+  }
+
+  .preview-dialog {
+    width: 95% !important;
+  }
+
+  .preview-main-layout {
+    flex-direction: column;
+  }
+
+  .preview-image-section {
+    height: 200px;
   }
 }
 </style>
