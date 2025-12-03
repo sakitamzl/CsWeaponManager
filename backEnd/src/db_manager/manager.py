@@ -8,7 +8,7 @@ from .base_model import BaseModel
 from .database import DatabaseManager
 
 # 导入所有模型
-from .index import ConfigModel, FundsModel, BuyModel, SellModel, LeaseModel, WeaponClassIDModel, AutoSearchWeaponModel
+from .index import ConfigModel, FundsModel, BuyModel, SellModel, LeaseModel, LentModel, WeaponClassIDModel, AutoSearchWeaponModel
 from .yyyp import YyypBuyModel, YyypSellModel, YyypLentModel, YyypMessageboxModel
 from .buff import BuffBuyModel, BuffSellModel, BuffLentModel, BuffMessageboxModel
 from .csfloat import CsFloatBuyModel, CsFloatSellModel
@@ -31,6 +31,7 @@ class DBManager:
             BuyModel,
             SellModel,
             LeaseModel,
+            LentModel,
             WeaponClassIDModel,  # 武器ClassID映射表（统一管理）
             AutoSearchWeaponModel,  # 自动搜索饰品结果表
             

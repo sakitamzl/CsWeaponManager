@@ -8,7 +8,7 @@ webLentV1 = Blueprint('webLentV1', __name__)
 
 @webLentV1.route('/countLentNumber', methods=['get'])
 def countLentNumber():
-    sql = "SELECT COUNT(*) FROM yyyp_lent"
+    sql = "SELECT COUNT(*) FROM lent"
     result = Date_base().select(sql)
     if result and len(result) == 2:
         flag, data = result
@@ -18,7 +18,15 @@ def countLentNumber():
 
 @webLentV1.route('/getLentData/<int:min>/<int:max>', methods=['get'])
 def getLentData(min, max):
-    sql = f"SELECT ID, weapon_name, weapon_type, item_name, weapon_float, float_range, price, lenter_name, status, last_status, \"from\", lean_start_time, lean_end_time, total_Lease_Days, max_Lease_Days FROM yyyp_lent ORDER BY lean_start_time DESC LIMIT {max} OFFSET {min};"
+    sql = f"""
+    SELECT 
+        ID, weapon_name, weapon_type, item_name, weapon_float, float_range, price,
+        lenter_name, status, last_status, "from", lean_start_time, lean_end_time,
+        total_Lease_Days, max_Lease_Days, steam_hash_name, sticker, pendant, rename
+    FROM lent
+    ORDER BY lean_start_time DESC
+    LIMIT {max} OFFSET {min};
+    """
     result = Date_base().select(sql)
     if result and len(result) == 2:
         flag, data = result
@@ -28,7 +36,15 @@ def getLentData(min, max):
 
 @webLentV1.route('/selectLentWeaponName/<itemName>', methods=['get'])
 def selectLentWeaponName(itemName):
-    sql = f"SELECT ID, weapon_name, weapon_type, item_name, weapon_float, float_range, price, lenter_name, status, last_status, \"from\", lean_start_time, lean_end_time, total_Lease_Days, max_Lease_Days FROM yyyp_lent WHERE item_name LIKE '%{itemName}%' OR weapon_name LIKE '%{itemName}%' ORDER BY lean_start_time DESC;"
+    sql = f"""
+    SELECT 
+        ID, weapon_name, weapon_type, item_name, weapon_float, float_range, price,
+        lenter_name, status, last_status, "from", lean_start_time, lean_end_time,
+        total_Lease_Days, max_Lease_Days, steam_hash_name, sticker, pendant, rename
+    FROM lent
+    WHERE item_name LIKE '%{itemName}%' OR weapon_name LIKE '%{itemName}%'
+    ORDER BY lean_start_time DESC;
+    """
     result = Date_base().select(sql)
     if result and len(result) == 2:
         flag, data = result
@@ -39,9 +55,26 @@ def selectLentWeaponName(itemName):
 @webLentV1.route('/getLentDataByStatus/<status>/<int:min>/<int:max>', methods=['get'])
 def getLentDataByStatus(status, min, max):
     if status == 'all':
-        sql = f"SELECT ID, weapon_name, weapon_type, item_name, weapon_float, float_range, price, lenter_name, status, last_status, \"from\", lean_start_time, lean_end_time, total_Lease_Days, max_Lease_Days FROM yyyp_lent ORDER BY lean_start_time DESC LIMIT {max} OFFSET {min};"
+        sql = f"""
+        SELECT 
+            ID, weapon_name, weapon_type, item_name, weapon_float, float_range, price,
+            lenter_name, status, last_status, "from", lean_start_time, lean_end_time,
+            total_Lease_Days, max_Lease_Days, steam_hash_name, sticker, pendant, rename
+        FROM lent
+        ORDER BY lean_start_time DESC
+        LIMIT {max} OFFSET {min};
+        """
     else:
-        sql = f"SELECT ID, weapon_name, weapon_type, item_name, weapon_float, float_range, price, lenter_name, status, last_status, \"from\", lean_start_time, lean_end_time, total_Lease_Days, max_Lease_Days FROM yyyp_lent WHERE status = '{status}' ORDER BY lean_start_time DESC LIMIT {max} OFFSET {min};"
+        sql = f"""
+        SELECT 
+            ID, weapon_name, weapon_type, item_name, weapon_float, float_range, price,
+            lenter_name, status, last_status, "from", lean_start_time, lean_end_time,
+            total_Lease_Days, max_Lease_Days, steam_hash_name, sticker, pendant, rename
+        FROM lent
+        WHERE status = '{status}'
+        ORDER BY lean_start_time DESC
+        LIMIT {max} OFFSET {min};
+        """
     result = Date_base().select(sql)
     if result and len(result) == 2:
         flag, data = result
@@ -53,8 +86,11 @@ def getLentDataByStatus(status, min, max):
 def getLentDataByStatusSub(last_status, min, max):
     if last_status == 'all':
         sql = f"""
-        SELECT ID, weapon_name, weapon_type, item_name, weapon_float, float_range, price, lenter_name, status, last_status, "from", lean_start_time, lean_end_time, total_Lease_Days, max_Lease_Days
-        FROM yyyp_lent
+        SELECT 
+            ID, weapon_name, weapon_type, item_name, weapon_float, float_range, price,
+            lenter_name, status, last_status, "from", lean_start_time, lean_end_time,
+            total_Lease_Days, max_Lease_Days, steam_hash_name, sticker, pendant, rename
+        FROM lent
         WHERE last_status IS NOT NULL AND last_status != ''
         ORDER BY lean_start_time DESC
         LIMIT {max} OFFSET {min};
@@ -62,8 +98,11 @@ def getLentDataByStatusSub(last_status, min, max):
     else:
         safe_sub = last_status.replace("'", "''")
         sql = f"""
-        SELECT ID, weapon_name, weapon_type, item_name, weapon_float, float_range, price, lenter_name, status, last_status, "from", lean_start_time, lean_end_time, total_Lease_Days, max_Lease_Days
-        FROM yyyp_lent
+        SELECT 
+            ID, weapon_name, weapon_type, item_name, weapon_float, float_range, price,
+            lenter_name, status, last_status, "from", lean_start_time, lean_end_time,
+            total_Lease_Days, max_Lease_Days, steam_hash_name, sticker, pendant, rename
+        FROM lent
         WHERE last_status = '{safe_sub}'
         ORDER BY lean_start_time DESC
         LIMIT {max} OFFSET {min};
@@ -92,7 +131,7 @@ def getLentStatsByStatusSub(last_status):
         COUNT(CASE WHEN status = '租赁中' THEN 1 END) as renting_count,
         COUNT(CASE WHEN status = '已完成' THEN 1 END) as completed_count,
         COUNT(CASE WHEN status = '已取消' THEN 1 END) as cancelled_count
-    FROM yyyp_lent
+    FROM lent
     WHERE {where}
     """
     result = Date_base().select(sql)
@@ -123,7 +162,7 @@ def getLentStats():
         COUNT(CASE WHEN status = '租赁中' THEN 1 END) as renting_count,
         COUNT(CASE WHEN status = '已完成' THEN 1 END) as completed_count,
         COUNT(CASE WHEN status = '已取消' THEN 1 END) as cancelled_count
-    FROM yyyp_lent
+    FROM lent
     """
     result = Date_base().select(sql)
     if result and len(result) == 2:
@@ -145,8 +184,11 @@ def getLentStats():
 @webLentV1.route('/getLentDataByTimeRange/<start_date>/<end_date>/<int:min>/<int:max>', methods=['GET'])
 def getLentDataByTimeRange(start_date, end_date, min, max):
     sql = f"""
-    SELECT ID, weapon_name, weapon_type, item_name, weapon_float, float_range, price, lenter_name, status, last_status, \"from\", lean_start_time, lean_end_time, total_Lease_Days, max_Lease_Days 
-    FROM yyyp_lent 
+    SELECT 
+        ID, weapon_name, weapon_type, item_name, weapon_float, float_range, price,
+        lenter_name, status, last_status, "from", lean_start_time, lean_end_time,
+        total_Lease_Days, max_Lease_Days, steam_hash_name, sticker, pendant, rename
+    FROM lent
     WHERE DATE(lean_start_time) >= '{start_date}' AND DATE(lean_start_time) <= '{end_date}'
     ORDER BY lean_start_time DESC 
     LIMIT {max} OFFSET {min};
@@ -170,7 +212,7 @@ def getLentStatsByTimeRange(start_date, end_date):
         COUNT(CASE WHEN status = '租赁中' THEN 1 END) as renting_count,
         COUNT(CASE WHEN status = '已完成' THEN 1 END) as completed_count,
         COUNT(CASE WHEN status = '已取消' THEN 1 END) as cancelled_count
-    FROM yyyp_lent
+    FROM lent
     WHERE DATE(lean_start_time) >= '{start_date}' AND DATE(lean_start_time) <= '{end_date}'
     """
     result = Date_base().select(sql)
@@ -193,8 +235,11 @@ def getLentStatsByTimeRange(start_date, end_date):
 @webLentV1.route('/searchLentByTimeRange/<start_date>/<end_date>', methods=['GET'])
 def searchLentByTimeRange(start_date, end_date):
     sql = f"""
-    SELECT ID, weapon_name, weapon_type, item_name, weapon_float, float_range, price, lenter_name, status, last_status, \"from\", lean_start_time, lean_end_time, total_Lease_Days, max_Lease_Days 
-    FROM yyyp_lent 
+    SELECT 
+        ID, weapon_name, weapon_type, item_name, weapon_float, float_range, price,
+        lenter_name, status, last_status, "from", lean_start_time, lean_end_time,
+        total_Lease_Days, max_Lease_Days, steam_hash_name, sticker, pendant, rename
+    FROM lent 
     WHERE DATE(lean_start_time) >= '{start_date}' AND DATE(lean_start_time) <= '{end_date}'
     ORDER BY lean_start_time DESC;
     """
