@@ -283,26 +283,18 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="lenter_name" label="承租人" width="120" show-overflow-tooltip />
-
           <el-table-column
             prop="lean_start_time"
-            label="开始时间"
-            min-width="160"
+            label="租赁时间段"
+            min-width="220"
             sortable="custom"
           >
             <template #default="scope">
-              {{ formatTime(scope.row.lean_start_time) }}
-            </template>
-          </el-table-column>
-
-          <el-table-column
-            prop="lean_end_time"
-            label="结束时间"
-            min-width="160"
-          >
-            <template #default="scope">
-              {{ formatTime(scope.row.lean_end_time) }}
+              <span class="rent-time-range">
+                <span>{{ formatTime(scope.row.lean_start_time) || '—' }}</span>
+                <span class="rent-time-separator">→</span>
+                <span>{{ formatTime(scope.row.lean_end_time) || '—' }}</span>
+              </span>
             </template>
           </el-table-column>
 
@@ -340,13 +332,6 @@
             </template>
           </el-table-column>
 
-          <!-- 订单ID 放到最后，避免挤占主要信息 -->
-          <el-table-column
-            prop="ID"
-            label="订单ID"
-            width="180"
-            show-overflow-tooltip
-          />
         </el-table>
 
         <div class="pagination">
@@ -1731,6 +1716,17 @@ export default {
   border-left: 4px solid transparent;
   border-right: 4px solid transparent;
   border-bottom: 5px solid #fff;
+}
+
+.rent-time-range {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.rent-time-separator {
+  color: #888;
 }
 
 /* 预览弹窗样式，参考 /buy */
