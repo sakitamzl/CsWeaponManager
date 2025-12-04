@@ -229,8 +229,8 @@
                 style="cursor: pointer;"
               >
                 <img
-                  v-if="getWeaponImage(scope.row.steam_hash_name)"
-                  :src="getWeaponImage(scope.row.steam_hash_name)"
+                  v-if="getWeaponImage(scope.row.steam_hash_name, scope.row.weapon_name, scope.row.item_name)"
+                  :src="getWeaponImage(scope.row.steam_hash_name, scope.row.weapon_name, scope.row.item_name)"
                   :alt="getItemTitle(scope.row)"
                   class="weapon-img"
                   @error="(e) => e.target.style.display = 'none'"
@@ -362,8 +362,8 @@
             <div class="preview-left-section">
               <div class="preview-image-section">
                 <img
-                  v-if="getWeaponImage(previewItem.steam_hash_name)"
-                  :src="getWeaponImage(previewItem.steam_hash_name)"
+                  v-if="getWeaponImage(previewItem.steam_hash_name, previewItem.weapon_name, previewItem.item_name)"
+                  :src="getWeaponImage(previewItem.steam_hash_name, previewItem.weapon_name, previewItem.item_name)"
                   :alt="getItemTitle(previewItem)"
                   class="preview-image"
                 />
@@ -642,15 +642,10 @@ export default {
       return '#FFFFFF'
     }
 
-    // 获取武器图片路径，优先使用 steam_hash_name
-    const getWeaponImage = (item) => {
-      const steamHashName = item?.steam_hash_name
-      if (!steamHashName && !(item?.weapon_name && item?.item_name)) {
-        return null
-      }
-
-      const baseName =
-        steamHashName || `${item.weapon_name || ''} | ${item.item_name || ''}`.trim()
+    // 获取武器图片路径，逻辑与 /buy 保持一致
+    const getWeaponImage = (steamHashName, fallbackWeaponName = '', fallbackItemName = '') => {
+      const baseName = steamHashName ||
+        `${fallbackWeaponName || ''} | ${fallbackItemName || ''}`.trim()
       if (!baseName) return null
 
       const imageName = baseName
