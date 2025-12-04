@@ -1,17 +1,10 @@
 <template>
   <div>
-    <!-- 二级导航 -->
-    <div class="sub-nav card">
-      <el-tabs v-model="activeTab" @tab-click="handleTabClick">
-        <el-tab-pane label="悠悠有品" name="yyyp"></el-tab-pane>
-        <!-- 可以在这里添加更多二级页面 -->
-      </el-tabs>
+    <div class="page-header">
+      <h2>租赁列表</h2>
     </div>
-
-    <!-- 悠悠有品子页面 -->
-    <div v-if="activeTab === 'yyyp'">
-      <!-- 搜索与统计数据 -->
-      <div class="stats-summary">
+    <!-- 搜索与统计数据 -->
+    <div class="stats-summary">
         <div class="card">
           <!-- 搜索栏 -->
           <div class="search-section">
@@ -283,6 +276,18 @@
             </template>
           </el-table-column>
 
+          <!-- 租期 -->
+          <el-table-column
+            prop="total_Lease_Days"
+            label="租期"
+            min-width="80"
+          >
+            <template #default="scope">
+              {{ scope.row.total_Lease_Days }} 天
+            </template>
+          </el-table-column>
+
+          <!-- 租赁时间段 -->
           <el-table-column
             prop="lean_start_time"
             label="租赁时间段"
@@ -295,16 +300,6 @@
                 <span class="rent-time-separator">→</span>
                 <span>{{ formatTime(scope.row.lean_end_time) || '—' }}</span>
               </span>
-            </template>
-          </el-table-column>
-
-          <el-table-column
-            prop="total_Lease_Days"
-            label="租期"
-            min-width="80"
-          >
-            <template #default="scope">
-              {{ scope.row.total_Lease_Days }} 天
             </template>
           </el-table-column>
 
@@ -493,7 +488,6 @@
           </div>
         </div>
       </el-dialog>
-    </div>
   </div>
 </template>
 
@@ -532,8 +526,6 @@ export default {
              (floatRangeFilter.value && floatRangeFilter.value.length > 0) ||
              (dateRange.value && dateRange.value.length === 2)
     })
-    const activeTab = ref('yyyp')
-
     // 全部数据统计（通过API获取）
     const allDataStats = ref({
       totalCount: 0,
@@ -548,20 +540,19 @@ export default {
 
     // 当前页面统计（基于当前显示的数据计算）
     const currentPageStats = computed(() => {
-      const currentData = lentData.value
-      const totalCount = currentData.length
-      // 修改：总收入 = 租金 * 天数
-      const totalAmount = currentData.reduce((sum, item) => {
+      const effectiveData = lentData.value.filter(item => item.status !== '已取消')
+      const totalCount = effectiveData.length
+      const totalAmount = effectiveData.reduce((sum, item) => {
         const price = item.price || 0
         const days = item.total_Lease_Days || 0
         return sum + (price * days)
       }, 0).toFixed(2)
       const avgPrice = totalCount > 0 ? (totalAmount / totalCount).toFixed(2) : '0.00'
-      const totalLeaseDays = currentData.reduce((sum, item) => sum + (item.total_Lease_Days || 0), 0)
+      const totalLeaseDays = effectiveData.reduce((sum, item) => sum + (item.total_Lease_Days || 0), 0)
       const avgLeaseDays = totalCount > 0 ? (totalLeaseDays / totalCount).toFixed(1) : '0.0'
-      const rentingCount = currentData.filter(item => item.status === '租赁中').length
-      const completedCount = currentData.filter(item => item.status === '已完成').length
-      const cancelledCount = currentData.filter(item => item.status === '已取消').length
+      const rentingCount = effectiveData.filter(item => item.status === '租赁中').length
+      const completedCount = effectiveData.filter(item => item.status === '已完成').length
+      const cancelledCount = lentData.value.filter(item => item.status === '已取消').length
 
       return {
         totalCount,
@@ -623,7 +614,9 @@ export default {
       const statusMap = {
         '已完成': 'success',
         '租赁中': 'warning',
-        '已取消': 'danger'
+        '已取消': 'danger',
+        '已归还': 'success',
+        '已转租': 'success'
       }
       return statusMap[status] || 'info'
     }
@@ -633,7 +626,9 @@ export default {
         '已完成': '#52c41a',    // 更鲜明的绿色
         '租赁中': '#faad14',    // 更鲜明的橙色
         '已取消': '#ff4d4f',    // 更鲜明的红色
-        '进行中': '#1890ff'     // 蓝色
+        '进行中': '#1890ff',    // 蓝色
+        '已归还': '#52c41a',
+        '已转租': '#52c41a'
       }
       return colorMap[status] || '#909399'
     }
@@ -928,14 +923,6 @@ export default {
         totalItems.value = 0
       } finally {
         loading.value = false
-      }
-    }
-
-    const handleTabClick = (tab) => {
-      console.log('切换到标签页:', tab.name)
-      // 可以根据不同的tab加载不同的数据
-      if (tab.name === 'yyyp') {
-        loadLentData()
       }
     }
 
@@ -1403,7 +1390,6 @@ export default {
       currentPage,
       pageSize,
       totalItems,
-      activeTab,
       isSearchMode,
       allSearchResults,
       sortOrder,
@@ -1413,7 +1399,6 @@ export default {
       getStatusType,
       getStatusColor,
       getStatusTextColor,
-      handleTabClick,
       handleSizeChange,
       handleCurrentChange,
       handleSortChange,
@@ -1438,8 +1423,17 @@ export default {
 </script>
 
 <style scoped>
-.sub-nav {
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: clamp(1rem, 3vw, 1.25rem);
+}
+
+.page-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--text-primary);
 }
 
 .search-input {
