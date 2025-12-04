@@ -113,6 +113,19 @@
               <template #header>
                 <div class="card-header">
                   <span>SQL 语句执行</span>
+                <div class="sql-file-actions">
+                  <el-upload
+                    :show-file-list="false"
+                    :auto-upload="false"
+                    accept=".sql,.txt"
+                    :before-upload="handleExecuteSqlFile"
+                  >
+                    <el-button type="primary" :loading="sqlFileExecuting">
+                      <el-icon><Upload /></el-icon>
+                      上传并执行 SQL 文件
+                    </el-button>
+                  </el-upload>
+                </div>
                 </div>
               </template>
               <div class="sql-executor">
@@ -677,6 +690,7 @@ const sqlExecuting = ref(false);
 const sqlMessage = ref('');
 const sqlExecutionDetails = ref([]);
 const sqlTotalStatements = ref(0);
+const sqlFileExecuting = ref(false);
 
 // 计算属性
 const filteredTables = computed(() => {
@@ -1417,6 +1431,64 @@ const executeSQL = async () => {
   }
 };
 
+// 执行 SQL 文件
+const handleExecuteSqlFile = async (file) => {
+  if (!file) return false;
+
+  sqlFileExecuting.value = true;
+  sqlError.value = '';
+  sqlMessage.value = '';
+  sqlResult.value = [];
+  sqlResultColumns.value = [];
+  sqlExecutionDetails.value = [];
+  sqlTotalStatements.value = 0;
+  sqlExecutionTime.value = 0;
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const startTime = Date.now();
+
+  try {
+    const response = await axios.post('/api/database/execute-file', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+
+    sqlExecutionTime.value = Date.now() - startTime;
+    sqlResult.value = response.data.rows || [];
+    sqlResultColumns.value = response.data.columns || [];
+    sqlMessage.value = response.data.message || `文件 ${response.data.file || file.name} 执行完成`;
+    sqlExecutionDetails.value = response.data.execution_details || [];
+    sqlTotalStatements.value = response.data.total_statements || 0;
+
+    if (sqlResult.value.length > 0) {
+      ElMessage.success(`SQL 文件执行成功，最后一条查询返回 ${sqlResult.value.length} 行`);
+    } else if (sqlMessage.value) {
+      ElMessage.success(sqlMessage.value);
+    } else {
+      ElMessage.success('SQL 文件执行成功');
+    }
+  } catch (error) {
+    // 后端可能返回带有 execution_details 的结构
+    sqlExecutionTime.value = Date.now() - startTime;
+    sqlError.value = error.response?.data?.error || error.response?.data?.message || error.message;
+    sqlExecutionDetails.value = error.response?.data?.execution_details || [];
+
+    if (error.response?.data?.statement_index) {
+      ElMessage.error(`SQL 文件执行失败：第 ${error.response.data.statement_index} 条语句出错 - ${sqlError.value}`);
+    } else {
+      ElMessage.error('SQL 文件执行失败：' + sqlError.value);
+    }
+  } finally {
+    sqlFileExecuting.value = false;
+  }
+
+  // 阻止 el-upload 默认上传行为
+  return false;
+};
+
 const clearSQL = () => {
   sqlStatement.value = '';
   sqlResult.value = [];
@@ -1708,6 +1780,12 @@ onMounted(() => {
   font-size: 16px;
   font-weight: 600;
   color: #e0e0e0;
+}
+
+.sql-file-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .database-actions {
