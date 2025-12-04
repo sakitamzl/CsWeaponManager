@@ -109,6 +109,160 @@ def get_steam_ids():
             'error': f'查询失败: {str(e)}'
         }), 500
 
+
+@webInventoryV1.route('/steam_config', methods=['POST'])
+def save_steam_config():
+    """
+    保存 / 更新 Steam 配置（Cookie 等）
+
+    该接口主要供 Spider 服务调用：
+    - URL: /webInventoryV1/steam_config
+    - 方法: POST
+    - 请求体示例（SteamCookieManager.save_to_database）:
+      {
+          "steamID": "7656...",
+          "cookies": "...",
+          "baseCookies": "...",
+          "inventoryCookies": "...",
+          "dataName": "Steam配置",
+          "status": "1"
+      }
+
+    行为：
+    - 如果 config 表中已存在 key1='steam' AND key2='config' 且 steamID=steamID 的记录，则执行 UPDATE
+    - 否则插入一条新的配置记录
+    """
+    try:
+        data = request.get_json() or {}
+
+        # 1. 基本参数校验
+        steam_id = (
+            data.get('steamID')
+            or data.get('steamId')
+            or data.get('steam_id')
+        )
+
+        if not steam_id:
+            return jsonify({
+                'success': False,
+                'message': 'steamID 不能为空'
+            }), 400
+
+        data_name = data.get('dataName') or steam_id
+        status = data.get('status', '1')
+
+        # 2. 处理 Cookie 字段，兼容多种字段名
+        cookies = (
+            data.get('inventoryCookies')
+            or data.get('cookies')
+            or data.get('cookie')
+            or ''
+        )
+        base_cookies = (
+            data.get('baseCookies')
+            or data.get('baseCookie')
+            or cookies
+            or ''
+        )
+        inventory_cookies = (
+            data.get('inventoryCookies')
+            or cookies
+            or ''
+        )
+
+        # 3. 组装需要存入 value 字段的 JSON
+        config_payload = {
+            'steamID': steam_id,
+            'cookies': cookies,
+            'baseCookies': base_cookies,
+            'inventoryCookies': inventory_cookies,
+            'dataName': data_name,
+            'status': status
+        }
+
+        import json
+        config_json = json.dumps(config_payload, ensure_ascii=False)
+
+        db = DatabaseManager()
+
+        # 4. 判断是更新还是新增
+        select_sql = """
+        SELECT dataID
+        FROM config
+        WHERE key1 = 'steam' AND key2 = 'config' AND steamID = ?
+        """
+        rows = db.execute_query(select_sql, (steam_id,))
+
+        if rows:
+            # 已存在配置，执行更新
+            data_id = rows[0][0]
+            update_sql = """
+            UPDATE config
+            SET dataName = ?, value = ?, status = ?, steamID = ?
+            WHERE dataID = ?
+            """
+            affected = db.execute_update(
+                update_sql,
+                (data_name, config_json, status, steam_id, data_id)
+            )
+
+            if affected > 0:
+                return jsonify({
+                    'success': True,
+                    'message': 'Steam 配置更新成功',
+                    'data': {
+                        'dataID': data_id,
+                        'steamID': steam_id,
+                        'dataName': data_name,
+                        'status': status
+                    }
+                }), 200
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': 'Steam 配置更新失败，未找到对应记录'
+                }), 404
+
+        # 4.b 不存在配置，插入新记录
+        max_id_rows = db.execute_query("SELECT MAX(dataID) FROM config")
+        max_id = max_id_rows[0][0] if max_id_rows and max_id_rows[0][0] is not None else 0
+        new_id = max_id + 1
+
+        insert_sql = """
+        INSERT INTO config (dataID, dataName, key1, key2, value, status, steamID)
+        VALUES (?, ?, 'steam', 'config', ?, ?, ?)
+        """
+        inserted_id = db.execute_insert(
+            insert_sql,
+            (new_id, data_name, config_json, status, steam_id)
+        )
+
+        if inserted_id is not None:
+            return jsonify({
+                'success': True,
+                'message': 'Steam 配置保存成功',
+                'data': {
+                    'dataID': new_id,
+                    'steamID': steam_id,
+                    'dataName': data_name,
+                    'status': status
+                }
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Steam 配置保存失败'
+            }), 500
+
+    except Exception as e:
+        print(f"[ERROR] 保存 Steam 配置失败: {e}")
+        import traceback
+        print(f"[ERROR] 详细错误信息: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'message': f'保存失败: {str(e)}'
+        }), 500
+
 @webInventoryV1.route('/inventory/<steam_id>', methods=['GET'])
 def get_inventory(steam_id):
     """获取指定用户的库存列表"""
