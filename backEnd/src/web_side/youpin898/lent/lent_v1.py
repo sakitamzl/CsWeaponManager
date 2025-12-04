@@ -2,6 +2,7 @@ from flask import jsonify, request, Blueprint
 from src.log import Log
 from src.now_time import today
 from src.db_manager.yyyp.yyyp_lent import YyypLentModel
+from src.db_manager.index.lent import LentModel
 import requests
 
 youpin898LentV1 = Blueprint('youpin898LentV1', __name__)
@@ -173,12 +174,12 @@ def insert_webside_lentdata():
         max_Lease_Days = int(data.get('leaseMaxDays', totalLeaseDays))
         data_user = data.get('data_user', '')
         
-        # 检查记录是否已存在
+        # 检查记录是否已存在（yyyp 源表）
         existing_record = YyypLentModel.find_by_id(ID=ID)
         if existing_record:
             return '重复数据', 200
         
-        # 使用模型创建新记录
+        # 使用模型创建源表记录
         lent_record = YyypLentModel(
             ID=ID,
             weapon_name=weapon_name,
@@ -205,6 +206,107 @@ def insert_webside_lentdata():
             return '写入成功', 200
         else:
             return '写入失败', 500
+
+    except Exception as e:
+        print(f"插入租赁数据失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return '写入失败', 500
+
+
+@youpin898LentV1.route('/insert_main_lentdata', methods=['post'])
+def insert_main_lentdata():
+    """
+    插入租赁主表数据（lent），结构参考 buy_v1.insert_main_buydata
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': '无效的JSON数据'}), 400
+
+        ID = data['ID']
+
+        # 如果主表中已存在，直接忽略
+        existing = LentModel.find_by_id(ID=ID)
+        if existing:
+            return jsonify({'success': True, 'message': '记录已存在'}), 200
+
+        weapon_name = data.get('weapon_name')
+        weapon_type = data.get('weapon_type')
+        item_name = data.get('item_name')
+        weapon_float = data.get('weapon_float')
+        float_range = data.get('float_range')
+        price = data.get('price')
+        lenter_name = data.get('buyer_user_name') or data.get('lenter_name')
+        status = data.get('status')
+        status_sub = data.get('status_sub')
+        last_status = data.get('orderSubStatusName')
+        data_from = data.get('from')
+        lean_start_time = data.get('lean_start_time')
+        lean_end_time = data.get('lean_end_time')
+
+        try:
+            total_lease_days = int(data.get('totalLeaseDays')) if data.get('totalLeaseDays') is not None else None
+        except (TypeError, ValueError):
+            total_lease_days = None
+
+        try:
+            max_lease_days = int(data.get('leaseMaxDays')) if data.get('leaseMaxDays') is not None else total_lease_days
+        except (TypeError, ValueError):
+            max_lease_days = total_lease_days
+
+        data_user = data.get('data_user')
+
+        steam_hash_name = data.get('steam_hash_name')
+        sticker = data.get('sticker')
+        pendant = data.get('pendant')
+        rename = data.get('rename')
+
+        # 创建主表记录
+        lent_main = LentModel()
+        lent_main.ID = ID
+        lent_main.weapon_name = weapon_name
+        lent_main.weapon_type = weapon_type
+        lent_main.item_name = item_name
+        lent_main.weapon_float = weapon_float
+        lent_main.float_range = float_range
+        lent_main.price = price
+        lent_main.total_Lease_Days = total_lease_days
+        lent_main.max_Lease_Days = max_lease_days
+        lent_main.lean_start_time = lean_start_time
+        lent_main.lean_end_time = lean_end_time
+        lent_main.lenter_name = lenter_name
+        lent_main.status = status
+        lent_main.status_sub = status_sub
+        lent_main.last_status = last_status
+        lent_main.data_user = data_user
+        lent_main.steam_hash_name = steam_hash_name
+        lent_main.sticker = sticker
+        lent_main.pendant = pendant
+        lent_main.rename = rename
+        setattr(lent_main, 'from', data_from)
+
+        saved = lent_main.save()
+
+        if saved:
+            return jsonify({
+                'success': True,
+                'message': '租赁主表数据插入成功',
+                'data': {
+                    'id': ID,
+                    'weapon_name': weapon_name,
+                    'item_name': item_name,
+                    'price': price
+                }
+            }), 200
+        else:
+            return jsonify({'success': False, 'error': '数据插入失败'}), 500
+
+    except Exception as e:
+        print(f"租赁主表数据插入错误: {str(e)}")
+        import traceback
+        print(f"详细错误信息: {traceback.format_exc()}")
+        return jsonify({'success': False, 'error': f'服务器错误: {str(e)}'}), 500
             
     except Exception as e:
         print(f"插入租赁数据失败: {e}")
