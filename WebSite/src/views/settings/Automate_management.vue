@@ -4,8 +4,8 @@
       <el-form :model="automateForm" label-width="140px" label-position="left">
         <!-- 自动化类型选择 -->
         <el-form-item label="自动化类型">
-          <el-select 
-            v-model="automateForm.automateType" 
+          <el-select
+            v-model="automateForm.automateType"
             placeholder="请选择自动化类型"
             style="width: 300px"
             @change="handleTypeChange"
@@ -14,6 +14,7 @@
             <el-option label="获取平台交易记录" value="auto_fetch" />
             <el-option label="更新饰品平台映射价格" value="auto_platform_price" />
             <el-option label="自动搜素饰品" value="auto_search_weapon" />
+            <el-option label="更新steam认证" value="auto_refresh_auth" />
           </el-select>
         </el-form-item>
 
@@ -42,19 +43,22 @@
           </el-select>
         </el-form-item>
 
-        <!-- Steam账号选择 (仅在自动更新数据时显示，且已选择具体任务) -->
-        <el-form-item v-if="automateForm.automateType === 'auto_update' && automateForm.selectedTask" label="Steam账号">
-          <el-select 
-            v-model="automateForm.selectedSteamConfig" 
+        <!-- Steam账号选择 (仅在自动更新数据或更新Steam认证时显示) -->
+        <el-form-item
+          v-if="(automateForm.automateType === 'auto_update' && automateForm.selectedTask) || automateForm.automateType === 'auto_refresh_auth'"
+          label="Steam账号"
+        >
+          <el-select
+            v-model="automateForm.selectedSteamConfig"
             placeholder="请选择Steam账号"
             style="width: 300px"
             filterable
           >
-            <el-option 
-              v-for="config in currentSteamConfigList" 
-              :key="config.dataID" 
-              :label="`${config.dataName} (${config.steamID || '无SteamID'})`" 
-              :value="config.dataID" 
+            <el-option
+              v-for="config in currentSteamConfigList"
+              :key="config.dataID"
+              :label="`${config.dataName} (${config.steamID || '无SteamID'})`"
+              :value="config.dataID"
             />
           </el-select>
         </el-form-item>
@@ -303,7 +307,8 @@ const typeLabelMap = {
   auto_update: '更新steam库存价格',
   auto_fetch: '获取平台交易记录',
   auto_platform_price: '更新饰品平台映射价格',
-  auto_search_weapon: '自动搜素饰品'
+  auto_search_weapon: '自动搜素饰品',
+  auto_refresh_auth: '更新steam认证'
 }
 
 const labelToTypeMap = Object.entries(typeLabelMap).reduce((acc, [key, label]) => {
@@ -338,7 +343,13 @@ const secondSelectLabel = computed(() => {
 // 根据所选任务类型返回对应的Steam配置列表
 const currentSteamConfigList = computed(() => {
   const selectedTask = automateForm.value.selectedTask
-  
+  const automateType = automateForm.value.automateType
+
+  // 更新Steam认证直接使用Steam配置列表
+  if (automateType === 'auto_refresh_auth') {
+    return steamConfigList.value
+  }
+
   if (selectedTask === 'update_steam_inventory') {
     // 更新Steam库存 - 使用 key1='steam' 的配置
     return steamConfigList.value
@@ -349,7 +360,7 @@ const currentSteamConfigList = computed(() => {
     // 获取BUFF价格 - 使用 key1='buff' 的配置
     return buffConfigList.value
   }
-  
+
   return []
 })
 
@@ -576,12 +587,18 @@ const handleExecute = async () => {
     return
   }
   
-  if (!automateForm.value.selectedTask) {
+  // 更新Steam认证不需要选择任务
+  if (automateForm.value.automateType !== 'auto_refresh_auth' && !automateForm.value.selectedTask) {
     ElMessage.warning('请选择任务')
     return
   }
 
   if (automateForm.value.automateType === 'auto_update') {
+    if (!automateForm.value.selectedSteamConfig) {
+      ElMessage.warning('请选择Steam账号')
+      return
+    }
+  } else if (automateForm.value.automateType === 'auto_refresh_auth') {
     if (!automateForm.value.selectedSteamConfig) {
       ElMessage.warning('请选择Steam账号')
       return
@@ -624,11 +641,11 @@ const executeTask = async () => {
       const selectedConfigId = automateForm.value.selectedSteamConfig
       const config = currentSteamConfigList.value.find(c => c.dataID === selectedConfigId)
       const steamId = config?.steamID
-      
+
       if (!steamId) {
         throw new Error('未找到对应的 Steam ID，请重新选择账号后重试')
       }
-      
+
       if (taskType === 'update_steam_inventory') {
         result = await updateSteamInventory(steamId)
       } else if (taskType === 'fetch_yyyp_price') {
@@ -636,6 +653,16 @@ const executeTask = async () => {
       } else if (taskType === 'fetch_buff_price') {
         result = await fetchBuffPrice(steamId)
       }
+    } else if (automateType === 'auto_refresh_auth') {
+      const selectedConfigId = automateForm.value.selectedSteamConfig
+      const config = steamConfigList.value.find(c => c.dataID === selectedConfigId)
+      const steamId = config?.steamID
+
+      if (!steamId) {
+        throw new Error('未找到对应的 Steam ID，请重新选择账号后重试')
+      }
+
+      result = await refreshSteamAuth(steamId)
     } else if (automateType === 'auto_platform_price') {
       const selectedSource = dataSources.value.find(s => s.dataID === automateForm.value.selectedDataSource)
       
@@ -753,7 +780,7 @@ const fetchBuffPrice = async (steamId) => {
       `${API_CONFIG.SPIDER_BASE_URL}/buffSpiderV1/getBUFFPrice`,
       { steamId }
     )
-    
+
     if (response.data.success) {
       ElMessage.success(response.data.message || 'BUFF价格获取成功')
       return { success: true, message: response.data.message || '价格获取成功' }
@@ -763,6 +790,27 @@ const fetchBuffPrice = async (steamId) => {
     }
   } catch (error) {
     ElMessage.error('获取失败: ' + error.message)
+    throw error
+  }
+}
+
+// 更新Steam认证
+const refreshSteamAuth = async (steamId) => {
+  try {
+    const response = await axios.post(
+      `${API_CONFIG.SPIDER_BASE_URL}/steamLoginV1/refresh_auto`,
+      { steam_id: steamId }
+    )
+
+    if (response.data.success) {
+      ElMessage.success(response.data.message || 'Steam认证更新成功')
+      return { success: true, message: response.data.message || 'Steam认证更新成功' }
+    } else {
+      ElMessage.error(response.data.message || 'Steam认证更新失败')
+      return { success: false, message: response.data.message || 'Steam认证更新失败' }
+    }
+  } catch (error) {
+    ElMessage.error('更新失败: ' + error.message)
     throw error
   }
 }
@@ -1301,7 +1349,7 @@ const getTargetInfo = () => {
     // 根据选择的任务类型从对应的配置列表查找
     const selectedTask = automateForm.value.selectedTask
     let configList = []
-    
+
     if (selectedTask === 'update_steam_inventory') {
       configList = steamConfigList.value
     } else if (selectedTask === 'fetch_yyyp_price') {
@@ -1309,8 +1357,11 @@ const getTargetInfo = () => {
     } else if (selectedTask === 'fetch_buff_price') {
       configList = buffConfigList.value
     }
-    
+
     const config = configList.find(c => c.dataID === automateForm.value.selectedSteamConfig)
+    return config ? `${config.dataName} (${config.steamID || '无SteamID'})` : '-'
+  } else if (automateForm.value.automateType === 'auto_refresh_auth') {
+    const config = steamConfigList.value.find(c => c.dataID === automateForm.value.selectedSteamConfig)
     return config ? `${config.dataName} (${config.steamID || '无SteamID'})` : '-'
   } else if (['auto_fetch', 'auto_platform_price'].includes(automateForm.value.automateType)) {
     const source = dataSources.value.find(s => s.dataID === automateForm.value.selectedDataSource)
@@ -1413,7 +1464,7 @@ const executeTaskWithConfig = async (taskOrSavedTask) => {
     if (automateType === 'auto_update') {
       const selectedConfigId = config.selectedSteamConfig
       let steamId = config.selectedSteamId
-      
+
       if (!steamId && selectedConfigId) {
         let configList = []
         if (taskType === 'update_steam_inventory') {
@@ -1426,11 +1477,11 @@ const executeTaskWithConfig = async (taskOrSavedTask) => {
         const foundConfig = configList.find(item => item.dataID === selectedConfigId)
         steamId = foundConfig?.steamID
       }
-      
+
       if (!steamId) {
         throw new Error('未找到对应的 Steam ID')
       }
-      
+
       if (taskType === 'update_steam_inventory') {
         result = await updateSteamInventory(steamId)
       } else if (taskType === 'fetch_yyyp_price') {
@@ -1438,6 +1489,20 @@ const executeTaskWithConfig = async (taskOrSavedTask) => {
       } else if (taskType === 'fetch_buff_price') {
         result = await fetchBuffPrice(steamId)
       }
+    } else if (automateType === 'auto_refresh_auth') {
+      const selectedConfigId = config.selectedSteamConfig
+      let steamId = config.selectedSteamId
+
+      if (!steamId && selectedConfigId) {
+        const foundConfig = steamConfigList.value.find(item => item.dataID === selectedConfigId)
+        steamId = foundConfig?.steamID
+      }
+
+      if (!steamId) {
+        throw new Error('未找到对应的 Steam ID')
+      }
+
+      result = await refreshSteamAuth(steamId)
     } else if (automateType === 'auto_platform_price') {
       const dataSourceId = config.selectedDataSource
       const dataSource = dataSources.value.find(s => s.dataID === dataSourceId)
@@ -1521,11 +1586,11 @@ const getTaskTargetInfo = (savedTask) => {
     // 更新类型:显示Steam配置名称和ID
     const selectedId = savedTask.config.selectedSteamConfig
     const selectedTask = savedTask.config.selectedTask
-    
+
     if (!selectedId) {
       return '-'
     }
-    
+
     // 根据任务类型从对应的配置列表查找
     let configList = []
     if (selectedTask === 'update_steam_inventory') {
@@ -1535,13 +1600,27 @@ const getTaskTargetInfo = (savedTask) => {
     } else if (selectedTask === 'fetch_buff_price') {
       configList = buffConfigList.value
     }
-    
+
     const config = configList.find(c => c.dataID === selectedId)
     if (!config) {
       return '-'
     }
-    
+
     // 显示格式: 配置名称 (SteamID)
+    return config.steamID ? `${config.dataName} (${config.steamID})` : config.dataName
+  } else if (savedTask.automateType === 'auto_refresh_auth') {
+    // 更新Steam认证类型
+    const selectedId = savedTask.config.selectedSteamConfig
+
+    if (!selectedId) {
+      return '-'
+    }
+
+    const config = steamConfigList.value.find(c => c.dataID === selectedId)
+    if (!config) {
+      return '-'
+    }
+
     return config.steamID ? `${config.dataName} (${config.steamID})` : config.dataName
   } else if (['auto_fetch', 'auto_platform_price'].includes(savedTask.automateType)) {
     // 获取数据类型:只显示数据源名称和SteamID

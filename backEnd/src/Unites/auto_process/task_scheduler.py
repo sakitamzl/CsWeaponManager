@@ -354,9 +354,9 @@ class TaskScheduler:
         task_name = task_info['task_name']
         automate_type = task_info['automate_type']
         config = task_info['config']
-        
+
         self.log.write_log(f"开始执行任务: {task_name} (ID: {task_id})", 'info')
-        
+
         try:
             if automate_type == 'auto_update':
                 # 自动更新数据任务
@@ -370,9 +370,12 @@ class TaskScheduler:
             elif automate_type == 'auto_search_weapon':
                 # 自动搜索饰品任务
                 self._execute_search_weapon_task(task_info)
+            elif automate_type == 'auto_refresh_auth':
+                # 更新Steam认证
+                self._execute_refresh_auth_task(task_info)
             else:
                 self.log.write_log(f"未知的任务类型: {automate_type}", 'error')
-                
+
         except Exception as e:
             self.log.write_log(f"任务执行异常 ({task_name}): {str(e)}", 'error')
     
@@ -704,6 +707,75 @@ class TaskScheduler:
             self.log.write_log(f"{task_desc}任务请求失败: {str(e)}", 'error')
         except Exception as e:
             self.log.write_log(f"{task_desc}任务处理失败: {str(e)}", 'error')
+
+    def _execute_refresh_auth_task(self, task_info):
+        """执行更新Steam认证任务"""
+        config = task_info['config']
+
+        # 获取Steam配置ID
+        steam_config_id = config.get('selectedSteamConfig')
+        steam_id = config.get('selectedSteamId')  # 兼容旧版本
+
+        # 如果有steam_config_id，从数据库查询对应的steamID
+        if steam_config_id:
+            try:
+                db = Date_base()
+
+                # 从 key1='steam' 的配置获取
+                query_sql = f"""
+                SELECT steamID
+                FROM config
+                WHERE dataID = {steam_config_id} AND key1 = 'steam' AND key2 = 'config'
+                """
+
+                success, result = db.select(query_sql)
+
+                if success and result and result[0][0]:
+                    steam_id = result[0][0]
+                    self.log.write_log(f"从配置ID {steam_config_id} 获取到 Steam ID: {steam_id}", 'info')
+                else:
+                    self.log.write_log(f"未找到配置ID {steam_config_id} 对应的Steam ID", 'error')
+                    return
+            except Exception as e:
+                self.log.write_log(f"查询Steam ID失败: {str(e)}", 'error')
+                return
+
+        if not steam_id:
+            self.log.write_log(f"任务 {task_info['task_name']} 缺少 Steam ID", 'error')
+            return
+
+        # 调用Steam认证刷新API
+        spider_base_url = "http://127.0.0.1:9002"  # Spider服务地址
+
+        try:
+            self.log.write_log(f"开始更新Steam认证: {steam_id}", 'info')
+            response = requests.post(
+                f"{spider_base_url}/steamLoginV1/refresh_auto",
+                json={'steam_id': steam_id},
+                timeout=120  # 2分钟超时
+            )
+
+            if response.status_code == 200:
+                try:
+                    response_data = response.json()
+                except ValueError:
+                    response_data = {}
+
+                if response_data.get('success'):
+                    message = response_data.get('message', 'Steam认证更新成功')
+                    self.log.write_log(f"Steam认证更新成功: {steam_id}, 消息: {message}", 'info')
+                else:
+                    message = response_data.get('message', '未知错误')
+                    self.log.write_log(f"Steam认证更新失败: {steam_id}, 原因: {message}", 'error')
+            else:
+                self.log.write_log(f"Steam认证更新HTTP错误: {steam_id}, 状态码: {response.status_code}", 'error')
+
+        except requests.exceptions.Timeout:
+            self.log.write_log(f"Steam认证更新请求超时: {steam_id}", 'error')
+        except requests.exceptions.RequestException as e:
+            self.log.write_log(f"Steam认证更新请求失败: {steam_id}, 错误: {str(e)}", 'error')
+        except Exception as e:
+            self.log.write_log(f"Steam认证更新异常: {steam_id}, 错误: {str(e)}", 'error')
 
 
 # 全局调度器实例
