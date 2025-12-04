@@ -354,3 +354,48 @@ def resolve_pendant():
         print(f"解析挂件信息失败: {exc}")
         print(f"堆栈跟踪:\n{traceback.format_exc()}")
         return jsonify({"success": False, "error": str(exc)}), 500
+
+
+@steamInventoryHistoryV1.route('/resolve_market_item', methods=['POST'])
+def resolve_market_item():
+    """
+    根据 market_listing_item_name 精确查询 weapon_classID，返回 steam_hash_name
+    请求体:
+    {
+        "market_listing_item_name": "AK-47 | 红线 (久经沙场)"
+    }
+    """
+    try:
+        data = request.get_json(force=True) or {}
+        market_name = data.get("market_listing_item_name") or data.get("name")
+
+        if not market_name:
+            return jsonify({"success": False, "message": "缺少 market_listing_item_name 参数"}), 400
+
+        records = WeaponClassIDModel.find_by_market_listing_item_name(market_name)
+        if not records:
+            return jsonify({
+                "success": False,
+                "message": "未找到匹配的数据",
+                "data": {
+                    "market_listing_item_name": market_name,
+                    "steam_hash_name": ""
+                }
+            }), 200
+
+        weapon = records[0]
+        return jsonify({
+            "success": True,
+            "data": {
+                "market_listing_item_name": market_name,
+                "steam_hash_name": getattr(weapon, "steam_hash_name", "") or "",
+                "weapon_name": getattr(weapon, "weapon_name", "") or "",
+                "item_name": getattr(weapon, "item_name", "") or "",
+                "weapon_type": getattr(weapon, "weapon_type", "") or ""
+            }
+        }), 200
+
+    except Exception as exc:
+        print(f"解析 market_listing_item_name 失败: {exc}")
+        print(f"堆栈跟踪:\n{traceback.format_exc()}")
+        return jsonify({"success": False, "error": str(exc)}), 500
