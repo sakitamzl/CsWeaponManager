@@ -453,7 +453,8 @@ class WeaponClassIDModel(BaseModel):
         BUFF专用：批量更新或插入buff_id和相关字段（UPSERT操作）
         :param weapon_list: 武器数据列表，每项包含 buff_id, steam_hash_name, market_listing_item_name, 
                            buff_class_name, weapon_type, weapon_name, item_name,
-                           buff_Price, buff_Rent, buff_OnSaleCount, buff_OnLeaseCount
+                           buff_Price, buff_Rent, buff_OnSaleCount, buff_OnLeaseCount,
+                           icon_url(可选), icon_from(可选)
         :return: 成功处理的数量
         """
         success_count = 0
@@ -471,6 +472,9 @@ class WeaponClassIDModel(BaseModel):
                 weapon_type = weapon_data.get('weapon_type', '')
                 weapon_name = weapon_data.get('weapon_name', '')
                 item_name = weapon_data.get('item_name', '')
+                # 新增：BUFF图标
+                icon_url = weapon_data.get('icon_url')
+                icon_from = weapon_data.get('icon_from', 'buff') if icon_url else None
                 
                 # 获取BUFF的价格和数量字段
                 buff_price = weapon_data.get('buff_Price', '')
@@ -493,18 +497,34 @@ class WeaponClassIDModel(BaseModel):
                 
                 if existing_records:
                     # 记录已存在，执行 UPDATE
-                    # 更新buff_id, buff_class_name和新的价格、数量字段
-                    sql_update = f'''UPDATE {cls.get_table_name()} 
-                                    SET [buff_id] = ?, [buff_class_name] = ?,
-                                        [buff_Price] = ?, [buff_Rent] = ?,
-                                        [buff_OnSaleCount] = ?, [buff_OnLeaseCount] = ?
-                                    WHERE [steam_hash_name] = ?'''
-                    affected_rows = db.execute_update(sql_update, (
+                    existing = existing_records[0]
+
+                    # 更新buff字段
+                    set_fields = [
+                        "[buff_id] = ?",
+                        "[buff_class_name] = ?",
+                        "[buff_Price] = ?",
+                        "[buff_Rent] = ?",
+                        "[buff_OnSaleCount] = ?",
+                        "[buff_OnLeaseCount] = ?"
+                    ]
+                    params = [
                         buff_id, buff_class_name,
                         buff_price, buff_rent,
-                        buff_on_sale_count, buff_on_lease_count,
-                        steam_hash_name
-                    ))
+                        buff_on_sale_count, buff_on_lease_count
+                    ]
+
+                    # 只有当原记录 icon_url 为空且新数据提供了 icon_url 时才补充
+                    if (not getattr(existing, 'icon_url', None)) and icon_url:
+                        set_fields.extend(["[icon_url] = ?", "[icon_from] = ?"])
+                        params.extend([icon_url, icon_from])
+
+                    sql_update = f'''UPDATE {cls.get_table_name()} 
+                                    SET {", ".join(set_fields)}
+                                    WHERE [steam_hash_name] = ?'''
+                    params.append(steam_hash_name)
+
+                    affected_rows = db.execute_update(sql_update, tuple(params))
                     
                     if affected_rows > 0:
                         success_count += 1
@@ -516,12 +536,14 @@ class WeaponClassIDModel(BaseModel):
                     sql_insert = f'''INSERT INTO {cls.get_table_name()} 
                                     ([steam_hash_name], [market_listing_item_name], [buff_id], [buff_class_name], 
                                      [weapon_type], [weapon_name], [item_name],
-                                     [buff_Price], [buff_Rent], [buff_OnSaleCount], [buff_OnLeaseCount]) 
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'''
+                                     [buff_Price], [buff_Rent], [buff_OnSaleCount], [buff_OnLeaseCount],
+                                     [icon_url], [icon_from]) 
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'''
                     db.execute_insert(sql_insert, (
                         steam_hash_name, market_listing_item_name, buff_id, 
                         buff_class_name, weapon_type, weapon_name, item_name,
-                        buff_price, buff_rent, buff_on_sale_count, buff_on_lease_count
+                        buff_price, buff_rent, buff_on_sale_count, buff_on_lease_count,
+                        icon_url, icon_from
                     ))
                     success_count += 1
                     insert_count += 1

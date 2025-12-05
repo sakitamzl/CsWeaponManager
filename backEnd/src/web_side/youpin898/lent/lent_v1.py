@@ -13,8 +13,9 @@ def getNowLentingList():
     try:
         # 查询所有未完成、有结束时间且已到达结束时间的订单
         current_time = today()
+        # 仅筛选未完成且非“已转租/已归还”的订单
         records = YyypLentModel.find_all(
-            where="status NOT IN ('完成') AND lean_end_time IS NOT NULL AND lean_end_time <= ?",
+            where="status NOT IN ('完成', '已转租', '已归还') AND lean_end_time IS NOT NULL AND lean_end_time <= ?",
             params=(current_time,)
         )
         data = [[record.ID] for record in records]
@@ -123,6 +124,10 @@ def updateLentData():
         if not lent_record:
             return 'update_error', 404
         
+        # 如果当前库状态已是终态，则跳过更新，避免覆盖
+        if lent_record.status in ('已转租', '已归还'):
+            return 'skip_final_status', 200
+
         # 更新字段
         lent_record.status = status  # orderStatusName
         lent_record.status_sub = status_sub  # orderStatusDesc
