@@ -1,1 +1,0 @@
-'tag_CSGO_Tool_Keychain', 'tag_keychain_pack_kc_weapon_01_lootlist', 'tag_keychain_pack_kc_ml_community_01_lootlist', 'tag_keychain_pack_kc_missinglink_lootlist', 'tag_keychain_pack_kc_drboom_lootlist', 'tag_keychain_pack_kc_aus2025_lootlist'
