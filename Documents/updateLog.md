@@ -1,5 +1,36 @@
 # 更新日志 准备更新Ver2.0 大部分数据将不通用
 
+## 2025-12-8
+
+### v2.0.0 发布
+1. 从1.0更新到2.0版本 需要先执行下面sql
+```sql
+ALTER TABLE steam_stockComponents RENAME COLUMN instanceid TO goods_assetid;
+DELETE FROM steam_stockComponents;
+```
+
+2. 如果需要重新获取历史数据 以便显示印花 改名 挂件的信息的 需要删除数据后重新获取数据
+```sql
+DELETE FROM "main"."sell" WHERE "from" = 'SMK';
+DELETE FROM "main"."buy" WHERE "from" = 'SMK';
+DELETE FROM steam_market;
+DELETE FROM yyyp_messagebox;
+DELETE FROM steam_inventoryhistory_index;
+DELETE FROM steam_inventoryhistory;
+DELETE FROM weapon_classID;
+DELETE FROM "main"."sell" WHERE "from" = 'buff';
+DELETE FROM "main"."buy" WHERE "from" = 'buff';
+DELETE FROM buff_sell;
+DELETE FROM buff_buy;
+DELETE FROM "main"."sell" WHERE "from" = 'csfloat';
+DELETE FROM "main"."buy" WHERE "from" = 'csfloat';
+DELETE FROM csfloat_sell;
+DELETE FROM csfloat_buy;
+DELETE FROM "main"."sell" WHERE "from" = 'yyyp';
+DELETE FROM "main"."buy" WHERE "from" = 'yyyp';
+DELETE FROM yyyp_sell;
+DELETE FROM yyyp_buy;
+```
 ## 2025-12-03
 
 ### v1.2.11
@@ -11,8 +42,6 @@
 ```sql
 DELETE FROM yyyp_lent;
 ```
-
-
 ### v1.2.10
 
 1、添加库存组件 图片 印花等获取
@@ -59,7 +88,6 @@ DELETE FROM "main"."sell" WHERE "from" = 'buff';
 DELETE FROM "main"."buy" WHERE "from" = 'buff';
 DELETE FROM buff_sell;
 DELETE FROM buff_buy;
-
 DELETE FROM "main"."sell" WHERE "from" = 'csfloat';
 DELETE FROM "main"."buy" WHERE "from" = 'csfloat';
 DELETE FROM csfloat_sell;

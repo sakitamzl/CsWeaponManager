@@ -1,6 +1,6 @@
 {
   "name": "cs-weapon-manager",
-  "version": "1.2.2",
+  "version": "1.2.11",
   "description": "CS武器管理器",
   "main": "src/main.js",
   "scripts": {

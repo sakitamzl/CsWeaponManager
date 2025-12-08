@@ -2,7 +2,29 @@
 echo Starting PyInstaller packaging process...
 
 :: Set version number (modify this for each release)
-set VERSION=v1.2.11
+set VERSION=v2.0.0
+
+:: Sync version to package.json
+echo Syncing version to package.json...
+:: Extract version number (remove 'v' prefix if present)
+set VERSION_NUM=%VERSION%
+if "%VERSION_NUM:~0,1%"=="v" set VERSION_NUM=%VERSION_NUM:~1%
+:: Update package.json using PowerShell (via temp script)
+set TEMP_PS=%TEMP%\sync_version_temp.ps1
+(
+echo $json = Get-Content 'WebSite\package.json' -Raw ^| ConvertFrom-Json
+echo $oldVersion = $json.version
+echo $json.version = '%VERSION_NUM%'
+echo ($json ^| ConvertTo-Json -Depth 10^) ^| Set-Content 'WebSite\package.json' -Encoding UTF8
+echo Write-Host "Version synced: $oldVersion -^> %VERSION_NUM%"
+) > "%TEMP_PS%"
+powershell -NoProfile -ExecutionPolicy Bypass -File %TEMP_PS%
+if %errorlevel% neq 0 (
+    echo Warning: Failed to sync version to package.json
+) else (
+    echo Version synced successfully to package.json
+)
+del %TEMP_PS% >nul 2>&1
 
 :: Activate conda environment
 call conda activate CS2DB
