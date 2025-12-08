@@ -2,7 +2,7 @@
 echo Starting PyInstaller packaging process...
 
 :: Set version number (modify this for each release)
-set VERSION=v2.0.0
+set VERSION=v2.0.1
 
 :: Sync version to package.json
 echo Syncing version to package.json...
@@ -12,10 +12,11 @@ if "%VERSION_NUM:~0,1%"=="v" set VERSION_NUM=%VERSION_NUM:~1%
 :: Update package.json using PowerShell (via temp script)
 set TEMP_PS=%TEMP%\sync_version_temp.ps1
 (
-echo $json = Get-Content 'WebSite\package.json' -Raw ^| ConvertFrom-Json
-echo $oldVersion = $json.version
-echo $json.version = '%VERSION_NUM%'
-echo ($json ^| ConvertTo-Json -Depth 10^) ^| Set-Content 'WebSite\package.json' -Encoding UTF8
+echo $content = Get-Content 'WebSite\package.json' -Raw -Encoding UTF8
+echo $oldVersion = ($content ^| Select-String -Pattern '"version"\s*:\s*"([^"]+)"'^).Matches.Groups[1].Value
+echo $content = $content -replace '("version"\s*:\s*")[^"]+(")', "$1%VERSION_NUM%$2"
+echo $Utf8NoBomEncoding = New-Object System.Text.UTF8Encoding $False
+echo [System.IO.File]::WriteAllText((Resolve-Path 'WebSite\package.json'^), $content, $Utf8NoBomEncoding^)
 echo Write-Host "Version synced: $oldVersion -^> %VERSION_NUM%"
 ) > "%TEMP_PS%"
 powershell -NoProfile -ExecutionPolicy Bypass -File %TEMP_PS%
