@@ -43,7 +43,7 @@
         clearable
       >
         <el-option label="全部" value="all" />
-        <el-option v-for="platform in platformList" :key="platform" :label="platform" :value="platform" />
+        <el-option v-for="platform in platformList" :key="platform" :label="mapSource(platform)" :value="platform" />
       </el-select>
       <el-select
         v-model="lenterFilter"
@@ -245,6 +245,7 @@
                   :alt="getItemTitle(scope.row)"
                   class="weapon-img"
                   loading="lazy"
+                  decoding="async"
                   @error="(e) => e.target.style.display = 'none'"
                 />
                 <span v-else class="no-image">无图</span>
@@ -547,6 +548,28 @@ export default {
     const dateRange = ref(null)
     const isTimeSearchMode = ref(false)
     const sortOrder = ref('descending')
+
+    // 图片路径缓存，避免重复计算
+    const imageCache = new Map()
+
+    // API请求缓存（简单的内存缓存，5分钟过期）
+    const apiCache = new Map()
+    const CACHE_DURATION = 5 * 60 * 1000 // 5分钟
+
+    const getCachedData = (key) => {
+      const cached = apiCache.get(key)
+      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        return cached.data
+      }
+      return null
+    }
+
+    const setCachedData = (key, data) => {
+      apiCache.set(key, {
+        data,
+        timestamp: Date.now()
+      })
+    }
     
     // 高级搜索相关
     const hasAdvancedFilters = computed(() => {
@@ -569,28 +592,38 @@ export default {
       cancelledCount: 0
     })
 
-    // 当前页面统计（基于当前显示的数据计算）
+    // 当前页面统计（基于当前显示的数据计算）- 优化：减少重复遍历
     const currentPageStats = computed(() => {
-      const effectiveData = lentData.value.filter(item => item.status !== '已取消')
-      const totalCount = effectiveData.length
-      const totalAmount = effectiveData.reduce((sum, item) => {
+      let totalCount = 0
+      let totalAmount = 0
+      let totalLeaseDays = 0
+      let rentingCount = 0
+      let completedCount = 0
+      let cancelledCount = 0
+
+      // 单次遍历计算所有统计
+      for (const item of lentData.value) {
+        if (item.status === '已取消') {
+          cancelledCount++
+          continue
+        }
+
+        totalCount++
         const price = item.price || 0
         const days = item.total_Lease_Days || 0
-        return sum + (price * days)
-      }, 0).toFixed(2)
-      const avgPrice = totalCount > 0 ? (totalAmount / totalCount).toFixed(2) : '0.00'
-      const totalLeaseDays = effectiveData.reduce((sum, item) => sum + (item.total_Lease_Days || 0), 0)
-      const avgLeaseDays = totalCount > 0 ? (totalLeaseDays / totalCount).toFixed(1) : '0.0'
-      const rentingCount = effectiveData.filter(item => item.status === '租赁中').length
-      const completedCount = effectiveData.filter(item => item.status === '已完成').length
-      const cancelledCount = lentData.value.filter(item => item.status === '已取消').length
+        totalAmount += price * days
+        totalLeaseDays += days
+
+        if (item.status === '租赁中') rentingCount++
+        else if (item.status === '已完成') completedCount++
+      }
 
       return {
         totalCount,
-        totalAmount,
-        avgPrice,
+        totalAmount: totalAmount.toFixed(2),
+        avgPrice: totalCount > 0 ? (totalAmount / totalCount).toFixed(2) : '0.00',
         totalLeaseDays,
-        avgLeaseDays,
+        avgLeaseDays: totalCount > 0 ? (totalLeaseDays / totalCount).toFixed(1) : '0.0',
         rentingCount,
         completedCount,
         cancelledCount
@@ -681,8 +714,15 @@ export default {
       return val
     }
 
-    // 获取武器图片路径，逻辑与 /buy 保持一致
+    // 获取武器图片路径，使用缓存优化
     const getWeaponImage = (steamHashName, fallbackWeaponName = '', fallbackItemName = '') => {
+      const cacheKey = `${steamHashName}|${fallbackWeaponName}|${fallbackItemName}`
+
+      // 检查缓存
+      if (imageCache.has(cacheKey)) {
+        return imageCache.get(cacheKey)
+      }
+
       const baseName = steamHashName ||
         `${fallbackWeaponName || ''} | ${fallbackItemName || ''}`.trim()
       if (!baseName) return null
@@ -691,7 +731,12 @@ export default {
         .replace(/\s*\|\s*/g, '___')
         .replace(/\s/g, '_') + '.png'
 
-      return `/weapon_imgs/${imageName}`
+      const imagePath = `/weapon_imgs/${imageName}`
+
+      // 存入缓存
+      imageCache.set(cacheKey, imagePath)
+
+      return imagePath
     }
 
     // 组合标题：武器名 | 饰品名 （磨损）；若两者相同，仅显示一次
@@ -1066,7 +1111,7 @@ export default {
       handleAdvancedSearch()
     }
 
-    const handleClearSearch = () => {
+    const handleClearSearch = async () => {
       searchText.value = ''
       statusFilter.value = ''
       statusSubFilter.value = ''
@@ -1078,49 +1123,65 @@ export default {
       isSearchMode.value = false
       isTimeSearchMode.value = false
       allSearchResults.value = []
-      loadStatusSubList()
-      loadFilteredStats()
-      loadLentData()
+
+      // 优化：并行执行，避免重复调用
+      await Promise.all([
+        loadStatusSubList(),
+        loadLentData(),
+        loadFilteredStats()
+      ])
     }
 
-    const handleStatusChange = () => {
+    const handleStatusChange = async () => {
       // 未选择时为空，接口内部会将空转换为 all
       currentPage.value = 1
       // 重置子状态并立即刷新子状态列表
       statusSubFilter.value = ''
       statusSubList.value = []
-      loadStatusSubList()
-      
+
       // 如果是搜索模式，只需要更新分页，不需要重新加载数据
       if (isSearchMode.value && searchText.value.trim()) {
+        await loadStatusSubList()
         // 状态变更会自动通过computed属性重新计算filteredLentData
         return
       } else {
-        // 非搜索模式，重新加载数据
-        loadLentData()
-        loadFilteredStats()
+        // 非搜索模式，并行加载数据
+        await Promise.all([
+          loadStatusSubList(),
+          loadLentData(),
+          loadFilteredStats()
+        ])
       }
     }
-    const handleStatusSubChange = () => {
+    const handleStatusSubChange = async () => {
       currentPage.value = 1
       // 空子状态表示全部
       if (!statusSubFilter.value) {
         statusSubFilter.value = ''
       }
-      loadLentData()
-      loadFilteredStats()
+      // 优化：并行加载
+      await Promise.all([
+        loadLentData(),
+        loadFilteredStats()
+      ])
     }
 
-    const handlePlatformChange = () => {
+    const handlePlatformChange = async () => {
       currentPage.value = 1
-      loadLentData()
-      loadFilteredStats()
+      // 优化：并行加载
+      await Promise.all([
+        loadLentData(),
+        loadFilteredStats()
+      ])
     }
 
-    const handleLenterChange = () => {
+    const handleLenterChange = async () => {
       currentPage.value = 1
-      loadLentData()
-      loadFilteredStats()
+      // 优化：并行加载
+      await Promise.all([
+        loadLentData(),
+        loadFilteredStats()
+      ])
     }
 
     const handleStatusSubVisibleChange = (visible) => {
@@ -1297,35 +1358,58 @@ export default {
       }
     }
 
-    // 加载武器类型数据
+    // 加载武器类型数据（带缓存）
     const loadWeaponTypes = async () => {
       try {
+        const cacheKey = 'weaponTypes'
+        const cached = getCachedData(cacheKey)
+        if (cached) {
+          weaponTypes.value = cached
+          return
+        }
+
         const response = await fetch(apiUrls.lentWeaponTypes())
         const result = await response.json()
         if (result.success) {
           weaponTypes.value = result.data
+          setCachedData(cacheKey, result.data)
         }
       } catch (error) {
         console.error('获取武器类型失败:', error)
       }
     }
 
-    // 加载磨损等级数据
+    // 加载磨损等级数据（带缓存）
     const loadFloatRanges = async () => {
       try {
+        const cacheKey = 'floatRanges'
+        const cached = getCachedData(cacheKey)
+        if (cached) {
+          floatRanges.value = cached
+          return
+        }
+
         const response = await fetch(apiUrls.lentFloatRanges())
         const result = await response.json()
         if (result.success) {
           floatRanges.value = result.data
+          setCachedData(cacheKey, result.data)
         }
       } catch (error) {
         console.error('获取磨损等级失败:', error)
       }
     }
 
-    // 加载状态列表数据（status）
+    // 加载状态列表数据（status）- 带缓存
     const loadStatusList = async () => {
       try {
+        const cacheKey = 'statusList'
+        const cached = getCachedData(cacheKey)
+        if (cached) {
+          statusList.value = cached
+          return
+        }
+
         const response = await fetch(apiUrls.lentStatusList())
         const result = await response.json()
         console.log('租赁 status 列表原始返回:', result)
@@ -1337,9 +1421,13 @@ export default {
               return item.status || ''
             })
             .filter(Boolean)
-          statusList.value = Array.from(new Set(list))
+          const uniqueList = Array.from(new Set(list))
+          statusList.value = uniqueList
+          setCachedData(cacheKey, uniqueList)
         } else if (Array.isArray(result)) {
-          statusList.value = Array.from(new Set(result.filter(Boolean)))
+          const uniqueList = Array.from(new Set(result.filter(Boolean)))
+          statusList.value = uniqueList
+          setCachedData(cacheKey, uniqueList)
         } else {
           statusList.value = []
         }
@@ -1376,10 +1464,18 @@ export default {
 
     const loadPlatformList = async () => {
       try {
+        const cacheKey = 'platformList'
+        const cached = getCachedData(cacheKey)
+        if (cached) {
+          platformList.value = cached
+          return
+        }
+
         const response = await fetch(apiUrls.lentPlatformList())
         const result = await response.json()
         if (result.success && Array.isArray(result.data)) {
           platformList.value = result.data
+          setCachedData(cacheKey, result.data)
         } else {
           platformList.value = []
         }
@@ -1391,10 +1487,18 @@ export default {
 
     const loadLenterList = async () => {
       try {
+        const cacheKey = 'lenterList'
+        const cached = getCachedData(cacheKey)
+        if (cached) {
+          lenterList.value = cached
+          return
+        }
+
         const response = await fetch(apiUrls.lentLenterList())
         const result = await response.json()
         if (result.success && Array.isArray(result.data)) {
           lenterList.value = result.data
+          setCachedData(cacheKey, result.data)
         } else {
           lenterList.value = []
         }
@@ -1552,18 +1656,27 @@ export default {
     }
 
     onMounted(async () => {
-      // 初始化时并行加载参考数据与主列表，避免重复等待
-      const initRequests = [
-        loadWeaponTypes(),
-        loadFloatRanges(),
-        loadStatusList(),
-        loadStatusSubList(),
-        loadPlatformList(),
-        loadLenterList(),
+      // 优化：先加载主数据，其他数据按需加载
+      // 立即加载主数据和统计
+      const criticalRequests = [
+        loadLentData(),
         loadFilteredStats()
       ]
-      loadLentData()
-      await Promise.allSettled(initRequests)
+
+      // 延迟加载非关键数据（如下拉列表选项）
+      setTimeout(async () => {
+        const lazyRequests = [
+          loadWeaponTypes(),
+          loadFloatRanges(),
+          loadStatusList(),
+          loadStatusSubList(),
+          loadPlatformList(),
+          loadLenterList()
+        ]
+        await Promise.allSettled(lazyRequests)
+      }, 100)
+
+      await Promise.allSettled(criticalRequests)
     })
 
     onBeforeUnmount(() => {
