@@ -11,14 +11,15 @@ set VERSION_NUM=%VERSION%
 if "%VERSION_NUM:~0,1%"=="v" set VERSION_NUM=%VERSION_NUM:~1%
 :: Update package.json using PowerShell (via temp script)
 set TEMP_PS=%TEMP%\sync_version_temp.ps1
-(
-echo $content = Get-Content 'WebSite\package.json' -Raw -Encoding UTF8
-echo $oldVersion = ($content ^| Select-String -Pattern '"version"\s*:\s*"([^"]+)"'^).Matches.Groups[1].Value
-echo $content = $content -replace '("version"\s*:\s*")[^"]+(")', "$1%VERSION_NUM%$2"
-echo $Utf8NoBomEncoding = New-Object System.Text.UTF8Encoding $False
-echo [System.IO.File]::WriteAllText((Resolve-Path 'WebSite\package.json'^), $content, $Utf8NoBomEncoding^)
-echo Write-Host "Version synced: $oldVersion -^> %VERSION_NUM%"
-) > "%TEMP_PS%"
+echo $filePath = Resolve-Path 'WebSite\package.json' > "%TEMP_PS%"
+echo $content = [System.IO.File]::ReadAllText($filePath, [System.Text.Encoding]::UTF8) >> "%TEMP_PS%"
+echo $content = $content -replace '^\uFEFF', '' >> "%TEMP_PS%"
+echo $oldVersion = 'unknown' >> "%TEMP_PS%"
+echo if ($content -match '"version"\s*:\s*"([^"]+)"'^) { $oldVersion = $matches[1] } >> "%TEMP_PS%"
+echo $content = [regex]::Replace($content, '"version"\s*:\s*"([^"]+)"', '"version": "%VERSION_NUM%"') >> "%TEMP_PS%"
+echo $Utf8NoBomEncoding = New-Object System.Text.UTF8Encoding $False >> "%TEMP_PS%"
+echo [System.IO.File]::WriteAllText($filePath, $content, $Utf8NoBomEncoding) >> "%TEMP_PS%"
+echo Write-Host "Version synced: $oldVersion -^> %VERSION_NUM%" >> "%TEMP_PS%"
 powershell -NoProfile -ExecutionPolicy Bypass -File %TEMP_PS%
 if %errorlevel% neq 0 (
     echo Warning: Failed to sync version to package.json

@@ -230,6 +230,115 @@ def get_components_stats(steam_id):
         }), 500
 
 
+@webStockComponentsV1.route('/components/grouped/<steam_id>', methods=['GET'])
+def get_components_grouped(steam_id):
+    """
+    按物品组合统计（聚合）库存组件，例如：
+    “2022年里约热内卢锦标赛炙热沙城 II 纪念包 x100”
+
+    支持参数：
+    - search: 模糊匹配 item_name
+    - page, page_size: 分页
+    - order_by: 排序字段，支持 count(默认)、name、buy_price、yyyp_price、buff_price、steam_price
+    """
+    try:
+        search_text = request.args.get('search', '')
+        page = request.args.get('page', 1, type=int)
+        page_size = request.args.get('page_size', 20, type=int)
+        order_by = (request.args.get('order_by') or 'count').lower()
+
+        offset = (page - 1) * page_size
+
+        db = DatabaseManager()
+
+        where_conditions = ["data_user = ?"]
+        params = [steam_id]
+
+        if search_text:
+            where_conditions.append("item_name LIKE ?")
+            params.append(f"%{search_text}%")
+
+        where_clause = " AND ".join(where_conditions)
+
+        # 排序字段映射
+        order_map = {
+            'count': 'item_count DESC, item_name ASC',
+            'name': 'item_name ASC',
+            'buy_price': 'total_buy_price DESC',
+            'yyyp_price': 'total_yyyp_price DESC',
+            'buff_price': 'total_buff_price DESC',
+            'steam_price': 'total_steam_price DESC'
+        }
+        order_clause = order_map.get(order_by, order_map['count'])
+
+        sql = f"""
+        SELECT
+            item_name,
+            steam_hash_name,
+            weapon_name,
+            weapon_type,
+            weapon_level,
+            float_range,
+            COUNT(*) AS item_count,
+            SUM(CAST(weapon_float AS REAL)) AS total_quantity,
+            SUM(CAST(buy_price AS REAL)) AS total_buy_price,
+            SUM(CAST(yyyp_price AS REAL)) AS total_yyyp_price,
+            SUM(CAST(buff_price AS REAL)) AS total_buff_price,
+            SUM(CAST(steam_price AS REAL)) AS total_steam_price
+        FROM steam_stockComponents
+        WHERE {where_clause}
+        GROUP BY item_name, steam_hash_name, weapon_name, weapon_type, weapon_level, float_range
+        ORDER BY {order_clause}
+        LIMIT ? OFFSET ?
+        """
+        params_with_limit = params + [page_size, offset]
+        rows = db.execute_query(sql, tuple(params_with_limit))
+
+        grouped_list = []
+        for row in rows or []:
+            grouped_list.append({
+                "item_name": row[0],
+                "steam_hash_name": row[1],
+                "weapon_name": row[2],
+                "weapon_type": row[3],
+                "weapon_level": row[4],
+                "float_range": row[5],
+                "item_count": row[6] or 0,
+                "total_quantity": round(row[7] or 0, 2),
+                "total_buy_price": round(row[8] or 0, 2),
+                "total_yyyp_price": round(row[9] or 0, 2),
+                "total_buff_price": round(row[10] or 0, 2),
+                "total_steam_price": round(row[11] or 0, 2)
+            })
+
+        # 总记录数
+        count_sql = f"""
+        SELECT COUNT(*) FROM (
+            SELECT 1
+            FROM steam_stockComponents
+            WHERE {where_clause}
+            GROUP BY item_name, steam_hash_name, weapon_name, weapon_type, weapon_level, float_range
+        ) AS grouped_items
+        """
+        total_rows = db.execute_query(count_sql, tuple(params))
+        total = total_rows[0][0] if total_rows else 0
+
+        return jsonify({
+            "success": True,
+            "data": grouped_list,
+            "total": total,
+            "page": page,
+            "page_size": page_size
+        })
+
+    except Exception as e:
+        print(f"❌ 组合查询失败 - steam_id: {steam_id}, 错误: {str(e)}")
+        print(f"错误详情: {traceback.format_exc()}")
+        return jsonify({
+            "success": False,
+            "message": f"组合查询失败: {str(e)}"
+        }), 500
+
 @webStockComponentsV1.route('/components/time-range/<steam_id>/<start_date>/<end_date>', methods=['GET'])
 def get_components_by_time_range(steam_id, start_date, end_date):
     """按时间范围搜索库存组件 - 从 steam_stockComponents 表读取"""

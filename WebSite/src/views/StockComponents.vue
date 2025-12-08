@@ -127,16 +127,29 @@
     </div>
 
     <div class="table-container">
-      <div class="pagination pagination-top">
-        <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          :page-sizes="[10, 20, 50, 100]"
-          :total="totalItems"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
+      <div class="table-toolbar">
+        <div class="pagination pagination-top">
+          <el-pagination
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            :total="totalItems"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+          />
+        </div>
+        <div class="group-toggle">
+          <el-button type="info" plain @click="handleToggleGroupMode(true)" :loading="loading">
+            显示组合数量
+          </el-button>
+          <el-switch
+            v-model="groupMode"
+            active-text="组合模式"
+            inactive-text="明细模式"
+            @change="handleToggleGroupMode"
+          />
+        </div>
       </div>
       
       <el-table
@@ -206,6 +219,11 @@
         </el-table-column>
         <el-table-column prop="weapon_type" label="武器类型" min-width="120" />
         <el-table-column prop="weapon_level" label="武器等级" min-width="120" />
+        <el-table-column label="数量" width="120" align="center">
+          <template #default="scope">
+            <span>{{ groupMode ? (scope.row.item_count || 0) : (scope.row.weapon_float || 0) }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="weapon_float" label="磨损值" width="200" align="left">
           <template #default="scope">
             <div v-if="scope.row.weapon_float && formatWeaponFloat(scope.row.weapon_float)">
@@ -299,6 +317,8 @@ export default {
     const yyypFillLoading = ref(false)
     const buffFillLoading = ref(false)
     const componentData = ref([])
+    const groupedData = ref([])
+    const groupMode = ref(true)
     const searchText = ref('')
     const currentPage = ref(1)
     const pageSize = ref(20)
@@ -316,6 +336,7 @@ export default {
     // API 基础地址
     const API_BASE = `${API_CONFIG.BASE_URL}/webInventoryV1`
     const API_COMPONENTS = `${API_CONFIG.BASE_URL}/webStockComponentsV1`
+    const API_COMPONENTS_GROUPED = `${API_CONFIG.BASE_URL}/webStockComponentsV1/components/grouped`
     const API_SPIDER = API_CONFIG.SPIDER_BASE_URL
     
     // classid常量 - 组件的classid
@@ -333,7 +354,7 @@ export default {
     })
 
     const filteredData = computed(() => {
-      return componentData.value
+      return groupMode.value ? groupedData.value : componentData.value
     })
 
     const formatTime = (time) => {
@@ -490,7 +511,7 @@ export default {
       console.log('Steam ID已切换:', selectedSteamId.value)
       selectedComponent.value = ''
       loadInventoryComponents()
-      loadComponentData()
+      groupMode.value ? loadGroupedData() : loadComponentData()
     }
 
     const loadInventoryComponents = async () => {
@@ -643,6 +664,50 @@ export default {
       }
     }
 
+    const loadGroupedData = async () => {
+      if (!selectedSteamId.value) {
+        ElMessage.warning('请选择Steam账号')
+        return
+      }
+
+      loading.value = true
+      try {
+        const response = await axios.get(`${API_COMPONENTS_GROUPED}/${selectedSteamId.value}`, {
+          params: {
+            search: searchText.value,
+            page: currentPage.value,
+            page_size: pageSize.value
+          }
+        })
+
+        if (response.data.success) {
+          groupedData.value = (response.data.data || []).map(item => ({
+            ...item,
+            // 复用表格字段，便于直接展示
+            weapon_float: item.item_count,           // 用数量占位
+            buy_price: item.total_buy_price,
+            yyyp_price: item.total_yyyp_price,
+            buff_price: item.total_buff_price,
+            steam_price: item.total_steam_price,
+            goods_assetid: item.item_name || item.steam_hash_name || Math.random().toString(36).slice(2)
+          }))
+          totalItems.value = response.data.total || 0
+          ElMessage.success(`组合加载成功，共 ${groupedData.value.length} 条记录`)
+        } else {
+          ElMessage.error(response.data.error || '加载组合数据失败')
+          groupedData.value = []
+          totalItems.value = 0
+        }
+      } catch (error) {
+        console.error('加载组合数据失败:', error)
+        ElMessage.error('加载组合数据失败: ' + (error.response?.data?.error || error.message))
+        groupedData.value = []
+        totalItems.value = 0
+      } finally {
+        loading.value = false
+      }
+    }
+
     const loadComponentStats = async () => {
       try {
         const response = await axios.get(`${API_COMPONENTS}/components/stats/${selectedSteamId.value}`)
@@ -676,28 +741,47 @@ export default {
       pageSize.value = val
       currentPage.value = 1
       if (!selectedComponent.value) {
-        loadComponentData()
+        groupMode.value ? loadGroupedData() : loadComponentData()
       }
     }
 
     const handleCurrentChange = (val) => {
       currentPage.value = val
       if (!selectedComponent.value) {
-        loadComponentData()
+        groupMode.value ? loadGroupedData() : loadComponentData()
       }
     }
 
     const handleSearch = () => {
       currentPage.value = 1
       selectedComponent.value = ''
-      loadComponentData()
+      groupMode.value ? loadGroupedData() : loadComponentData()
     }
 
     const handleClearSearch = () => {
       searchText.value = ''
       selectedComponent.value = ''
       currentPage.value = 1
-      loadComponentData()
+      groupMode.value ? loadGroupedData() : loadComponentData()
+    }
+
+    const calcAvg = (total, count) => {
+      const c = parseFloat(count) || 0
+      const t = parseFloat(total) || 0
+      if (!c) return '0.00'
+      return (t / c).toFixed(2)
+    }
+
+    const handleToggleGroupMode = (val = null) => {
+      // 按钮直接传 true，开关传布尔值，默认取反
+      if (val === true || val === false) {
+        groupMode.value = val
+      } else {
+        groupMode.value = !groupMode.value
+      }
+      currentPage.value = 1
+      selectedComponent.value = ''
+      groupMode.value ? loadGroupedData() : loadComponentData()
     }
 
     const handleUpdateComponent = async () => {
@@ -958,18 +1042,20 @@ export default {
       await loadSteamIdList()
       if (selectedSteamId.value) {
         await loadInventoryComponents()
-        loadComponentData()
+        groupMode.value ? loadGroupedData() : loadComponentData()
       }
     })
 
     return {
       loading,
+      groupMode,
       updateLoading,
       updateAllLoading,
       autoFillLoading,
       yyypFillLoading,
       buffFillLoading,
       componentData,
+      groupedData,
       filteredData,
       totalStats,
       searchText,
@@ -989,6 +1075,7 @@ export default {
       getWeaponImage,
       getItemTitle,
       hasExtras,
+      calcAvg,
       parseStickers,
       parsePendant,
       handleSizeChange,
@@ -999,6 +1086,7 @@ export default {
       handleComponentSelect,
       handleUpdateComponent,
       handleUpdateAllComponents,
+      handleToggleGroupMode,
       handleAutoFillPrices,
       handleFillReferencePrice,
       startEdit,
@@ -1308,6 +1396,19 @@ export default {
 .pagination-top {
   margin-top: 0;
   margin-bottom: clamp(1rem, 3vw, 1.25rem);
+}
+
+.table-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.group-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 :deep(.el-pagination) {
