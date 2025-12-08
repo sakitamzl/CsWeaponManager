@@ -244,6 +244,7 @@
                   :src="getWeaponImage(scope.row.steam_hash_name, scope.row.weapon_name, scope.row.item_name)"
                   :alt="getItemTitle(scope.row)"
                   class="weapon-img"
+                  loading="lazy"
                   @error="(e) => e.target.style.display = 'none'"
                 />
                 <span v-else class="no-image">无图</span>
@@ -384,6 +385,7 @@
                   :src="getWeaponImage(previewItem.steam_hash_name, previewItem.weapon_name, previewItem.item_name)"
                   :alt="getItemTitle(previewItem)"
                   class="preview-image"
+                  loading="lazy"
                 />
                 <div v-else class="preview-image-placeholder">
                   <span>无图片</span>
@@ -515,7 +517,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { ElMessage } from 'element-plus'
 import { apiUrls } from '@/config/api'
 
@@ -523,6 +525,8 @@ export default {
   name: 'Lent',
   setup() {
     const loading = ref(false)
+    const dataController = ref(null)
+    const statsController = ref(null)
     const lentData = ref([])
     const searchText = ref('')
     const statusFilter = ref('')
@@ -552,7 +556,6 @@ export default {
              (weaponTypeFilter.value && weaponTypeFilter.value.length > 0) ||
              (floatRangeFilter.value && floatRangeFilter.value.length > 0) ||
              (dateRange.value && dateRange.value.length === 2)
-      loadFilteredStats()
     })
     // 全部数据统计（通过API获取）
     const allDataStats = ref({
@@ -613,8 +616,9 @@ export default {
         }
         
         // 更新总数以反映筛选后的结果
+        // 仅在搜索模式下需要根据筛选结果调整 total
         totalItems.value = filtered.length
-        
+
         // 前端分页
         const start = (currentPage.value - 1) * pageSize.value
         const end = start + pageSize.value
@@ -716,6 +720,14 @@ export default {
       return title || item.ID || ''
     }
 
+    const createAbortSignal = (controllerRef) => {
+      if (controllerRef.value) {
+        controllerRef.value.abort()
+      }
+      controllerRef.value = new AbortController()
+      return controllerRef.value.signal
+    }
+
     const searchByName = async (itemName) => {
       loading.value = true
       try {
@@ -724,6 +736,7 @@ export default {
         const response = await fetch(`/api/webLentV1/selectLentWeaponName/${encodeURIComponent(itemName)}`, {
           method: 'GET',
           mode: 'cors',
+          signal: createAbortSignal(dataController),
           headers: {
             'Accept': 'application/json',
           },
@@ -775,6 +788,7 @@ export default {
         }
         
       } catch (error) {
+        if (error.name === 'AbortError') return
         console.error('搜索失败:', error)
         ElMessage.error(`搜索失败: ${error.message}`)
         lentData.value = []
@@ -821,6 +835,7 @@ export default {
         const response = await fetch('/api/webLentPageV1/getLentStatsFiltered', {
           method: 'POST',
           mode: 'cors',
+          signal: createAbortSignal(statsController),
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
@@ -848,6 +863,7 @@ export default {
           cancelledCount: statsData.cancelledCount ?? statsData.cancelled_count ?? 0
         }
       } catch (error) {
+        if (error.name === 'AbortError') return
         console.error('加载统计数据失败:', error)
         allDataStats.value = {
           totalCount: 0,
@@ -871,6 +887,7 @@ export default {
         const response = await fetch('/api/webLentV1/countLentNumber', {
           method: 'GET',
           mode: 'cors',
+          signal: createAbortSignal(dataController),
           headers: {
             'Accept': 'application/json',
           },
@@ -932,6 +949,7 @@ export default {
         const response = await fetch(apiUrl, {
           method: 'GET',
           mode: 'cors',
+          signal: createAbortSignal(dataController),
           headers: {
             'Accept': 'application/json',
           },
@@ -994,6 +1012,7 @@ export default {
         }
         
       } catch (error) {
+        if (error.name === 'AbortError') return
         console.error('加载出租数据失败:', error)
         
         // 根据错误类型显示不同的错误信息
@@ -1158,6 +1177,7 @@ export default {
         const response = await fetch(`/api/webLentV1/searchLentByTimeRange/${startDate}/${endDate}`, {
           method: 'GET',
           mode: 'cors',
+          signal: createAbortSignal(dataController),
           headers: {
             'Accept': 'application/json',
           },
@@ -1213,6 +1233,7 @@ export default {
         }
         
       } catch (error) {
+        if (error.name === 'AbortError') return
         console.error('时间搜索失败:', error)
         ElMessage.error(`时间搜索失败: ${error.message}`)
         isSearchMode.value = false
@@ -1232,6 +1253,7 @@ export default {
         const response = await fetch(`/api/webLentV1/getLentStatsByTimeRange/${startDate}/${endDate}`, {
           method: 'GET',
           mode: 'cors',
+          signal: createAbortSignal(statsController),
           headers: {
             'Accept': 'application/json',
           },
@@ -1260,6 +1282,7 @@ export default {
           console.error('时间范围统计API返回数据格式错误:', statsData)
         }
       } catch (error) {
+        if (error.name === 'AbortError') return
         console.error('获取时间范围统计失败:', error)
         allDataStats.value = {
           totalCount: 0,
@@ -1438,6 +1461,7 @@ export default {
 
         const response = await fetch(apiUrls.lentSearchByTypeWear(), {
           method: 'POST',
+          signal: createAbortSignal(dataController),
           headers: {
             'Content-Type': 'application/json'
           },
@@ -1496,6 +1520,7 @@ export default {
 
         const response = await fetch(apiUrls.lentStatsByTypeWear(), {
           method: 'POST',
+          signal: createAbortSignal(statsController),
           headers: {
             'Content-Type': 'application/json'
           },
@@ -1526,15 +1551,24 @@ export default {
       previewVisible.value = true
     }
 
-    onMounted(() => {
+    onMounted(async () => {
+      // 初始化时并行加载参考数据与主列表，避免重复等待
+      const initRequests = [
+        loadWeaponTypes(),
+        loadFloatRanges(),
+        loadStatusList(),
+        loadStatusSubList(),
+        loadPlatformList(),
+        loadLenterList(),
+        loadFilteredStats()
+      ]
       loadLentData()
-      loadWeaponTypes()
-      loadFloatRanges()
-      loadStatusList()
-      loadStatusSubList()
-      loadPlatformList()
-      loadLenterList()
-      loadFilteredStats()
+      await Promise.allSettled(initRequests)
+    })
+
+    onBeforeUnmount(() => {
+      dataController.value?.abort()
+      statsController.value?.abort()
     })
 
     return {
