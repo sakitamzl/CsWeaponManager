@@ -146,9 +146,19 @@
             <span v-else style="color: #888;">-</span>
           </template>
         </el-table-column>
-        <el-table-column prop="weapon_name" label="武器" min-width="120" />
+        <el-table-column prop="weapon_name" label="武器" min-width="120">
+          <template #default="scope">
+            <span style="font-family: monospace;">
+              {{ scope.row.weapon_name && scope.row.item_name && scope.row.weapon_name.trim() === scope.row.item_name.trim() ? '-' : (scope.row.weapon_name || '-') }}
+            </span>
+          </template>
+        </el-table-column>
         <el-table-column prop="weapon_type" label="类型" min-width="100" />
-        <el-table-column prop="item_name" label="饰品名称" min-width="250" show-overflow-tooltip />
+        <el-table-column label="饰品名称" min-width="250" show-overflow-tooltip>
+          <template #default="scope">
+            <span>{{ getItemTitle(scope.row) }}</span>
+          </template>
+        </el-table-column>
         <el-table-column 
           prop="float_range" 
           label="磨损等级" 
@@ -1073,22 +1083,33 @@ export default {
       }
     }
 
-    // 生成卡片标题（组合显示）
+    // 生成标题（卡片/列表复用），若 weapon_name 与 item_name 相同则只显示一次
     const getCardTitle = (item) => {
+      const weaponName = (item.weapon_name || '').trim()
+      const itemName = (item.item_name || '').trim()
       const parts = []
-      if (item.weapon_name) {
-        parts.push(item.weapon_name)
+
+      if (weaponName && itemName) {
+        if (weaponName === itemName) {
+          parts.push(itemName)
+        } else {
+          parts.push(weaponName)
+          parts.push(itemName)
+        }
+      } else if (weaponName) {
+        parts.push(weaponName)
+      } else if (itemName) {
+        parts.push(itemName)
       }
-      if (item.item_name) {
-        parts.push(item.item_name)
-      }
-      // 组合格式: "AK-47 | 轨道 Mk01 （崭新出厂）"
+
       let title = parts.join(' | ')
       if (item.float_range) {
         title += ` （${item.float_range}）`
       }
       return title
     }
+
+    const getItemTitle = (item) => getCardTitle(item)
 
     // 获取武器图片路径
     const getWeaponImage = (steamHashName) => {
@@ -1364,6 +1385,7 @@ export default {
       steamIdList,
       selectedSteamId,
       sortConfig,
+      getItemTitle,
       getCardTitle,
       getWeaponImage,
       handleImageError,

@@ -1470,16 +1470,25 @@ export default {
       return `/weapon_imgs/${imageName}`
     }
 
-    // 获取组合后的商品标题
+    // 获取组合后的商品标题，若 weapon_name 与 item_name 相同则只显示一次
     const getItemTitle = (item) => {
+      const weaponName = (item.weapon_name || '').trim()
+      const itemName = (item.item_name || '').trim()
       const parts = []
-      if (item.weapon_name) {
-        parts.push(item.weapon_name)
+
+      if (weaponName && itemName) {
+        if (weaponName === itemName) {
+          parts.push(itemName)
+        } else {
+          parts.push(weaponName)
+          parts.push(itemName)
+        }
+      } else if (weaponName) {
+        parts.push(weaponName)
+      } else if (itemName) {
+        parts.push(itemName)
       }
-      if (item.item_name) {
-        parts.push(item.item_name)
-      }
-      // 组合格式: "AK-47 | 轨道 Mk01 （崭新出厂）"
+
       let title = parts.join(' | ')
       if (item.float_range) {
         title += ` （${item.float_range}）`

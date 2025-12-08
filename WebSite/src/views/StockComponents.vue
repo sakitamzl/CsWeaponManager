@@ -219,6 +219,16 @@
         </el-table-column>
         <el-table-column prop="weapon_type" label="武器类型" min-width="120" />
         <el-table-column prop="weapon_level" label="武器等级" min-width="120" />
+        <el-table-column v-if="!groupMode" prop="assetid" label="所属组件" min-width="160" show-overflow-tooltip>
+          <template #default="scope">
+            <span style="font-family: monospace;">{{ scope.row.assetid || '-' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column v-if="!groupMode" prop="goods_assetid" label="组件ID" min-width="160" show-overflow-tooltip>
+          <template #default="scope">
+            <span style="font-family: monospace;">{{ scope.row.goods_assetid || scope.row.component_id || '-' }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="数量" width="120" align="center">
           <template #default="scope">
             <span>{{ groupMode ? (scope.row.item_count || 0) : (scope.row.weapon_float || 0) }}</span>
@@ -395,16 +405,25 @@ export default {
       return `/weapon_imgs/${imageName}`
     }
 
-    // 获取组合后的商品标题
+    // 获取组合后的商品标题，若 weapon_name 与 item_name 相同则只显示一次
     const getItemTitle = (item) => {
+      const weaponName = (item.weapon_name || '').trim()
+      const itemName = (item.item_name || '').trim()
       const parts = []
-      if (item.weapon_name) {
-        parts.push(item.weapon_name)
+
+      if (weaponName && itemName) {
+        if (weaponName === itemName) {
+          parts.push(itemName)
+        } else {
+          parts.push(weaponName)
+          parts.push(itemName)
+        }
+      } else if (weaponName) {
+        parts.push(weaponName)
+      } else if (itemName) {
+        parts.push(itemName)
       }
-      if (item.item_name) {
-        parts.push(item.item_name)
-      }
-      // 组合格式: "AK-47 | 轨道 Mk01 （崭新出厂）"
+
       let title = parts.join(' | ')
       if (item.float_range) {
         title += ` （${item.float_range}）`

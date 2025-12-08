@@ -650,11 +650,25 @@ export default {
       return `/weapon_imgs/${imageName}`
     }
 
-    // 组合标题：武器名 | 饰品名 （磨损）
+    // 组合标题：武器名 | 饰品名 （磨损）；若两者相同，仅显示一次
     const getItemTitle = (item) => {
+      const weaponName = (item.weapon_name || '').trim()
+      const itemName = (item.item_name || '').trim()
       const parts = []
-      if (item.weapon_name) parts.push(item.weapon_name)
-      if (item.item_name) parts.push(item.item_name)
+
+      if (weaponName && itemName) {
+        if (weaponName === itemName) {
+          parts.push(itemName)
+        } else {
+          parts.push(weaponName)
+          parts.push(itemName)
+        }
+      } else if (weaponName) {
+        parts.push(weaponName)
+      } else if (itemName) {
+        parts.push(itemName)
+      }
+
       let title = parts.join(' | ')
       if (item.float_range) {
         title += ` （${item.float_range}）`
