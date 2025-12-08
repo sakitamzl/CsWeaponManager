@@ -528,6 +528,7 @@ export default {
              (weaponTypeFilter.value && weaponTypeFilter.value.length > 0) ||
              (floatRangeFilter.value && floatRangeFilter.value.length > 0) ||
              (dateRange.value && dateRange.value.length === 2)
+      loadFilteredStats()
     })
     // 全部数据统计（通过API获取）
     const allDataStats = ref({
@@ -750,43 +751,68 @@ export default {
         totalItems.value = 0
       } finally {
         loading.value = false
+        await loadFilteredStats()
       }
     }
 
-    const loadAllDataStats = async () => {
+    const buildStatFilters = () => {
+      const filters = {}
+      if (statusFilter.value && statusFilter.value !== 'all') {
+        filters.status = statusFilter.value
+      }
+      if (statusSubFilter.value && statusSubFilter.value !== 'all') {
+        filters.status_sub = statusSubFilter.value
+      }
+      if (weaponTypeFilter.value && weaponTypeFilter.value.length > 0) {
+        filters.weapon_types = weaponTypeFilter.value
+      }
+      if (floatRangeFilter.value && floatRangeFilter.value.length > 0) {
+        filters.float_ranges = floatRangeFilter.value
+      }
+      if (searchText.value && searchText.value.trim()) {
+        filters.search = searchText.value.trim()
+      }
+      if (dateRange.value && dateRange.value.length === 2) {
+        filters.start_date = dateRange.value[0]
+        filters.end_date = dateRange.value[1]
+      }
+      return filters
+    }
+
+    const loadFilteredStats = async () => {
       try {
-        console.log('正在加载全部数据统计...')
-        
-        const response = await fetch('/api/webLentV1/getLentStats', {
-          method: 'GET',
+        const filters = buildStatFilters()
+        const response = await fetch('/api/webLentPageV1/getLentStatsFiltered', {
+          method: 'POST',
           mode: 'cors',
           headers: {
+            'Content-Type': 'application/json',
             'Accept': 'application/json',
           },
+          body: JSON.stringify(filters)
         })
-        
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
         }
-        
+
         const statsData = await response.json()
-        console.log('全部数据统计:', statsData)
-        
-        allDataStats.value = {
-          totalCount: statsData.total_count || 0,
-          totalAmount: statsData.total_amount || '0.00',
-          avgPrice: statsData.avg_price || '0.00',
-          totalLeaseDays: statsData.total_lease_days || 0,
-          avgLeaseDays: statsData.avg_lease_days || '0.0',
-          rentingCount: statsData.renting_count || 0,
-          completedCount: statsData.completed_count || 0,
-          cancelledCount: statsData.cancelled_count || 0
+        if (!statsData.success && statsData.totalCount === undefined) {
+          throw new Error(statsData.message || '统计接口返回异常')
         }
-        
-        console.log('全部数据统计加载完成')
-        
+
+        allDataStats.value = {
+          totalCount: statsData.totalCount ?? statsData.total_count ?? 0,
+          totalAmount: (statsData.totalAmount ?? statsData.total_amount ?? 0).toFixed(2),
+          avgPrice: (statsData.avgPrice ?? statsData.avg_price ?? 0).toFixed(2),
+          totalLeaseDays: statsData.totalLeaseDays ?? statsData.total_lease_days ?? 0,
+          avgLeaseDays: (statsData.avgLeaseDays ?? statsData.avg_lease_days ?? 0).toFixed(2),
+          rentingCount: statsData.rentingCount ?? statsData.renting_count ?? 0,
+          completedCount: statsData.completedCount ?? statsData.completed_count ?? 0,
+          cancelledCount: statsData.cancelledCount ?? statsData.cancelled_count ?? 0
+        }
       } catch (error) {
-        console.error('加载全部数据统计失败:', error)
+        console.error('加载统计数据失败:', error)
         allDataStats.value = {
           totalCount: 0,
           totalAmount: '0.00',
@@ -995,6 +1021,7 @@ export default {
       isTimeSearchMode.value = false
       allSearchResults.value = []
       loadStatusSubList()
+      loadFilteredStats()
       loadLentData()
     }
 
@@ -1013,6 +1040,7 @@ export default {
       } else {
         // 非搜索模式，重新加载数据
         loadLentData()
+        loadFilteredStats()
       }
     }
     const handleStatusSubChange = () => {
@@ -1423,6 +1451,7 @@ export default {
       loadFloatRanges()
       loadStatusList()
       loadStatusSubList()
+      loadFilteredStats()
     })
 
     return {
