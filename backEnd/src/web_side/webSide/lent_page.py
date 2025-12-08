@@ -404,16 +404,16 @@ def searchByTypeAndWear():
         db = Date_base()
         
         # 获取总数
-        count_sql = f"SELECT COUNT(*) FROM yyyp_lent WHERE {where_clause}"
+        count_sql = f"SELECT COUNT(*) FROM lent WHERE {where_clause}"
         count_result = db.execute_query(count_sql, tuple(params))
         total = count_result[0][0] if count_result else 0
         
         # 获取分页数据
         data_sql = f"""
         SELECT ID, weapon_name, weapon_type, item_name, weapon_float, float_range,
-               price, lenter_name, status, last_status, "from",
+               price, lenter_name, status, last_status, "from", data_user,
                lean_start_time, lean_end_time, total_Lease_Days, max_Lease_Days
-        FROM yyyp_lent
+        FROM lent
         WHERE {where_clause}
         ORDER BY lean_start_time DESC
         LIMIT ? OFFSET ?

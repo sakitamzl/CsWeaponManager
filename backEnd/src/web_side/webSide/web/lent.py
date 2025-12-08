@@ -8,13 +8,22 @@ webLentV1 = Blueprint('webLentV1', __name__)
 
 @webLentV1.route('/countLentNumber', methods=['get'])
 def countLentNumber():
-    sql = "SELECT COUNT(*) FROM lent"
-    result = Date_base().select(sql)
-    if result and len(result) == 2:
-        flag, data = result
-        if flag:
-            return jsonify({"count": data[0][0]}), 200
-    return "查询失败", 500
+    """
+    快速统计总数：仅计数，不加载其他列
+    """
+    try:
+        sql = "SELECT COUNT(*) FROM lent"
+        result = Date_base().select(sql)
+        if result and len(result) == 2:
+            flag, data = result
+            if flag:
+                return jsonify({"count": data[0][0]}), 200
+        return jsonify({"count": 0}), 200
+    except Exception as e:
+        print(f"统计租赁总数失败: {e}")
+        import traceback
+        print(traceback.format_exc())
+        return "查询失败", 500
 
 @webLentV1.route('/getLentData/<int:min>/<int:max>', methods=['get'])
 def getLentData(min, max):
