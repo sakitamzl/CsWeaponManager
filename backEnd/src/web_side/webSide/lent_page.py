@@ -95,27 +95,41 @@ def getStatusList():
 
 @webLentPageV1.route('/getStatusSubList', methods=['GET'])
 def getStatusSubList():
-    """获取租赁子状态（优先使用 yyyp_lent.status_sub，回退 last_status），支持按主状态筛选"""
+    """获取租赁子状态：
+    - 从 lent.last_status
+    - 从 yyyp_lent.status_sub（若为空回退 last_status）
+    支持按主状态筛选，status 为空/ALL 时返回全部子状态
+    """
     try:
         status = request.args.get('status', '').strip()
         db = Date_base()
         params = []
-        if not status or status == 'all':
+        if not status or status.lower() == 'all':
+            # 全部：lent.last_status + yyyp_lent.status_sub/last_status
             sql = """
+            SELECT DISTINCT last_status AS status_sub FROM lent
+            WHERE last_status IS NOT NULL AND last_status != ''
+            UNION
             SELECT DISTINCT COALESCE(status_sub, last_status) AS status_sub
             FROM yyyp_lent
             WHERE COALESCE(status_sub, last_status) IS NOT NULL
               AND COALESCE(status_sub, last_status) != ''
             """
         else:
+            # 按主状态过滤
             sql = """
+            SELECT DISTINCT last_status AS status_sub FROM lent
+            WHERE status = ?
+              AND last_status IS NOT NULL AND last_status != ''
+            UNION
             SELECT DISTINCT COALESCE(status_sub, last_status) AS status_sub
             FROM yyyp_lent
             WHERE status = ?
               AND COALESCE(status_sub, last_status) IS NOT NULL
               AND COALESCE(status_sub, last_status) != ''
             """
-            params.append(status)
+            params.extend([status, status])
+
         result = db.execute_query(sql, tuple(params) if params else None)
         sub_list = []
         if result:
