@@ -240,8 +240,6 @@
                   :src="getWeaponImage(scope.row.steam_hash_name)"
                   :alt="getItemTitle(scope.row)"
                   class="weapon-img"
-                  loading="lazy"
-                  decoding="async"
                   @error="(e) => e.target.style.display = 'none'"
                 />
                 <span v-else class="no-image">无图</span>
@@ -378,8 +376,8 @@
             <div class="preview-left-section">
               <div class="preview-image-section">
                 <img
-                  v-if="getWeaponImage(previewItem.steam_hash_name, previewItem.weapon_name, previewItem.item_name)"
-                  :src="getWeaponImage(previewItem.steam_hash_name, previewItem.weapon_name, previewItem.item_name)"
+                  v-if="getWeaponImage(previewItem.steam_hash_name)"
+                  :src="getWeaponImage(previewItem.steam_hash_name)"
                   :alt="getItemTitle(previewItem)"
                   class="preview-image"
                   loading="lazy"
@@ -554,9 +552,6 @@ export default {
     const isTimeSearchMode = ref(false)
     const sortOrder = ref('descending')
 
-    // 图片路径缓存，避免重复计算
-    const imageCache = new Map()
-
     // API请求缓存（简单的内存缓存，5分钟过期）
     const apiCache = new Map()
     const CACHE_DURATION = 5 * 60 * 1000 // 5分钟
@@ -719,27 +714,16 @@ export default {
       return val
     }
 
-    // 获取武器图片路径，强制使用 steam_hash_name
+    // 获取武器图片路径
     const getWeaponImage = (steamHashName) => {
       if (!steamHashName) {
         return null
       }
-
-      // 检查缓存
-      if (imageCache.has(steamHashName)) {
-        return imageCache.get(steamHashName)
-      }
-
       const imageName = steamHashName
         .replace(/\s*\|\s*/g, '___')
-        .replace(/\s/g, '_') + '.png'
-
-      const imagePath = `/weapon_imgs/${imageName}`
-
-      // 存入缓存
-      imageCache.set(steamHashName, imagePath)
-
-      return imagePath
+        .replace(/\s/g, '_')
+        + '.png'
+      return `/weapon_imgs/${imageName}`
     }
 
     // 组合标题：武器名 | 饰品名 （磨损）；若两者相同，仅显示一次
@@ -815,12 +799,12 @@ export default {
           status: item[8] || '',
           status_sub: item[9] || '',
           from: item[10] || '',
-          data_user: item[11] || '',
-          lean_start_time: item[12] || '',
-          lean_end_time: item[13] || '',
-          total_Lease_Days: item[14] || 0,
-          max_Lease_Days: item[15] || 0,
-          steam_hash_name: item[16] || ''
+          lean_start_time: item[11] || '',
+          lean_end_time: item[12] || '',
+          total_Lease_Days: item[13] || 0,
+          max_Lease_Days: item[14] || 0,
+          steam_hash_name: item[15] || '',
+          data_user: item[19] || ''
         }))
 
         // 进入搜索模式
@@ -1037,14 +1021,14 @@ export default {
             price: item[6] || 0,
             lenter_name: item[7] || '',
             status: item[8] || '',
-            last_status: item[9] || '',
+            status_sub: item[9] || '',
             from: item[10] || '',
-            data_user: item[11] || '',
-            lean_start_time: item[12] || '',
-            lean_end_time: item[13] || '',
-            total_Lease_Days: item[14] || 0,
-            max_Lease_Days: item[15] || 0,
-            steam_hash_name: item[16] || ''
+            lean_start_time: item[11] || '',
+            lean_end_time: item[12] || '',
+            total_Lease_Days: item[13] || 0,
+            max_Lease_Days: item[14] || 0,
+            steam_hash_name: item[15] || '',
+            data_user: item[19] || ''
           }
         }).filter(item => item !== null)
         
@@ -1274,12 +1258,12 @@ export default {
           status: item[8] || '',
           status_sub: item[9] || '',
           from: item[10] || '',
-          data_user: item[11] || '',
-          lean_start_time: item[12] || '',
-          lean_end_time: item[13] || '',
-          total_Lease_Days: item[14] || 0,
-          max_Lease_Days: item[15] || 0,
-          steam_hash_name: item[16] || ''
+          lean_start_time: item[11] || '',
+          lean_end_time: item[12] || '',
+          total_Lease_Days: item[13] || 0,
+          max_Lease_Days: item[14] || 0,
+          steam_hash_name: item[15] || '',
+          data_user: item[19] || ''
         }))
         
         // 进入时间搜索模式
@@ -1594,14 +1578,14 @@ export default {
               price: item[6] || 0,
               lenter_name: item[7] || '',
               status: item[8] || '',
-              last_status: item[9] || '',
+              status_sub: item[9] || '',
               from: item[10] || '',
-              data_user: item[11] || '',
-              lean_start_time: item[12] || '',
-              lean_end_time: item[13] || '',
-              total_Lease_Days: item[14] || 0,
-              max_Lease_Days: item[15] || 0,
-              steam_hash_name: item[16] || ''
+              lean_start_time: item[11] || '',
+              lean_end_time: item[12] || '',
+              total_Lease_Days: item[13] || 0,
+              max_Lease_Days: item[14] || 0,
+              steam_hash_name: item[15] || '',
+              data_user: item[19] || ''
             }
           })
 

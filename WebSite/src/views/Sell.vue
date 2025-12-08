@@ -314,7 +314,11 @@
             ¥{{ scope.row.price }}
           </template>
         </el-table-column>
-        <el-table-column prop="from" label="来源" min-width="80" />
+        <el-table-column prop="from" label="来源" min-width="80">
+          <template #default="scope">
+            {{ sourceLabel(scope.row.from) }}
+          </template>
+        </el-table-column>
         <el-table-column prop="order_time" label="出售时间" min-width="160" sortable="custom" @sort-change="handleSortChange">
           <template #default="scope">
             {{ formatTime(scope.row.order_time) }}
@@ -1112,7 +1116,13 @@ export default {
 
     // 来源显示映射
     const sourceLabel = (val) => {
-      const map = { yyyp: '悠悠有品', buff: 'BUFF', csfloat: 'CsFloat', SMK: 'steam市场' }
+      const map = { 
+        yyyp: '悠悠有品', 
+        buff: 'BUFF', 
+        csfloat: 'CsFloat', 
+        SMK: 'steam市场',
+        ING: '游戏内购'
+      }
       return map[val] || val
     }
 
