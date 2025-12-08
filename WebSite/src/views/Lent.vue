@@ -538,7 +538,7 @@ export default {
     const lenterList = ref([])
     const lenterFilter = ref('')
     const currentPage = ref(1)
-    const pageSize = ref(20)
+    const pageSize = ref(10)
     const totalItems = ref(0)
     const dateRange = ref(null)
     const isTimeSearchMode = ref(false)
@@ -1528,7 +1528,6 @@ export default {
 
     onMounted(() => {
       loadLentData()
-      loadAllDataStats()
       loadWeaponTypes()
       loadFloatRanges()
       loadStatusList()

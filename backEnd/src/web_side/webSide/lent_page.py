@@ -11,26 +11,12 @@ def getWeaponTypes():
         db = Date_base()
         sql = """
         SELECT DISTINCT weapon_type
-        FROM lent
-        WHERE weapon_type IS NOT NULL AND weapon_type != ''
-        UNION
-        SELECT DISTINCT weapon_type
-        FROM yyyp_lent
-        WHERE weapon_type IS NOT NULL AND weapon_type != ''
-        ORDER BY 
-            CASE weapon_type
-                WHEN '匕首' THEN 1
-                WHEN '手套' THEN 2
-                WHEN '手枪' THEN 3
-                WHEN '步枪' THEN 4
-                WHEN '狙击步枪' THEN 5
-                WHEN '微型冲锋枪' THEN 6
-                WHEN '霰弹枪' THEN 7
-                WHEN '机枪' THEN 8
-                WHEN '印花' THEN 9
-                ELSE 999
-            END,
-            weapon_type
+        FROM (
+            SELECT weapon_type FROM lent WHERE weapon_type IS NOT NULL AND weapon_type != ''
+            UNION
+            SELECT weapon_type FROM yyyp_lent WHERE weapon_type IS NOT NULL AND weapon_type != ''
+        ) t
+        ORDER BY weapon_type
         """
         result = db.execute_query(sql)
         
@@ -158,22 +144,12 @@ def getFloatRanges():
         db = Date_base()
         sql = """
         SELECT DISTINCT float_range
-        FROM lent
-        WHERE float_range IS NOT NULL AND float_range != ''
-        UNION
-        SELECT DISTINCT float_range
-        FROM yyyp_lent
-        WHERE float_range IS NOT NULL AND float_range != ''
-        ORDER BY 
-            CASE float_range
-                WHEN '崭新出厂' THEN 1
-                WHEN '略有磨损' THEN 2
-                WHEN '久经沙场' THEN 3
-                WHEN '破损不堪' THEN 4
-                WHEN '战痕累累' THEN 5
-                ELSE 999
-            END,
-            float_range
+        FROM (
+            SELECT float_range FROM lent WHERE float_range IS NOT NULL AND float_range != ''
+            UNION
+            SELECT float_range FROM yyyp_lent WHERE float_range IS NOT NULL AND float_range != ''
+        ) t
+        ORDER BY float_range
         """
         result = db.execute_query(sql)
         
@@ -404,8 +380,13 @@ def searchByTypeAndWear():
         db = Date_base()
         
         # 获取总数
-        count_sql = f"SELECT COUNT(*) FROM lent WHERE {where_clause}"
-        count_result = db.execute_query(count_sql, tuple(params))
+        # 总数查询：无条件时避免拼接空 WHERE
+        if where_clause.strip():
+            count_sql = f"SELECT COUNT(*) FROM lent WHERE {where_clause}"
+            count_result = db.execute_query(count_sql, tuple(params))
+        else:
+            count_sql = "SELECT COUNT(*) FROM lent"
+            count_result = db.execute_query(count_sql)
         total = count_result[0][0] if count_result else 0
         
         # 获取分页数据
