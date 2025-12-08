@@ -426,6 +426,7 @@ def get_grouped_inventory(steam_id):
             si.weapon_name,
             si.weapon_type,
             si.float_range,
+            si.steam_hash_name,
             COUNT(*) as count,
             GROUP_CONCAT(si.assetid) as assetids,
             GROUP_CONCAT(si.weapon_float) as weapon_floats,
@@ -437,7 +438,7 @@ def get_grouped_inventory(steam_id):
             GROUP_CONCAT(si.order_time) as order_times
         FROM steam_inventory si
         WHERE si.data_user = ? AND si.if_inventory = '1'
-        GROUP BY si.item_name, si.weapon_name, si.weapon_type, si.float_range
+        GROUP BY si.item_name, si.weapon_name, si.weapon_type, si.float_range, si.steam_hash_name
         ORDER BY 
             CASE 
                 WHEN si.weapon_type = '未知物品' THEN 1
@@ -451,7 +452,7 @@ def get_grouped_inventory(steam_id):
         # 转换为字典列表
         grouped_list = []
         for row in results:
-            item_name, weapon_name, weapon_type, float_range, count, assetids, weapon_floats, remarks, buy_prices, yyyp_prices, buff_prices, steam_prices, order_times = row
+            item_name, weapon_name, weapon_type, float_range, steam_hash_name, count, assetids, weapon_floats, remarks, buy_prices, yyyp_prices, buff_prices, steam_prices, order_times = row
             
             # 分割字符串为列表
             assetid_list = assetids.split(',') if assetids else []
@@ -468,6 +469,7 @@ def get_grouped_inventory(steam_id):
                 'weapon_name': weapon_name,
                 'weapon_type': weapon_type,
                 'float_range': float_range,
+                'steam_hash_name': steam_hash_name,
                 'count': count,
                 'assetids': assetid_list,
                 'weapon_floats': float_list,

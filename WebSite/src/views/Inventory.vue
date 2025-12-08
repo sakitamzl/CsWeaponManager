@@ -52,31 +52,45 @@
           搜索
         </el-button>
         <el-button @click="handleReset">重置</el-button>
-        <el-button type="success" @click="fetchSteamInventory" :loading="fetchingInventory" icon="Refresh" class="action-button">
+        <el-button type="success" @click="fetchSteamInventory" :loading="fetchingInventory" class="action-button">
           更新Steam库存
         </el-button>
-        <el-button type="success" @click="fetchYYYPPrice" :loading="fetchingYYYPPrice" icon="Money" class="action-button">
+        <el-button type="success" @click="fetchYYYPPrice" :loading="fetchingYYYPPrice" class="action-button">
           获取悠悠有品价格
         </el-button>
-        <el-button type="success" @click="fetchBuffPrice" :loading="fetchingBuffPrice" icon="Money" class="action-button">
+        <el-button type="success" @click="fetchBuffPrice" :loading="fetchingBuffPrice" class="action-button">
           获取BUFF价格
         </el-button>
-        <el-button-group style="margin-left: auto;">
-          <el-button 
-            :type="displayMode === 'list' ? 'primary' : ''" 
-            @click="displayMode = 'list'"
-            icon="List"
-          >
-            列表
-          </el-button>
-          <el-button 
-            :type="displayMode === 'card' ? 'primary' : ''" 
-            @click="displayMode = 'card'"
-            icon="Grid"
-          >
-            卡片
-          </el-button>
-        </el-button-group>
+        <el-button 
+          :type="showPriceDiff ? 'primary' : 'info'" 
+          @click="showPriceDiff = !showPriceDiff" 
+          class="action-button"
+        >
+          {{ showPriceDiff ? '显示差价' : '显示价格' }}
+        </el-button>
+        <div style="margin-left: auto; display: flex; gap: 0.5rem; align-items: center;">
+          <el-switch
+            v-if="displayMode === 'list'"
+            v-model="groupMode"
+            active-text="组合模式"
+            inactive-text="明细模式"
+            @change="handleToggleGroupMode"
+          />
+          <el-button-group>
+            <el-button 
+              :type="displayMode === 'list' ? 'primary' : ''" 
+              @click="displayMode = 'list'"
+            >
+              列表
+            </el-button>
+            <el-button 
+              :type="displayMode === 'card' ? 'primary' : ''" 
+              @click="displayMode = 'card'"
+            >
+              卡片
+            </el-button>
+          </el-button-group>
+        </div>
       </div>
     </div>
 
@@ -123,48 +137,189 @@
     <!-- 列表显示 -->
     <div class="table-container" v-if="displayMode === 'list'">
       <el-table
-        :data="inventoryData"
+        ref="tableRef"
+        :data="currentDisplayData"
         v-loading="loading"
         element-loading-text="加载中..."
         style="width: 100%"
-        :row-style="{ backgroundColor: 'transparent' }"
+        :row-style="getRowStyle"
         :header-row-style="{ backgroundColor: 'var(--bg-tertiary)' }"
         height="calc(100vh - 400px)"
         :default-sort="{ prop: 'buy_price', order: 'descending' }"
         @sort-change="handleSortChange"
+        @row-click="handleRowClick"
+        :row-key="row => row.assetid"
       >
-        <el-table-column 
-          prop="order_time" 
-          label="入库时间" 
-          width="180" 
-          sortable="custom"
-        >
+        <el-table-column v-if="groupMode" type="expand" width="1">
           <template #default="scope">
-            <span v-if="scope.row.order_time" style="color: #9E9E9E;">
-              {{ scope.row.order_time }}
-            </span>
-            <span v-else style="color: #888;">-</span>
+            <div class="expand-content" v-if="scope.row.item_count > 1">
+              <div class="expand-two-columns">
+                <div 
+                  v-for="(item, index) in getExpandedItems(scope.row)" 
+                  :key="item.assetid"
+                  class="expand-item-card"
+                >
+                  <div class="expand-item-row">
+                    <div class="expand-item-left">
+                      <div class="expand-item-image">
+                        <img
+                          v-if="getWeaponImage(scope.row.steam_hash_name)"
+                          :src="getWeaponImage(scope.row.steam_hash_name)"
+                          :alt="scope.row.item_name"
+                          class="weapon-img-small"
+                          @error="(e) => handleImageError(e, scope.row.steam_hash_name)"
+                        />
+                        <span v-else class="no-image">无图</span>
+                      </div>
+                      <div v-if="item.remark" class="expand-remark-tag">
+                        <el-tag type="warning" size="small">交易保护</el-tag>
+                      </div>
+                    </div>
+                    <div class="expand-item-details">
+                      <div class="expand-item-float" v-if="item.weapon_float && item.weapon_float !== '0' && item.weapon_float !== '0.0'">
+                        <div class="float-text-row">
+                          <span class="expand-label">磨损:</span>
+                          <span class="expand-value-small">{{ item.weapon_float }}</span>
+                        </div>
+                        <div class="float-bar-mini">
+                          <div class="float-segment fn"></div>
+                          <div class="float-segment mw"></div>
+                          <div class="float-segment ft"></div>
+                          <div class="float-segment ww"></div>
+                          <div class="float-segment bs"></div>
+                          <div
+                            class="float-pointer"
+                            :style="{ left: `${parseFloat(item.weapon_float) * 100}%` }"
+                          ></div>
+                        </div>
+                      </div>
+                      <div class="expand-item-prices">
+                        <!-- 第一行：购入和Steam -->
+                        <div class="expand-price-item" v-if="item.buy_price && item.buy_price !== '0'">
+                          <span class="expand-label">购入:</span>
+                          <span class="expand-value">¥{{ parseFloat(item.buy_price).toFixed(2) }}</span>
+                        </div>
+                        <div class="expand-price-item" v-if="item.steam_price && item.steam_price !== '0'">
+                          <span class="expand-label">Steam:</span>
+                          <span 
+                            class="expand-value"
+                            :style="item.buy_price && item.buy_price !== '0' ? { color: parseFloat(item.steam_price) >= parseFloat(item.buy_price) ? '#f56c6c' : '#4CAF50' } : {}"
+                          >
+                            ¥{{ showPriceDiff && item.buy_price && item.buy_price !== '0' ? Math.abs(parseFloat(item.steam_price) - parseFloat(item.buy_price)).toFixed(2) : parseFloat(item.steam_price).toFixed(2) }}
+                          </span>
+                        </div>
+                        <!-- 第二行：悠悠和BUFF -->
+                        <div class="expand-price-item" v-if="item.yyyp_price && item.yyyp_price !== '0'">
+                          <span class="expand-label">悠悠:</span>
+                          <span 
+                            class="expand-value"
+                            :style="item.buy_price && item.buy_price !== '0' ? { color: parseFloat(item.yyyp_price) >= parseFloat(item.buy_price) ? '#f56c6c' : '#4CAF50' } : {}"
+                          >
+                            ¥{{ showPriceDiff && item.buy_price && item.buy_price !== '0' ? Math.abs(parseFloat(item.yyyp_price) - parseFloat(item.buy_price)).toFixed(2) : parseFloat(item.yyyp_price).toFixed(2) }}
+                          </span>
+                        </div>
+                        <div class="expand-price-item" v-if="item.buff_price && item.buff_price !== '0'">
+                          <span class="expand-label">BUFF:</span>
+                          <span 
+                            class="expand-value"
+                            :style="item.buy_price && item.buy_price !== '0' ? { color: parseFloat(item.buff_price) >= parseFloat(item.buy_price) ? '#f56c6c' : '#4CAF50' } : {}"
+                          >
+                            ¥{{ showPriceDiff && item.buy_price && item.buy_price !== '0' ? Math.abs(parseFloat(item.buff_price) - parseFloat(item.buy_price)).toFixed(2) : parseFloat(item.buff_price).toFixed(2) }}
+                          </span>
+                        </div>
+                      </div>
+                      <div class="expand-item-meta">
+                        <div v-if="item.order_time" class="expand-meta-item">
+                          <span class="expand-label">入库:</span>
+                          <span class="expand-value" style="color: #9E9E9E;">{{ item.order_time }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+            <div v-else class="expand-content-empty">
+              <span style="color: #999;">仅有1件物品，无需展开</span>
+            </div>
           </template>
         </el-table-column>
-        <el-table-column prop="weapon_name" label="武器" min-width="120">
+        <el-table-column label="图片" width="144" align="center" fixed="left">
           <template #default="scope">
-            <span style="font-family: monospace;">
-              {{ scope.row.weapon_name && scope.row.item_name && scope.row.weapon_name.trim() === scope.row.item_name.trim() ? '-' : (scope.row.weapon_name || '-') }}
-            </span>
+            <div class="weapon-image-cell" style="cursor: pointer;">
+              <img
+                v-if="getWeaponImage(scope.row.steam_hash_name)"
+                :src="getWeaponImage(scope.row.steam_hash_name)"
+                :alt="scope.row.item_name"
+                class="weapon-img"
+                @error="(e) => handleImageError(e, scope.row.steam_hash_name)"
+              />
+              <span v-else class="no-image">无图</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="饰品名称" min-width="250">
+          <template #default="scope">
+            <div class="item-name-cell">
+              <div class="item-title-row">
+                <span class="item-title">{{ getItemTitle(scope.row) }}</span>
+                <!-- 组合模式下显示分页器 -->
+                <div v-if="groupMode && getExpandedTotal(scope.row) > getItemsPerPage()" class="inline-pagination">
+                  <el-pagination
+                    small
+                    :current-page="expandedRowPages[scope.row.assetid] || 1"
+                    :page-size="getItemsPerPage()"
+                    :total="getExpandedTotal(scope.row)"
+                    layout="prev, pager, next"
+                    :hide-on-single-page="true"
+                    @current-change="(page) => handleExpandPageChange(scope.row, page)"
+                  />
+                </div>
+              </div>
+              <div class="item-extras" v-if="hasExtras(scope.row)">
+                <!-- 印花图片 -->
+                <div class="sticker-list" v-if="scope.row.sticker">
+                  <div
+                    v-for="(sticker, idx) in parseStickers(scope.row.sticker)"
+                    :key="idx"
+                    class="sticker-item"
+                    :title="sticker.name || '未知贴纸'"
+                  >
+                    <img
+                      v-if="sticker.image"
+                      :src="sticker.image"
+                      :alt="sticker.name"
+                      class="sticker-img"
+                      @error="(e) => e.target.style.display = 'none'"
+                    />
+                    <div v-else class="sticker-placeholder">?</div>
+                  </div>
+                </div>
+                <!-- 挂件图片 -->
+                <div class="pendant-list" v-if="scope.row.pendant">
+                  <img
+                    v-if="parsePendant(scope.row.pendant)?.image"
+                    :src="parsePendant(scope.row.pendant).image"
+                    :alt="parsePendant(scope.row.pendant)?.name"
+                    class="pendant-img"
+                    @error="(e) => e.target.style.display = 'none'"
+                  />
+                </div>
+                <!-- 改名显示 -->
+                <div class="rename-text" v-if="scope.row.rename">
+                  <span class="rename-value">{{ scope.row.rename }}</span>
+                </div>
+              </div>
+            </div>
           </template>
         </el-table-column>
         <el-table-column prop="weapon_type" label="类型" min-width="100" />
-        <el-table-column label="饰品名称" min-width="250" show-overflow-tooltip>
+        <el-table-column v-if="groupMode" prop="item_count" label="数量" width="120" align="center" sortable="custom">
           <template #default="scope">
-            <span>{{ getItemTitle(scope.row) }}</span>
+            <span>{{ scope.row.item_count || 0 }}</span>
           </template>
         </el-table-column>
-        <el-table-column 
-          prop="float_range" 
-          label="磨损等级" 
-          min-width="100" 
-          sortable="custom"
-        />
         <el-table-column
           prop="weapon_float"
           label="磨损值"
@@ -289,54 +444,41 @@
           </template>
         </el-table-column>
         <el-table-column
-          label="附加信息"
-          width="250"
+          v-if="!groupMode"
+          label="备注"
+          width="150"
           fixed="right"
         >
           <template #default="scope">
-            <div class="table-info-container">
-              <div class="table-tags">
-                <el-tooltip v-if="scope.row.remark" :content="scope.row.remark" placement="left" effect="dark">
-                  <el-tag type="warning" size="small" style="cursor: help; margin: 2px;">
-                    交易限制
-                  </el-tag>
-                </el-tooltip>
-                <el-tooltip v-if="scope.row.rename" :content="`名称标签: ${scope.row.rename}`" placement="left" effect="dark">
-                  <el-tag type="info" size="small" style="cursor: help; margin: 2px;">
-                    🏷️{{ scope.row.rename.length > 6 ? scope.row.rename.substring(0, 6) + '...' : scope.row.rename }}
-                  </el-tag>
-                </el-tooltip>
-                <el-tag v-if="scope.row.pendant" type="primary" size="small" style="margin: 2px;">
-                  🎗️挂件
-                </el-tag>
-              </div>
-              <!-- 贴纸图片显示 -->
-              <div v-if="scope.row.sticker" class="sticker-images-table">
-                <div
-                  v-for="(sticker, index) in parseStickers(scope.row.sticker)"
-                  :key="index"
-                  class="sticker-item-table"
-                  :title="sticker.name || '未知贴纸'"
-                >
-                  <img
-                    v-if="sticker.image"
-                    :src="sticker.image"
-                    :alt="sticker.name"
-                    class="sticker-img-table"
-                    @error="(e) => e.target.style.display = 'none'"
-                  />
-                  <div v-else class="sticker-placeholder-table">?</div>
-                </div>
-              </div>
-            </div>
+            <el-tooltip v-if="scope.row.remark" :content="scope.row.remark" placement="left" effect="dark">
+              <el-tag type="warning" size="small" style="cursor: help;">
+                交易限制
+              </el-tag>
+            </el-tooltip>
+            <span v-else style="color: #888;">-</span>
+          </template>
+        </el-table-column>
+        <el-table-column 
+          v-if="!groupMode"
+          prop="order_time" 
+          label="入库时间" 
+          width="180" 
+          sortable="custom"
+          fixed="right"
+        >
+          <template #default="scope">
+            <span v-if="scope.row.order_time" style="color: #9E9E9E;">
+              {{ scope.row.order_time }}
+            </span>
+            <span v-else style="color: #888;">-</span>
           </template>
         </el-table-column>
       </el-table>
       <div class="table-footer">
-        <span>共 {{ inventoryData.length }} 条数据</span>
+        <span>共 {{ currentDisplayData.length }} 条数据</span>
         <span v-if="hasMore && !loadingMore" style="margin-left: 1rem; color: #999;">滚动加载更多...</span>
         <span v-if="loadingMore" style="margin-left: 1rem; color: #4CAF50;">正在加载更多...</span>
-        <span v-if="!hasMore && inventoryData.length > 0" style="margin-left: 1rem; color: #999;">已加载全部数据</span>
+        <span v-if="!hasMore && currentDisplayData.length > 0" style="margin-left: 1rem; color: #999;">已加载全部数据</span>
       </div>
       <!-- 滚动触发元素 -->
       <div id="load-more-trigger" style="height: 1px;"></div>
@@ -346,7 +488,7 @@
     <div class="card-container" v-if="displayMode === 'card'">
       <div v-loading="loading" class="card-grid">
         <div
-          v-for="item in inventoryData"
+          v-for="item in currentDisplayData"
           :key="item.assetid"
           class="inventory-card"
           @click="openPreview(item)"
@@ -424,36 +566,40 @@
               </div>
             </div>
             <div class="card-prices">
-              <!-- 购入和Steam合并为一行 -->
-              <div class="price-row" v-if="item.buy_price || item.steam_price || true">
-                <div class="price-group">
+              <!-- 第一行：购入和Steam -->
+              <div class="price-row" v-if="item.buy_price || item.steam_price">
+                <div class="price-group" v-if="item.buy_price">
                   <span class="price-label">购入:</span>
-                  <span class="price-value buy-price" v-if="item.buy_price">¥{{ parseFloat(item.buy_price).toFixed(2) }}</span>
-                  <span class="price-value" v-else style="color: #888;">-</span>
+                  <span class="price-value buy-price">¥{{ parseFloat(item.buy_price).toFixed(2) }}</span>
                 </div>
-                <div class="price-group" v-if="item.steam_price">
+                <div class="price-group" v-if="item.steam_price && item.steam_price !== '0'">
                   <span class="price-label">Steam:</span>
-                  <span class="price-value">¥{{ parseFloat(item.steam_price).toFixed(2) }}</span>
+                  <span 
+                    class="price-value"
+                    :style="item.buy_price ? { color: parseFloat(item.steam_price) >= parseFloat(item.buy_price) ? '#f56c6c' : '#4CAF50' } : {}"
+                  >
+                    ¥{{ showPriceDiff && item.buy_price ? Math.abs(parseFloat(item.steam_price) - parseFloat(item.buy_price)).toFixed(2) : parseFloat(item.steam_price).toFixed(2) }}
+                  </span>
                 </div>
               </div>
-              <!-- 悠悠和BUFF合并为一行 -->
+              <!-- 第二行：悠悠和BUFF -->
               <div class="price-row" v-if="item.yyyp_price || item.buff_price">
-                <div class="price-group" v-if="item.yyyp_price">
+                <div class="price-group" v-if="item.yyyp_price && item.yyyp_price !== '0'">
                   <span class="price-label">悠悠:</span>
                   <span
                     class="price-value"
-                    :class="getPriceDiffClass(item.yyyp_price, item.buy_price)"
+                    :style="item.buy_price ? { color: parseFloat(item.yyyp_price) >= parseFloat(item.buy_price) ? '#f56c6c' : '#4CAF50' } : {}"
                   >
-                    ¥{{ parseFloat(item.yyyp_price).toFixed(2) }}
+                    ¥{{ showPriceDiff && item.buy_price ? Math.abs(parseFloat(item.yyyp_price) - parseFloat(item.buy_price)).toFixed(2) : parseFloat(item.yyyp_price).toFixed(2) }}
                   </span>
                 </div>
-                <div class="price-group" v-if="item.buff_price">
+                <div class="price-group" v-if="item.buff_price && item.buff_price !== '0'">
                   <span class="price-label">BUFF:</span>
                   <span
                     class="price-value"
-                    :class="getPriceDiffClass(item.buff_price, item.buy_price)"
+                    :style="item.buy_price ? { color: parseFloat(item.buff_price) >= parseFloat(item.buy_price) ? '#f56c6c' : '#4CAF50' } : {}"
                   >
-                    ¥{{ parseFloat(item.buff_price).toFixed(2) }}
+                    ¥{{ showPriceDiff && item.buy_price ? Math.abs(parseFloat(item.buff_price) - parseFloat(item.buy_price)).toFixed(2) : parseFloat(item.buff_price).toFixed(2) }}
                   </span>
                 </div>
               </div>
@@ -470,7 +616,7 @@
         </div>
       </div>
       <div class="table-footer">
-        <span>共 {{ inventoryData.length }} 条数据</span>
+        <span>共 {{ currentDisplayData.length }} 条数据</span>
         <span v-if="hasMore && !loadingMore" style="margin-left: 1rem; color: #999;">滚动加载更多...</span>
         <span v-if="loadingMore" style="margin-left: 1rem; color: #4CAF50;">正在加载更多...</span>
         <span v-if="!hasMore && inventoryData.length > 0" style="margin-left: 1rem; color: #999;">已加载全部数据</span>
@@ -648,6 +794,11 @@ export default {
     const weaponTypeFilter = ref('')
     const floatRangeFilter = ref('')
     const displayMode = ref('card') // 默认卡片显示
+    const groupMode = ref(true) // 组合模式开关，默认开启
+    const groupedData = ref([]) // 组合后的数据
+    const tableRef = ref(null) // 表格引用
+    const expandedRowPages = ref({}) // 展开行的分页状态 { assetid: currentPage }
+    const showPriceDiff = ref(true) // 是否显示差价（true=差价，false=价格）
     const editingAssetId = ref(null) // 正在编辑的资产ID
     const editingPrice = ref('') // 编辑中的价格
     const originalPrice = ref('') // 原始价格
@@ -672,7 +823,7 @@ export default {
     })
     const steamIdList = ref([])
     const selectedSteamId = ref('')
-    const sortConfig = ref({ prop: 'buy_price', order: 'desc' }) // 默认按购入价格降序排序
+    const sortConfig = ref({ prop: 'item_count', order: 'desc' }) // 默认按数量降序排序（组合模式）
 
     // 预览弹窗相关
     const previewVisible = ref(false)
@@ -680,6 +831,7 @@ export default {
 
     // API 基础地址
     const API_BASE = `${API_CONFIG.BASE_URL}/webInventoryV1`
+    const API_GROUPED = `${API_CONFIG.BASE_URL}/webInventoryV1/inventory/grouped`
     const CONFIG_API = `${API_CONFIG.BASE_URL}/configV1`
 
     const inventoryStats = computed(() => {
@@ -797,6 +949,11 @@ export default {
         return
       }
       
+      // 如果是列表模式且开启组合模式，调用组合数据加载
+      if (displayMode.value === 'list' && groupMode.value) {
+        return await loadGroupedData(reset)
+      }
+      
       // 如果是重置加载，清空数据和分页状态
       if (reset) {
         inventoryData.value = []
@@ -837,7 +994,7 @@ export default {
           currentOffset.value += newData.length
           
           // 应用排序（包括默认排序）
-          if (sortConfig.value.prop) {
+          if (sortConfig.value.prop && sortConfig.value.order) {
             applySorting()
           }
           
@@ -853,6 +1010,93 @@ export default {
       } catch (error) {
         console.error('加载库存数据失败:', error)
         ElMessage.error('加载数据失败: ' + (error.response?.data?.error || error.message))
+      } finally {
+        loading.value = false
+      }
+    }
+
+    // 加载组合数据
+    const loadGroupedData = async (reset = true) => {
+      if (!selectedSteamId.value) {
+        ElMessage.warning('请选择Steam账号')
+        return
+      }
+
+      // 如果是重置加载，清空数据和分页状态
+      if (reset) {
+        groupedData.value = []
+        currentOffset.value = 0
+        hasMore.value = true
+      }
+
+      loading.value = true
+      try {
+        console.log('正在加载组合库存数据，Steam ID:', selectedSteamId.value)
+        const params = {
+          search: searchText.value,
+          weapon_type: weaponTypeFilter.value,
+          float_range: floatRangeFilter.value,
+          limit: pageSize.value,
+          offset: currentOffset.value
+        }
+
+        const response = await axios.get(`${API_GROUPED}/${selectedSteamId.value}`, { params })
+        console.log('组合数据响应:', response.data)
+
+        if (response.data.success) {
+          const newData = (response.data.data || []).map(item => ({
+            ...item,
+            // 为了兼容现有的显示逻辑，添加必要的字段
+            assetid: item.item_name || Math.random().toString(36).slice(2),
+            item_count: item.count || 0,
+            // 计算总价格（如果有多个物品）
+            buy_price: item.buy_prices && item.buy_prices.length > 0 
+              ? item.buy_prices.reduce((sum, price) => sum + (parseFloat(price) || 0), 0).toFixed(2)
+              : '0.00',
+            yyyp_price: item.yyyp_prices && item.yyyp_prices.length > 0
+              ? item.yyyp_prices.reduce((sum, price) => sum + (parseFloat(price) || 0), 0).toFixed(2)
+              : '0.00',
+            buff_price: item.buff_prices && item.buff_prices.length > 0
+              ? item.buff_prices.reduce((sum, price) => sum + (parseFloat(price) || 0), 0).toFixed(2)
+              : '0.00',
+            steam_price: item.steam_prices && item.steam_prices.length > 0
+              ? item.steam_prices.reduce((sum, price) => sum + (parseFloat(price) || 0), 0).toFixed(2)
+              : '0.00',
+            // 使用第一个物品的磨损值作为代表
+            weapon_float: item.weapon_floats && item.weapon_floats.length > 0 ? item.weapon_floats[0] : null
+            // steam_hash_name 直接使用后端返回的值，不需要重新生成
+          }))
+
+          // 如果是重置，直接替换数据；否则追加数据
+          if (reset) {
+            groupedData.value = newData
+          } else {
+            groupedData.value = [...groupedData.value, ...newData]
+          }
+
+          // 检查是否还有更多数据
+          hasMore.value = newData.length === pageSize.value
+
+          // 更新偏移量
+          currentOffset.value += newData.length
+
+          // 应用排序（包括默认排序）
+          if (sortConfig.value.prop && sortConfig.value.order) {
+            applySorting()
+          }
+
+          console.log('组合数据已加载，当前:', groupedData.value.length, '条，还有更多:', hasMore.value, '排序:', sortConfig.value)
+        } else {
+          ElMessage.error(response.data.error || '加载组合数据失败')
+        }
+
+        // 加载统计数据（只在重置时加载）
+        if (reset) {
+          await loadStats()
+        }
+      } catch (error) {
+        console.error('加载组合数据失败:', error)
+        ElMessage.error('加载组合数据失败: ' + (error.response?.data?.error || error.message))
       } finally {
         loading.value = false
       }
@@ -937,6 +1181,129 @@ export default {
       loadInventoryData(true) // 重置加载
     }
 
+    // 切换组合模式
+    const handleToggleGroupMode = (val = null) => {
+      // 只在列表模式下才允许切换组合模式
+      if (displayMode.value !== 'list') {
+        return
+      }
+      
+      // 按钮直接传 true，开关传布尔值，默认取反
+      if (val === true || val === false) {
+        groupMode.value = val
+      } else {
+        groupMode.value = !groupMode.value
+      }
+      
+      // 清空展开行的分页状态
+      expandedRowPages.value = {}
+      
+      // 切换到组合模式时，设置默认排序为数量降序
+      if (groupMode.value) {
+        sortConfig.value = { prop: 'item_count', order: 'desc' }
+      } else {
+        // 切换回明细模式时，恢复默认排序
+        sortConfig.value = { prop: 'buy_price', order: 'desc' }
+      }
+      
+      // 重置加载数据
+      loadInventoryData(true)
+    }
+
+    // 监听显示模式变化，切换到卡片模式时关闭组合模式
+    watch(displayMode, (newMode, oldMode) => {
+      if (newMode === 'card' && groupMode.value) {
+        // 切换到卡片模式，关闭组合模式
+        groupMode.value = false
+        sortConfig.value = { prop: 'buy_price', order: 'desc' }
+        loadInventoryData(true)
+      } else if (newMode === 'list' && oldMode === 'card') {
+        // 从卡片模式切换回列表模式，恢复组合模式
+        groupMode.value = true
+        sortConfig.value = { prop: 'item_count', order: 'desc' }
+        loadInventoryData(true)
+      }
+    })
+
+    // 计算每页显示的卡片数量（基于300px卡片宽度和容器宽度）
+    const getItemsPerPage = () => {
+      // 假设容器宽度约为1200px（可以根据实际情况调整）
+      // 每个卡片300px，加上间隙，大约每行3-4个
+      // 4行 x 3个 = 12个卡片
+      return 12
+    }
+
+    // 获取展开行的详细数据（带分页）
+    const getExpandedItems = (row) => {
+      if (!row.assetids || !Array.isArray(row.assetids)) {
+        return []
+      }
+
+      // 将组合数据转换为详细列表
+      const allItems = row.assetids.map((assetid, index) => ({
+        assetid: assetid,
+        weapon_float: row.weapon_floats && row.weapon_floats[index] ? row.weapon_floats[index] : null,
+        buy_price: row.buy_prices && row.buy_prices[index] ? row.buy_prices[index] : '0',
+        yyyp_price: row.yyyp_prices && row.yyyp_prices[index] ? row.yyyp_prices[index] : '0',
+        buff_price: row.buff_prices && row.buff_prices[index] ? row.buff_prices[index] : '0',
+        steam_price: row.steam_prices && row.steam_prices[index] ? row.steam_prices[index] : '0',
+        order_time: row.order_times && row.order_times[index] ? row.order_times[index] : null,
+        remark: row.remarks && row.remarks[index] ? row.remarks[index] : null
+      }))
+
+      // 获取当前页码，确保页码有效
+      let currentPage = expandedRowPages.value[row.assetid] || 1
+      const itemsPerPage = getItemsPerPage()
+      const totalPages = Math.ceil(allItems.length / itemsPerPage)
+      
+      // 如果当前页码超出范围，重置为第1页
+      if (currentPage > totalPages) {
+        currentPage = 1
+        expandedRowPages.value[row.assetid] = 1
+      }
+      
+      const start = (currentPage - 1) * itemsPerPage
+      const end = start + itemsPerPage
+
+      return allItems.slice(start, end)
+    }
+
+    // 获取展开行的总数据量
+    const getExpandedTotal = (row) => {
+      if (!row.assetids || !Array.isArray(row.assetids)) {
+        return 0
+      }
+      return row.assetids.length
+    }
+
+    // 处理展开行的分页变化
+    const handleExpandPageChange = (row, page) => {
+      expandedRowPages.value[row.assetid] = page
+      // 强制更新以确保数据刷新
+      nextTick()
+    }
+
+    // 处理行点击事件（仅在组合模式下）
+    const handleRowClick = (row, column, event) => {
+      if (!groupMode.value) return
+      if (row.item_count <= 1) return // 只有1件物品不展开
+      
+      // 切换展开状态
+      if (tableRef.value) {
+        tableRef.value.toggleRowExpansion(row)
+      }
+    }
+
+    // 获取行样式
+    const getRowStyle = (data) => {
+      const style = { backgroundColor: 'transparent' }
+      // 在组合模式下，如果数量大于1，添加可点击样式
+      if (groupMode.value && data.row.item_count > 1) {
+        style.cursor = 'pointer'
+      }
+      return style
+    }
+
 
     // 统一的排序函数
     const applySorting = () => {
@@ -944,7 +1311,10 @@ export default {
       
       const { prop, order } = sortConfig.value
       
-      inventoryData.value.sort((a, b) => {
+      // 根据当前模式选择要排序的数据
+      const dataToSort = groupMode.value ? groupedData.value : inventoryData.value
+      
+      dataToSort.sort((a, b) => {
         let valueA, valueB
         
         if (prop === 'buy_price') {
@@ -959,6 +1329,10 @@ export default {
           // BUFF价格排序
           valueA = parseFloat(a.buff_price) || 0
           valueB = parseFloat(b.buff_price) || 0
+        } else if (prop === 'steam_price') {
+          // Steam价格排序
+          valueA = parseFloat(a.steam_price) || 0
+          valueB = parseFloat(b.steam_price) || 0
         } else if (prop === 'order_time') {
           // 入库时间排序
           valueA = a.order_time ? new Date(a.order_time).getTime() : 0
@@ -978,6 +1352,10 @@ export default {
           }
           valueA = floatRangeOrder[a.float_range] || 999
           valueB = floatRangeOrder[b.float_range] || 999
+        } else if (prop === 'item_count') {
+          // 数量排序（仅组合模式）
+          valueA = parseInt(a.item_count) || 0
+          valueB = parseInt(b.item_count) || 0
         } else if (prop === 'remark') {
           // 备注排序（有备注的在前，无备注的在后）
           valueA = a.remark ? 0 : 1
@@ -1110,6 +1488,11 @@ export default {
     }
 
     const getItemTitle = (item) => getCardTitle(item)
+
+    // 检查是否有额外信息（印花、挂件、改名）
+    const hasExtras = (item) => {
+      return !!(item.sticker || item.pendant || item.rename)
+    }
 
     // 获取武器图片路径
     const getWeaponImage = (steamHashName) => {
@@ -1347,6 +1730,15 @@ export default {
       }
     }
 
+    // 计算当前显示的数据
+    const currentDisplayData = computed(() => {
+      // 只在列表模式下才使用组合数据
+      if (displayMode.value === 'list' && groupMode.value) {
+        return groupedData.value
+      }
+      return inventoryData.value
+    })
+
     onMounted(async () => {
       await loadSteamIdList()
       if (selectedSteamId.value) {
@@ -1365,6 +1757,11 @@ export default {
       watch(inventoryData, () => {
         setupScrollObserver()
       })
+
+      // 监听组合数据变化
+      watch(groupedData, () => {
+        setupScrollObserver()
+      })
     })
 
     return {
@@ -1373,6 +1770,9 @@ export default {
       fetchingYYYPPrice,
       fetchingBuffPrice,
       inventoryData,
+      groupedData,
+      groupMode,
+      currentDisplayData,
       inventoryStats,
       priceStats,
       yyypPriceStats,
@@ -1398,6 +1798,7 @@ export default {
       handleReset,
       handleSteamIdChange,
       handleSortChange,
+      handleToggleGroupMode,
       hasMore,
       loadingMore,
       editingAssetId,
@@ -1411,7 +1812,17 @@ export default {
       previewVisible,
       previewItem,
       openPreview,
-      parsePendant
+      parsePendant,
+      getExpandedItems,
+      getExpandedTotal,
+      handleExpandPageChange,
+      expandedRowPages,
+      getItemsPerPage,
+      handleRowClick,
+      getRowStyle,
+      tableRef,
+      hasExtras,
+      showPriceDiff
     }
   }
 }
@@ -1431,19 +1842,16 @@ export default {
 
 .type-select,
 .wear-select {
-  min-width: 120px;
-  max-width: 180px;
+  min-width: 100px;
+  max-width: 120px;
 }
 
 .action-button {
-  min-width: 140px;
+  min-width: auto;
   display: inline-flex;
   justify-content: center;
   align-items: center;
-}
-
-.action-button :deep(.el-icon) {
-  margin-right: 4px;
+  padding: 8px 12px;
 }
 
 .inventory-stats {
@@ -1561,6 +1969,147 @@ export default {
 
 :deep(.el-table tr:hover > td) {
   background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* 隐藏展开列的箭头图标 */
+:deep(.el-table__expand-column .cell) {
+  display: none;
+}
+
+/* 组合模式下可展开行的悬停效果 */
+:deep(.el-table__body-wrapper .el-table__row[style*="cursor: pointer"]:hover) {
+  background-color: rgba(76, 175, 80, 0.1) !important;
+}
+
+/* 展开列宽度设置为最小 */
+:deep(.el-table__expand-column) {
+  width: 1px !important;
+  padding: 0 !important;
+}
+
+/* 商品名称单元格样式 */
+.item-name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.item-title-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.item-title {
+  line-height: 1.4;
+  flex: 1;
+  min-width: 0;
+}
+
+.inline-pagination {
+  flex-shrink: 0;
+}
+
+.inline-pagination :deep(.el-pagination) {
+  padding: 0;
+}
+
+.inline-pagination :deep(.el-pager li) {
+  min-width: 24px;
+  height: 24px;
+  line-height: 24px;
+  font-size: 12px;
+}
+
+.inline-pagination :deep(.btn-prev),
+.inline-pagination :deep(.btn-next) {
+  padding: 0 4px;
+  min-width: 24px;
+  height: 24px;
+  line-height: 24px;
+}
+
+.item-extras {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* 印花列表样式 */
+.sticker-list {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.sticker-item {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sticker-item:hover {
+  transform: scale(2);
+  z-index: 10;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  border-color: rgba(76, 175, 80, 0.5);
+}
+
+.sticker-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
+.sticker-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 1rem;
+  font-weight: bold;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* 挂件样式 */
+.pendant-list {
+  display: flex;
+  gap: 4px;
+}
+
+.pendant-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  border-radius: 2px;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+}
+
+/* 改名文本样式 */
+.rename-text {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: #999;
+}
+
+.rename-value {
+  color: #4CAF50;
+  font-weight: 500;
 }
 
 :deep(.el-table__expanded-cell) {
@@ -2458,6 +3007,202 @@ export default {
   padding: 0.5rem 1rem;
 }
 
+/* 武器图片单元格样式 */
+.weapon-image-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 80px;
+  padding: 4px;
+}
+
+.weapon-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  border-radius: 4px;
+}
+
+.weapon-image-cell-small {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 60px;
+  padding: 2px;
+}
+
+.weapon-img-small {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  border-radius: 4px;
+}
+
+.no-image {
+  color: #999;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+/* 展开内容样式 */
+.expand-content {
+  padding: 1rem;
+  background-color: var(--bg-secondary) !important;
+}
+
+.expand-two-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.expand-item-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.expand-item-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(76, 175, 80, 0.3);
+}
+
+.expand-item-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.expand-item-left {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.expand-item-image {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+.expand-remark-tag {
+  display: flex;
+  justify-content: center;
+}
+
+.expand-item-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.expand-item-float {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.float-text-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.expand-value-small {
+  color: #fff;
+  font-weight: 500;
+  font-size: 0.75rem;
+  font-family: monospace;
+}
+
+.expand-item-prices {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.expand-price-item {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.expand-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.expand-meta-item {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.expand-label {
+  color: #999;
+  font-size: 0.8rem;
+}
+
+.expand-value {
+  color: #fff;
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+
+.float-bar-mini {
+  position: relative;
+  height: 4px;
+  display: flex;
+  border-radius: 2px;
+  overflow: hidden;
+  width: 100%;
+  margin-top: 2px;
+}
+
+.float-bar-mini .float-segment {
+  height: 100%;
+}
+
+.float-bar-mini .float-pointer {
+  width: 2px;
+  height: 8px;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.float-bar-mini .float-pointer::before,
+.float-bar-mini .float-pointer::after {
+  border-left-width: 2px;
+  border-right-width: 2px;
+  border-top-width: 3px;
+  border-bottom-width: 3px;
+}
+
+.expand-content-empty {
+  padding: 1rem;
+  text-align: center;
+  background-color: var(--bg-secondary);
+}
+
+
+
 /* 响应式调整 */
 @media (max-width: 768px) {
   .preview-dialog {
@@ -2479,6 +3224,10 @@ export default {
   .preview-price-row {
     flex-direction: column;
     gap: 0.5rem;
+  }
+
+  .weapon-image-cell {
+    height: 60px;
   }
 }
 </style>
