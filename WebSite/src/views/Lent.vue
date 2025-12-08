@@ -1,8 +1,5 @@
 <template>
   <div>
-    <div class="page-header">
-      <h2>租赁列表</h2>
-    </div>
     <!-- 搜索与统计数据 -->
     <div class="stats-summary">
         <div class="card">
@@ -32,6 +29,7 @@
                 placeholder="选择子状态"
                 class="status-select"
                 @change="handleStatusSubChange"
+                @visible-change="handleStatusSubVisibleChange"
                 clearable
               >
                 <el-option label="全部" value="all" />
@@ -502,14 +500,14 @@ export default {
     const loading = ref(false)
     const lentData = ref([])
     const searchText = ref('')
-    const statusFilter = ref('all')
+    const statusFilter = ref('')
     const weaponTypeFilter = ref([])
     const floatRangeFilter = ref([])
     const weaponTypes = ref([])
     const floatRanges = ref([])
     const statusList = ref([])
     const statusSubList = ref([])
-    const statusSubFilter = ref('all')
+    const statusSubFilter = ref('')
     const currentPage = ref(1)
     const pageSize = ref(20)
     const totalItems = ref(0)
@@ -580,7 +578,7 @@ export default {
         let filtered = allSearchResults.value
         
         // 状态筛选
-        if (statusFilter.value !== 'all') {
+        if (statusFilter.value && statusFilter.value !== 'all') {
           filtered = filtered.filter(item => item.status === statusFilter.value)
         }
         
@@ -595,7 +593,7 @@ export default {
 
       // 非搜索模式的筛选
       let filtered = lentData.value
-      if (statusFilter.value !== 'all') {
+      if (statusFilter.value && statusFilter.value !== 'all') {
         filtered = filtered.filter(item => item.status === statusFilter.value)
       }
       if (statusSubFilter.value && statusSubFilter.value !== 'all') {
@@ -850,8 +848,9 @@ export default {
         let apiUrl = `/api/webLentV1/getLentData/${min}/${max}`
         if (statusSubFilter.value && statusSubFilter.value !== 'all') {
           apiUrl = `/api/webLentV1/getLentDataByStatusSub/${encodeURIComponent(statusSubFilter.value)}/${min}/${max}`
-        } else if (statusFilter.value !== 'all') {
-          apiUrl = `/api/webLentV1/getLentDataByStatus/${statusFilter.value}/${min}/${max}`
+        } else if (statusFilter.value && statusFilter.value !== 'all') {
+          const statusParam = encodeURIComponent(statusFilter.value)
+          apiUrl = `/api/webLentV1/getLentDataByStatus/${statusParam}/${min}/${max}`
         }
         
         const response = await fetch(apiUrl, {
@@ -974,8 +973,8 @@ export default {
 
     const handleClearSearch = () => {
       searchText.value = ''
-      statusFilter.value = 'all'
-      statusSubFilter.value = 'all'
+      statusFilter.value = ''
+      statusSubFilter.value = ''
       statusSubList.value = []
       weaponTypeFilter.value = []
       floatRangeFilter.value = []
@@ -989,11 +988,11 @@ export default {
     }
 
     const handleStatusChange = () => {
-      if (!statusFilter.value) {
-        statusFilter.value = 'all'
-      }
+      // 未选择时为空，接口内部会将空转换为 all
       currentPage.value = 1
-      statusSubFilter.value = 'all'
+      // 重置子状态并立即刷新子状态列表
+      statusSubFilter.value = ''
+      statusSubList.value = []
       loadStatusSubList()
       
       // 如果是搜索模式，只需要更新分页，不需要重新加载数据
@@ -1007,7 +1006,17 @@ export default {
     }
     const handleStatusSubChange = () => {
       currentPage.value = 1
+      // 空子状态表示全部
+      if (!statusSubFilter.value) {
+        statusSubFilter.value = ''
+      }
       loadLentData()
+    }
+
+    const handleStatusSubVisibleChange = (visible) => {
+      if (visible && statusSubList.value.length === 0) {
+        loadStatusSubList()
+      }
     }
 
     const handleDateRangeChange = (value) => {
@@ -1200,27 +1209,48 @@ export default {
       }
     }
 
-    // 加载状态列表数据
+    // 加载状态列表数据（status）
     const loadStatusList = async () => {
       try {
         const response = await fetch(apiUrls.lentStatusList())
         const result = await response.json()
-        if (result.success) {
-          statusList.value = result.data
+        console.log('租赁 status 列表原始返回:', result)
+        if (result && result.success && Array.isArray(result.data)) {
+          // 仅取 status 字段（若为字符串直接使用）
+          const list = result.data
+            .map(item => {
+              if (typeof item === 'string') return item
+              return item.status || ''
+            })
+            .filter(Boolean)
+          statusList.value = Array.from(new Set(list))
+        } else if (Array.isArray(result)) {
+          statusList.value = Array.from(new Set(result.filter(Boolean)))
+        } else {
+          statusList.value = []
         }
       } catch (error) {
         console.error('获取状态列表失败:', error)
       }
     }
+
+    // 加载子状态列表数据（status_sub），依据当前 statusFilter
     const loadStatusSubList = async () => {
       try {
         const statusParam = statusFilter.value || 'all'
         const response = await fetch(apiUrls.lentStatusSubList(statusParam))
         const result = await response.json()
+        console.log('租赁 status_sub 列表原始返回:', statusParam, result)
         if (result && result.success && Array.isArray(result.data)) {
-          statusSubList.value = result.data
+          const list = result.data
+            .map(item => {
+              if (typeof item === 'string') return item
+              return item.status_sub || item.last_status || ''
+            })
+            .filter(Boolean)
+          statusSubList.value = Array.from(new Set(list))
         } else if (Array.isArray(result)) {
-          statusSubList.value = result
+          statusSubList.value = Array.from(new Set(result.filter(Boolean)))
         } else {
           statusSubList.value = []
         }

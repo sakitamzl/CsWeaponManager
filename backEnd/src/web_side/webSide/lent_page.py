@@ -55,21 +55,13 @@ def getWeaponTypes():
 
 @webLentPageV1.route('/getStatusList', methods=['GET'])
 def getStatusList():
-    """获取所有状态的唯一值"""
+    """获取所有状态的唯一值（包含 lease.status 与 yyyp_lent.status）"""
     try:
         db = Date_base()
         sql = """
-        SELECT DISTINCT status 
-        FROM lease 
-        WHERE status IS NOT NULL AND status != '' 
-        ORDER BY 
-            CASE status
-                WHEN '租赁中' THEN 1
-                WHEN '已完成' THEN 2
-                WHEN '已取消' THEN 3
-                ELSE 999
-            END,
-            status
+        SELECT DISTINCT status FROM lease WHERE status IS NOT NULL AND status != ''
+        UNION
+        SELECT DISTINCT status FROM yyyp_lent WHERE status IS NOT NULL AND status != ''
         """
         result = db.execute_query(sql)
         
@@ -79,7 +71,12 @@ def getStatusList():
                 if row[0]:  # 确保不是空值
                     status_list.append(row[0])
         
-        print(f"获取到的状态列表: {status_list}")
+        # 排序：核心状态优先，其余按字典序
+        def sort_key(val):
+            order_map = {'租赁中': 1, '已完成': 2, '已取消': 3}
+            return (order_map.get(val, 999), val)
+        status_list = sorted(set(status_list), key=sort_key)
+        print(f"获取到的状态列表(含租赁/yyyp): {status_list}")
         
         return jsonify({
             'success': True,
@@ -98,34 +95,35 @@ def getStatusList():
 
 @webLentPageV1.route('/getStatusSubList', methods=['GET'])
 def getStatusSubList():
-    """获取租赁子状态（来自 yyyp_lent.last_status）的唯一值列表，支持按主状态筛选"""
+    """获取租赁子状态（优先使用 yyyp_lent.status_sub，回退 last_status），支持按主状态筛选"""
     try:
         status = request.args.get('status', '').strip()
         db = Date_base()
+        params = []
         if not status or status == 'all':
             sql = """
-            SELECT DISTINCT last_status
+            SELECT DISTINCT COALESCE(status_sub, last_status) AS status_sub
             FROM yyyp_lent
-            WHERE last_status IS NOT NULL
-              AND last_status != ''
-            ORDER BY last_status
+            WHERE COALESCE(status_sub, last_status) IS NOT NULL
+              AND COALESCE(status_sub, last_status) != ''
             """
         else:
-            safe_status = status.replace("'", "''")
-            sql = f"""
-            SELECT DISTINCT last_status
+            sql = """
+            SELECT DISTINCT COALESCE(status_sub, last_status) AS status_sub
             FROM yyyp_lent
-            WHERE status = '{safe_status}'
-              AND last_status IS NOT NULL
-              AND last_status != ''
-            ORDER BY last_status
+            WHERE status = ?
+              AND COALESCE(status_sub, last_status) IS NOT NULL
+              AND COALESCE(status_sub, last_status) != ''
             """
-        result = db.execute_query(sql)
+            params.append(status)
+        result = db.execute_query(sql, tuple(params) if params else None)
         sub_list = []
         if result:
             for row in result:
                 if row[0]:
                     sub_list.append(row[0])
+        sub_list = sorted(set(sub_list))
+        print(f"获取到的子状态列表 status={status or 'all'}: {sub_list}")
         return jsonify({'success': True, 'data': sub_list}), 200
     except Exception as e:
         print(f"获取租赁子状态失败: {e}")
