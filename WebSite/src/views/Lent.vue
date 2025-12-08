@@ -1553,6 +1553,8 @@ export default {
       statusList,
       statusSubList,
       statusSubFilter,
+      platformList,
+      lenterList,
       platformFilter,
       lenterFilter,
       dateRange,

@@ -22,7 +22,7 @@ def getLentData(min, max):
     SELECT 
         ID, weapon_name, weapon_type, item_name, weapon_float, float_range, price,
         lenter_name, status, last_status, "from", lean_start_time, lean_end_time,
-        total_Lease_Days, max_Lease_Days, steam_hash_name, sticker, pendant, rename
+        total_Lease_Days, max_Lease_Days, steam_hash_name, sticker, pendant, rename, data_user
     FROM lent
     ORDER BY lean_start_time DESC
     LIMIT {max} OFFSET {min};
@@ -40,7 +40,7 @@ def selectLentWeaponName(itemName):
     SELECT 
         ID, weapon_name, weapon_type, item_name, weapon_float, float_range, price,
         lenter_name, status, last_status, "from", lean_start_time, lean_end_time,
-        total_Lease_Days, max_Lease_Days, steam_hash_name, sticker, pendant, rename
+        total_Lease_Days, max_Lease_Days, steam_hash_name, sticker, pendant, rename, data_user
     FROM lent
     WHERE item_name LIKE '%{itemName}%' OR weapon_name LIKE '%{itemName}%'
     ORDER BY lean_start_time DESC;
@@ -59,7 +59,7 @@ def getLentDataByStatus(status, min, max):
         SELECT 
             ID, weapon_name, weapon_type, item_name, weapon_float, float_range, price,
             lenter_name, status, last_status, "from", lean_start_time, lean_end_time,
-            total_Lease_Days, max_Lease_Days, steam_hash_name, sticker, pendant, rename
+            total_Lease_Days, max_Lease_Days, steam_hash_name, sticker, pendant, rename, data_user
         FROM lent
         ORDER BY lean_start_time DESC
         LIMIT {max} OFFSET {min};
@@ -69,7 +69,7 @@ def getLentDataByStatus(status, min, max):
         SELECT 
             ID, weapon_name, weapon_type, item_name, weapon_float, float_range, price,
             lenter_name, status, last_status, "from", lean_start_time, lean_end_time,
-            total_Lease_Days, max_Lease_Days, steam_hash_name, sticker, pendant, rename
+            total_Lease_Days, max_Lease_Days, steam_hash_name, sticker, pendant, rename, data_user
         FROM lent
         WHERE status = '{status}'
         ORDER BY lean_start_time DESC
@@ -89,7 +89,7 @@ def getLentDataByStatusSub(last_status, min, max):
         SELECT 
             ID, weapon_name, weapon_type, item_name, weapon_float, float_range, price,
             lenter_name, status, last_status, "from", lean_start_time, lean_end_time,
-            total_Lease_Days, max_Lease_Days, steam_hash_name, sticker, pendant, rename
+            total_Lease_Days, max_Lease_Days, steam_hash_name, sticker, pendant, rename, data_user
         FROM lent
         WHERE last_status IS NOT NULL AND last_status != ''
         ORDER BY lean_start_time DESC
@@ -101,7 +101,7 @@ def getLentDataByStatusSub(last_status, min, max):
         SELECT 
             ID, weapon_name, weapon_type, item_name, weapon_float, float_range, price,
             lenter_name, status, last_status, "from", lean_start_time, lean_end_time,
-            total_Lease_Days, max_Lease_Days, steam_hash_name, sticker, pendant, rename
+            total_Lease_Days, max_Lease_Days, steam_hash_name, sticker, pendant, rename, data_user
         FROM lent
         WHERE last_status = '{safe_sub}'
         ORDER BY lean_start_time DESC
