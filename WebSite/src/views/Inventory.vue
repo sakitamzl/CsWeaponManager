@@ -158,6 +158,7 @@
                   v-for="(item, index) in getExpandedItems(scope.row)" 
                   :key="item.assetid"
                   class="expand-item-card"
+                  @click="openPreview(item)"
                 >
                   <div class="expand-item-row">
                     <div class="expand-item-left">
@@ -170,9 +171,51 @@
                           @error="(e) => handleImageError(e, scope.row.steam_hash_name)"
                         />
                         <span v-else class="no-image">无图</span>
+                        
+                        <!-- 贴纸覆盖层 - 左下角 -->
+                        <div v-if="item.sticker" class="sticker-overlay-expand">
+                          <div
+                            v-for="(sticker, sIdx) in parseStickers(item.sticker)"
+                            :key="sIdx"
+                            class="sticker-item-overlay-expand"
+                            :title="sticker.name || '未知贴纸'"
+                          >
+                            <img
+                              v-if="sticker.image"
+                              :src="sticker.image"
+                              :alt="sticker.name"
+                              class="sticker-img-overlay"
+                              @error="(e) => e.target.style.display = 'none'"
+                            />
+                            <div v-else class="sticker-placeholder-overlay">?</div>
+                          </div>
+                        </div>
+                        
+                        <!-- 挂件覆盖层 - 右上角 -->
+                        <div v-if="item.pendant" class="pendant-overlay-expand">
+                          <div
+                            class="pendant-item-overlay-expand"
+                            :title="parsePendant(item.pendant).name || '挂件'"
+                          >
+                            <img
+                              v-if="parsePendant(item.pendant).image"
+                              :src="parsePendant(item.pendant).image"
+                              :alt="parsePendant(item.pendant).name"
+                              class="pendant-img-overlay"
+                              @error="(e) => e.target.style.display = 'none'"
+                            />
+                            <div v-else class="pendant-placeholder-overlay">🎗️</div>
+                          </div>
+                        </div>
                       </div>
                       <div v-if="item.remark" class="expand-remark-tag">
                         <el-tag type="warning" size="small">交易保护</el-tag>
+                      </div>
+                      <!-- 改名标签 - 只显示图标 -->
+                      <div v-if="item.rename" class="expand-rename-tag">
+                        <el-tag type="info" size="small" :title="item.rename">
+                          🏷️
+                        </el-tag>
                       </div>
                     </div>
                     <div class="expand-item-details">
@@ -262,20 +305,18 @@
         <el-table-column label="饰品名称" min-width="250">
           <template #default="scope">
             <div class="item-name-cell">
-              <div class="item-title-row">
-                <span class="item-title">{{ getItemTitle(scope.row) }}</span>
-                <!-- 组合模式下显示分页器 -->
-                <div v-if="groupMode && getExpandedTotal(scope.row) > getItemsPerPage()" class="inline-pagination">
-                  <el-pagination
-                    small
-                    :current-page="expandedRowPages[scope.row.assetid] || 1"
-                    :page-size="getItemsPerPage()"
-                    :total="getExpandedTotal(scope.row)"
-                    layout="prev, pager, next"
-                    :hide-on-single-page="true"
-                    @current-change="(page) => handleExpandPageChange(scope.row, page)"
-                  />
-                </div>
+              <div class="item-title">{{ getItemTitle(scope.row) }}</div>
+              <!-- 组合模式下显示分页器 - 固定在名称下方 -->
+              <div v-if="groupMode && getExpandedTotal(scope.row) > getItemsPerPage()" class="inline-pagination-below" @click.stop>
+                <el-pagination
+                  small
+                  :current-page="expandedRowPages[scope.row.assetid] || 1"
+                  :page-size="getItemsPerPage()"
+                  :total="getExpandedTotal(scope.row)"
+                  layout="prev, pager, next"
+                  :hide-on-single-page="true"
+                  @current-change="(page) => handleExpandPageChange(scope.row, page)"
+                />
               </div>
               <div class="item-extras" v-if="hasExtras(scope.row)">
                 <!-- 印花图片 -->
@@ -327,7 +368,11 @@
           sortable="custom"
         >
           <template #default="scope">
-            <div v-if="scope.row.weapon_float">
+            <!-- 组合模式下，数量大于1时不显示磨损值 -->
+            <div v-if="groupMode && scope.row.item_count > 1" style="color: #888;">
+              多个磨损值
+            </div>
+            <div v-else-if="scope.row.weapon_float">
               <div style="font-family: monospace; font-size: 0.85rem; margin-bottom: 4px;">
                 {{ scope.row.weapon_float }}
               </div>
@@ -1248,23 +1293,48 @@ export default {
         buff_price: row.buff_prices && row.buff_prices[index] ? row.buff_prices[index] : '0',
         steam_price: row.steam_prices && row.steam_prices[index] ? row.steam_prices[index] : '0',
         order_time: row.order_times && row.order_times[index] ? row.order_times[index] : null,
-        remark: row.remarks && row.remarks[index] ? row.remarks[index] : null
+        remark: row.remarks && row.remarks[index] ? row.remarks[index] : null,
+        // 添加印花、挂件、改名等字段
+        sticker: row.stickers && row.stickers[index] ? row.stickers[index] : null,
+        pendant: row.pendants && row.pendants[index] ? row.pendants[index] : null,
+        rename: row.renames && row.renames[index] ? row.renames[index] : null,
+        // 添加用于预览的字段
+        steam_hash_name: row.steam_hash_name,
+        item_name: row.item_name,
+        weapon_name: row.weapon_name,
+        weapon_type: row.weapon_type,
+        float_range: row.float_range
       }))
 
       // 获取当前页码，确保页码有效
-      let currentPage = expandedRowPages.value[row.assetid] || 1
+      const currentPage = expandedRowPages.value[row.assetid] || 1
       const itemsPerPage = getItemsPerPage()
       const totalPages = Math.ceil(allItems.length / itemsPerPage)
       
+      console.log('获取展开数据:', {
+        assetid: row.assetid,
+        currentPage,
+        itemsPerPage,
+        totalPages,
+        totalItems: allItems.length
+      })
+      
       // 如果当前页码超出范围，重置为第1页
-      if (currentPage > totalPages) {
-        currentPage = 1
-        expandedRowPages.value[row.assetid] = 1
+      if (currentPage > totalPages && totalPages > 0) {
+        expandedRowPages.value = {
+          ...expandedRowPages.value,
+          [row.assetid]: 1
+        }
+        const start = 0
+        const end = itemsPerPage
+        return allItems.slice(start, end)
       }
       
       const start = (currentPage - 1) * itemsPerPage
       const end = start + itemsPerPage
 
+      console.log('分页范围:', { start, end, 返回数量: allItems.slice(start, end).length })
+      
       return allItems.slice(start, end)
     }
 
@@ -1278,9 +1348,24 @@ export default {
 
     // 处理展开行的分页变化
     const handleExpandPageChange = (row, page) => {
-      expandedRowPages.value[row.assetid] = page
-      // 强制更新以确保数据刷新
-      nextTick()
+      console.log('分页变化:', row.assetid, '页码:', page)
+      
+      // 先更新页码
+      expandedRowPages.value = {
+        ...expandedRowPages.value,
+        [row.assetid]: page
+      }
+      
+      // 如果行未展开，先展开它
+      if (tableRef.value) {
+        const expandedRows = tableRef.value.store.states.expandRows.value || []
+        const isExpanded = expandedRows.some(r => r.assetid === row.assetid)
+        
+        if (!isExpanded) {
+          console.log('行未展开，自动展开:', row.assetid)
+          tableRef.value.toggleRowExpansion(row, true)
+        }
+      }
     }
 
     // 处理行点击事件（仅在组合模式下）
@@ -1315,6 +1400,14 @@ export default {
       const dataToSort = groupMode.value ? groupedData.value : inventoryData.value
       
       dataToSort.sort((a, b) => {
+        // 特殊处理：库存存储组件始终排在最后
+        const isStorageA = a.item_name === '库存存储组件' || a.steam_hash_name === '库存存储组件'
+        const isStorageB = b.item_name === '库存存储组件' || b.steam_hash_name === '库存存储组件'
+        
+        if (isStorageA && !isStorageB) return 1  // A是存储组件，排在后面
+        if (!isStorageA && isStorageB) return -1 // B是存储组件，排在后面
+        if (isStorageA && isStorageB) return 0   // 都是存储组件，保持相对位置
+        
         let valueA, valueB
         
         if (prop === 'buy_price') {
@@ -1994,36 +2087,27 @@ export default {
   gap: 6px;
 }
 
-.item-title-row {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
 .item-title {
   line-height: 1.4;
-  flex: 1;
-  min-width: 0;
 }
 
-.inline-pagination {
-  flex-shrink: 0;
+.inline-pagination-below {
+  margin-top: 0.5rem;
 }
 
-.inline-pagination :deep(.el-pagination) {
+.inline-pagination-below :deep(.el-pagination) {
   padding: 0;
 }
 
-.inline-pagination :deep(.el-pager li) {
+.inline-pagination-below :deep(.el-pager li) {
   min-width: 24px;
   height: 24px;
   line-height: 24px;
   font-size: 12px;
 }
 
-.inline-pagination :deep(.btn-prev),
-.inline-pagination :deep(.btn-next) {
+.inline-pagination-below :deep(.btn-prev),
+.inline-pagination-below :deep(.btn-next) {
   padding: 0 4px;
   min-width: 24px;
   height: 24px;
@@ -3067,11 +3151,14 @@ export default {
   border-radius: 6px;
   padding: 0.75rem;
   transition: all 0.2s ease;
+  cursor: pointer;
 }
 
 .expand-item-card:hover {
   background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(76, 175, 80, 0.3);
+  border-color: rgba(76, 175, 80, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .expand-item-row {
@@ -3095,11 +3182,89 @@ export default {
   justify-content: center;
   background: var(--bg-tertiary);
   border-radius: 4px;
+  position: relative;
+  overflow: visible;
+}
+
+/* 展开卡片中的贴纸覆盖层 - 左下角 */
+.sticker-overlay-expand {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  display: flex;
+  gap: 2px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.sticker-item-overlay-expand {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  border-radius: 2px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.sticker-item-overlay-expand:hover {
+  transform: scale(2);
+  z-index: 10;
+  border-color: rgba(76, 175, 80, 0.8);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+}
+
+/* 展开卡片中的挂件覆盖层 - 右上角 */
+.pendant-overlay-expand {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.pendant-item-overlay-expand {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  border-radius: 2px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.pendant-item-overlay-expand:hover {
+  transform: scale(2);
+  z-index: 10;
+  border-color: rgba(255, 215, 0, 0.8);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
 }
 
 .expand-remark-tag {
   display: flex;
   justify-content: center;
+}
+
+.expand-rename-tag {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.25rem;
+}
+
+.expand-rename-tag .el-tag {
+  font-size: 0.85rem;
+  padding: 2px 6px;
+  cursor: help;
 }
 
 .expand-item-details {

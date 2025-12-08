@@ -284,7 +284,16 @@ def get_components_grouped(steam_id):
             SUM(CAST(buy_price AS REAL)) AS total_buy_price,
             SUM(CAST(yyyp_price AS REAL)) AS total_yyyp_price,
             SUM(CAST(buff_price AS REAL)) AS total_buff_price,
-            SUM(CAST(steam_price AS REAL)) AS total_steam_price
+            SUM(CAST(steam_price AS REAL)) AS total_steam_price,
+            GROUP_CONCAT(goods_assetid) AS goods_assetids,
+            GROUP_CONCAT(weapon_float) AS weapon_floats,
+            GROUP_CONCAT(buy_price) AS buy_prices,
+            GROUP_CONCAT(yyyp_price) AS yyyp_prices,
+            GROUP_CONCAT(buff_price) AS buff_prices,
+            GROUP_CONCAT(steam_price) AS steam_prices,
+            GROUP_CONCAT(sticker, '|||') AS stickers,
+            GROUP_CONCAT(pendant, '|||') AS pendants,
+            GROUP_CONCAT(rename, '|||') AS renames
         FROM steam_stockComponents
         WHERE {where_clause}
         GROUP BY item_name, steam_hash_name, weapon_name, weapon_type, weapon_level, float_range
@@ -296,6 +305,17 @@ def get_components_grouped(steam_id):
 
         grouped_list = []
         for row in rows or []:
+            # 安全地处理可能为None的字段
+            goods_assetids = str(row[12]).split(',') if row[12] and row[12] != 'None' else []
+            weapon_floats = str(row[13]).split(',') if row[13] and row[13] != 'None' else []
+            buy_prices = str(row[14]).split(',') if row[14] and row[14] != 'None' else []
+            yyyp_prices = str(row[15]).split(',') if row[15] and row[15] != 'None' else []
+            buff_prices = str(row[16]).split(',') if row[16] and row[16] != 'None' else []
+            steam_prices = str(row[17]).split(',') if row[17] and row[17] != 'None' else []
+            stickers = str(row[18]).split('|||') if row[18] and row[18] != 'None' else []
+            pendants = str(row[19]).split('|||') if row[19] and row[19] != 'None' else []
+            renames = str(row[20]).split('|||') if row[20] and row[20] != 'None' else []
+            
             grouped_list.append({
                 "item_name": row[0],
                 "steam_hash_name": row[1],
@@ -308,7 +328,16 @@ def get_components_grouped(steam_id):
                 "total_buy_price": round(row[8] or 0, 2),
                 "total_yyyp_price": round(row[9] or 0, 2),
                 "total_buff_price": round(row[10] or 0, 2),
-                "total_steam_price": round(row[11] or 0, 2)
+                "total_steam_price": round(row[11] or 0, 2),
+                "goods_assetids": goods_assetids,
+                "weapon_floats": weapon_floats,
+                "buy_prices": buy_prices,
+                "yyyp_prices": yyyp_prices,
+                "buff_prices": buff_prices,
+                "steam_prices": steam_prices,
+                "stickers": stickers,
+                "pendants": pendants,
+                "renames": renames
             })
 
         # 总记录数
@@ -332,11 +361,14 @@ def get_components_grouped(steam_id):
         })
 
     except Exception as e:
+        import traceback
         print(f"❌ 组合查询失败 - steam_id: {steam_id}, 错误: {str(e)}")
         print(f"错误详情: {traceback.format_exc()}")
         return jsonify({
             "success": False,
-            "message": f"组合查询失败: {str(e)}"
+            "message": f"组合查询失败: {str(e)}",
+            "error": str(e),
+            "traceback": traceback.format_exc()
         }), 500
 
 @webStockComponentsV1.route('/components/time-range/<steam_id>/<start_date>/<end_date>', methods=['GET'])

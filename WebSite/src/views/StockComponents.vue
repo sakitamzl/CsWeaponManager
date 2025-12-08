@@ -153,15 +153,129 @@
       </div>
       
       <el-table
+        ref="tableRef"
         :data="filteredData"
         v-loading="loading"
         element-loading-text="加载中..."
         style="width: 100%"
-        :row-style="{ backgroundColor: 'transparent' }"
+        :row-style="getRowStyle"
         :header-row-style="{ backgroundColor: 'var(--bg-tertiary)' }"
         :flexible="true"
         :scrollbar-always-on="true"
+        @row-click="handleRowClick"
+        :row-key="row => row.goods_assetid"
       >
+        <el-table-column v-if="groupMode" type="expand" width="1">
+          <template #default="scope">
+            <div class="expand-content" v-if="scope.row.item_count > 1">
+              <div class="expand-two-columns">
+                <div 
+                  v-for="(item, index) in getExpandedItems(scope.row)" 
+                  :key="item.goods_assetid"
+                  class="expand-item-card"
+                  @click="openPreview(item)"
+                >
+                  <div class="expand-item-row">
+                    <div class="expand-item-left">
+                      <div class="expand-item-image">
+                        <img
+                          v-if="getWeaponImage(scope.row.steam_hash_name)"
+                          :src="getWeaponImage(scope.row.steam_hash_name)"
+                          :alt="scope.row.item_name"
+                          class="weapon-img-small"
+                          @error="(e) => e.target.style.display = 'none'"
+                        />
+                        <span v-else class="no-image">无图</span>
+                        
+                        <!-- 贴纸覆盖层 -->
+                        <div v-if="item.sticker" class="sticker-overlay-expand">
+                          <div
+                            v-for="(sticker, sIdx) in parseStickers(item.sticker)"
+                            :key="sIdx"
+                            class="sticker-item-overlay-expand"
+                            :title="sticker.name || '未知贴纸'"
+                          >
+                            <img
+                              v-if="sticker.image"
+                              :src="sticker.image"
+                              :alt="sticker.name"
+                              class="sticker-img-overlay"
+                              @error="(e) => e.target.style.display = 'none'"
+                            />
+                            <div v-else class="sticker-placeholder-overlay">?</div>
+                          </div>
+                        </div>
+                        
+                        <!-- 挂件覆盖层 -->
+                        <div v-if="item.pendant" class="pendant-overlay-expand">
+                          <div
+                            class="pendant-item-overlay-expand"
+                            :title="parsePendant(item.pendant).name || '挂件'"
+                          >
+                            <img
+                              v-if="parsePendant(item.pendant).image"
+                              :src="parsePendant(item.pendant).image"
+                              :alt="parsePendant(item.pendant).name"
+                              class="pendant-img-overlay"
+                              @error="(e) => e.target.style.display = 'none'"
+                            />
+                            <div v-else class="pendant-placeholder-overlay">🎗️</div>
+                          </div>
+                        </div>
+                      </div>
+                      <!-- 改名标签 - 只显示图标 -->
+                      <div v-if="item.rename" class="expand-rename-tag">
+                        <el-tag type="info" size="small" :title="item.rename">
+                          🏷️
+                        </el-tag>
+                      </div>
+                    </div>
+                    <div class="expand-item-details">
+                      <div class="expand-item-float" v-if="item.weapon_float && item.weapon_float !== '0' && item.weapon_float !== '0.0'">
+                        <div class="float-text-row">
+                          <span class="expand-label">磨损:</span>
+                          <span class="expand-value-small">{{ item.weapon_float }}</span>
+                        </div>
+                        <div class="float-bar-mini">
+                          <div class="float-segment fn"></div>
+                          <div class="float-segment mw"></div>
+                          <div class="float-segment ft"></div>
+                          <div class="float-segment ww"></div>
+                          <div class="float-segment bs"></div>
+                          <div
+                            class="float-pointer"
+                            :style="{ left: `${parseFloat(item.weapon_float) * 100}%` }"
+                          ></div>
+                        </div>
+                      </div>
+                      <div class="expand-item-prices">
+                        <div class="expand-price-item" v-if="item.buy_price && item.buy_price !== '0'">
+                          <span class="expand-label">购入:</span>
+                          <span class="expand-value">¥{{ parseFloat(item.buy_price).toFixed(2) }}</span>
+                        </div>
+                        <div class="expand-price-item" v-if="item.yyyp_price && item.yyyp_price !== '0'">
+                          <span class="expand-label">悠悠:</span>
+                          <span class="expand-value">¥{{ parseFloat(item.yyyp_price).toFixed(2) }}</span>
+                        </div>
+                        <div class="expand-price-item" v-if="item.buff_price && item.buff_price !== '0'">
+                          <span class="expand-label">BUFF:</span>
+                          <span class="expand-value">¥{{ parseFloat(item.buff_price).toFixed(2) }}</span>
+                        </div>
+                        <div class="expand-price-item" v-if="item.steam_price && item.steam_price !== '0'">
+                          <span class="expand-label">Steam:</span>
+                          <span class="expand-value">¥{{ parseFloat(item.steam_price).toFixed(2) }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="expand-content-empty">
+              <span style="color: #999;">仅有1件物品，无需展开</span>
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column label="图片" width="144" align="center" fixed="left">
           <template #default="scope">
             <div class="weapon-image-cell" style="cursor: pointer;">
@@ -180,6 +294,18 @@
           <template #default="scope">
             <div class="item-name-cell">
               <div class="item-title">{{ getItemTitle(scope.row) }}</div>
+              <!-- 组合模式下显示分页器 - 固定在名称下方 -->
+              <div v-if="groupMode && getExpandedTotal(scope.row) > getItemsPerPage()" class="inline-pagination-below" @click.stop>
+                <el-pagination
+                  small
+                  :current-page="expandedRowPages[scope.row.goods_assetid] || 1"
+                  :page-size="getItemsPerPage()"
+                  :total="getExpandedTotal(scope.row)"
+                  layout="prev, pager, next"
+                  :hide-on-single-page="true"
+                  @current-change="(page) => handleExpandPageChange(scope.row, page)"
+                />
+              </div>
               <div class="item-extras" v-if="hasExtras(scope.row)">
                 <!-- 印花图片 -->
                 <div class="sticker-list" v-if="scope.row.sticker">
@@ -236,7 +362,11 @@
         </el-table-column>
         <el-table-column prop="weapon_float" label="磨损值" width="200" align="left">
           <template #default="scope">
-            <div v-if="scope.row.weapon_float && formatWeaponFloat(scope.row.weapon_float)">
+            <!-- 组合模式下，数量大于1时不显示磨损值 -->
+            <div v-if="groupMode && scope.row.item_count > 1" style="color: #888;">
+              多个磨损值
+            </div>
+            <div v-else-if="scope.row.weapon_float && formatWeaponFloat(scope.row.weapon_float)">
               <div style="font-family: monospace; font-size: 0.85rem; margin-bottom: 4px;">
                 {{ scope.row.weapon_float }}
               </div>
@@ -337,6 +467,10 @@ export default {
     const selectedSteamId = ref('')
     const inventoryComponents = ref([])
     const selectedComponent = ref('')
+    const tableRef = ref(null)
+    const expandedRowPages = ref({})
+    const previewVisible = ref(false)
+    const previewItem = ref(null)
     
     // 编辑价格相关
     const editingGoodsAssetId = ref(null)
@@ -1057,6 +1191,104 @@ export default {
       }
     }
 
+    // 计算每页显示的卡片数量
+    const getItemsPerPage = () => {
+      return 12
+    }
+
+    // 获取展开行的详细数据（带分页）
+    const getExpandedItems = (row) => {
+      if (!row.goods_assetids || !Array.isArray(row.goods_assetids)) {
+        return []
+      }
+
+      const allItems = row.goods_assetids.map((goods_assetid, index) => ({
+        goods_assetid: goods_assetid,
+        weapon_float: row.weapon_floats && row.weapon_floats[index] ? row.weapon_floats[index] : null,
+        buy_price: row.buy_prices && row.buy_prices[index] ? row.buy_prices[index] : '0',
+        yyyp_price: row.yyyp_prices && row.yyyp_prices[index] ? row.yyyp_prices[index] : '0',
+        buff_price: row.buff_prices && row.buff_prices[index] ? row.buff_prices[index] : '0',
+        steam_price: row.steam_prices && row.steam_prices[index] ? row.steam_prices[index] : '0',
+        sticker: row.stickers && row.stickers[index] ? row.stickers[index] : null,
+        pendant: row.pendants && row.pendants[index] ? row.pendants[index] : null,
+        rename: row.renames && row.renames[index] ? row.renames[index] : null,
+        steam_hash_name: row.steam_hash_name,
+        item_name: row.item_name,
+        weapon_name: row.weapon_name,
+        weapon_type: row.weapon_type,
+        float_range: row.float_range
+      }))
+
+      const currentPage = expandedRowPages.value[row.goods_assetid] || 1
+      const itemsPerPage = getItemsPerPage()
+      const totalPages = Math.ceil(allItems.length / itemsPerPage)
+      
+      if (currentPage > totalPages && totalPages > 0) {
+        expandedRowPages.value = {
+          ...expandedRowPages.value,
+          [row.goods_assetid]: 1
+        }
+        const start = 0
+        const end = itemsPerPage
+        return allItems.slice(start, end)
+      }
+      
+      const start = (currentPage - 1) * itemsPerPage
+      const end = start + itemsPerPage
+      
+      return allItems.slice(start, end)
+    }
+
+    // 获取展开行的总数据量
+    const getExpandedTotal = (row) => {
+      if (!row.goods_assetids || !Array.isArray(row.goods_assetids)) {
+        return 0
+      }
+      return row.goods_assetids.length
+    }
+
+    // 处理展开行的分页变化
+    const handleExpandPageChange = (row, page) => {
+      expandedRowPages.value = {
+        ...expandedRowPages.value,
+        [row.goods_assetid]: page
+      }
+      
+      if (tableRef.value) {
+        const expandedRows = tableRef.value.store.states.expandRows.value || []
+        const isExpanded = expandedRows.some(r => r.goods_assetid === row.goods_assetid)
+        
+        if (!isExpanded) {
+          tableRef.value.toggleRowExpansion(row, true)
+        }
+      }
+    }
+
+    // 处理行点击事件
+    const handleRowClick = (row, column, event) => {
+      if (!groupMode.value) return
+      if (row.item_count <= 1) return
+      
+      if (tableRef.value) {
+        tableRef.value.toggleRowExpansion(row)
+      }
+    }
+
+    // 获取行样式
+    const getRowStyle = (data) => {
+      const style = { backgroundColor: 'transparent' }
+      if (groupMode.value && data.row.item_count > 1) {
+        style.cursor = 'pointer'
+      }
+      return style
+    }
+
+    // 打开预览弹窗
+    const openPreview = (item) => {
+      previewItem.value = item
+      previewVisible.value = true
+    }
+
     onMounted(async () => {
       await loadSteamIdList()
       if (selectedSteamId.value) {
@@ -1087,6 +1319,10 @@ export default {
       selectedComponent,
       editingGoodsAssetId,
       editingPrice,
+      tableRef,
+      expandedRowPages,
+      previewVisible,
+      previewItem,
       formatTime,
       formatPrice,
       formatWeaponFloat,
@@ -1110,7 +1346,14 @@ export default {
       handleFillReferencePrice,
       startEdit,
       finishEdit,
-      cancelEdit
+      cancelEdit,
+      getItemsPerPage,
+      getExpandedItems,
+      getExpandedTotal,
+      handleExpandPageChange,
+      handleRowClick,
+      getRowStyle,
+      openPreview
     }
   }
 }
@@ -1533,6 +1776,279 @@ export default {
   height: 1px;
   background: linear-gradient(90deg, transparent, var(--border-default) 20%, var(--border-default) 80%, transparent);
   margin: 1.5rem 0;
+}
+
+/* 展开行样式 */
+:deep(.el-table__expand-column .cell) {
+  display: none;
+}
+
+:deep(.el-table__expand-column) {
+  width: 1px !important;
+  padding: 0 !important;
+}
+
+:deep(.el-table__body-wrapper .el-table__row[style*="cursor: pointer"]:hover) {
+  background-color: rgba(76, 175, 80, 0.1) !important;
+}
+
+.expand-content {
+  padding: 1rem;
+  background-color: var(--bg-secondary) !important;
+}
+
+.expand-two-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.expand-item-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.75rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.expand-item-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(76, 175, 80, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.expand-item-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.expand-item-left {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.expand-item-image {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  position: relative;
+  overflow: visible;
+}
+
+.weapon-img-small {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.sticker-overlay-expand {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  display: flex;
+  gap: 2px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.sticker-item-overlay-expand {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  border-radius: 2px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.sticker-item-overlay-expand:hover {
+  transform: scale(2);
+  z-index: 10;
+  border-color: rgba(76, 175, 80, 0.8);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+}
+
+.pendant-overlay-expand {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.pendant-item-overlay-expand {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  border-radius: 2px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.pendant-item-overlay-expand:hover {
+  transform: scale(2);
+  z-index: 10;
+  border-color: rgba(255, 215, 0, 0.8);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+}
+
+.sticker-img-overlay,
+.pendant-img-overlay {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
+.sticker-placeholder-overlay,
+.pendant-placeholder-overlay {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.expand-remark-tag {
+  display: flex;
+  justify-content: center;
+}
+
+.expand-rename-tag {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.25rem;
+}
+
+.expand-rename-tag .el-tag {
+  font-size: 0.85rem;
+  padding: 2px 6px;
+  cursor: help;
+}
+
+.expand-item-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.expand-item-float {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.float-text-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.expand-value-small {
+  color: #fff;
+  font-weight: 500;
+  font-size: 0.75rem;
+  font-family: monospace;
+}
+
+.expand-item-prices {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.expand-price-item {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.expand-label {
+  color: #999;
+  font-size: 0.8rem;
+}
+
+.expand-value {
+  color: #fff;
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+
+.float-bar-mini {
+  position: relative;
+  height: 4px;
+  display: flex;
+  border-radius: 2px;
+  overflow: hidden;
+  width: 100%;
+  margin-top: 2px;
+}
+
+.float-bar-mini .float-segment {
+  height: 100%;
+}
+
+.float-bar-mini .float-pointer {
+  width: 2px;
+  height: 8px;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.expand-content-empty {
+  padding: 1rem;
+  text-align: center;
+  background-color: var(--bg-secondary);
+}
+
+.inline-pagination-below {
+  margin-top: 0.5rem;
+}
+
+.inline-pagination-below :deep(.el-pagination) {
+  padding: 0;
+}
+
+.inline-pagination-below :deep(.el-pager li) {
+  min-width: 24px;
+  height: 24px;
+  line-height: 24px;
+  font-size: 12px;
+}
+
+.inline-pagination-below :deep(.btn-prev),
+.inline-pagination-below :deep(.btn-next) {
+  padding: 0 4px;
+  min-width: 24px;
+  height: 24px;
+  line-height: 24px;
 }
 </style>
 
