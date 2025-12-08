@@ -440,8 +440,8 @@
                 <div class="preview-info-row" v-if="previewItem.status">
                   <div class="preview-info-item">
                     <span class="preview-info-label">状态:</span>
-                    <el-tag 
-                      :type="getStatusType(previewItem.status)" 
+                    <el-tag
+                      :type="getStatusType(previewItem.status)"
                       size="default"
                       :style="{
                         backgroundColor: getStatusColor(previewItem.status),
@@ -451,6 +451,12 @@
                     >
                       {{ previewItem.status }}
                     </el-tag>
+                  </div>
+                  <div class="preview-info-item" v-if="previewItem.status_sub">
+                    <span class="preview-info-label">子状态:</span>
+                    <span class="preview-info-value">
+                      {{ previewItem.status_sub }}
+                    </span>
                   </div>
                 </div>
               </div>

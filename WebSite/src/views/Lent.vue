@@ -21,7 +21,6 @@
                 @change="handleStatusChange"
                 clearable
               >
-                <el-option label="全部" value="all" />
                 <el-option v-for="status in statusList" :key="status" :label="status" :value="status" />
               </el-select>
               <el-select
@@ -32,7 +31,6 @@
                 @visible-change="handleStatusSubVisibleChange"
                 clearable
               >
-                <el-option label="全部" value="all" />
                 <el-option v-for="sub in statusSubList" :key="sub" :label="sub" :value="sub" />
               </el-select>
       <el-select
@@ -42,7 +40,6 @@
         @change="handlePlatformChange"
         clearable
       >
-        <el-option label="全部" value="all" />
         <el-option v-for="platform in platformList" :key="platform" :label="mapSource(platform)" :value="platform" />
       </el-select>
       <el-select
@@ -52,7 +49,6 @@
         @change="handleLenterChange"
         clearable
       >
-        <el-option label="全部" value="all" />
         <el-option v-for="user in lenterList" :key="user" :label="user" :value="user" />
       </el-select>
               <el-select 
@@ -240,8 +236,8 @@
                 style="cursor: pointer;"
               >
                 <img
-                  v-if="getWeaponImage(scope.row.steam_hash_name, scope.row.weapon_name, scope.row.item_name)"
-                  :src="getWeaponImage(scope.row.steam_hash_name, scope.row.weapon_name, scope.row.item_name)"
+                  v-if="getWeaponImage(scope.row.steam_hash_name)"
+                  :src="getWeaponImage(scope.row.steam_hash_name)"
                   :alt="getItemTitle(scope.row)"
                   class="weapon-img"
                   loading="lazy"
@@ -473,6 +469,15 @@
                         {{ previewItem.status }}
                       </el-tag>
                     </div>
+                    <div
+                      class="preview-info-item"
+                      v-if="previewItem.status_sub"
+                    >
+                      <span class="preview-info-label">子状态:</span>
+                      <span class="preview-info-value">
+                        {{ previewItem.status_sub }}
+                      </span>
+                    </div>
                   </div>
 
                   <div
@@ -664,14 +669,14 @@ export default {
         filtered = filtered.filter(item => item.status === statusFilter.value)
       }
       if (statusSubFilter.value && statusSubFilter.value !== 'all') {
-        // 子状态对应 last_status 字段
-        filtered = filtered.filter(item => (item.last_status || '') === statusSubFilter.value)
+        // 子状态对应 status_sub 字段
+        filtered = filtered.filter(item => (item.status_sub || '') === statusSubFilter.value)
       }
       if (platformFilter.value && platformFilter.value !== 'all') {
         filtered = filtered.filter(item => (item.from || '') === platformFilter.value)
       }
       if (lenterFilter.value && lenterFilter.value !== 'all') {
-        filtered = filtered.filter(item => (item.lenter_name || '') === lenterFilter.value)
+        filtered = filtered.filter(item => (item.data_user || '') === lenterFilter.value)
       }
       return filtered
     })
@@ -714,27 +719,25 @@ export default {
       return val
     }
 
-    // 获取武器图片路径，使用缓存优化
-    const getWeaponImage = (steamHashName, fallbackWeaponName = '', fallbackItemName = '') => {
-      const cacheKey = `${steamHashName}|${fallbackWeaponName}|${fallbackItemName}`
-
-      // 检查缓存
-      if (imageCache.has(cacheKey)) {
-        return imageCache.get(cacheKey)
+    // 获取武器图片路径，强制使用 steam_hash_name
+    const getWeaponImage = (steamHashName) => {
+      if (!steamHashName) {
+        return null
       }
 
-      const baseName = steamHashName ||
-        `${fallbackWeaponName || ''} | ${fallbackItemName || ''}`.trim()
-      if (!baseName) return null
+      // 检查缓存
+      if (imageCache.has(steamHashName)) {
+        return imageCache.get(steamHashName)
+      }
 
-      const imageName = baseName
+      const imageName = steamHashName
         .replace(/\s*\|\s*/g, '___')
         .replace(/\s/g, '_') + '.png'
 
       const imagePath = `/weapon_imgs/${imageName}`
 
       // 存入缓存
-      imageCache.set(cacheKey, imagePath)
+      imageCache.set(steamHashName, imagePath)
 
       return imagePath
     }
@@ -793,32 +796,33 @@ export default {
         
         const rawData = await response.json()
         console.log('搜索结果:', rawData)
-        
+
         if (!Array.isArray(rawData)) {
           throw new Error('搜索结果格式错误')
         }
-        
+
         // 转换搜索结果并存储所有数据
         const searchResults = rawData.map((item, index) => ({
           id: index + 1,
           ID: item[0] || '',
           weapon_name: item[1] || '',
           weapon_type: item[2] || '',
-          item_name: item[3] || '', 
+          item_name: item[3] || '',
           weapon_float: item[4] || 0,
           float_range: item[5] || '',
           price: item[6] || 0,
           lenter_name: item[7] || '',
           status: item[8] || '',
-          last_status: item[9] || '',
+          status_sub: item[9] || '',
           from: item[10] || '',
-          lean_start_time: item[11] || '',
-          lean_end_time: item[12] || '',
-          total_Lease_Days: item[13] || 0,
-          max_Lease_Days: item[14] || 0,
-          steam_hash_name: item[15] || ''
+          data_user: item[11] || '',
+          lean_start_time: item[12] || '',
+          lean_end_time: item[13] || '',
+          total_Lease_Days: item[14] || 0,
+          max_Lease_Days: item[15] || 0,
+          steam_hash_name: item[16] || ''
         }))
-        
+
         // 进入搜索模式
         isSearchMode.value = true
         allSearchResults.value = searchResults
@@ -856,7 +860,7 @@ export default {
         filters.platform = platformFilter.value
       }
       if (lenterFilter.value && lenterFilter.value !== 'all') {
-        filters.lenter_name = lenterFilter.value
+        filters.data_user = lenterFilter.value
       }
       if (weaponTypeFilter.value && weaponTypeFilter.value.length > 0) {
         filters.weapon_types = weaponTypeFilter.value
@@ -1021,13 +1025,13 @@ export default {
             console.error('数据项格式错误，期望数组，实际收到:', item)
             return null
           }
-          
+
           return {
             id: index + 1,
             ID: item[0] || '',
             weapon_name: item[1] || '',
             weapon_type: item[2] || '',
-            item_name: item[3] || '', 
+            item_name: item[3] || '',
             weapon_float: item[4] || 0,
             float_range: item[5] || '',
             price: item[6] || 0,
@@ -1035,11 +1039,12 @@ export default {
             status: item[8] || '',
             last_status: item[9] || '',
             from: item[10] || '',
-            lean_start_time: item[11] || '',
-            lean_end_time: item[12] || '',
-            total_Lease_Days: item[13] || 0,
-            max_Lease_Days: item[14] || 0,
-            steam_hash_name: item[15] || ''
+            data_user: item[11] || '',
+            lean_start_time: item[12] || '',
+            lean_end_time: item[13] || '',
+            total_Lease_Days: item[14] || 0,
+            max_Lease_Days: item[15] || 0,
+            steam_hash_name: item[16] || ''
           }
         }).filter(item => item !== null)
         
@@ -1250,30 +1255,31 @@ export default {
         
         const rawData = await response.json()
         console.log('时间搜索结果:', rawData)
-        
+
         if (!Array.isArray(rawData)) {
           throw new Error('搜索结果格式错误')
         }
-        
+
         // 转换搜索结果并存储所有数据
         const searchResults = rawData.map((item, index) => ({
           id: index + 1,
           ID: item[0] || '',
           weapon_name: item[1] || '',
           weapon_type: item[2] || '',
-          item_name: item[3] || '', 
+          item_name: item[3] || '',
           weapon_float: item[4] || 0,
           float_range: item[5] || '',
           price: item[6] || 0,
           lenter_name: item[7] || '',
           status: item[8] || '',
-          last_status: item[9] || '',
+          status_sub: item[9] || '',
           from: item[10] || '',
-          lean_start_time: item[11] || '',
-          lean_end_time: item[12] || '',
-          total_Lease_Days: item[13] || 0,
-          max_Lease_Days: item[14] || 0,
-          steam_hash_name: item[15] || ''
+          data_user: item[11] || '',
+          lean_start_time: item[12] || '',
+          lean_end_time: item[13] || '',
+          total_Lease_Days: item[14] || 0,
+          max_Lease_Days: item[15] || 0,
+          steam_hash_name: item[16] || ''
         }))
         
         // 进入时间搜索模式
@@ -1447,7 +1453,7 @@ export default {
           const list = result.data
             .map(item => {
               if (typeof item === 'string') return item
-              return item.status_sub || item.last_status || ''
+              return item.status_sub || ''
             })
             .filter(Boolean)
           statusSubList.value = Array.from(new Set(list))
@@ -1590,14 +1596,15 @@ export default {
               status: item[8] || '',
               last_status: item[9] || '',
               from: item[10] || '',
-              lean_start_time: item[11] || '',
-              lean_end_time: item[12] || '',
-              total_Lease_Days: item[13] || 0,
-              max_Lease_Days: item[14] || 0,
-              steam_hash_name: item[15] || ''
+              data_user: item[11] || '',
+              lean_start_time: item[12] || '',
+              lean_end_time: item[13] || '',
+              total_Lease_Days: item[14] || 0,
+              max_Lease_Days: item[15] || 0,
+              steam_hash_name: item[16] || ''
             }
           })
-          
+
           lentData.value = formattedData
           totalItems.value = result.total
           
