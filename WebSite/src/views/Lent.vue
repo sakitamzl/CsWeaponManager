@@ -301,29 +301,34 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="status" label="状态" min-width="90">
-            <template #default="scope">
-              <el-tooltip
-                :content="scope.row.status_sub || scope.row.status"
-                placement="top"
-                :disabled="!scope.row.status_sub"
-              >
-                <span>
-                  <el-tag
-                    :type="getStatusType(scope.row.status)"
-                    size="small"
-                    :style="{
-                      backgroundColor: getStatusColor(scope.row.status),
-                      borderColor: getStatusColor(scope.row.status),
-                      color: getStatusTextColor(scope.row.status)
-                    }"
-                  >
-                    {{ scope.row.status }}
-                  </el-tag>
-                </span>
-              </el-tooltip>
-            </template>
-          </el-table-column>
+        <el-table-column prop="from" label="来源" min-width="100">
+          <template #default="scope">
+            {{ mapSource(scope.row.from) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="status" label="状态" min-width="90">
+          <template #default="scope">
+            <el-tooltip
+              :content="scope.row.status_sub || scope.row.status"
+              placement="top"
+              :disabled="!scope.row.status_sub"
+            >
+              <span>
+                <el-tag
+                  :type="getStatusType(scope.row.status)"
+                  size="small"
+                  :style="{
+                    backgroundColor: getStatusColor(scope.row.status),
+                    borderColor: getStatusColor(scope.row.status),
+                    color: getStatusTextColor(scope.row.status)
+                  }"
+                >
+                  {{ scope.row.status }}
+                </el-tag>
+              </span>
+            </el-tooltip>
+          </template>
+        </el-table-column>
 
         </el-table>
 
@@ -633,6 +638,12 @@ export default {
 
     const getStatusTextColor = (status) => {
       return '#FFFFFF'
+    }
+
+    const mapSource = (val) => {
+      if (!val) return '-'
+      if (val.toLowerCase() === 'yyyp') return '悠悠有品'
+      return val
     }
 
     // 获取武器图片路径，逻辑与 /buy 保持一致
@@ -1443,6 +1454,7 @@ export default {
       getStatusType,
       getStatusColor,
       getStatusTextColor,
+      mapSource,
       handleSizeChange,
       handleCurrentChange,
       handleSortChange,

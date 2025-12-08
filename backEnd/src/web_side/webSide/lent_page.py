@@ -6,13 +6,13 @@ webLentPageV1 = Blueprint('webLentPageV1', __name__)
 
 @webLentPageV1.route('/getWeaponTypes', methods=['GET'])
 def getWeaponTypes():
-    """获取所有武器类型的唯一值（按优先级排序）"""
+    """获取租赁表(lent)中的武器类型唯一值"""
     try:
         db = Date_base()
         sql = """
-        SELECT DISTINCT weapon_type 
-        FROM lease 
-        WHERE weapon_type IS NOT NULL AND weapon_type != '' 
+        SELECT DISTINCT weapon_type
+        FROM lent
+        WHERE weapon_type IS NOT NULL AND weapon_type != ''
         ORDER BY 
             CASE weapon_type
                 WHEN '匕首' THEN 1
@@ -55,13 +55,13 @@ def getWeaponTypes():
 
 @webLentPageV1.route('/getStatusList', methods=['GET'])
 def getStatusList():
-    """获取所有状态的唯一值（包含 lease.status 与 yyyp_lent.status）"""
+    """获取租赁表(lent)的状态唯一值"""
     try:
         db = Date_base()
         sql = """
-        SELECT DISTINCT status FROM lease WHERE status IS NOT NULL AND status != ''
-        UNION
-        SELECT DISTINCT status FROM yyyp_lent WHERE status IS NOT NULL AND status != ''
+        SELECT DISTINCT status
+        FROM lent
+        WHERE status IS NOT NULL AND status != ''
         """
         result = db.execute_query(sql)
         
@@ -95,40 +95,25 @@ def getStatusList():
 
 @webLentPageV1.route('/getStatusSubList', methods=['GET'])
 def getStatusSubList():
-    """获取租赁子状态：
-    - 从 lent.last_status
-    - 从 yyyp_lent.status_sub（若为空回退 last_status）
-    支持按主状态筛选，status 为空/ALL 时返回全部子状态
-    """
+    """获取租赁子状态（仅来自 lent.last_status），支持按主状态筛选；status 为空/ALL 时返回全部子状态"""
     try:
         status = request.args.get('status', '').strip()
         db = Date_base()
         params = []
         if not status or status.lower() == 'all':
-            # 全部：lent.last_status + yyyp_lent.status_sub/last_status
             sql = """
-            SELECT DISTINCT last_status AS status_sub FROM lent
+            SELECT DISTINCT last_status AS status_sub
+            FROM lent
             WHERE last_status IS NOT NULL AND last_status != ''
-            UNION
-            SELECT DISTINCT COALESCE(status_sub, last_status) AS status_sub
-            FROM yyyp_lent
-            WHERE COALESCE(status_sub, last_status) IS NOT NULL
-              AND COALESCE(status_sub, last_status) != ''
             """
         else:
-            # 按主状态过滤
             sql = """
-            SELECT DISTINCT last_status AS status_sub FROM lent
+            SELECT DISTINCT last_status AS status_sub
+            FROM lent
             WHERE status = ?
               AND last_status IS NOT NULL AND last_status != ''
-            UNION
-            SELECT DISTINCT COALESCE(status_sub, last_status) AS status_sub
-            FROM yyyp_lent
-            WHERE status = ?
-              AND COALESCE(status_sub, last_status) IS NOT NULL
-              AND COALESCE(status_sub, last_status) != ''
             """
-            params.extend([status, status])
+            params.append(status)
 
         result = db.execute_query(sql, tuple(params) if params else None)
         sub_list = []
@@ -146,13 +131,13 @@ def getStatusSubList():
         return jsonify({'success': False, 'message': str(e), 'data': []}), 500
 @webLentPageV1.route('/getFloatRanges', methods=['GET'])
 def getFloatRanges():
-    """获取所有磨损等级的唯一值（优先显示主要磨损等级）"""
+    """获取所有磨损等级的唯一值（仅来自 lent 表，优先显示主要磨损等级）"""
     try:
         db = Date_base()
         sql = """
-        SELECT DISTINCT float_range 
-        FROM lease 
-        WHERE float_range IS NOT NULL AND float_range != '' 
+        SELECT DISTINCT float_range
+        FROM lent
+        WHERE float_range IS NOT NULL AND float_range != ''
         ORDER BY 
             CASE float_range
                 WHEN '崭新出厂' THEN 1
