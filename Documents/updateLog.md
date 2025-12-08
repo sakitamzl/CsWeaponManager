@@ -1,16 +1,19 @@
 # 更新日志 已更新Ver2.x  Ver1.x.x 大部分数据将不通用
 
-## 2025-12-08
+## 2025-12-9
+### v2.0.2
+1. 优化库存组件 steam库存的显示
 
+## 2025-12-08
 ### V2.0.1
 1. 库存组件添加组合显示
 2. 修复胶囊 武器箱等冗余显示
 3. 修改lent 状态下拉BUG 优化页面加载
 4. 添加 库存组件 steam库存 组合显示逻辑
 
-
 ## 2025-12-08
 ### v2.0.0 发布
+#### 已更新Ver2.x Ver1.x.x 大部分数据将不通用
 1. 从1.0更新到2.0版本 需要先执行下面sql
 ```sql
 ALTER TABLE steam_stockComponents RENAME COLUMN instanceid TO goods_assetid;

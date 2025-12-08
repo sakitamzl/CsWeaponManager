@@ -68,15 +68,22 @@
             <el-button type="warning" @click="handleUpdateAllComponents" :loading="updateAllLoading" :disabled="!selectedSteamId">
               获取/更新全部组件
             </el-button>
-            <el-button type="info" @click="handleAutoFillPrices" :loading="autoFillLoading" :disabled="!selectedSteamId" icon="Money">
+            <el-button type="info" @click="handleAutoFillPrices" :loading="autoFillLoading" :disabled="!selectedSteamId">
               自动获取购入价格
             </el-button>
-            <el-button type="primary" plain @click="handleFillReferencePrice('yyyp')" :loading="yyypFillLoading" :disabled="!selectedSteamId" icon="Coin">
+            <el-button type="primary" plain @click="handleFillReferencePrice('yyyp')" :loading="yyypFillLoading" :disabled="!selectedSteamId">
               获取悠悠有品价格
             </el-button>
-            <el-button type="primary" plain @click="handleFillReferencePrice('buff')" :loading="buffFillLoading" :disabled="!selectedSteamId" icon="PriceTag">
+            <el-button type="primary" plain @click="handleFillReferencePrice('buff')" :loading="buffFillLoading" :disabled="!selectedSteamId">
               获取BUFF价格
             </el-button>
+            <el-switch
+              v-model="groupMode"
+              active-text="组合模式"
+              inactive-text="明细模式"
+              @change="handleToggleGroupMode"
+              style="margin-left: auto;"
+            />
           </div>
         </div>
         
@@ -137,17 +144,6 @@
             layout="total, sizes, prev, pager, next, jumper"
             @size-change="handleSizeChange"
             @current-change="handleCurrentChange"
-          />
-        </div>
-        <div class="group-toggle">
-          <el-button type="info" plain @click="handleToggleGroupMode(true)" :loading="loading">
-            显示组合数量
-          </el-button>
-          <el-switch
-            v-model="groupMode"
-            active-text="组合模式"
-            inactive-text="明细模式"
-            @change="handleToggleGroupMode"
           />
         </div>
       </div>
@@ -845,6 +841,10 @@ export default {
             goods_assetid: item.item_name || item.steam_hash_name || Math.random().toString(36).slice(2)
           }))
           totalItems.value = response.data.total || 0
+          
+          // 加载统计数据
+          await loadComponentStats()
+          
           ElMessage.success(`组合加载成功，共 ${groupedData.value.length} 条记录`)
         } else {
           ElMessage.error(response.data.error || '加载组合数据失败')
