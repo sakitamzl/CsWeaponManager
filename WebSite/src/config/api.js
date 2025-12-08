@@ -188,6 +188,10 @@ export const API_CONFIG = {
 
     LENT_STATUS_SUB_LIST: (status) => `/webLentPageV1/getStatusSubList?status=${encodeURIComponent(status)}`,
 
+    LENT_PLATFORM_LIST: '/webLentPageV1/getPlatformList',
+
+    LENT_LENTER_LIST: '/webLentPageV1/getLenterList',
+
     LENT_SEARCH_BY_TYPE_WEAR: '/webLentPageV1/searchByTypeAndWear',
 
     LENT_STATS_BY_TYPE_WEAR: '/webLentPageV1/getStatsByTypeAndWear',
@@ -523,6 +527,10 @@ export const apiUrls = {
   lentStatusList: () => getApiUrl(API_CONFIG.ENDPOINTS.LENT_STATUS_LIST),
 
   lentStatusSubList: (status) => getApiUrl(API_CONFIG.ENDPOINTS.LENT_STATUS_SUB_LIST(status)),
+
+  lentPlatformList: () => getApiUrl(API_CONFIG.ENDPOINTS.LENT_PLATFORM_LIST),
+
+  lentLenterList: () => getApiUrl(API_CONFIG.ENDPOINTS.LENT_LENTER_LIST),
 
   lentSearchByTypeWear: () => getApiUrl(API_CONFIG.ENDPOINTS.LENT_SEARCH_BY_TYPE_WEAR),
 

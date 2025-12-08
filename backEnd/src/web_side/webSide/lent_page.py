@@ -6,12 +6,16 @@ webLentPageV1 = Blueprint('webLentPageV1', __name__)
 
 @webLentPageV1.route('/getWeaponTypes', methods=['GET'])
 def getWeaponTypes():
-    """获取租赁表(lent)中的武器类型唯一值"""
+    """获取租赁武器类型唯一值（优先 lent，补充 yyyp_lent）"""
     try:
         db = Date_base()
         sql = """
         SELECT DISTINCT weapon_type
         FROM lent
+        WHERE weapon_type IS NOT NULL AND weapon_type != ''
+        UNION
+        SELECT DISTINCT weapon_type
+        FROM yyyp_lent
         WHERE weapon_type IS NOT NULL AND weapon_type != ''
         ORDER BY 
             CASE weapon_type
@@ -55,13 +59,13 @@ def getWeaponTypes():
 
 @webLentPageV1.route('/getStatusList', methods=['GET'])
 def getStatusList():
-    """获取租赁表(lent)的状态唯一值"""
+    """获取租赁状态唯一值（优先 lent，补充 yyyp_lent）"""
     try:
         db = Date_base()
         sql = """
-        SELECT DISTINCT status
-        FROM lent
-        WHERE status IS NOT NULL AND status != ''
+        SELECT DISTINCT status FROM lent WHERE status IS NOT NULL AND status != ''
+        UNION
+        SELECT DISTINCT status FROM yyyp_lent WHERE status IS NOT NULL AND status != ''
         """
         result = db.execute_query(sql)
         
@@ -95,27 +99,45 @@ def getStatusList():
 
 @webLentPageV1.route('/getStatusSubList', methods=['GET'])
 def getStatusSubList():
-    """获取租赁子状态（仅来自 lent.last_status），支持按主状态筛选；status 为空/ALL 时返回全部子状态"""
+    """获取租赁子状态：
+    - lent: 优先 last_status，回退 status
+    - yyyp_lent: 优先 status_sub，回退 last_status，再回退 status
+    按主状态筛选；status 为空/ALL 时返回全部
+    """
     try:
         status = request.args.get('status', '').strip()
         db = Date_base()
         params = []
         if not status or status.lower() == 'all':
             sql = """
-            SELECT DISTINCT last_status AS status_sub
+            SELECT DISTINCT COALESCE(last_status, status) AS status_sub
             FROM lent
-            WHERE last_status IS NOT NULL AND last_status != ''
+            WHERE COALESCE(last_status, status) IS NOT NULL AND COALESCE(last_status, status) != ''
+            UNION
+            SELECT DISTINCT COALESCE(status_sub, last_status, status) AS status_sub
+            FROM yyyp_lent
+            WHERE COALESCE(status_sub, last_status, status) IS NOT NULL
+              AND COALESCE(status_sub, last_status, status) != ''
             """
         else:
             sql = """
-            SELECT DISTINCT last_status AS status_sub
+            SELECT DISTINCT COALESCE(last_status, status) AS status_sub
             FROM lent
             WHERE status = ?
-              AND last_status IS NOT NULL AND last_status != ''
+              AND COALESCE(last_status, status) IS NOT NULL AND COALESCE(last_status, status) != ''
+            UNION
+            SELECT DISTINCT COALESCE(status_sub, last_status, status) AS status_sub
+            FROM yyyp_lent
+            WHERE status = ?
+              AND COALESCE(status_sub, last_status, status) IS NOT NULL
+              AND COALESCE(status_sub, last_status, status) != ''
             """
-            params.append(status)
+            params.extend([status, status])
 
-        result = db.execute_query(sql, tuple(params) if params else None)
+        if params:
+            result = db.execute_query(sql, tuple(params))
+        else:
+            result = db.execute_query(sql)
         sub_list = []
         if result:
             for row in result:
@@ -131,12 +153,16 @@ def getStatusSubList():
         return jsonify({'success': False, 'message': str(e), 'data': []}), 500
 @webLentPageV1.route('/getFloatRanges', methods=['GET'])
 def getFloatRanges():
-    """获取所有磨损等级的唯一值（仅来自 lent 表，优先显示主要磨损等级）"""
+    """获取磨损等级唯一值（优先 lent，补充 yyyp_lent；优先显示主要磨损）"""
     try:
         db = Date_base()
         sql = """
         SELECT DISTINCT float_range
         FROM lent
+        WHERE float_range IS NOT NULL AND float_range != ''
+        UNION
+        SELECT DISTINCT float_range
+        FROM yyyp_lent
         WHERE float_range IS NOT NULL AND float_range != ''
         ORDER BY 
             CASE float_range
@@ -190,6 +216,14 @@ def _build_lent_filter_clauses(filters):
     status_sub = filters.get('status_sub')
     if status_sub and status_sub != 'all':
         add_clause("last_status = ?", status_sub)
+
+    platform = filters.get('platform')
+    if platform and platform != 'all':
+        add_clause('"from" = ?', platform)
+
+    lenter_name = filters.get('lenter_name')
+    if lenter_name:
+        add_clause("lenter_name = ?", lenter_name)
 
     weapon_types = filters.get('weapon_types') or []
     if isinstance(weapon_types, list) and len(weapon_types) > 0:
@@ -508,3 +542,53 @@ def getStatsByTypeAndWear():
             'message': str(e),
             'data': {}
         }), 500
+
+
+@webLentPageV1.route('/getPlatformList', methods=['GET'])
+def getPlatformList():
+    """获取平台来源（from）唯一值，优先 lent，补充 yyyp_lent"""
+    try:
+        db = Date_base()
+        sql = """
+        SELECT DISTINCT "from" AS platform
+        FROM lent
+        WHERE "from" IS NOT NULL AND "from" != ''
+        UNION
+        SELECT DISTINCT "from" AS platform
+        FROM yyyp_lent
+        WHERE "from" IS NOT NULL AND "from" != ''
+        ORDER BY platform
+        """
+        result = db.execute_query(sql)
+        platforms = [row[0] for row in result or [] if row[0]]
+        return jsonify({'success': True, 'data': platforms}), 200
+    except Exception as e:
+        print(f"获取平台列表失败: {e}")
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({'success': False, 'message': str(e), 'data': []}), 500
+
+
+@webLentPageV1.route('/getLenterList', methods=['GET'])
+def getLenterList():
+    """获取出租用户（lenter_name）唯一值，优先 lent，补充 yyyp_lent"""
+    try:
+        db = Date_base()
+        sql = """
+        SELECT DISTINCT lenter_name
+        FROM lent
+        WHERE lenter_name IS NOT NULL AND lenter_name != ''
+        UNION
+        SELECT DISTINCT lenter_name
+        FROM yyyp_lent
+        WHERE lenter_name IS NOT NULL AND lenter_name != ''
+        ORDER BY lenter_name
+        """
+        result = db.execute_query(sql)
+        users = [row[0] for row in result or [] if row[0]]
+        return jsonify({'success': True, 'data': users}), 200
+    except Exception as e:
+        print(f"获取用户列表失败: {e}")
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({'success': False, 'message': str(e), 'data': []}), 500

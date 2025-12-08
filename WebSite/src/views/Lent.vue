@@ -35,6 +35,26 @@
                 <el-option label="全部" value="all" />
                 <el-option v-for="sub in statusSubList" :key="sub" :label="sub" :value="sub" />
               </el-select>
+      <el-select
+        v-model="platformFilter"
+        placeholder="选择平台"
+        class="status-select"
+        @change="handlePlatformChange"
+        clearable
+      >
+        <el-option label="全部" value="all" />
+        <el-option v-for="platform in platformList" :key="platform" :label="platform" :value="platform" />
+      </el-select>
+      <el-select
+        v-model="lenterFilter"
+        placeholder="选择用户"
+        class="status-select"
+        @change="handleLenterChange"
+        clearable
+      >
+        <el-option label="全部" value="all" />
+        <el-option v-for="user in lenterList" :key="user" :label="user" :value="user" />
+      </el-select>
               <el-select 
                 v-model="weaponTypeFilter" 
                 placeholder="武器类型" 
@@ -513,6 +533,10 @@ export default {
     const statusList = ref([])
     const statusSubList = ref([])
     const statusSubFilter = ref('')
+    const platformList = ref([])
+    const platformFilter = ref('')
+    const lenterList = ref([])
+    const lenterFilter = ref('')
     const currentPage = ref(1)
     const pageSize = ref(20)
     const totalItems = ref(0)
@@ -605,6 +629,12 @@ export default {
       if (statusSubFilter.value && statusSubFilter.value !== 'all') {
         // 子状态对应 last_status 字段
         filtered = filtered.filter(item => (item.last_status || '') === statusSubFilter.value)
+      }
+      if (platformFilter.value && platformFilter.value !== 'all') {
+        filtered = filtered.filter(item => (item.from || '') === platformFilter.value)
+      }
+      if (lenterFilter.value && lenterFilter.value !== 'all') {
+        filtered = filtered.filter(item => (item.lenter_name || '') === lenterFilter.value)
       }
       return filtered
     })
@@ -763,6 +793,12 @@ export default {
       if (statusSubFilter.value && statusSubFilter.value !== 'all') {
         filters.status_sub = statusSubFilter.value
       }
+      if (platformFilter.value && platformFilter.value !== 'all') {
+        filters.platform = platformFilter.value
+      }
+      if (lenterFilter.value && lenterFilter.value !== 'all') {
+        filters.lenter_name = lenterFilter.value
+      }
       if (weaponTypeFilter.value && weaponTypeFilter.value.length > 0) {
         filters.weapon_types = weaponTypeFilter.value
       }
@@ -825,6 +861,9 @@ export default {
         }
       }
     }
+
+    // 向后兼容旧调用
+    const loadAllDataStats = () => loadFilteredStats()
 
     const loadTotalCount = async () => {
       try {
@@ -1050,10 +1089,23 @@ export default {
         statusSubFilter.value = ''
       }
       loadLentData()
+      loadFilteredStats()
+    }
+
+    const handlePlatformChange = () => {
+      currentPage.value = 1
+      loadLentData()
+      loadFilteredStats()
+    }
+
+    const handleLenterChange = () => {
+      currentPage.value = 1
+      loadLentData()
+      loadFilteredStats()
     }
 
     const handleStatusSubVisibleChange = (visible) => {
-      if (visible && statusSubList.value.length === 0) {
+      if (visible) {
         loadStatusSubList()
       }
     }
@@ -1299,6 +1351,36 @@ export default {
       }
     }
 
+    const loadPlatformList = async () => {
+      try {
+        const response = await fetch(apiUrls.lentPlatformList())
+        const result = await response.json()
+        if (result.success && Array.isArray(result.data)) {
+          platformList.value = result.data
+        } else {
+          platformList.value = []
+        }
+      } catch (error) {
+        console.error('获取平台列表失败:', error)
+        platformList.value = []
+      }
+    }
+
+    const loadLenterList = async () => {
+      try {
+        const response = await fetch(apiUrls.lentLenterList())
+        const result = await response.json()
+        if (result.success && Array.isArray(result.data)) {
+          lenterList.value = result.data
+        } else {
+          lenterList.value = []
+        }
+      } catch (error) {
+        console.error('获取用户列表失败:', error)
+        lenterList.value = []
+      }
+    }
+
     // 类型筛选处理
     const handleTypeChange = async () => {
       if (weaponTypeFilter.value && weaponTypeFilter.value.length > 0 || 
@@ -1451,6 +1533,8 @@ export default {
       loadFloatRanges()
       loadStatusList()
       loadStatusSubList()
+      loadPlatformList()
+      loadLenterList()
       loadFilteredStats()
     })
 
@@ -1469,6 +1553,8 @@ export default {
       statusList,
       statusSubList,
       statusSubFilter,
+      platformFilter,
+      lenterFilter,
       dateRange,
       isTimeSearchMode,
       currentPage,
@@ -1491,10 +1577,13 @@ export default {
       handleClearSearch,
       handleStatusChange,
       handleStatusSubChange,
+      handlePlatformChange,
+      handleLenterChange,
       handleTypeChange,
       handleWearChange,
       removeWeaponType,
       removeFloatRange,
+      handleStatusSubVisibleChange,
       handleAdvancedSearch,
       hasAdvancedFilters,
       handleDateRangeChange,
