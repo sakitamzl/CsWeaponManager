@@ -132,6 +132,68 @@ def get_document_file():
             'error': str(e)
         }), 500
 
+@version_update_bp.route('/api/version/documents/image', methods=['GET'])
+def get_document_image():
+    """获取文档中的图片"""
+    try:
+        from flask import send_file
+        
+        file_path = request.args.get('path', '')
+
+        if not file_path:
+            return jsonify({
+                'success': False,
+                'error': '未指定图片路径'
+            }), 400
+
+        # 安全检查：确保路径不包含危险路径
+        if '..' in file_path or file_path.startswith('/') or file_path.startswith('\\'):
+            return jsonify({
+                'success': False,
+                'error': '无效的图片路径'
+            }), 400
+
+        # 构建完整路径
+        docs_dir = get_documents_dir()
+        full_path = os.path.normpath(os.path.join(docs_dir, file_path))
+
+        # 确保文件在 Documents 目录下
+        if not full_path.startswith(os.path.normpath(docs_dir)):
+            return jsonify({
+                'success': False,
+                'error': '无权访问该文件'
+            }), 403
+
+        if not os.path.exists(full_path):
+            return jsonify({
+                'success': False,
+                'error': '图片不存在'
+            }), 404
+
+        if not os.path.isfile(full_path):
+            return jsonify({
+                'success': False,
+                'error': '指定路径不是文件'
+            }), 400
+
+        # 检查文件扩展名
+        allowed_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.bmp']
+        file_ext = os.path.splitext(full_path)[1].lower()
+        if file_ext not in allowed_extensions:
+            return jsonify({
+                'success': False,
+                'error': '不支持的图片格式'
+            }), 400
+
+        # 返回图片文件
+        return send_file(full_path, mimetype=f'image/{file_ext[1:]}')
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @version_update_bp.route('/api/version/update-log', methods=['GET'])
 def get_update_log():
     """读取 updateLog.md 文件内容（保持向后兼容）"""

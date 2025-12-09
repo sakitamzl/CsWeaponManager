@@ -107,6 +107,7 @@ import TreeNode from '@/components/TreeNode.vue'
 // 配置 marked 渲染器，为标题添加 ID
 const renderer = new marked.Renderer()
 const headingIds = new Map()
+let currentFilePath = ''
 
 renderer.heading = function(text, level) {
   // 生成唯一的 ID
@@ -126,6 +127,39 @@ renderer.heading = function(text, level) {
   }
   
   return `<h${level} id="${id}">${text}</h${level}>`
+}
+
+// 处理图片路径
+renderer.image = function(href, title, text) {
+  // 如果是相对路径，转换为 API 路径
+  let imageSrc = href
+  if (href && !href.startsWith('http://') && !href.startsWith('https://') && !href.startsWith('data:')) {
+    // 获取当前文件的目录
+    const fileDir = currentFilePath.substring(0, currentFilePath.lastIndexOf('/'))
+    // 解析相对路径
+    let resolvedPath = href
+    if (href.startsWith('../')) {
+      // 处理 ../ 路径
+      const parts = fileDir.split('/')
+      const upLevels = (href.match(/\.\.\//g) || []).length
+      const remainingPath = href.replace(/\.\.\//g, '')
+      const newParts = parts.slice(0, parts.length - upLevels)
+      resolvedPath = [...newParts, remainingPath].join('/')
+    } else if (href.startsWith('./')) {
+      // 处理 ./ 路径
+      resolvedPath = fileDir + '/' + href.substring(2)
+    } else if (!href.startsWith('/')) {
+      // 相对路径
+      resolvedPath = fileDir + '/' + href
+    }
+    
+    // 转换为 API 路径
+    imageSrc = `${API_CONFIG.BASE_URL}/api/version/documents/image?path=${encodeURIComponent(resolvedPath)}`
+  }
+  
+  const titleAttr = title ? ` title="${title}"` : ''
+  const altAttr = text ? ` alt="${text}"` : ''
+  return `<img src="${imageSrc}"${altAttr}${titleAttr} />`
 }
 
 marked.setOptions({
@@ -181,23 +215,25 @@ export default {
       let tocSectionEnded = false
 
       for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim()
+        const line = lines[i]
+        const trimmedLine = line.trim()
 
         // 检测目录章节开始（## 目录 或 ## 📋 目录 等）
-        if (/^##\s+.*目录.*$/i.test(line)) {
+        if (/^##\s+.*目录.*$/i.test(trimmedLine)) {
           inTocSection = true
           continue
         }
 
         // 如果在目录章节中
         if (inTocSection && !tocSectionEnded) {
-          // 遇到下一个二级标题，目录章节结束
-          if (/^##\s+/.test(line)) {
+          // 遇到下一个二级标题或空行后的分隔符，目录章节结束
+          if (/^##\s+/.test(trimmedLine) || /^---+$/.test(trimmedLine)) {
             tocSectionEnded = true
             break
           }
 
           // 解析目录链接：- [文本](#锚点) 或   - [文本](#锚点)（带缩进）
+          // 使用原始行来保留缩进
           const match = line.match(/^(\s*)-\s+\[(.+?)\]\(#(.+?)\)/)
           if (match) {
             const indent = match[1].length
@@ -248,13 +284,55 @@ export default {
       return toc
     }
 
+    // 移除 Markdown 中的目录章节
+    const removeTOCSection = (content) => {
+      const lines = content.split('\n')
+      const result = []
+      let inTocSection = false
+      let skipNextSeparator = false
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]
+        const trimmedLine = line.trim()
+
+        // 检测目录章节开始
+        if (/^##\s+.*目录.*$/i.test(trimmedLine)) {
+          inTocSection = true
+          skipNextSeparator = true
+          continue
+        }
+
+        // 如果在目录章节中
+        if (inTocSection) {
+          // 遇到下一个二级标题或分隔符，目录章节结束
+          if (/^##\s+/.test(trimmedLine)) {
+            inTocSection = false
+            result.push(line)
+          } else if (/^---+$/.test(trimmedLine) && skipNextSeparator) {
+            inTocSection = false
+            skipNextSeparator = false
+            // 跳过目录后的分隔符
+            continue
+          }
+          // 在目录章节中的行都跳过
+          continue
+        }
+
+        result.push(line)
+      }
+
+      return result.join('\n')
+    }
+
     // 渲染 markdown 为 HTML
     const renderedMarkdown = computed(() => {
       if (!markdownContent.value) return ''
       try {
         // 重置 headingIds
         headingIds.clear()
-        const rawHtml = marked.parse(markdownContent.value)
+        // 移除目录章节后再渲染
+        const contentWithoutTOC = removeTOCSection(markdownContent.value)
+        const rawHtml = marked.parse(contentWithoutTOC)
         return DOMPurify.sanitize(rawHtml)
       } catch (error) {
         console.error('Markdown 解析失败:', error)
@@ -318,6 +396,8 @@ export default {
 
         if (response.data.success) {
           markdownContent.value = response.data.data.content
+          // 设置当前文件路径，用于解析图片相对路径
+          currentFilePath = filePath
           // 提取目录
           tocItems.value = extractTOC(response.data.data.content)
           
