@@ -2,139 +2,139 @@
   <div>
     <div class="settings-container">
       <div class="settings-section">
-        <h3>版本更新</h3>
-        
-        <!-- 当前版本信息 -->
-        <div class="version-info">
-          <el-card shadow="hover" class="version-card">
-            <div class="current-version">
-              <el-icon :size="24" class="version-icon">
-                <Document />
-              </el-icon>
-              <div class="version-details">
-                <div class="version-number">当前版本: v{{ currentVersion }}</div>
-                <div class="version-date">{{ currentVersionDate }}</div>
-              </div>
-            </div>
-          </el-card>
+        <!-- 加载状态 -->
+        <div v-if="loading" class="loading-container">
+          <el-icon class="is-loading" :size="40">
+            <Loading />
+          </el-icon>
+          <p>加载更新日志中...</p>
         </div>
 
-        <!-- 检查更新按钮 -->
-        <div class="update-actions">
-          <el-button 
-            type="primary" 
-            size="large" 
-            :loading="checkingUpdate"
-            @click="checkForUpdate"
-          >
-            <el-icon><Refresh /></el-icon>
-            检查更新
-          </el-button>
-        </div>
+        <!-- 错误提示 -->
+        <el-alert
+          v-else-if="error"
+          type="error"
+          :title="error"
+          show-icon
+          :closable="false"
+        />
 
-        <!-- 更新日志 -->
-        <div class="update-log-section">
-          <h4>更新日志</h4>
-          <el-timeline>
-            <el-timeline-item
-              v-for="(log, index) in updateLogs"
-              :key="index"
-              :timestamp="log.date"
-              placement="top"
-              :type="index === 0 ? 'primary' : ''"
-            >
-              <el-card shadow="hover">
-                <div class="log-header">
-                  <span class="log-version">{{ log.version }}</span>
-                </div>
-                <div class="log-content">
-                  <ul class="log-items">
-                    <li v-for="(item, itemIndex) in log.items" :key="itemIndex">
-                      {{ item }}
-                    </li>
-                  </ul>
-                </div>
-              </el-card>
-            </el-timeline-item>
-          </el-timeline>
-        </div>
+        <!-- Markdown 内容显示 -->
+        <div v-else class="markdown-container" v-html="renderedMarkdown"></div>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Document, Refresh } from '@element-plus/icons-vue'
+import { Loading } from '@element-plus/icons-vue'
+import axios from 'axios'
+import { API_CONFIG } from '@/config/api.js'
 
 export default {
   name: 'VersionUpdate',
   setup() {
-    const currentVersion = ref('1.2.7')
-    const currentVersionDate = ref('2025-11-28')
-    const checkingUpdate = ref(false)
-    const updateLogs = ref([
-      {
-        version: 'v1.2.7',
-        date: '2025-11-28',
-        items: [
-          '表 buy sell steam_stockComponents steam_inventory steam_buy steam_sell 新增字段 steam_hash_name',
-          'steam库存表添加 详细信息的获取',
-          '修改yyyp 获取商品详情的时候 添加获取贴纸信息 挂件信息'
-        ]
-      },
-      {
-        version: 'v1.2.6',
-        date: '2025-11-28',
-        items: [
-          'auto-manager自动化管理页面添加 启动全部 停止全部按钮',
-          '修改csfloat的订单查询状态限制',
-          '添加使用yyyp的URL进行ICON的下载 脱离在线图片库的依赖'
-        ]
-      },
-      {
-        version: 'v1.2.5',
-        date: '2025-11-27',
-        items: [
-          '爬取改名中的 steam市场类型添加搜素参数'
-        ]
-      }
-    ])
+    const loading = ref(true)
+    const error = ref(null)
+    const markdownContent = ref('')
 
-    const checkForUpdate = async () => {
-      checkingUpdate.value = true
+    // 简单的 markdown 解析器
+    const parseMarkdown = (md) => {
+      if (!md) return ''
+      
+      let html = md
+      
+      // 转义 HTML 特殊字符
+      const escapeHtml = (text) => {
+        const map = {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#039;'
+        }
+        return text.replace(/[&<>"']/g, m => map[m])
+      }
+      
+      // 处理代码块
+      html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+        return `<pre><code class="language-${lang || 'text'}">${escapeHtml(code.trim())}</code></pre>`
+      })
+      
+      // 处理行内代码
+      html = html.replace(/`([^`]+)`/g, '<code>$1</code>')
+      
+      // 处理标题
+      html = html.replace(/^#### (.*$)/gim, '<h4>$1</h4>')
+      html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>')
+      html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>')
+      html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>')
+      
+      // 处理粗体
+      html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      
+      // 处理列表
+      html = html.replace(/^\d+\.\s+(.*)$/gim, '<li>$1</li>')
+      html = html.replace(/^[-*]\s+(.*)$/gim, '<li>$1</li>')
+      
+      // 包装连续的 li 标签
+      html = html.replace(/(<li>.*<\/li>\n?)+/g, match => {
+        return '<ul>' + match + '</ul>'
+      })
+      
+      // 处理段落
+      html = html.split('\n\n').map(para => {
+        para = para.trim()
+        if (!para) return ''
+        if (para.startsWith('<h') || para.startsWith('<ul') || para.startsWith('<pre')) {
+          return para
+        }
+        return '<p>' + para.replace(/\n/g, '<br>') + '</p>'
+      }).join('\n')
+      
+      return html
+    }
+
+    // 渲染 markdown 为 HTML
+    const renderedMarkdown = computed(() => {
+      return parseMarkdown(markdownContent.value)
+    })
+
+    // 加载更新日志
+    const loadUpdateLog = async () => {
+      loading.value = true
+      error.value = null
+      
       try {
-        // 这里可以添加检查更新的API调用
-        // const response = await axios.get(apiUrls.checkUpdate())
+        const response = await axios.get(`${API_CONFIG.BASE_URL}/api/version/update-log`)
         
-        // 模拟检查更新
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
-        ElMessage.success('已是最新版本')
-      } catch (error) {
-        console.error('检查更新失败:', error)
-        ElMessage.error('检查更新失败，请稍后重试')
+        if (response.data.success) {
+          markdownContent.value = response.data.data.content
+        } else {
+          error.value = response.data.error || '加载更新日志失败'
+        }
+      } catch (err) {
+        console.error('加载更新日志失败:', err)
+        error.value = '无法连接到服务器，请检查后端服务是否运行'
       } finally {
-        checkingUpdate.value = false
+        loading.value = false
       }
     }
 
     onMounted(() => {
-      // 可以在这里加载更新日志
+      loadUpdateLog()
     })
 
     return {
-      currentVersion,
-      currentVersionDate,
-      checkingUpdate,
-      updateLogs,
-      checkForUpdate
+      loading,
+      error,
+      renderedMarkdown
     }
   },
   components: {
-    Document,
-    Refresh
+    Loading
   }
 }
 </script>
@@ -160,104 +160,151 @@ export default {
   font-weight: 600;
 }
 
-.version-info {
-  margin-bottom: 2rem;
-}
-
-.version-card {
-  background: rgba(35, 35, 35, 0.8);
-  border: 1px solid rgba(58, 58, 58, 0.8);
-}
-
-.current-version {
+.loading-container {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 1rem;
-}
-
-.version-icon {
-  color: #409eff;
-}
-
-.version-details {
-  flex: 1;
-}
-
-.version-number {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #ffffff;
-  margin-bottom: 0.5rem;
-}
-
-.version-date {
-  font-size: 0.875rem;
+  justify-content: center;
+  padding: 4rem 2rem;
   color: #b0b0b0;
 }
 
-.update-actions {
-  margin-bottom: 2rem;
+.loading-container p {
+  margin-top: 1rem;
+  font-size: 1rem;
 }
 
-.update-log-section {
-  margin-top: 2rem;
+/* Markdown 内容样式 */
+.markdown-container {
+  color: #e0e0e0;
+  line-height: 1.8;
 }
 
-.update-log-section h4 {
+.markdown-container :deep(h1) {
   color: #ffffff;
-  font-size: 1.25rem;
-  margin-bottom: 1.5rem;
-  font-weight: 600;
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 2rem 0 1.5rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid rgba(64, 158, 255, 0.3);
 }
 
-.log-header {
-  margin-bottom: 1rem;
-}
-
-.log-version {
-  font-size: 1.125rem;
-  font-weight: 600;
+.markdown-container :deep(h2) {
   color: #409eff;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 1.8rem 0 1rem 0;
+  padding-left: 0.5rem;
+  border-left: 4px solid #409eff;
 }
 
-.log-content {
+.markdown-container :deep(h3) {
+  color: #67c23a;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 1.5rem 0 0.8rem 0;
+}
+
+.markdown-container :deep(h4) {
+  color: #e6a23c;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 1.2rem 0 0.6rem 0;
+}
+
+.markdown-container :deep(p) {
+  margin: 0.8rem 0;
   color: #e0e0e0;
 }
 
-.log-items {
-  margin: 0;
-  padding-left: 1.5rem;
-  list-style-type: disc;
+.markdown-container :deep(ul),
+.markdown-container :deep(ol) {
+  margin: 1rem 0;
+  padding-left: 2rem;
 }
 
-.log-items li {
-  margin-bottom: 0.5rem;
+.markdown-container :deep(li) {
+  margin: 0.5rem 0;
+  color: #e0e0e0;
+}
+
+.markdown-container :deep(code) {
+  background: rgba(64, 158, 255, 0.1);
+  color: #409eff;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+.markdown-container :deep(pre) {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(64, 158, 255, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+
+.markdown-container :deep(pre code) {
+  background: transparent;
+  color: #67c23a;
+  padding: 0;
+  font-size: 0.9rem;
   line-height: 1.6;
 }
 
-.log-items li:last-child {
-  margin-bottom: 0;
-}
-
-/* Element Plus Timeline 样式覆盖 */
-:deep(.el-timeline-item__timestamp) {
+.markdown-container :deep(blockquote) {
+  border-left: 4px solid #409eff;
+  padding-left: 1rem;
+  margin: 1rem 0;
   color: #b0b0b0;
-  font-size: 0.875rem;
+  font-style: italic;
 }
 
-:deep(.el-card) {
-  background: rgba(35, 35, 35, 0.8);
+.markdown-container :deep(a) {
+  color: #409eff;
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.markdown-container :deep(a:hover) {
+  color: #66b1ff;
+  text-decoration: underline;
+}
+
+.markdown-container :deep(strong) {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.markdown-container :deep(hr) {
+  border: none;
+  border-top: 1px solid rgba(58, 58, 58, 0.8);
+  margin: 2rem 0;
+}
+
+.markdown-container :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+.markdown-container :deep(th),
+.markdown-container :deep(td) {
   border: 1px solid rgba(58, 58, 58, 0.8);
-  color: #e0e0e0;
+  padding: 0.75rem;
+  text-align: left;
 }
 
-:deep(.el-timeline-item__node) {
-  background-color: #409eff;
-  border-color: #409eff;
+.markdown-container :deep(th) {
+  background: rgba(64, 158, 255, 0.1);
+  color: #409eff;
+  font-weight: 600;
 }
 
-:deep(.el-timeline-item__tail) {
-  border-left-color: rgba(58, 58, 58, 0.8);
+.markdown-container :deep(tr:nth-child(even)) {
+  background: rgba(35, 35, 35, 0.3);
 }
 </style>
 
