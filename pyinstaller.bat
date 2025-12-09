@@ -91,6 +91,14 @@ if exist "Releases\conf.ini" (
     echo Warning: conf.ini not found in Releases folder
 )
 
+:: Copy updateLog.md to root of version folder
+if exist "updateLog.md" (
+    copy "updateLog.md" "Releases\%VERSION%\updateLog.md" >nul
+    echo updateLog.md copied to root successfully
+) else (
+    echo Warning: updateLog.md not found in root directory
+)
+
 if exist "WebSite" (
     echo Copying WebSite files and folders...
     
@@ -137,7 +145,7 @@ if exist "WebSite" (
         copy "WebSite\README.md" "Releases\%VERSION%\WebSite\README.md" >nul
         echo - README.md copied
     )
-    
+
     echo WebSite files copied successfully
 ) else (
     echo Warning: WebSite folder not found
