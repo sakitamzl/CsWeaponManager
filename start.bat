@@ -14,7 +14,7 @@ start /b cmd /c "python Spider.py"
 cd /d "%~dp0WebSite"
 if exist "package.json" (
     npm install
-    start /b cmd /c "npm run serve"
+    start /b cmd /c "cd /d "%~dp0WebSite" && npm run dev"
 )
 cd /d "%~dp0"
 
