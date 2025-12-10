@@ -46,8 +46,11 @@ export default defineConfig({
         }
       }
     },
-    // 配置中间件处理 weapon_imgs
-    middlewareMode: false
+    fs: {
+      // 允许访问项目根目录外的文件
+      strict: false,
+      allow: ['..']
+    }
   },
 
   resolve: {
@@ -78,14 +81,37 @@ export default defineConfig({
   // 添加自定义中间件处理 weapon_imgs
   configureServer: (server) => {
     const weaponImgsPath = path.resolve(__dirname, '..', 'weapon_imgs')
+    console.log('武器图片路径:', weaponImgsPath)
     
     server.middlewares.use((req, res, next) => {
       if (req.url && req.url.startsWith('/weapon_imgs/')) {
-        const filename = req.url.replace('/weapon_imgs/', '')
-        const filePath = path.join(weaponImgsPath, filename)
-        
+        // 移除查询参数
+        const urlPath = req.url.split('?')[0]
+        const filename = decodeURIComponent(urlPath.replace('/weapon_imgs/', ''))
+
+        // 尝试查找文件,支持 png 和 jpg 扩展名
+        let filePath = path.join(weaponImgsPath, filename)
+        let actualFilePath = null
+
+        // 如果请求的文件直接存在
         if (fs.existsSync(filePath)) {
-          const ext = path.extname(filename).toLowerCase()
+          actualFilePath = filePath
+        } else {
+          // 尝试不同的扩展名
+          const filenameWithoutExt = filename.replace(/\.(png|jpg|jpeg)$/i, '')
+          const extensions = ['.png', '.jpg', '.jpeg']
+
+          for (const ext of extensions) {
+            const testPath = path.join(weaponImgsPath, filenameWithoutExt + ext)
+            if (fs.existsSync(testPath)) {
+              actualFilePath = testPath
+              break
+            }
+          }
+        }
+
+        if (actualFilePath) {
+          const ext = path.extname(actualFilePath).toLowerCase()
           const contentTypes = {
             '.png': 'image/png',
             '.jpg': 'image/jpeg',
@@ -94,12 +120,22 @@ export default defineConfig({
             '.svg': 'image/svg+xml',
             '.webp': 'image/webp'
           }
-          
+
           res.setHeader('Content-Type', contentTypes[ext] || 'application/octet-stream')
-          fs.createReadStream(filePath).pipe(res)
+          res.setHeader('Cache-Control', 'public, max-age=31536000')
+          res.setHeader('Access-Control-Allow-Origin', '*')
+
+          const stream = fs.createReadStream(actualFilePath)
+          stream.on('error', (err) => {
+            console.error('读取文件错误:', err)
+            res.statusCode = 500
+            res.end('Error reading file')
+          })
+          stream.pipe(res)
         } else {
+          console.log('文件不存在:', filename)
           res.statusCode = 404
-          res.end('Image not found')
+          res.end('Image not found: ' + filename)
         }
       } else {
         next()
