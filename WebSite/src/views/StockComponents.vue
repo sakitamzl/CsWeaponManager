@@ -8,7 +8,7 @@
           <div class="flex flex-wrap gap-4 items-center">
             <el-select 
               v-model="selectedSteamId" 
-              placeholder="选择Steam账号" 
+              placeholder="选择完美世界账号" 
               class="steam-id-select"
               @change="handleSteamIdChange"
               filterable
@@ -16,13 +16,10 @@
               <el-option
                 v-for="item in steamIdList"
                 :key="item.dataID"
-                :label="`${item.dataName} (${item.steamID}) - ${item.item_count}件`"
+                :label="`${item.dataName} (${item.steamID})`"
                 :value="item.steamID"
               >
-                <span style="float: left">{{ item.dataName }} ({{ item.steamID }})</span>
-                <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">
-                  {{ item.item_count }}件
-                </span>
+                <span>{{ item.dataName }} ({{ item.steamID }})</span>
               </el-option>
             </el-select>
             <el-select 
@@ -65,17 +62,11 @@
             <el-button type="success" @click="handleUpdateComponent" :loading="updateLoading" :disabled="!selectedComponent">
               获取/更新组件物品
             </el-button>
-            <el-button type="warning" @click="handleUpdateAllComponents" :loading="updateAllLoading" :disabled="!selectedSteamId">
+            <el-button type="success" @click="handleUpdateAllComponents" :loading="updateAllLoading" :disabled="!selectedSteamId">
               获取/更新全部组件
             </el-button>
-            <el-button type="info" @click="handleAutoFillPrices" :loading="autoFillLoading" :disabled="!selectedSteamId">
-              自动获取购入价格
-            </el-button>
-            <el-button type="primary" plain @click="handleFillReferencePrice('yyyp')" :loading="yyypFillLoading" :disabled="!selectedSteamId">
-              获取悠悠有品价格
-            </el-button>
-            <el-button type="primary" plain @click="handleFillReferencePrice('buff')" :loading="buffFillLoading" :disabled="!selectedSteamId">
-              获取BUFF价格
+            <el-button type="primary" plain @click="handleFillAllPlatformPrices" :loading="platformPriceLoading" :disabled="!selectedSteamId">
+              获取/更新平台价格
             </el-button>
             <el-switch
               v-model="groupMode"
@@ -449,9 +440,7 @@ export default {
     const loading = ref(false)
     const updateLoading = ref(false)
     const updateAllLoading = ref(false)
-    const autoFillLoading = ref(false)
-    const yyypFillLoading = ref(false)
-    const buffFillLoading = ref(false)
+    const platformPriceLoading = ref(false)
     const componentData = ref([])
     const groupedData = ref([])
     const groupMode = ref(true)
@@ -475,6 +464,7 @@ export default {
     
     // API 基础地址
     const API_BASE = `${API_CONFIG.BASE_URL}/webInventoryV1`
+    const API_PERFECTWORLD = `${API_CONFIG.BASE_URL}/prefectWorldConfigV1`
     const API_COMPONENTS = `${API_CONFIG.BASE_URL}/webStockComponentsV1`
     const API_COMPONENTS_GROUPED = `${API_CONFIG.BASE_URL}/webStockComponentsV1/components/grouped`
     const API_SPIDER = API_CONFIG.SPIDER_BASE_URL
@@ -634,25 +624,25 @@ export default {
 
     const loadSteamIdList = async () => {
       try {
-        // 传递classid参数，只统计库存组件的数量
-        const response = await axios.get(`${API_BASE}/steam_ids`, {
+        // 从完美世界配置中获取账号列表，传递classid参数统计库存组件数量
+        const response = await axios.get(`${API_PERFECTWORLD}/configs`, {
           params: {
             classid: COMPONENT_CLASSID
           }
         })
-        console.log('Steam ID列表响应:', response.data)
+        console.log('完美世界配置列表响应:', response.data)
         if (response.data.success) {
           steamIdList.value = response.data.data
           if (steamIdList.value.length > 0) {
             selectedSteamId.value = steamIdList.value[0].steamID
             console.log('默认选择Steam ID:', selectedSteamId.value)
           } else {
-            ElMessage.warning('没有找到Steam账号')
+            ElMessage.warning('没有找到完美世界账号配置')
           }
         }
       } catch (error) {
-        console.error('加载Steam ID列表失败:', error)
-        ElMessage.error('加载Steam ID列表失败: ' + (error.response?.data?.error || error.message))
+        console.error('加载完美世界配置列表失败:', error)
+        ElMessage.error('加载账号列表失败: ' + (error.response?.data?.error || error.message))
       }
     }
 
@@ -962,6 +952,20 @@ export default {
         if (response.data.success) {
           const itemCount = response.data.total_items || 0
           ElMessage.success(`组件物品更新成功! 共更新 ${itemCount} 个物品`)
+          
+          // 自动同步购入价格
+          try {
+            console.log('自动同步购入价格...')
+            const priceResponse = await axios.post(`${API_COMPONENTS}/auto_fill_prices/${selectedSteamId.value}`)
+            if (priceResponse.data.success) {
+              const data = priceResponse.data.data
+              console.log(`购入价格自动同步完成: 成功填充 ${data.filled_count}/${data.total_count}`)
+            }
+          } catch (priceError) {
+            console.error('自动同步购入价格失败:', priceError)
+            // 不阻断主流程，只记录错误
+          }
+          
           // 更新成功后重新加载数据
           await loadComponentData()
         } else {
@@ -1102,6 +1106,19 @@ export default {
           ElMessage.warning(`部分组件更新失败! 成功: ${successCount}, 失败: ${failedCount}, 总物品数: ${totalItems}`)
         }
         
+        // 自动同步购入价格
+        try {
+          console.log('自动同步购入价格...')
+          const priceResponse = await axios.post(`${API_COMPONENTS}/auto_fill_prices/${selectedSteamId.value}`)
+          if (priceResponse.data.success) {
+            const data = priceResponse.data.data
+            console.log(`购入价格自动同步完成: 成功填充 ${data.filled_count}/${data.total_count}`)
+          }
+        } catch (priceError) {
+          console.error('自动同步购入价格失败:', priceError)
+          // 不阻断主流程，只记录错误
+        }
+        
         // 更新成功后重新加载数据
         await loadComponentData()
         
@@ -1160,10 +1177,8 @@ export default {
       }
 
       const isYyyp = source === 'yyyp'
-      const loadingRef = isYyyp ? yyypFillLoading : buffFillLoading
       const label = isYyyp ? '悠悠有品' : 'BUFF'
 
-      loadingRef.value = true
       try {
         ElMessage.info(`正在同步${label}价格，请稍候...`)
 
@@ -1186,8 +1201,56 @@ export default {
       } catch (error) {
         console.error(`${label}价格同步失败:`, error)
         ElMessage.error(`${label}价格同步失败: ` + (error.response?.data?.message || error.message))
+      }
+    }
+
+    // 获取/更新所有平台价格（悠悠有品 + BUFF）
+    const handleFillAllPlatformPrices = async () => {
+      if (!selectedSteamId.value) {
+        ElMessage.warning('请先选择Steam账号')
+        return
+      }
+
+      platformPriceLoading.value = true
+      try {
+        ElMessage.info('正在获取/更新平台价格（悠悠有品 + BUFF），请稍候...')
+
+        // 依次调用悠悠有品和BUFF价格接口，强制重新获取最新价格
+        const yyypResponse = await axios.post(
+          `${API_COMPONENTS}/fill_reference_price/${selectedSteamId.value}/yyyp`,
+          { force_update: true }
+        )
+
+        const buffResponse = await axios.post(
+          `${API_COMPONENTS}/fill_reference_price/${selectedSteamId.value}/buff`,
+          { force_update: true }
+        )
+
+        // 检查两个接口的返回结果
+        const yyypSuccess = yyypResponse.data.success
+        const buffSuccess = buffResponse.data.success
+
+        if (yyypSuccess && buffSuccess) {
+          ElMessage.success({
+            message: '平台价格获取/更新完成（悠悠有品 + BUFF）',
+            duration: 5000,
+            showClose: true
+          })
+        } else if (yyypSuccess) {
+          ElMessage.warning('悠悠有品价格获取/更新成功，BUFF价格同步失败')
+        } else if (buffSuccess) {
+          ElMessage.warning('BUFF价格获取/更新成功，悠悠有品价格同步失败')
+        } else {
+          ElMessage.error('平台价格获取/更新失败')
+        }
+
+        // 重新加载数据
+        await (groupMode.value ? loadGroupedData() : loadComponentData())
+      } catch (error) {
+        console.error('平台价格获取/更新失败:', error)
+        ElMessage.error('平台价格获取/更新失败: ' + (error.response?.data?.message || error.message))
       } finally {
-        loadingRef.value = false
+        platformPriceLoading.value = false
       }
     }
 
@@ -1302,9 +1365,7 @@ export default {
       groupMode,
       updateLoading,
       updateAllLoading,
-      autoFillLoading,
-      yyypFillLoading,
-      buffFillLoading,
+      platformPriceLoading,
       componentData,
       groupedData,
       filteredData,
@@ -1342,8 +1403,8 @@ export default {
       handleUpdateComponent,
       handleUpdateAllComponents,
       handleToggleGroupMode,
-      handleAutoFillPrices,
       handleFillReferencePrice,
+      handleFillAllPlatformPrices,
       startEdit,
       finishEdit,
       cancelEdit,
@@ -1361,7 +1422,7 @@ export default {
 
 <style scoped>
 .inventory-stats {
-  margin-bottom: 1.5rem;
+  margin-bottom: clamp(1rem, 3vw, 1.25rem);
 }
 
 .grid {
@@ -1411,33 +1472,27 @@ export default {
   .search-section :deep(.el-button) {
     flex: 1 1 100%;
   }
-  
-  .stat-number {
-    font-size: 1.25rem;
-  }
-  
-  .stat-diff-right {
-    font-size: 0.875rem;
-  }
 }
 
 .stat-number {
-  font-size: 1.5rem;
+  font-size: clamp(1.25rem, 3vw, 1.5rem);
   font-weight: bold;
   color: #fff;
-  margin: 0.5rem 0 0 0;
+  margin-top: clamp(0.5rem, 1vw, 0.625rem);
 }
 
 .stat-price-container {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: clamp(0.5rem, 1vw, 0.625rem);
 }
 
 .stat-diff-right {
-  font-size: 1rem;
-  font-weight: 600;
-  margin-top: 0.25rem;
+  font-size: clamp(1.25rem, 3vw, 1.5rem);
+  font-weight: bold;
+  margin: 0;
 }
 
 .weapon-image-cell {
