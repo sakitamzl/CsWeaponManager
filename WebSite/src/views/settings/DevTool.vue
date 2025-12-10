@@ -171,26 +171,14 @@
             </el-button>
           </div>
 
-          <!-- Steam饰品哈希 -->
-          <div class="control-group">
-            <el-button
-              type="primary"
-              @click="fetchSteamHashNames"
-              :disabled="isFetchingHashNames"
-              :loading="isFetchingHashNames"
-            >
-              {{ isFetchingHashNames ? '获取中...' : '获取Steam饰品哈希' }}
-            </el-button>
-          </div>
-
           <!-- CSQAQ商品采集 -->
           <div class="control-group">
-            <el-button 
-              type="warning" 
+            <el-button
+              type="success"
               @click="startCsqaqCrawlAll"
               disabled
             >
-              全量采集 CSQAQ 商品
+              上传CSQAQ映射文件
             </el-button>
           </div>
         </div>
@@ -215,17 +203,6 @@
             <span class="progress-value success-rate">
               {{ collectProgress.success_rate || 0 }}%
             </span>
-          </div>
-        </div>
-
-        <div v-if="fetchHashNamesResult" class="sync-info" style="margin-top: 0.5rem;">
-          <div class="status-row">
-            <span class="status-label">获取结果:</span>
-            <span class="status-value highlight">成功保存 {{ fetchHashNamesResult.total_saved }} 条数据</span>
-          </div>
-          <div class="status-row">
-            <span class="status-label">武器数量:</span>
-            <span class="status-value">{{ fetchHashNamesResult.total_tags }} 个武器类型</span>
           </div>
         </div>
 
@@ -318,10 +295,8 @@ export default {
     
     // Steam Hash Names 相关状态
     const isCollectingHashNames = ref(false)
-    const isFetchingHashNames = ref(false)
     const lastCollectTime = ref('')
     const collectProgress = ref(null)
-    const fetchHashNamesResult = ref(null)
 
     // CSQAQ 相关状态
     const isCrawlingCsqaq = ref(false)
@@ -903,56 +878,6 @@ export default {
       }
     }
 
-    // 获取Steam饰品哈希（所有武器）
-    const fetchSteamHashNames = async () => {
-      try {
-        await ElMessageBox.confirm(
-          '确定要获取Steam所有武器的饰品哈希吗？将获取所有武器（刀具、手套、步枪、手枪、冲锋枪等）的皮肤数据，预计需要较长时间。',
-          '确认获取',
-          {
-            confirmButtonText: '确定',
-            cancelButtonText: '取消',
-            type: 'info'
-          }
-        )
-      } catch {
-        return
-      }
-
-      isFetchingHashNames.value = true
-      fetchHashNamesResult.value = null
-      ElMessage.info('开始获取Steam饰品哈希数据，请耐心等待...')
-
-      try {
-        // 使用GET请求，服务端自动处理所有武器标签
-        const response = await axios.get(apiUrls.steamFetchHashNames())
-
-        if (response.data.success) {
-          fetchHashNamesResult.value = response.data.data
-          lastCollectTime.value = new Date().toLocaleString('zh-CN')
-          ElMessage.success(`获取成功！${response.data.message}`)
-          console.log('获取结果:', response.data)
-        } else {
-          ElMessage.error(`获取失败: ${response.data.message}`)
-        }
-      } catch (error) {
-        console.error('获取Steam饰品哈希失败:', error)
-        let errorMessage = '获取失败'
-
-        if (error.response) {
-          errorMessage = error.response.data?.message || `获取失败 (${error.response.status})`
-        } else if (error.request) {
-          errorMessage = '无法连接到爬虫服务器，请检查服务是否运行'
-        } else {
-          errorMessage = error.message || '获取失败'
-        }
-
-        ElMessage.error(errorMessage)
-      } finally {
-        isFetchingHashNames.value = false
-      }
-    }
-
     // CSQAQ 全量采集
     const startCsqaqCrawlAll = async () => {
       try {
@@ -1096,12 +1021,9 @@ export default {
       syncBuffTemplates,
       // Steam Hash Names 相关
       isCollectingHashNames,
-      isFetchingHashNames,
       lastCollectTime,
       collectProgress,
-      fetchHashNamesResult,
       collectHashNamesFull,
-      fetchSteamHashNames,
       // 图片下载
       isDownloadingIcons,
       iconDownloadResult,
