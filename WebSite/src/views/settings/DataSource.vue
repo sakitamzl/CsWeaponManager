@@ -18,6 +18,7 @@
 
         <!-- 按SteamID分组显示（有数据时） - 每个分组独立的BOX -->
         <template v-else>
+          <!-- SteamID分组数据源 -->
           <div v-for="(group, steamID) in groupedDataSources" :key="steamID" class="steam-group-box">
             <div class="card">
               <div class="steam-group-header">
@@ -68,6 +69,48 @@
               </div>
             </div>
           </div>
+
+          <!-- 独立数据源区域 - 置于底部 -->
+          <div v-if="independentDataSources.length > 0" class="steam-group-box">
+            <div class="card">
+              <div class="steam-group-header">
+                <div class="steam-group-header-left">
+                  <h4>
+                    <el-icon><DataAnalysis /></el-icon>
+                    独立数据源
+                    <el-tag size="small" type="success" style="margin-left: 10px;">{{ independentDataSources.length }} 个数据源</el-tag>
+                  </h4>
+                </div>
+                <div class="steam-group-header-right">
+                  <div class="add-source-button" @click="openAddIndependentDataSource">
+                    <el-icon :size="20"><Plus /></el-icon>
+                    <span>添加独立数据源</span>
+                  </div>
+                </div>
+              </div>
+              <div class="grid grid-datasource">
+                <!-- 独立数据源卡片 - 只显示编辑按钮 -->
+                <div 
+                  v-for="source in independentDataSources" 
+                  :key="source.dataID" 
+                  class="source-card"
+                >
+                  <div class="source-header">
+                    <div class="source-info">
+                      <h4>{{ source.dataName }}</h4>
+                      <el-tag :type="getSourceTypeColor(source.enabled)">{{ getSourceTypeLabel(source.type) }}</el-tag>
+                    </div>
+                  </div>
+                  
+                  <div class="source-actions">
+                    <el-button type="primary" size="small" @click="editSource(source)">
+                      编辑
+                    </el-button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </template>
       </div>
 
@@ -76,6 +119,10 @@
         <div class="card new-steam-group-card" @click="openAddDialogForNewSteam">
           <el-icon :size="32"><Plus /></el-icon>
           <span>新建SteamID分组</span>
+        </div>
+        <div class="card new-steam-group-card" @click="openAddIndependentDataSource">
+          <el-icon :size="32"><Plus /></el-icon>
+          <span>添加独立数据源</span>
         </div>
       </div>
 
@@ -105,6 +152,7 @@
             <el-option label="网易BUFF" value="buff" />
             <el-option label="悠悠有品" value="youpin" />
             <el-option label="CsFloat" value="csfloat" />
+            <el-option label="CSQAQ" value="csqaq" />
           </el-select>
         </el-form-item>
 
@@ -853,6 +901,22 @@
           </el-collapse>
         </template>
 
+        <!-- CSQAQ特有配置 -->
+        <template v-else-if="editForm.type === 'csqaq'">
+          <el-collapse v-model="editCsqaqCollapse">
+            <el-collapse-item title="CSQAQ配置" name="config">
+              <el-form-item label="ApiToken" required>
+                <el-input 
+                  v-model="editForm.csqaqApiToken" 
+                  type="textarea"
+                  :rows="3"
+                  placeholder="请输入ApiToken"
+                />
+              </el-form-item>
+            </el-collapse-item>
+          </el-collapse>
+        </template>
+
         <!-- 通用配置 -->
         <template v-else>
           <el-form-item label="API地址">
@@ -932,7 +996,7 @@
     <!-- 添加数据源对话框 -->
     <el-dialog
       v-model="addDialogVisible"
-      title="添加新数据源"
+      :title="isIndependentDataSourceMode ? '添加独立数据源' : '添加新数据源'"
       width="600px"
       :close-on-click-modal="false"
       :close-on-press-escape="false"
@@ -946,8 +1010,9 @@
           />
         </el-form-item>
         <el-form-item label="数据源类型" required>
-          <el-select v-model="inputForm.type" placeholder="选择数据源类型" style="width: 100%;">
+          <el-select v-model="inputForm.type" placeholder="选择数据源类型" style="width: 100%;" :disabled="isIndependentDataSourceMode">
             <el-option 
+              v-if="!isIndependentDataSourceMode"
               label="Steam市场" 
               value="steam" 
               :disabled="isTypeDisabled('steam')"
@@ -956,6 +1021,7 @@
               <span v-if="isTypeDisabled('steam')" style="color: #909399; font-size: 12px; margin-left: 10px;">(已存在)</span>
             </el-option>
             <el-option 
+              v-if="!isIndependentDataSourceMode"
               label="完美世界APP" 
               value="perfectworld" 
               :disabled="isTypeDisabled('perfectworld')"
@@ -964,6 +1030,7 @@
               <span v-if="isTypeDisabled('perfectworld')" style="color: #909399; font-size: 12px; margin-left: 10px;">(已存在)</span>
             </el-option>
             <el-option 
+              v-if="!isIndependentDataSourceMode"
               label="网易BUFF" 
               value="buff" 
               :disabled="isTypeDisabled('buff')"
@@ -972,6 +1039,7 @@
               <span v-if="isTypeDisabled('buff')" style="color: #909399; font-size: 12px; margin-left: 10px;">(已存在)</span>
             </el-option>
             <el-option 
+              v-if="!isIndependentDataSourceMode"
               label="悠悠有品" 
               value="youpin" 
               :disabled="isTypeDisabled('youpin')"
@@ -980,12 +1048,20 @@
               <span v-if="isTypeDisabled('youpin')" style="color: #909399; font-size: 12px; margin-left: 10px;">(已存在)</span>
             </el-option>
             <el-option 
+              v-if="!isIndependentDataSourceMode"
               label="CsFloat" 
               value="csfloat" 
               :disabled="isTypeDisabled('csfloat')"
             >
               <span>CsFloat</span>
               <span v-if="isTypeDisabled('csfloat')" style="color: #909399; font-size: 12px; margin-left: 10px;">(已存在)</span>
+            </el-option>
+            <el-option 
+              v-if="isIndependentDataSourceMode"
+              label="CSQAQ" 
+              value="csqaq"
+            >
+              <span>CSQAQ</span>
             </el-option>
           </el-select>
         </el-form-item>
@@ -1586,9 +1662,25 @@
             </el-collapse-item>
           </el-collapse>
         </template>
+
+        <!-- CSQAQ特有配置 -->
+        <template v-else-if="inputForm.type === 'csqaq'">
+          <el-collapse v-model="inputCsqaqCollapse">
+            <el-collapse-item title="CSQAQ配置" name="config">
+              <el-form-item label="ApiToken" required>
+                <el-input 
+                  v-model="inputForm.csqaqApiToken" 
+                  type="textarea"
+                  :rows="3"
+                  placeholder="请输入ApiToken"
+                />
+              </el-form-item>
+            </el-collapse-item>
+          </el-collapse>
+        </template>
         
         <!-- 通用配置 -->
-        <template v-else-if="inputForm.type && inputForm.type !== 'youpin' && inputForm.type !== 'steam' && inputForm.type !== 'perfectworld' && inputForm.type !== 'csfloat'">
+        <template v-else-if="inputForm.type && inputForm.type !== 'youpin' && inputForm.type !== 'steam' && inputForm.type !== 'perfectworld' && inputForm.type !== 'csfloat' && inputForm.type !== 'csqaq'">
           <el-form-item label="API地址">
             <el-input 
               v-model="inputForm.apiUrl" 
@@ -1758,7 +1850,7 @@
 <script>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, User, Grid, Loading, CircleCheck } from '@element-plus/icons-vue'
+import { Plus, User, Grid, Loading, CircleCheck, DataAnalysis } from '@element-plus/icons-vue'
 import axios from 'axios'
 import { apiUrls } from '@/config/api.js'
 import { useCollectionState } from '@/composables/useCollectionState.js'
@@ -1770,7 +1862,8 @@ export default {
     User,
     Grid,
     Loading,
-    CircleCheck
+    CircleCheck,
+    DataAnalysis
   },
   setup() {
     // 使用采集状态管理 composable（持久化到 localStorage）
@@ -1784,6 +1877,7 @@ export default {
     const isListCollapsed = ref(false) // 列表收起状态
     const editSubmitting = ref(false)
     const addDialogVisible = ref(false)
+    const isIndependentDataSourceMode = ref(false) // 是否是独立数据源模式
     const steamLoginLoading = ref(false)
     const steamQRCode = ref('') // 二维码图片base64
     const steamQRLoading = ref(false) // 二维码生成loading
@@ -1819,11 +1913,13 @@ export default {
     const inputBuffCollapse = ref(['config'])
     const inputPerfectWorldCollapse = ref([])
     const inputCsfloatCollapse = ref([])
+    const inputCsqaqCollapse = ref(['config'])
     const inputSteamCollapse = ref([])
     const editSteamCollapse = ref([])
     const editSteamLoginCollapse = ref([])
     const editPerfectWorldCollapse = ref([])
     const editCsfloatCollapse = ref([])
+    const editCsqaqCollapse = ref(['config'])
     
     const editForm = ref({
       name: '',
@@ -1881,7 +1977,9 @@ export default {
       csfloatConnection: '',
       csfloatAcceptEncoding: '',
       csfloatCookie: '',
-      csfloatSteamID: ''
+      csfloatSteamID: '',
+      // CSQAQ特有字段
+      csqaqApiToken: ''
     })
     
     const inputForm = ref({
@@ -1942,7 +2040,9 @@ export default {
       csfloatConnection: '',
       csfloatAcceptEncoding: '',
       csfloatCookie: '',
-      csfloatSteamID: ''
+      csfloatSteamID: '',
+      // CSQAQ特有字段
+      csqaqApiToken: ''
     })
 
     const dataSources = ref([])
@@ -1958,11 +2058,26 @@ export default {
       'perfectworld': 5
     }
 
-    // 按SteamID分组的计算属性
+    // 独立数据源类型列表
+    const independentDataSourceTypes = ['csqaq']
+
+    // 独立数据源的计算属性
+    const independentDataSources = computed(() => {
+      return dataSources.value.filter(source => 
+        independentDataSourceTypes.includes(source.type)
+      )
+    })
+
+    // 按SteamID分组的计算属性（排除独立数据源）
     const groupedDataSources = computed(() => {
       const groups = {}
       
       dataSources.value.forEach(source => {
+        // 跳过独立数据源
+        if (independentDataSourceTypes.includes(source.type)) {
+          return
+        }
+        
         const steamID = source.steamID || '未设置'
         if (!groups[steamID]) {
           groups[steamID] = []
@@ -2007,7 +2122,8 @@ export default {
         perfectworld: '完美世界APP',
         buff: '网易BUFF',
         youpin: '悠悠有品',
-        csfloat: 'CsFloat'
+        csfloat: 'CsFloat',
+        csqaq: 'CSQAQ'
       }
       return labels[type] || type
     }
@@ -2244,6 +2360,14 @@ export default {
         }
       }
 
+      // CSQAQ类型的字段校验
+      if (inputForm.value.type === 'csqaq') {
+        if (!inputForm.value.csqaqApiToken) {
+          ElMessage.error('请填写ApiToken')
+          return
+        }
+      }
+
       submitting.value = true
       try {
         // 获取当前时间作为创建时间
@@ -2362,6 +2486,11 @@ export default {
             'Cookie': inputForm.value.csfloatCookie,
             steamID: inputForm.value.csfloatSteamID,
             sleep_time: '6000'
+          })
+        } else if (inputForm.value.type === 'csqaq') {
+          // CSQAQ特殊配置
+          requestData.configJson = JSON.stringify({
+            ApiToken: inputForm.value.csqaqApiToken
           })
         } else {
           requestData.configJson = JSON.stringify({
@@ -2983,7 +3112,9 @@ export default {
         csfloatConnection: '',
         csfloatAcceptEncoding: '',
         csfloatCookie: '',
-        csfloatSteamID: ''
+        csfloatSteamID: '',
+        // CSQAQ特有字段
+        csqaqApiToken: ''
       }
       editingSourceId.value = null
     }
@@ -3602,6 +3733,10 @@ export default {
         editForm.value.csfloatCookie = config.Cookie || config.cookie || ''
         editForm.value.csfloatSteamID = config.steamID || ''
         editForm.value.updateFreq = config.updateFreq || source.updateFreq || '15min'
+      } else if (source.type === 'csqaq') {
+        // CSQAQ配置
+        console.log('CSQAQ配置解析:', config)
+        editForm.value.csqaqApiToken = config.ApiToken || ''
       } else {
         // 通用配置 - 检查多种可能的字段名
         editForm.value.apiUrl = config.api_url || source.apiUrl || ''
@@ -3690,13 +3825,16 @@ export default {
         csfloatConnection: '',
         csfloatAcceptEncoding: '',
         csfloatCookie: '',
-        csfloatSteamID: ''
+        csfloatSteamID: '',
+        // CSQAQ特有字段
+        csqaqApiToken: ''
       }
     }
 
     // 打开添加数据源对话框
     const openAddDialog = (steamID) => {
       currentSteamID.value = steamID // 记录当前分组的steamID
+      isIndependentDataSourceMode.value = false // 清除独立数据源模式
       resetForm() // 先重置表单
       addDialogVisible.value = true
     }
@@ -3704,7 +3842,18 @@ export default {
     // 打开新建SteamID分组的对话框（不限制类型）
     const openAddDialogForNewSteam = () => {
       currentSteamID.value = null // 清空steamID，不限制类型
+      isIndependentDataSourceMode.value = false // 清除独立数据源模式
       resetForm() // 先重置表单
+      addDialogVisible.value = true
+    }
+
+    // 打开添加独立数据源对话框（CSQAQ等独立数据源）
+    const openAddIndependentDataSource = () => {
+      currentSteamID.value = null // 清空steamID
+      resetForm() // 先重置表单
+      isIndependentDataSourceMode.value = true // 设置为独立数据源模式
+      inputForm.value.type = 'csqaq' // 默认选择CSQAQ
+      inputForm.value.name = 'CSQAQ' // 默认名称
       addDialogVisible.value = true
     }
 
@@ -4275,6 +4424,14 @@ export default {
         }
       }
 
+      // CSQAQ类型的字段校验
+      if (editForm.value.type === 'csqaq') {
+        if (!editForm.value.csqaqApiToken) {
+          ElMessage.error('请填写ApiToken')
+          return
+        }
+      }
+
       editSubmitting.value = true
       try {
         let requestData = {
@@ -4382,6 +4539,11 @@ export default {
             steamID: editForm.value.csfloatSteamID,
             updateFreq: editForm.value.updateFreq,
             sleep_time: '6000'
+          })
+        } else if (editForm.value.type === 'csqaq') {
+          // CSQAQ特殊配置
+          requestData.configJson = JSON.stringify({
+            ApiToken: editForm.value.csqaqApiToken
           })
         } else if (editForm.value.type === 'steam_login') {
           // Steam登录特殊配置（兼容旧数据，使用与steam相同的配置）
@@ -4922,10 +5084,12 @@ export default {
       editDialogVisible,
       editSubmitting,
       addDialogVisible,
+      isIndependentDataSourceMode,
       isListCollapsed,
       editForm,
       inputForm,
       dataSources,
+      independentDataSources,
       groupedDataSources,
       currentSteamID,
       existingTypesInCurrentGroup,
@@ -4971,17 +5135,20 @@ export default {
       inputBuffCollapse,
       inputPerfectWorldCollapse,
       inputCsfloatCollapse,
+      inputCsqaqCollapse,
       inputSteamCollapse,
       editSteamCollapse,
       editSteamLoginCollapse,
       editPerfectWorldCollapse,
       editCsfloatCollapse,
+      editCsqaqCollapse,
       handleEditBuffCollectAll,
       handleEditCsfloatCollectAll,
       handleEditSteamCollectAll,
       handleEditDelete,
       openAddDialog,
       openAddDialogForNewSteam,
+      openAddIndependentDataSource,
       handleAddDialogClose,
       removeSource,
       refreshAllSources,
@@ -5032,6 +5199,9 @@ export default {
 
 .additional-box {
   margin-bottom: clamp(1.5rem, 4vw, 1.875rem);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
 }
 
 .additional-box .card {

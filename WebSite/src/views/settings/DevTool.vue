@@ -180,6 +180,7 @@
               :show-file-list="true"
               :limit="1"
               accept=".txt"
+              :on-change="handleCsqaqFileChange"
               :on-success="handleCsqaqUploadSuccess"
               :on-error="handleCsqaqUploadError"
               :before-upload="beforeCsqaqUpload"
@@ -1038,6 +1039,40 @@ export default {
     }
 
     // CSQAQ上传相关函数
+    const handleCsqaqFileChange = (file, fileList) => {
+      // 文件选择时触发
+      if (fileList.length > 0) {
+        const selectedFile = file.raw
+        const isTxt = selectedFile.name.endsWith('.txt')
+        const isLt50M = selectedFile.size / 1024 / 1024 < 50
+        
+        if (!isTxt) {
+          ElMessage.error('只能上传.txt文件！')
+          csqaqFileSelected.value = false
+          // 清除文件
+          if (csqaqUploadRef.value) {
+            csqaqUploadRef.value.clearFiles()
+          }
+          return
+        }
+        
+        if (!isLt50M) {
+          ElMessage.error('文件大小不能超过50MB！')
+          csqaqFileSelected.value = false
+          // 清除文件
+          if (csqaqUploadRef.value) {
+            csqaqUploadRef.value.clearFiles()
+          }
+          return
+        }
+        
+        csqaqFileSelected.value = true
+        ElMessage.success('文件已选择，请点击"提交上传"按钮')
+      } else {
+        csqaqFileSelected.value = false
+      }
+    }
+
     const beforeCsqaqUpload = (file) => {
       const isTxt = file.name.endsWith('.txt')
       if (!isTxt) {
@@ -1051,7 +1086,6 @@ export default {
         return false
       }
       
-      csqaqFileSelected.value = true
       return true
     }
 
@@ -1105,6 +1139,8 @@ export default {
     })
 
     return {
+      // API配置
+      apiUrls,
       // ADB设备管理
       devices,
       selectedDevice,
@@ -1150,6 +1186,7 @@ export default {
       isUploadingCsqaq,
       csqaqFileSelected,
       csqaqUploadResult,
+      handleCsqaqFileChange,
       beforeCsqaqUpload,
       submitCsqaqUpload,
       handleCsqaqUploadSuccess,
