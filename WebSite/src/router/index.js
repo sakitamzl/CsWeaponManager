@@ -111,12 +111,6 @@ const routes = [
             meta: { title: 'Steam交易历史' }
           },
           {
-            path: 'dev-tools',
-            name: 'DevTools',
-            component: () => import('@/views/settings/DevTool.vue'),
-            meta: { title: '开荒工具' }
-          },
-          {
             path: 'system-settings',
             name: 'SystemSettings',
             component: () => import('@/views/settings/SystemSettings.vue'),
@@ -145,6 +139,12 @@ const routes = [
             name: 'VersionUpdate',
             component: () => import('@/views/settings/VersionUpdate.vue'),
             meta: { title: '更新日志' }
+          },
+          {
+            path: 'dev-tools',
+            name: 'DevTools',
+            component: () => import('@/views/settings/DevTool.vue'),
+            meta: { title: '开荒工具' }
           }
         ]
       }
