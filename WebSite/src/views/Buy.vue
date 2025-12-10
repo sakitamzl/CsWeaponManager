@@ -1534,6 +1534,7 @@ export default {
       const imageName = steamHashName
         .replace(/\s*\|\s*/g, '___')
         .replace(/\s/g, '_')
+        .replace(/\*/g, '_')
         + '.png'
       return `/weapon_imgs/${imageName}`
     }
@@ -1587,6 +1588,8 @@ export default {
             const imageName = hashName
               .replace(/\s*\|\s*/g, '___')
               .replace(/\s/g, '_')
+              .replace(/\*/g, '_')
+              .replace(/™/g, '?')
             imageUrl = `/weapon_imgs/Sticker___${imageName}.png`
           }
           
@@ -1621,6 +1624,8 @@ export default {
           const imageName = hashName
             .replace(/\s*\|\s*/g, '___')
             .replace(/\s/g, '_')
+            .replace(/\*/g, '_')
+            .replace(/™/g, '?')
             + '.png'
           imageUrl = `/weapon_imgs/${imageName}`
         }
@@ -1646,6 +1651,8 @@ export default {
       const imageName = hashName
         .replace(/\s*\|\s*/g, '___')
         .replace(/\s/g, '_')
+        .replace(/\*/g, '_')
+        .replace(/™/g, '?')
         + '.png'
       return `/weapon_imgs/${imageName}`
     }
@@ -1744,6 +1751,8 @@ export default {
   margin: 0 auto;
   padding: 4px;
   box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
 }
 
 .weapon-img {
@@ -1753,7 +1762,7 @@ export default {
   max-height: 90px;
   object-fit: contain;
   object-position: center;
-  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  background: transparent;
   border-radius: 4px;
   display: block;
 }
@@ -2598,7 +2607,7 @@ export default {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  background: transparent;
 }
 
 .preview-image-placeholder {
@@ -2609,7 +2618,7 @@ export default {
   justify-content: center;
   color: #999;
   font-size: 1.2rem;
-  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 /* 预览弹窗中的贴纸列表 */

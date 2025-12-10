@@ -13,7 +13,8 @@ start "Spider服务" cmd /c "python Spider.py"
 
 cd /d "%~dp0WebSite"
 if exist "package.json" (
-    start "前端服务" cmd /c "npm run dev"
+    npm install
+    start /b cmd /c "npm run serve"
 )
 
 cd /d "%~dp0"
