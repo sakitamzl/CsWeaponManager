@@ -284,7 +284,16 @@ def get_components_grouped(steam_id):
             SUM(CAST(buy_price AS REAL)) AS total_buy_price,
             SUM(CAST(yyyp_price AS REAL)) AS total_yyyp_price,
             SUM(CAST(buff_price AS REAL)) AS total_buff_price,
-            SUM(CAST(steam_price AS REAL)) AS total_steam_price
+            SUM(CAST(steam_price AS REAL)) AS total_steam_price,
+            GROUP_CONCAT(goods_assetid) AS goods_assetids,
+            GROUP_CONCAT(weapon_float) AS weapon_floats,
+            GROUP_CONCAT(buy_price) AS buy_prices,
+            GROUP_CONCAT(yyyp_price) AS yyyp_prices,
+            GROUP_CONCAT(buff_price) AS buff_prices,
+            GROUP_CONCAT(steam_price) AS steam_prices,
+            GROUP_CONCAT(sticker, '|||') AS stickers,
+            GROUP_CONCAT(pendant, '|||') AS pendants,
+            GROUP_CONCAT(rename, '|||') AS renames
         FROM steam_stockComponents
         WHERE {where_clause}
         GROUP BY item_name, steam_hash_name, weapon_name, weapon_type, weapon_level, float_range
@@ -296,6 +305,17 @@ def get_components_grouped(steam_id):
 
         grouped_list = []
         for row in rows or []:
+            # 安全地处理可能为None的字段
+            goods_assetids = str(row[12]).split(',') if row[12] and row[12] != 'None' else []
+            weapon_floats = str(row[13]).split(',') if row[13] and row[13] != 'None' else []
+            buy_prices = str(row[14]).split(',') if row[14] and row[14] != 'None' else []
+            yyyp_prices = str(row[15]).split(',') if row[15] and row[15] != 'None' else []
+            buff_prices = str(row[16]).split(',') if row[16] and row[16] != 'None' else []
+            steam_prices = str(row[17]).split(',') if row[17] and row[17] != 'None' else []
+            stickers = str(row[18]).split('|||') if row[18] and row[18] != 'None' else []
+            pendants = str(row[19]).split('|||') if row[19] and row[19] != 'None' else []
+            renames = str(row[20]).split('|||') if row[20] and row[20] != 'None' else []
+            
             grouped_list.append({
                 "item_name": row[0],
                 "steam_hash_name": row[1],
@@ -308,7 +328,16 @@ def get_components_grouped(steam_id):
                 "total_buy_price": round(row[8] or 0, 2),
                 "total_yyyp_price": round(row[9] or 0, 2),
                 "total_buff_price": round(row[10] or 0, 2),
-                "total_steam_price": round(row[11] or 0, 2)
+                "total_steam_price": round(row[11] or 0, 2),
+                "goods_assetids": goods_assetids,
+                "weapon_floats": weapon_floats,
+                "buy_prices": buy_prices,
+                "yyyp_prices": yyyp_prices,
+                "buff_prices": buff_prices,
+                "steam_prices": steam_prices,
+                "stickers": stickers,
+                "pendants": pendants,
+                "renames": renames
             })
 
         # 总记录数
@@ -332,11 +361,14 @@ def get_components_grouped(steam_id):
         })
 
     except Exception as e:
+        import traceback
         print(f"❌ 组合查询失败 - steam_id: {steam_id}, 错误: {str(e)}")
         print(f"错误详情: {traceback.format_exc()}")
         return jsonify({
             "success": False,
-            "message": f"组合查询失败: {str(e)}"
+            "message": f"组合查询失败: {str(e)}",
+            "error": str(e),
+            "traceback": traceback.format_exc()
         }), 500
 
 @webStockComponentsV1.route('/components/time-range/<steam_id>/<start_date>/<end_date>', methods=['GET'])
@@ -640,9 +672,9 @@ def auto_fill_prices(steam_id):
     try:
         db = DatabaseManager()
         
-        # 查询该用户的所有组件 - 使用 goods_assetid 作为主键
+        # 查询该用户的所有组件 - 包含 steam_hash_name
         query_sql = """
-        SELECT goods_assetid, item_name, weapon_float, buy_price
+        SELECT goods_assetid, item_name, weapon_float, buy_price, steam_hash_name
         FROM steam_stockComponents
         WHERE data_user = ?
         """
@@ -666,54 +698,50 @@ def auto_fill_prices(steam_id):
         already_filled_count = 0
         not_found_count = 0
 
-        # 遍历每个组件
+        # 第一步：处理有 float 值的组件（精确匹配）
+        float_components = []
+        no_float_components = []
+        
         for component in components:
             goods_assetid = component[0]
             item_name = component[1]
             weapon_float = component[2]
             current_buy_price = component[3]
+            steam_hash_name = component[4]
 
-            # 如果已有价格（不为None且不为空字符串），跳过
+            # 如果已有价格，跳过
             if current_buy_price not in [None, '', 'None', '0', '0.0', '0.00']:
                 already_filled_count += 1
                 continue
 
-            buy_price = None
-
-            # 策略1: 如果有磨损值，优先使用 item_name + weapon_float 精确匹配
+            # 分类：有 float 值的和没有 float 值的
             if weapon_float and weapon_float not in ['', '0', '0.0', 'None']:
-                try:
-                    float_value = float(weapon_float)
-                    # 精确匹配：item_name + weapon_float
-                    exact_price_sql = """
-                    SELECT price
-                    FROM buy
-                    WHERE item_name = ? AND ABS(CAST(weapon_float AS REAL) - ?) < 0.0001
-                    ORDER BY order_time DESC
-                    LIMIT 1
-                    """
-                    exact_result = db.execute_query(exact_price_sql, (item_name, float_value))
+                float_components.append((goods_assetid, item_name, weapon_float, steam_hash_name))
+            else:
+                no_float_components.append((goods_assetid, item_name, steam_hash_name))
 
-                    if exact_result and exact_result[0][0] is not None:
-                        buy_price = exact_result[0][0]
-                        print(f"✅ 精确匹配（磨损值） - goods_assetid: {goods_assetid}, item_name: {item_name}, float: {weapon_float}, price: {buy_price}")
-                except (ValueError, TypeError):
-                    pass
-
-            # 策略2: 如果没有找到或磨损值为空，使用 item_name 查询平均价格
-            if buy_price is None:
-                avg_price_sql = """
-                SELECT AVG(CAST(price AS REAL))
+        # 处理有 float 值的组件（逐个精确匹配）
+        for goods_assetid, item_name, weapon_float, steam_hash_name in float_components:
+            buy_price = None
+            try:
+                float_value = float(weapon_float)
+                # 精确匹配：item_name + weapon_float
+                exact_price_sql = """
+                SELECT price
                 FROM buy
-                WHERE item_name = ? AND price IS NOT NULL AND price != ''
+                WHERE item_name = ? AND ABS(CAST(weapon_float AS REAL) - ?) < 0.0001
+                ORDER BY order_time DESC
+                LIMIT 1
                 """
-                avg_result = db.execute_query(avg_price_sql, (item_name,))
+                exact_result = db.execute_query(exact_price_sql, (item_name, float_value))
 
-                if avg_result and avg_result[0][0] is not None:
-                    buy_price = round(avg_result[0][0], 2)
-                    print(f"✅ 平均价格匹配 - goods_assetid: {goods_assetid}, item_name: {item_name}, price: {buy_price}")
+                if exact_result and exact_result[0][0] is not None:
+                    buy_price = exact_result[0][0]
+                    print(f"✅ 精确匹配（磨损值） - goods_assetid: {goods_assetid}, item_name: {item_name}, float: {weapon_float}, price: {buy_price}")
+            except (ValueError, TypeError):
+                pass
 
-            # 如果找到价格，更新（使用 goods_assetid 作为主键）
+            # 如果找到价格，更新
             if buy_price is not None:
                 update_sql = """
                 UPDATE steam_stockComponents
@@ -728,7 +756,61 @@ def auto_fill_prices(steam_id):
                     print(f"⚠️  更新失败 - goods_assetid: {goods_assetid}, item_name: {item_name}")
             else:
                 not_found_count += 1
-                print(f"⚠️  未找到价格 - goods_assetid: {goods_assetid}, item_name: {item_name}, float: {weapon_float}")
+                print(f"⚠️  未找到价格（float匹配） - goods_assetid: {goods_assetid}, item_name: {item_name}, float: {weapon_float}")
+
+        # 第二步：批量处理没有 float 值的组件（使用 steam_hash_name）
+        if no_float_components:
+            # 收集所有唯一的 steam_hash_name
+            hash_names = list(set([comp[2] for comp in no_float_components if comp[2] and comp[2] not in ['', 'None']]))
+            
+            if hash_names:
+                # 批量查询：使用 steam_hash_name 获取平均价格
+                placeholders = ','.join(['?' for _ in hash_names])
+                batch_price_sql = f"""
+                SELECT steam_hash_name, AVG(CAST(price AS REAL)) as avg_price
+                FROM buy
+                WHERE steam_hash_name IN ({placeholders})
+                  AND price IS NOT NULL 
+                  AND price != ''
+                  AND steam_hash_name IS NOT NULL
+                  AND steam_hash_name != ''
+                GROUP BY steam_hash_name
+                """
+                price_results = db.execute_query(batch_price_sql, tuple(hash_names))
+                
+                # 构建 hash_name -> price 的映射
+                price_map = {}
+                if price_results:
+                    for row in price_results:
+                        hash_name = row[0]
+                        avg_price = round(row[1], 2) if row[1] else None
+                        if avg_price:
+                            price_map[hash_name] = avg_price
+                
+                print(f"📦 批量查询完成 - 找到 {len(price_map)} 个 hash_name 的价格")
+                
+                # 批量更新价格
+                for goods_assetid, item_name, steam_hash_name in no_float_components:
+                    if steam_hash_name and steam_hash_name in price_map:
+                        buy_price = price_map[steam_hash_name]
+                        update_sql = """
+                        UPDATE steam_stockComponents
+                        SET buy_price = ?
+                        WHERE goods_assetid = ? AND data_user = ?
+                        """
+                        affected_rows = db.execute_update(update_sql, (str(buy_price), goods_assetid, steam_id))
+                        if affected_rows > 0:
+                            filled_count += 1
+                            print(f"✅ 批量匹配（hash_name） - goods_assetid: {goods_assetid}, hash_name: {steam_hash_name}, price: {buy_price}")
+                        else:
+                            not_found_count += 1
+                            print(f"⚠️  更新失败 - goods_assetid: {goods_assetid}, hash_name: {steam_hash_name}")
+                    else:
+                        not_found_count += 1
+                        if not steam_hash_name or steam_hash_name in ['', 'None']:
+                            print(f"⚠️  缺少 hash_name - goods_assetid: {goods_assetid}, item_name: {item_name}")
+                        else:
+                            print(f"⚠️  未找到价格（hash_name） - goods_assetid: {goods_assetid}, hash_name: {steam_hash_name}")
         
         print(f"📊 自动填充价格完成 - steamId: {steam_id}, 总数: {total_count}, 成功填充: {filled_count}, 已有价格: {already_filled_count}, 未找到: {not_found_count}")
         

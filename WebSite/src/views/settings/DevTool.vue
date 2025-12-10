@@ -119,54 +119,80 @@
         <h2 class="section-title">平台饰品映射</h2>
         
         <div class="sync-controls">
-          <el-select 
-            v-model="selectedSteamId" 
-            placeholder="选择 Steam ID" 
-            class="steam-id-select"
-            :disabled="isSyncing || isSyncingBuff"
-          >
-            <el-option 
-              v-for="item in steamIdList" 
-              :key="item.steamID || item.steam_id" 
-              :label="`${item.dataName || '未命名'} (${item.steamID || item.steam_id || '无ID'})`" 
-              :value="item.steamID || item.steam_id"
-            />
-          </el-select>
+          <!-- 悠悠有品饰品映射 -->
+          <div class="control-group">
+            <el-select 
+              v-model="selectedSteamIdYoupin" 
+              placeholder="选择 Steam ID" 
+              class="steam-id-select"
+              :disabled="isSyncing"
+            >
+              <el-option 
+                v-for="item in steamIdList" 
+                :key="item.steamID || item.steam_id" 
+                :label="`${item.dataName || '未命名'} (${item.steamID || item.steam_id || '无ID'})`" 
+                :value="item.steamID || item.steam_id"
+              />
+            </el-select>
+            
+            <el-button 
+              type="success" 
+              @click="syncWeaponTemplates"
+              :disabled="!selectedSteamIdYoupin || isSyncing"
+              :loading="isSyncing"
+            >
+              {{ isSyncing ? '同步中...' : '获取悠悠有品饰品映射' }}
+            </el-button>
+          </div>
           
-          <el-button 
-            type="success" 
-            @click="syncWeaponTemplates"
-            :disabled="!selectedSteamId || isSyncing || isSyncingBuff"
-            :loading="isSyncing"
-          >
-            {{ isSyncing ? '同步中...' : '获取悠悠有品饰品映射' }}
-          </el-button>
-          
-          <el-button 
-            type="success" 
-            @click="syncBuffTemplates"
-            :disabled="!selectedSteamId || isSyncing || isSyncingBuff"
-            :loading="isSyncingBuff"
-          >
-            {{ isSyncingBuff ? '同步中...' : '获取BUFF饰品映射' }}
-          </el-button>
+          <!-- BUFF饰品映射 -->
+          <div class="control-group">
+            <el-select 
+              v-model="selectedSteamIdBuff" 
+              placeholder="选择 Steam ID" 
+              class="steam-id-select"
+              :disabled="isSyncingBuff"
+            >
+              <el-option 
+                v-for="item in steamIdList" 
+                :key="item.steamID || item.steam_id" 
+                :label="`${item.dataName || '未命名'} (${item.steamID || item.steam_id || '无ID'})`" 
+                :value="item.steamID || item.steam_id"
+              />
+            </el-select>
+            
+            <el-button 
+              type="success" 
+              @click="syncBuffTemplates"
+              :disabled="!selectedSteamIdBuff || isSyncingBuff"
+              :loading="isSyncingBuff"
+            >
+              {{ isSyncingBuff ? '同步中...' : '获取BUFF饰品映射' }}
+            </el-button>
+          </div>
 
-          <el-button
-            type="primary"
-            @click="fetchSteamHashNames"
-            :disabled="isFetchingHashNames"
-            :loading="isFetchingHashNames"
-          >
-            {{ isFetchingHashNames ? '获取中...' : '获取Steam饰品哈希' }}
-          </el-button>
+          <!-- Steam饰品哈希 -->
+          <div class="control-group">
+            <el-button
+              type="primary"
+              @click="fetchSteamHashNames"
+              :disabled="isFetchingHashNames"
+              :loading="isFetchingHashNames"
+            >
+              {{ isFetchingHashNames ? '获取中...' : '获取Steam饰品哈希' }}
+            </el-button>
+          </div>
 
-          <el-button 
-            type="warning" 
-            @click="startCsqaqCrawlAll"
-            disabled
-          >
-            全量采集 CSQAQ 商品
-          </el-button>
+          <!-- CSQAQ商品采集 -->
+          <div class="control-group">
+            <el-button 
+              type="warning" 
+              @click="startCsqaqCrawlAll"
+              disabled
+            >
+              全量采集 CSQAQ 商品
+            </el-button>
+          </div>
         </div>
         
         <div v-if="lastSyncTime" class="sync-info">
@@ -282,7 +308,8 @@ export default {
     const adbMessage = ref('')
     const adbMessageType = ref('info')
 
-    const selectedSteamId = ref('')
+    const selectedSteamIdYoupin = ref('')
+    const selectedSteamIdBuff = ref('')
     const steamIdList = ref([])
     const isSyncing = ref(false)
     const isSyncingBuff = ref(false)
@@ -636,9 +663,15 @@ export default {
           steamIdList.value = response.data.data
           console.log('已加载 Steam ID 列表:', steamIdList.value)
           // 默认选择第一个
-          if (!selectedSteamId.value && steamIdList.value.length > 0) {
+          if (steamIdList.value.length > 0) {
             const firstItem = steamIdList.value[0]
-            selectedSteamId.value = firstItem.steamID || firstItem.steam_id || ''
+            const defaultSteamId = firstItem.steamID || firstItem.steam_id || ''
+            if (!selectedSteamIdYoupin.value) {
+              selectedSteamIdYoupin.value = defaultSteamId
+            }
+            if (!selectedSteamIdBuff.value) {
+              selectedSteamIdBuff.value = defaultSteamId
+            }
           }
         }
       } catch (error) {
@@ -649,7 +682,7 @@ export default {
 
     // 同步悠悠有品饰品映射
     const syncWeaponTemplates = async () => {
-      if (!selectedSteamId.value) {
+      if (!selectedSteamIdYoupin.value) {
         ElMessage.warning('请先选择 Steam ID')
         return
       }
@@ -660,7 +693,7 @@ export default {
 
       try {
         await ElMessageBox.confirm(
-          `确定要同步 Steam ID: ${selectedSteamId.value} 的悠悠有品饰品映射吗？此操作可能需要一些时间。`,
+          `确定要同步 Steam ID: ${selectedSteamIdYoupin.value} 的悠悠有品饰品映射吗？此操作可能需要一些时间。`,
           '确认同步',
           {
             confirmButtonText: '确定',
@@ -676,10 +709,10 @@ export default {
       ElMessage.info('开始同步饰品映射...')
       
       try {
-        console.log('开始同步悠悠有品饰品映射, Steam ID:', selectedSteamId.value)
+        console.log('开始同步悠悠有品饰品映射, Steam ID:', selectedSteamIdYoupin.value)
         
         const response = await axios.post(apiUrls.youpinSyncTemplates(), {
-          steamId: selectedSteamId.value
+          steamId: selectedSteamIdYoupin.value
         })
 
         if (response.data.success) {
@@ -709,7 +742,7 @@ export default {
 
     // 同步BUFF饰品映射
     const syncBuffTemplates = async () => {
-      if (!selectedSteamId.value) {
+      if (!selectedSteamIdBuff.value) {
         ElMessage.warning('请先选择 Steam ID')
         return
       }
@@ -720,7 +753,7 @@ export default {
 
       try {
         await ElMessageBox.confirm(
-          `确定要同步 Steam ID: ${selectedSteamId.value} 的BUFF饰品映射吗？此操作可能需要一些时间。`,
+          `确定要同步 Steam ID: ${selectedSteamIdBuff.value} 的BUFF饰品映射吗？此操作可能需要一些时间。`,
           '确认同步',
           {
             confirmButtonText: '确定',
@@ -736,10 +769,10 @@ export default {
       ElMessage.info('开始同步BUFF饰品映射...')
 
       try {
-        console.log('开始同步BUFF饰品映射, Steam ID:', selectedSteamId.value)
+        console.log('开始同步BUFF饰品映射, Steam ID:', selectedSteamIdBuff.value)
 
         const response = await axios.post(apiUrls.buffSyncTemplates(), {
-          steamId: selectedSteamId.value
+          steamId: selectedSteamIdBuff.value
         })
 
         if (response.data.success) {
@@ -1123,9 +1156,19 @@ export default {
 
 .sync-controls {
   display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.control-group {
+  display: flex;
   align-items: center;
   gap: 1rem;
   flex-wrap: wrap;
+  padding: 0.75rem;
+  background-color: rgba(255, 255, 255, 0.02);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .steam-id-select {
@@ -1422,11 +1465,17 @@ export default {
     align-items: stretch;
   }
 
+  .control-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .steam-id-select {
     width: 100%;
   }
 
-  .sync-controls .el-button {
+  .sync-controls .el-button,
+  .control-group .el-button {
     width: 100%;
   }
 

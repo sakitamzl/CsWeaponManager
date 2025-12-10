@@ -314,7 +314,11 @@
             ¥{{ scope.row.price }}
           </template>
         </el-table-column>
-        <el-table-column prop="from" label="来源" min-width="80" />
+        <el-table-column prop="from" label="来源" min-width="80">
+          <template #default="scope">
+            {{ sourceLabel(scope.row.from) }}
+          </template>
+        </el-table-column>
         <el-table-column prop="order_time" label="出售时间" min-width="160" sortable="custom" @sort-change="handleSortChange">
           <template #default="scope">
             {{ formatTime(scope.row.order_time) }}
@@ -440,8 +444,8 @@
                 <div class="preview-info-row" v-if="previewItem.status">
                   <div class="preview-info-item">
                     <span class="preview-info-label">状态:</span>
-                    <el-tag 
-                      :type="getStatusType(previewItem.status)" 
+                    <el-tag
+                      :type="getStatusType(previewItem.status)"
                       size="default"
                       :style="{
                         backgroundColor: getStatusColor(previewItem.status),
@@ -451,6 +455,12 @@
                     >
                       {{ previewItem.status }}
                     </el-tag>
+                  </div>
+                  <div class="preview-info-item" v-if="previewItem.status_sub">
+                    <span class="preview-info-label">子状态:</span>
+                    <span class="preview-info-value">
+                      {{ previewItem.status_sub }}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1106,7 +1116,13 @@ export default {
 
     // 来源显示映射
     const sourceLabel = (val) => {
-      const map = { yyyp: '悠悠有品', buff: 'BUFF', csfloat: 'CsFloat', SMK: 'steam市场' }
+      const map = { 
+        yyyp: '悠悠有品', 
+        buff: 'BUFF', 
+        csfloat: 'CsFloat', 
+        SMK: 'steam市场',
+        ING: '游戏内购'
+      }
       return map[val] || val
     }
 

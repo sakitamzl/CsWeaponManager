@@ -21,7 +21,6 @@
                 @change="handleStatusChange"
                 clearable
               >
-                <el-option label="全部" value="all" />
                 <el-option v-for="status in statusList" :key="status" :label="status" :value="status" />
               </el-select>
               <el-select
@@ -32,7 +31,6 @@
                 @visible-change="handleStatusSubVisibleChange"
                 clearable
               >
-                <el-option label="全部" value="all" />
                 <el-option v-for="sub in statusSubList" :key="sub" :label="sub" :value="sub" />
               </el-select>
       <el-select
@@ -42,8 +40,7 @@
         @change="handlePlatformChange"
         clearable
       >
-        <el-option label="全部" value="all" />
-        <el-option v-for="platform in platformList" :key="platform" :label="platform" :value="platform" />
+        <el-option v-for="platform in platformList" :key="platform" :label="mapSource(platform)" :value="platform" />
       </el-select>
       <el-select
         v-model="lenterFilter"
@@ -52,7 +49,6 @@
         @change="handleLenterChange"
         clearable
       >
-        <el-option label="全部" value="all" />
         <el-option v-for="user in lenterList" :key="user" :label="user" :value="user" />
       </el-select>
               <el-select 
@@ -240,11 +236,10 @@
                 style="cursor: pointer;"
               >
                 <img
-                  v-if="getWeaponImage(scope.row.steam_hash_name, scope.row.weapon_name, scope.row.item_name)"
-                  :src="getWeaponImage(scope.row.steam_hash_name, scope.row.weapon_name, scope.row.item_name)"
+                  v-if="getWeaponImage(scope.row.steam_hash_name)"
+                  :src="getWeaponImage(scope.row.steam_hash_name)"
                   :alt="getItemTitle(scope.row)"
                   class="weapon-img"
-                  loading="lazy"
                   @error="(e) => e.target.style.display = 'none'"
                 />
                 <span v-else class="no-image">无图</span>
@@ -381,8 +376,8 @@
             <div class="preview-left-section">
               <div class="preview-image-section">
                 <img
-                  v-if="getWeaponImage(previewItem.steam_hash_name, previewItem.weapon_name, previewItem.item_name)"
-                  :src="getWeaponImage(previewItem.steam_hash_name, previewItem.weapon_name, previewItem.item_name)"
+                  v-if="getWeaponImage(previewItem.steam_hash_name)"
+                  :src="getWeaponImage(previewItem.steam_hash_name)"
                   :alt="getItemTitle(previewItem)"
                   class="preview-image"
                   loading="lazy"
@@ -472,6 +467,15 @@
                         {{ previewItem.status }}
                       </el-tag>
                     </div>
+                    <div
+                      class="preview-info-item"
+                      v-if="previewItem.status_sub"
+                    >
+                      <span class="preview-info-label">子状态:</span>
+                      <span class="preview-info-value">
+                        {{ previewItem.status_sub }}
+                      </span>
+                    </div>
                   </div>
 
                   <div
@@ -547,6 +551,25 @@ export default {
     const dateRange = ref(null)
     const isTimeSearchMode = ref(false)
     const sortOrder = ref('descending')
+
+    // API请求缓存（简单的内存缓存，5分钟过期）
+    const apiCache = new Map()
+    const CACHE_DURATION = 5 * 60 * 1000 // 5分钟
+
+    const getCachedData = (key) => {
+      const cached = apiCache.get(key)
+      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        return cached.data
+      }
+      return null
+    }
+
+    const setCachedData = (key, data) => {
+      apiCache.set(key, {
+        data,
+        timestamp: Date.now()
+      })
+    }
     
     // 高级搜索相关
     const hasAdvancedFilters = computed(() => {
@@ -569,28 +592,38 @@ export default {
       cancelledCount: 0
     })
 
-    // 当前页面统计（基于当前显示的数据计算）
+    // 当前页面统计（基于当前显示的数据计算）- 优化：减少重复遍历
     const currentPageStats = computed(() => {
-      const effectiveData = lentData.value.filter(item => item.status !== '已取消')
-      const totalCount = effectiveData.length
-      const totalAmount = effectiveData.reduce((sum, item) => {
+      let totalCount = 0
+      let totalAmount = 0
+      let totalLeaseDays = 0
+      let rentingCount = 0
+      let completedCount = 0
+      let cancelledCount = 0
+
+      // 单次遍历计算所有统计
+      for (const item of lentData.value) {
+        if (item.status === '已取消') {
+          cancelledCount++
+          continue
+        }
+
+        totalCount++
         const price = item.price || 0
         const days = item.total_Lease_Days || 0
-        return sum + (price * days)
-      }, 0).toFixed(2)
-      const avgPrice = totalCount > 0 ? (totalAmount / totalCount).toFixed(2) : '0.00'
-      const totalLeaseDays = effectiveData.reduce((sum, item) => sum + (item.total_Lease_Days || 0), 0)
-      const avgLeaseDays = totalCount > 0 ? (totalLeaseDays / totalCount).toFixed(1) : '0.0'
-      const rentingCount = effectiveData.filter(item => item.status === '租赁中').length
-      const completedCount = effectiveData.filter(item => item.status === '已完成').length
-      const cancelledCount = lentData.value.filter(item => item.status === '已取消').length
+        totalAmount += price * days
+        totalLeaseDays += days
+
+        if (item.status === '租赁中') rentingCount++
+        else if (item.status === '已完成') completedCount++
+      }
 
       return {
         totalCount,
-        totalAmount,
-        avgPrice,
+        totalAmount: totalAmount.toFixed(2),
+        avgPrice: totalCount > 0 ? (totalAmount / totalCount).toFixed(2) : '0.00',
         totalLeaseDays,
-        avgLeaseDays,
+        avgLeaseDays: totalCount > 0 ? (totalLeaseDays / totalCount).toFixed(1) : '0.0',
         rentingCount,
         completedCount,
         cancelledCount
@@ -631,14 +664,14 @@ export default {
         filtered = filtered.filter(item => item.status === statusFilter.value)
       }
       if (statusSubFilter.value && statusSubFilter.value !== 'all') {
-        // 子状态对应 last_status 字段
-        filtered = filtered.filter(item => (item.last_status || '') === statusSubFilter.value)
+        // 子状态对应 status_sub 字段
+        filtered = filtered.filter(item => (item.status_sub || '') === statusSubFilter.value)
       }
       if (platformFilter.value && platformFilter.value !== 'all') {
         filtered = filtered.filter(item => (item.from || '') === platformFilter.value)
       }
       if (lenterFilter.value && lenterFilter.value !== 'all') {
-        filtered = filtered.filter(item => (item.lenter_name || '') === lenterFilter.value)
+        filtered = filtered.filter(item => (item.data_user || '') === lenterFilter.value)
       }
       return filtered
     })
@@ -681,16 +714,15 @@ export default {
       return val
     }
 
-    // 获取武器图片路径，逻辑与 /buy 保持一致
-    const getWeaponImage = (steamHashName, fallbackWeaponName = '', fallbackItemName = '') => {
-      const baseName = steamHashName ||
-        `${fallbackWeaponName || ''} | ${fallbackItemName || ''}`.trim()
-      if (!baseName) return null
-
-      const imageName = baseName
+    // 获取武器图片路径
+    const getWeaponImage = (steamHashName) => {
+      if (!steamHashName) {
+        return null
+      }
+      const imageName = steamHashName
         .replace(/\s*\|\s*/g, '___')
-        .replace(/\s/g, '_') + '.png'
-
+        .replace(/\s/g, '_')
+        + '.png'
       return `/weapon_imgs/${imageName}`
     }
 
@@ -739,6 +771,42 @@ export default {
           storeInSearch: true
         })
 
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        
+        const rawData = await response.json()
+        console.log('搜索结果:', rawData)
+
+        if (!Array.isArray(rawData)) {
+          throw new Error('搜索结果格式错误')
+        }
+
+        // 转换搜索结果并存储所有数据
+        const searchResults = rawData.map((item, index) => ({
+          id: index + 1,
+          ID: item[0] || '',
+          weapon_name: item[1] || '',
+          weapon_type: item[2] || '',
+          item_name: item[3] || '',
+          weapon_float: item[4] || 0,
+          float_range: item[5] || '',
+          price: item[6] || 0,
+          lenter_name: item[7] || '',
+          status: item[8] || '',
+          status_sub: item[9] || '',
+          from: item[10] || '',
+          lean_start_time: item[11] || '',
+          lean_end_time: item[12] || '',
+          total_Lease_Days: item[13] || 0,
+          max_Lease_Days: item[14] || 0,
+          steam_hash_name: item[15] || '',
+          data_user: item[19] || ''
+        }))
+=======
+
+
         // 进入搜索模式
         isSearchMode.value = true
         totalItems.value = count
@@ -775,7 +843,7 @@ export default {
         filters.platform = platformFilter.value
       }
       if (lenterFilter.value && lenterFilter.value !== 'all') {
-        filters.lenter_name = lenterFilter.value
+        filters.data_user = lenterFilter.value
       }
       if (weaponTypeFilter.value && weaponTypeFilter.value.length > 0) {
         filters.weapon_types = weaponTypeFilter.value
@@ -952,6 +1020,80 @@ export default {
         const min = (currentPage.value - 1) * pageSize.value
         const max = pageSize.value
         
+
+        console.log(`正在请求数据... 页码: ${currentPage.value}, 每页: ${pageSize.value}, min: ${min}, max: ${max}`)
+        
+        // 根据状态/子状态筛选选择不同的API（子状态优先）
+        let apiUrl = `/api/webLentV1/getLentData/${min}/${max}`
+        if (statusSubFilter.value && statusSubFilter.value !== 'all') {
+          apiUrl = `/api/webLentV1/getLentDataByStatusSub/${encodeURIComponent(statusSubFilter.value)}/${min}/${max}`
+        } else if (statusFilter.value && statusFilter.value !== 'all') {
+          const statusParam = encodeURIComponent(statusFilter.value)
+          apiUrl = `/api/webLentV1/getLentDataByStatus/${statusParam}/${min}/${max}`
+        }
+        
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          mode: 'cors',
+          signal: createAbortSignal(dataController),
+          headers: {
+            'Accept': 'application/json',
+          },
+        })
+        
+        console.log('响应状态:', response.status)
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        
+        const rawData = await response.json()
+        console.log('接收到的原始数据:', rawData)
+        
+        // 检查数据格式
+        if (!Array.isArray(rawData)) {
+          console.error('数据格式错误，期望数组格式，实际收到:', typeof rawData)
+          throw new Error('数据格式错误')
+        }
+        
+        // 转换数组格式数据为对象格式
+        lentData.value = rawData.map((item, index) => {
+          if (!Array.isArray(item)) {
+            console.error('数据项格式错误，期望数组，实际收到:', item)
+            return null
+          }
+
+          return {
+            id: index + 1,
+            ID: item[0] || '',
+            weapon_name: item[1] || '',
+            weapon_type: item[2] || '',
+            item_name: item[3] || '',
+            weapon_float: item[4] || 0,
+            float_range: item[5] || '',
+            price: item[6] || 0,
+            lenter_name: item[7] || '',
+            status: item[8] || '',
+            status_sub: item[9] || '',
+            from: item[10] || '',
+            lean_start_time: item[11] || '',
+            lean_end_time: item[12] || '',
+            total_Lease_Days: item[13] || 0,
+            max_Lease_Days: item[14] || 0,
+            steam_hash_name: item[15] || '',
+            data_user: item[19] || ''
+          }
+        }).filter(item => item !== null)
+        
+        console.log('转换后的数据:', lentData.value)
+        
+        // 获取总数（只在第一页或总数为0时调用）
+        if (currentPage.value === 1 || totalItems.value === 0) {
+          await loadTotalCount()
+        }
+        
+        if (lentData.value.length === 0) {
+=======
         console.log(`正在请求数据(过滤接口)... 页码: ${currentPage.value}, 每页: ${pageSize.value}, min: ${min}, max: ${max}`)
         const count = await fetchLentDataFiltered({ min, max, keywordOverride: null, storeInSearch: false })
 
@@ -959,6 +1101,7 @@ export default {
         loadFilteredStats()
 
         if (count === 0) {
+
           ElMessage.info('暂无出租数据')
         } else {
           ElMessage.success(`加载成功，共 ${count} 条记录`)
@@ -1019,7 +1162,7 @@ export default {
       handleAdvancedSearch()
     }
 
-    const handleClearSearch = () => {
+    const handleClearSearch = async () => {
       searchText.value = ''
       statusFilter.value = ''
       statusSubFilter.value = ''
@@ -1031,49 +1174,65 @@ export default {
       isSearchMode.value = false
       isTimeSearchMode.value = false
       allSearchResults.value = []
-      loadStatusSubList()
-      loadFilteredStats()
-      loadLentData()
+
+      // 优化：并行执行，避免重复调用
+      await Promise.all([
+        loadStatusSubList(),
+        loadLentData(),
+        loadFilteredStats()
+      ])
     }
 
-    const handleStatusChange = () => {
+    const handleStatusChange = async () => {
       // 未选择时为空，接口内部会将空转换为 all
       currentPage.value = 1
       // 重置子状态并立即刷新子状态列表
       statusSubFilter.value = ''
       statusSubList.value = []
-      loadStatusSubList()
-      
+
       // 如果是搜索模式，只需要更新分页，不需要重新加载数据
       if (isSearchMode.value && searchText.value.trim()) {
+        await loadStatusSubList()
         // 状态变更会自动通过computed属性重新计算filteredLentData
         return
       } else {
-        // 非搜索模式，重新加载数据
-        loadLentData()
-        loadFilteredStats()
+        // 非搜索模式，并行加载数据
+        await Promise.all([
+          loadStatusSubList(),
+          loadLentData(),
+          loadFilteredStats()
+        ])
       }
     }
-    const handleStatusSubChange = () => {
+    const handleStatusSubChange = async () => {
       currentPage.value = 1
       // 空子状态表示全部
       if (!statusSubFilter.value) {
         statusSubFilter.value = ''
       }
-      loadLentData()
-      loadFilteredStats()
+      // 优化：并行加载
+      await Promise.all([
+        loadLentData(),
+        loadFilteredStats()
+      ])
     }
 
-    const handlePlatformChange = () => {
+    const handlePlatformChange = async () => {
       currentPage.value = 1
-      loadLentData()
-      loadFilteredStats()
+      // 优化：并行加载
+      await Promise.all([
+        loadLentData(),
+        loadFilteredStats()
+      ])
     }
 
-    const handleLenterChange = () => {
+    const handleLenterChange = async () => {
       currentPage.value = 1
-      loadLentData()
-      loadFilteredStats()
+      // 优化：并行加载
+      await Promise.all([
+        loadLentData(),
+        loadFilteredStats()
+      ])
     }
 
     const handleStatusSubVisibleChange = (visible) => {
@@ -1142,30 +1301,31 @@ export default {
         
         const rawData = await response.json()
         console.log('时间搜索结果:', rawData)
-        
+
         if (!Array.isArray(rawData)) {
           throw new Error('搜索结果格式错误')
         }
-        
+
         // 转换搜索结果并存储所有数据
         const searchResults = rawData.map((item, index) => ({
           id: index + 1,
           ID: item[0] || '',
           weapon_name: item[1] || '',
           weapon_type: item[2] || '',
-          item_name: item[3] || '', 
+          item_name: item[3] || '',
           weapon_float: item[4] || 0,
           float_range: item[5] || '',
           price: item[6] || 0,
           lenter_name: item[7] || '',
           status: item[8] || '',
-          last_status: item[9] || '',
+          status_sub: item[9] || '',
           from: item[10] || '',
           lean_start_time: item[11] || '',
           lean_end_time: item[12] || '',
           total_Lease_Days: item[13] || 0,
           max_Lease_Days: item[14] || 0,
-          steam_hash_name: item[15] || ''
+          steam_hash_name: item[15] || '',
+          data_user: item[19] || ''
         }))
         
         // 进入时间搜索模式
@@ -1250,35 +1410,58 @@ export default {
       }
     }
 
-    // 加载武器类型数据
+    // 加载武器类型数据（带缓存）
     const loadWeaponTypes = async () => {
       try {
+        const cacheKey = 'weaponTypes'
+        const cached = getCachedData(cacheKey)
+        if (cached) {
+          weaponTypes.value = cached
+          return
+        }
+
         const response = await fetch(apiUrls.lentWeaponTypes())
         const result = await response.json()
         if (result.success) {
           weaponTypes.value = result.data
+          setCachedData(cacheKey, result.data)
         }
       } catch (error) {
         console.error('获取武器类型失败:', error)
       }
     }
 
-    // 加载磨损等级数据
+    // 加载磨损等级数据（带缓存）
     const loadFloatRanges = async () => {
       try {
+        const cacheKey = 'floatRanges'
+        const cached = getCachedData(cacheKey)
+        if (cached) {
+          floatRanges.value = cached
+          return
+        }
+
         const response = await fetch(apiUrls.lentFloatRanges())
         const result = await response.json()
         if (result.success) {
           floatRanges.value = result.data
+          setCachedData(cacheKey, result.data)
         }
       } catch (error) {
         console.error('获取磨损等级失败:', error)
       }
     }
 
-    // 加载状态列表数据（status）
+    // 加载状态列表数据（status）- 带缓存
     const loadStatusList = async () => {
       try {
+        const cacheKey = 'statusList'
+        const cached = getCachedData(cacheKey)
+        if (cached) {
+          statusList.value = cached
+          return
+        }
+
         const response = await fetch(apiUrls.lentStatusList())
         const result = await response.json()
         console.log('租赁 status 列表原始返回:', result)
@@ -1290,9 +1473,13 @@ export default {
               return item.status || ''
             })
             .filter(Boolean)
-          statusList.value = Array.from(new Set(list))
+          const uniqueList = Array.from(new Set(list))
+          statusList.value = uniqueList
+          setCachedData(cacheKey, uniqueList)
         } else if (Array.isArray(result)) {
-          statusList.value = Array.from(new Set(result.filter(Boolean)))
+          const uniqueList = Array.from(new Set(result.filter(Boolean)))
+          statusList.value = uniqueList
+          setCachedData(cacheKey, uniqueList)
         } else {
           statusList.value = []
         }
@@ -1312,7 +1499,7 @@ export default {
           const list = result.data
             .map(item => {
               if (typeof item === 'string') return item
-              return item.status_sub || item.last_status || ''
+              return item.status_sub || ''
             })
             .filter(Boolean)
           statusSubList.value = Array.from(new Set(list))
@@ -1329,10 +1516,18 @@ export default {
 
     const loadPlatformList = async () => {
       try {
+        const cacheKey = 'platformList'
+        const cached = getCachedData(cacheKey)
+        if (cached) {
+          platformList.value = cached
+          return
+        }
+
         const response = await fetch(apiUrls.lentPlatformList())
         const result = await response.json()
         if (result.success && Array.isArray(result.data)) {
           platformList.value = result.data
+          setCachedData(cacheKey, result.data)
         } else {
           platformList.value = []
         }
@@ -1344,10 +1539,18 @@ export default {
 
     const loadLenterList = async () => {
       try {
+        const cacheKey = 'lenterList'
+        const cached = getCachedData(cacheKey)
+        if (cached) {
+          lenterList.value = cached
+          return
+        }
+
         const response = await fetch(apiUrls.lentLenterList())
         const result = await response.json()
         if (result.success && Array.isArray(result.data)) {
           lenterList.value = result.data
+          setCachedData(cacheKey, result.data)
         } else {
           lenterList.value = []
         }
@@ -1437,16 +1640,17 @@ export default {
               price: item[6] || 0,
               lenter_name: item[7] || '',
               status: item[8] || '',
-              last_status: item[9] || '',
+              status_sub: item[9] || '',
               from: item[10] || '',
               lean_start_time: item[11] || '',
               lean_end_time: item[12] || '',
               total_Lease_Days: item[13] || 0,
               max_Lease_Days: item[14] || 0,
-              steam_hash_name: item[15] || ''
+              steam_hash_name: item[15] || '',
+              data_user: item[19] || ''
             }
           })
-          
+
           lentData.value = formattedData
           totalItems.value = result.total
           
@@ -1508,18 +1712,27 @@ export default {
     }
 
     onMounted(async () => {
-      // 初始化时并行加载参考数据与主列表，避免重复等待
-      const initRequests = [
-        loadWeaponTypes(),
-        loadFloatRanges(),
-        loadStatusList(),
-        loadStatusSubList(),
-        loadPlatformList(),
-        loadLenterList(),
+      // 优化：先加载主数据，其他数据按需加载
+      // 立即加载主数据和统计
+      const criticalRequests = [
+        loadLentData(),
         loadFilteredStats()
       ]
-      loadLentData()
-      await Promise.allSettled(initRequests)
+
+      // 延迟加载非关键数据（如下拉列表选项）
+      setTimeout(async () => {
+        const lazyRequests = [
+          loadWeaponTypes(),
+          loadFloatRanges(),
+          loadStatusList(),
+          loadStatusSubList(),
+          loadPlatformList(),
+          loadLenterList()
+        ]
+        await Promise.allSettled(lazyRequests)
+      }, 100)
+
+      await Promise.allSettled(criticalRequests)
     })
 
     onBeforeUnmount(() => {

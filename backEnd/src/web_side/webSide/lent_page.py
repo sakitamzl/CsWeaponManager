@@ -244,7 +244,7 @@ def get_lent_data_filtered():
 
         sql = f"""
         SELECT ID, weapon_name, weapon_type, item_name, weapon_float, float_range,
-               price, lenter_name, status, last_status, "from",
+               price, lenter_name, status, last_status, "from", data_user,
                lean_start_time, lean_end_time, total_Lease_Days, max_Lease_Days
         FROM yyyp_lent
         {where_clause}
@@ -271,10 +271,11 @@ def get_lent_data_filtered():
                     row[8],   # status
                     row[9],   # last_status
                     row[10],  # from
-                    row[11],  # lean_start_time
-                    row[12],  # lean_end_time
-                    row[13],  # total_Lease_Days
-                    row[14]   # max_Lease_Days
+                    row[11],  # data_user
+                    row[12],  # lean_start_time
+                    row[13],  # lean_end_time
+                    row[14],  # total_Lease_Days
+                    row[15]   # max_Lease_Days
                 ])
             return jsonify(records), 200
         return jsonify([]), 200
@@ -393,7 +394,7 @@ def searchByTypeAndWear():
         data_sql = f"""
         SELECT ID, weapon_name, weapon_type, item_name, weapon_float, float_range,
                price, lenter_name, status, last_status, "from", data_user,
-               lean_start_time, lean_end_time, total_Lease_Days, max_Lease_Days
+               lean_start_time, lean_end_time, total_Lease_Days, max_Lease_Days, steam_hash_name
         FROM lent
         WHERE {where_clause}
         ORDER BY lean_start_time DESC
@@ -401,7 +402,7 @@ def searchByTypeAndWear():
         """
         params.extend([page_size, offset])
         data_result = db.execute_query(data_sql, tuple(params))
-        
+
         # 格式化数据
         records = []
         for row in data_result:
@@ -417,10 +418,12 @@ def searchByTypeAndWear():
                 row[8],   # status
                 row[9],   # last_status
                 row[10],  # from
-                row[11],  # lean_start_time
-                row[12],  # lean_end_time
-                row[13],  # total_Lease_Days
-                row[14]   # max_Lease_Days
+                row[11],  # data_user
+                row[12],  # lean_start_time
+                row[13],  # lean_end_time
+                row[14],  # total_Lease_Days
+                row[15],  # max_Lease_Days
+                row[16]   # steam_hash_name
             ])
         
         return jsonify({
@@ -552,18 +555,18 @@ def getPlatformList():
 
 @webLentPageV1.route('/getLenterList', methods=['GET'])
 def getLenterList():
-    """获取出租用户（lenter_name）唯一值，优先 lent，补充 yyyp_lent"""
+    """获取出租用户（data_user）唯一值，优先 lent，补充 yyyp_lent"""
     try:
         db = Date_base()
         sql = """
-        SELECT DISTINCT lenter_name
+        SELECT DISTINCT data_user
         FROM lent
-        WHERE lenter_name IS NOT NULL AND lenter_name != ''
+        WHERE data_user IS NOT NULL AND data_user != ''
         UNION
-        SELECT DISTINCT lenter_name
+        SELECT DISTINCT data_user
         FROM yyyp_lent
-        WHERE lenter_name IS NOT NULL AND lenter_name != ''
-        ORDER BY lenter_name
+        WHERE data_user IS NOT NULL AND data_user != ''
+        ORDER BY data_user
         """
         result = db.execute_query(sql)
         users = [row[0] for row in result or [] if row[0]]

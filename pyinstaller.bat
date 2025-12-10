@@ -2,7 +2,7 @@
 echo Starting PyInstaller packaging process...
 
 :: Set version number (modify this for each release)
-set VERSION=v2.0.1
+set VERSION=v2.0.3
 
 :: Sync version to package.json
 echo Syncing version to package.json...
@@ -91,6 +91,15 @@ if exist "Releases\conf.ini" (
     echo Warning: conf.ini not found in Releases folder
 )
 
+:: Copy Documents folder
+if exist "Documents" (
+    echo Copying Documents folder...
+    xcopy "Documents" "Releases\%VERSION%\Documents\" /E /I /H /Y /Q
+    echo Documents folder copied successfully
+) else (
+    echo Warning: Documents folder not found
+)
+
 if exist "WebSite" (
     echo Copying WebSite files and folders...
     
@@ -137,7 +146,7 @@ if exist "WebSite" (
         copy "WebSite\README.md" "Releases\%VERSION%\WebSite\README.md" >nul
         echo - README.md copied
     )
-    
+
     echo WebSite files copied successfully
 ) else (
     echo Warning: WebSite folder not found

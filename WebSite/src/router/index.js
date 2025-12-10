@@ -144,7 +144,7 @@ const routes = [
             path: 'version-update',
             name: 'VersionUpdate',
             component: () => import('@/views/settings/VersionUpdate.vue'),
-            meta: { title: '版本更新' }
+            meta: { title: '更新日志' }
           }
         ]
       }
