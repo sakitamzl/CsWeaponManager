@@ -804,8 +804,6 @@ export default {
           steam_hash_name: item[15] || '',
           data_user: item[19] || ''
         }))
-=======
-
 
         // 进入搜索模式
         isSearchMode.value = true
@@ -1086,25 +1084,14 @@ export default {
         }).filter(item => item !== null)
         
         console.log('转换后的数据:', lentData.value)
-        
-        // 获取总数（只在第一页或总数为0时调用）
-        if (currentPage.value === 1 || totalItems.value === 0) {
-          await loadTotalCount()
-        }
-        
-        if (lentData.value.length === 0) {
-=======
-        console.log(`正在请求数据(过滤接口)... 页码: ${currentPage.value}, 每页: ${pageSize.value}, min: ${min}, max: ${max}`)
-        const count = await fetchLentDataFiltered({ min, max, keywordOverride: null, storeInSearch: false })
 
         // 并行刷新统计（内部会更新 totalItems）
-        loadFilteredStats()
+        await loadFilteredStats()
 
-        if (count === 0) {
-
+        if (lentData.value.length === 0) {
           ElMessage.info('暂无出租数据')
         } else {
-          ElMessage.success(`加载成功，共 ${count} 条记录`)
+          ElMessage.success(`加载成功，共 ${lentData.value.length} 条记录`)
         }
         
       } catch (error) {
