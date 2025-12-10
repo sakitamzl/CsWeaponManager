@@ -763,16 +763,14 @@ export default {
     const searchByName = async (itemName) => {
       loading.value = true
       try {
-        console.log('正在搜索出租武器:', itemName)
-        
-        const response = await fetch(`/api/webLentV1/selectLentWeaponName/${encodeURIComponent(itemName)}`, {
-          method: 'GET',
-          mode: 'cors',
-          signal: createAbortSignal(dataController),
-          headers: {
-            'Accept': 'application/json',
-          },
+        console.log('正在搜索出租武器(过滤接口):', itemName)
+        const count = await fetchLentDataFiltered({
+          min: 0,
+          max: 10000,
+          keywordOverride: itemName,
+          storeInSearch: true
         })
+
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
@@ -806,18 +804,18 @@ export default {
           steam_hash_name: item[15] || '',
           data_user: item[19] || ''
         }))
+=======
+
 
         // 进入搜索模式
         isSearchMode.value = true
-        allSearchResults.value = searchResults
-        lentData.value = [] // 清空普通数据
-        totalItems.value = rawData.length
+        totalItems.value = count
         currentPage.value = 1
-        
-        if (searchResults.length === 0) {
+
+        if (count === 0) {
           ElMessage.info(`未找到包含"${itemName}"的武器`)
         } else {
-          ElMessage.success(`找到 ${searchResults.length} 条相关记录`)
+          ElMessage.success(`找到 ${count} 条相关记录`)
         }
         
       } catch (error) {
@@ -825,6 +823,7 @@ export default {
         console.error('搜索失败:', error)
         ElMessage.error(`搜索失败: ${error.message}`)
         lentData.value = []
+        allSearchResults.value = []
         totalItems.value = 0
       } finally {
         loading.value = false
@@ -895,6 +894,11 @@ export default {
           completedCount: statsData.completedCount ?? statsData.completed_count ?? 0,
           cancelledCount: statsData.cancelledCount ?? statsData.cancelled_count ?? 0
         }
+
+      // 复用统计返回的总数作为分页总数，减少额外计数请求
+      if (typeof (statsData.totalCount ?? statsData.total_count) === 'number') {
+        totalItems.value = statsData.totalCount ?? statsData.total_count
+      }
       } catch (error) {
         if (error.name === 'AbortError') return
         console.error('加载统计数据失败:', error)
@@ -914,35 +918,83 @@ export default {
     // 向后兼容旧调用
     const loadAllDataStats = () => loadFilteredStats()
 
-    const loadTotalCount = async () => {
-      try {
-        console.log('正在获取总数...')
-        const response = await fetch('/api/webLentV1/countLentNumber', {
-          method: 'GET',
-          mode: 'cors',
-          signal: createAbortSignal(dataController),
-          headers: {
-            'Accept': 'application/json',
-          },
-        })
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-        
-        const countData = await response.json()
-        console.log('获取到的总数:', countData)
-        
-        if (countData && typeof countData.count === 'number') {
-          totalItems.value = countData.count
-          console.log('设置总数为:', totalItems.value)
-        } else {
-          console.error('总数API返回数据格式错误:', countData)
-        }
-      } catch (error) {
-        console.error('获取总数失败:', error)
-        totalItems.value = lentData.value.length > 0 ? 1000 : 0
+    const buildDataFilters = (keywordOverride = null) => {
+      const filters = {
+        status: statusFilter.value && statusFilter.value !== 'all' ? statusFilter.value : null,
+        status_sub: statusSubFilter.value && statusSubFilter.value !== 'all' ? statusSubFilter.value : null,
+        platform: platformFilter.value && platformFilter.value !== 'all' ? platformFilter.value : null,
+        lenter_name: lenterFilter.value && lenterFilter.value !== 'all' ? lenterFilter.value : null,
+        weapon_types: weaponTypeFilter.value && weaponTypeFilter.value.length > 0 ? weaponTypeFilter.value : null,
+        float_ranges: floatRangeFilter.value && floatRangeFilter.value.length > 0 ? floatRangeFilter.value : null,
+        search: keywordOverride !== null
+          ? (keywordOverride || null)
+          : (searchText.value && searchText.value.trim() ? searchText.value.trim() : null),
       }
+
+      if (dateRange.value && dateRange.value.length === 2) {
+        filters.start_date = dateRange.value[0]
+        filters.end_date = dateRange.value[1]
+      }
+
+      return filters
+    }
+
+    const fetchLentDataFiltered = async ({ min, max, keywordOverride = null, storeInSearch = false }) => {
+      const response = await fetch(apiUrls.lentDataFiltered(), {
+        method: 'POST',
+        mode: 'cors',
+        signal: createAbortSignal(dataController),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          filters: buildDataFilters(keywordOverride),
+          min,
+          max
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const rawData = await response.json()
+      if (!Array.isArray(rawData)) {
+        throw new Error('数据格式错误')
+      }
+
+      const mapped = rawData.map((item, index) => {
+        if (!Array.isArray(item)) return null
+        return {
+          id: index + 1,
+          ID: item[0] || '',
+          weapon_name: item[1] || '',
+          weapon_type: item[2] || '',
+          item_name: item[3] || '', 
+          weapon_float: item[4] || 0,
+          float_range: item[5] || '',
+          price: item[6] || 0,
+          lenter_name: item[7] || '',
+          status: item[8] || '',
+          last_status: item[9] || '',
+          from: item[10] || '',
+          lean_start_time: item[11] || '',
+          lean_end_time: item[12] || '',
+          total_Lease_Days: item[13] || 0,
+          max_Lease_Days: item[14] || 0,
+          steam_hash_name: item[15] || ''
+        }
+      }).filter(Boolean)
+
+      if (storeInSearch) {
+        allSearchResults.value = mapped
+        lentData.value = []
+      } else {
+        lentData.value = mapped
+      }
+
+      return mapped.length
     }
 
     const loadLentData = async () => {
@@ -968,6 +1020,7 @@ export default {
         const min = (currentPage.value - 1) * pageSize.value
         const max = pageSize.value
         
+
         console.log(`正在请求数据... 页码: ${currentPage.value}, 每页: ${pageSize.value}, min: ${min}, max: ${max}`)
         
         // 根据状态/子状态筛选选择不同的API（子状态优先）
@@ -1040,9 +1093,18 @@ export default {
         }
         
         if (lentData.value.length === 0) {
+=======
+        console.log(`正在请求数据(过滤接口)... 页码: ${currentPage.value}, 每页: ${pageSize.value}, min: ${min}, max: ${max}`)
+        const count = await fetchLentDataFiltered({ min, max, keywordOverride: null, storeInSearch: false })
+
+        // 并行刷新统计（内部会更新 totalItems）
+        loadFilteredStats()
+
+        if (count === 0) {
+
           ElMessage.info('暂无出租数据')
         } else {
-          ElMessage.success(`加载成功，共 ${lentData.value.length} 条记录`)
+          ElMessage.success(`加载成功，共 ${count} 条记录`)
         }
         
       } catch (error) {
@@ -1634,6 +1696,9 @@ export default {
             rentingCount: result.data.rentingCount,
             completedCount: result.data.completedCount ?? 0,
             cancelledCount: result.data.cancelledCount ?? 0
+          }
+          if (typeof result.data.totalCount === 'number') {
+            totalItems.value = result.data.totalCount
           }
         }
       } catch (error) {
