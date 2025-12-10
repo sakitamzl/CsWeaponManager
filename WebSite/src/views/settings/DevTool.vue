@@ -249,6 +249,7 @@
         </div>
     </div>
 
+    <!-- 图片资源包 -->
     <div class="sync-section">
       <h2 class="section-title">图片资源包</h2>
 
@@ -1085,7 +1086,8 @@ export default {
       installCert,
       uninstallCert,
       // Steam ID 和饰品映射
-      selectedSteamId,
+      selectedSteamIdYoupin,
+      selectedSteamIdBuff,
       steamIdList,
       isSyncing,
       isSyncingBuff,
@@ -1156,8 +1158,9 @@ export default {
 
 .sync-controls {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .control-group {
