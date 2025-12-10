@@ -6,16 +6,15 @@ setlocal
 call conda activate CS2DB
 
 cd /d "%~dp0backEnd"
-start /b cmd /c "python backEnd.py"
+start "后端服务" cmd /c "python backEnd.py"
 
 cd /d "%~dp0Spider"
-start /b cmd /c "python Spider.py"
+start "Spider服务" cmd /c "python Spider.py"
 
 cd /d "%~dp0WebSite"
 if exist "package.json" (
-    npm install
-    start /b cmd /c "npm run serve"
+    start "前端服务" cmd /c "npm run dev"
 )
-cd /d "%~dp0"
 
+cd /d "%~dp0"
 pause
