@@ -9,6 +9,7 @@ import Inventory from '@/views/Inventory.vue'
 import Setting from '@/views/Setting.vue'
 import StockComponents from '@/views/StockComponents.vue'
 import Settings from '@/views/Settings.vue'
+import DataWebsite from '@/views/data_website/DataWebsite.vue'
 import Login from '@/views/Login.vue'
 import axios from 'axios'
 import { apiUrls } from '@/config/api'
@@ -145,6 +146,27 @@ const routes = [
             name: 'DevTools',
             component: () => import('@/views/settings/DevTool.vue'),
             meta: { title: '开荒工具' }
+          }
+        ]
+      },
+      {
+        path: '/data-website',
+        name: 'DataWebsite',
+        component: DataWebsite,
+        meta: { title: '第三方数据网站' },
+        redirect: '/data-website/market-overview',
+        children: [
+          {
+            path: 'market-overview',
+            name: 'MarketOverview',
+            component: () => import('@/views/data_website/MarketOverview.vue'),
+            meta: { title: '市场大盘' }
+          },
+          {
+            path: 'csqaq',
+            name: 'CSQAQ',
+            component: () => import('@/views/data_website/CSQAQ.vue'),
+            meta: { title: 'CSQAQ' }
           }
         ]
       }

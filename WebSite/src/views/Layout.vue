@@ -103,6 +103,11 @@ export default {
           icon: '/icons/Stock_components.png'
         },
         {
+          path: '/data-website',
+          title: '第三方数据网站',
+          icon: '/icons/data_from.png'
+        },
+        {
           path: '/settings',
           title: '其他功能',
           icon: '/icons/setting.png'
