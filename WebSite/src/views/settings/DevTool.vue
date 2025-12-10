@@ -173,12 +173,31 @@
 
           <!-- CSQAQ商品采集 -->
           <div class="control-group">
-            <el-button
-              type="success"
-              @click="startCsqaqCrawlAll"
-              disabled
+            <el-upload
+              ref="csqaqUploadRef"
+              :action="apiUrls.csqaqUploadMapping()"
+              :auto-upload="false"
+              :show-file-list="true"
+              :limit="1"
+              accept=".txt"
+              :on-success="handleCsqaqUploadSuccess"
+              :on-error="handleCsqaqUploadError"
+              :before-upload="beforeCsqaqUpload"
             >
-              上传CSQAQ映射文件
+              <el-button
+                type="success"
+                :loading="isUploadingCsqaq"
+              >
+                {{ isUploadingCsqaq ? '上传中...' : '选择CSQAQ映射文件' }}
+              </el-button>
+            </el-upload>
+            <el-button
+              type="primary"
+              @click="submitCsqaqUpload"
+              :disabled="!csqaqFileSelected || isUploadingCsqaq"
+              :loading="isUploadingCsqaq"
+            >
+              {{ isUploadingCsqaq ? '处理中...' : '提交上传' }}
             </el-button>
           </div>
         </div>
@@ -223,6 +242,31 @@
         
         <div v-if="lastCsqaqTime" class="sync-info" style="margin-top: 0.5rem;">
           <span class="sync-time">最后采集时间: {{ lastCsqaqTime }}</span>
+        </div>
+
+        <div v-if="csqaqUploadResult" class="sync-info" style="margin-top: 1rem;">
+          <div class="status-row">
+            <span class="status-label">上传结果:</span>
+            <span class="status-value" :class="csqaqUploadResult.success ? 'success-text' : 'error'">
+              {{ csqaqUploadResult.message }}
+            </span>
+          </div>
+          <div v-if="csqaqUploadResult.total > 0" class="status-row">
+            <span class="status-label">总记录数:</span>
+            <span class="status-value">{{ csqaqUploadResult.total }}</span>
+          </div>
+          <div v-if="csqaqUploadResult.updated > 0" class="status-row">
+            <span class="status-label">更新:</span>
+            <span class="status-value success-text">{{ csqaqUploadResult.updated }}</span>
+          </div>
+          <div v-if="csqaqUploadResult.inserted > 0" class="status-row">
+            <span class="status-label">新增:</span>
+            <span class="status-value success-text">{{ csqaqUploadResult.inserted }}</span>
+          </div>
+          <div v-if="csqaqUploadResult.failed > 0" class="status-row">
+            <span class="status-label">失败:</span>
+            <span class="status-value error">{{ csqaqUploadResult.failed }}</span>
+          </div>
         </div>
     </div>
 
@@ -307,6 +351,12 @@ export default {
       duration: null
     })
     const lastCsqaqTime = ref('')
+    
+    // CSQAQ上传相关
+    const csqaqUploadRef = ref(null)
+    const isUploadingCsqaq = ref(false)
+    const csqaqFileSelected = ref(false)
+    const csqaqUploadResult = ref(null)
 
     // 图片下载相关
     const isDownloadingIcons = ref(false)
@@ -987,6 +1037,68 @@ export default {
       }
     }
 
+    // CSQAQ上传相关函数
+    const beforeCsqaqUpload = (file) => {
+      const isTxt = file.name.endsWith('.txt')
+      if (!isTxt) {
+        ElMessage.error('只能上传.txt文件！')
+        return false
+      }
+      
+      const isLt50M = file.size / 1024 / 1024 < 50
+      if (!isLt50M) {
+        ElMessage.error('文件大小不能超过50MB！')
+        return false
+      }
+      
+      csqaqFileSelected.value = true
+      return true
+    }
+
+    const submitCsqaqUpload = () => {
+      if (!csqaqUploadRef.value) {
+        ElMessage.error('上传组件未初始化')
+        return
+      }
+      
+      isUploadingCsqaq.value = true
+      csqaqUploadRef.value.submit()
+    }
+
+    const handleCsqaqUploadSuccess = (response, file) => {
+      isUploadingCsqaq.value = false
+      csqaqFileSelected.value = false
+      
+      if (response.success) {
+        csqaqUploadResult.value = response
+        ElMessage.success(response.message || '上传成功')
+        
+        // 清空文件列表
+        if (csqaqUploadRef.value) {
+          csqaqUploadRef.value.clearFiles()
+        }
+      } else {
+        ElMessage.error(response.message || '上传失败')
+      }
+    }
+
+    const handleCsqaqUploadError = (error, file) => {
+      isUploadingCsqaq.value = false
+      csqaqFileSelected.value = false
+      
+      console.error('上传失败:', error)
+      
+      let errorMessage = '上传失败'
+      try {
+        const response = JSON.parse(error.message)
+        errorMessage = response.message || errorMessage
+      } catch (e) {
+        errorMessage = error.message || errorMessage
+      }
+      
+      ElMessage.error(errorMessage)
+    }
+
     // 组件挂载时加载Steam ID列表
     onMounted(() => {
       loadSteamIdList()
@@ -1032,7 +1144,16 @@ export default {
       isCrawlingCsqaq,
       csqaqStatus,
       lastCsqaqTime,
-      startCsqaqCrawlAll
+      startCsqaqCrawlAll,
+      // CSQAQ上传
+      csqaqUploadRef,
+      isUploadingCsqaq,
+      csqaqFileSelected,
+      csqaqUploadResult,
+      beforeCsqaqUpload,
+      submitCsqaqUpload,
+      handleCsqaqUploadSuccess,
+      handleCsqaqUploadError
     }
   }
 }

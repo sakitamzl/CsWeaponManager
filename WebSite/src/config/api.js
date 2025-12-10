@@ -330,6 +330,12 @@ export const API_CONFIG = {
 
     
 
+    // CSQAQ相关
+
+    CSQAQ_UPLOAD_MAPPING: '/csqaqApiV1/api/csqaq/upload-mapping',  // 上传CSQAQ映射文件
+
+    
+
     // 登录设置相关
 
     LOGIN_SETTINGS: '/loginSettingsV1/api/login-settings',  // 获取/保存登录设置
@@ -677,6 +683,12 @@ export const apiUrls = {
   loginSettings: () => getApiUrl(API_CONFIG.ENDPOINTS.LOGIN_SETTINGS),
 
   loginVerify: () => getApiUrl(API_CONFIG.ENDPOINTS.LOGIN_VERIFY),
+
+  
+
+  // CSQAQ API
+
+  csqaqUploadMapping: () => getApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_UPLOAD_MAPPING),
 
 }
 

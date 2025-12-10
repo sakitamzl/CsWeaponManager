@@ -152,6 +152,11 @@ class WeaponClassIDModel(BaseModel):
                 'type': 'TEXT',
                 'not_null': False,
                 'default': None
+            },
+            'csqaq_id': {
+                'type': 'INTEGER',
+                'not_null': False,
+                'default': None
             }
         }
 
@@ -206,6 +211,10 @@ class WeaponClassIDModel(BaseModel):
             {
                 'name': 'idx_instanceid',
                 'columns': ['instanceid']
+            },
+            {
+                'name': 'idx_csqaq_id',
+                'columns': ['csqaq_id']
             }
         ]
 
