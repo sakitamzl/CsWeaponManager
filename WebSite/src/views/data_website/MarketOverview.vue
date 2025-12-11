@@ -1,8 +1,89 @@
 <template>
   <div class="market-overview-container">
     <div class="content-wrapper">
-      <!-- K线图表 -->
-      <el-card class="chart-card" v-loading="loading">
+      <!-- 时间周期选择 -->
+      <div class="period-selector">
+        <el-button-group>
+          <el-button 
+            size="small"
+            :type="queryForm.period === '1h' ? 'primary' : ''"
+            @click="changePeriod('1h')"
+          >
+            1小时线
+          </el-button>
+          <el-button 
+            size="small"
+            :type="queryForm.period === '4h' ? 'primary' : ''"
+            @click="changePeriod('4h')"
+          >
+            4小时线
+          </el-button>
+          <el-button 
+            size="small"
+            :type="queryForm.period === '1d' ? 'primary' : ''"
+            @click="changePeriod('1d')"
+          >
+            日线
+          </el-button>
+          <el-button 
+            size="small"
+            :type="queryForm.period === '1w' ? 'primary' : ''"
+            @click="changePeriod('1w')"
+          >
+            周线
+          </el-button>
+        </el-button-group>
+        <el-tag v-if="lastUpdateTime" type="info" size="small" style="margin-left: 1rem;">
+          更新: {{ lastUpdateTime }}
+        </el-tag>
+        <el-button size="small" @click="fetchAllData" :loading="loading" style="margin-left: 1rem;">
+          <el-icon><Refresh /></el-icon>
+          刷新
+        </el-button>
+      </div>
+
+      <!-- SteamDT K线图表 -->
+      <el-card class="chart-card" v-loading="loadingSteamDT">
+        <template #header>
+          <div class="card-header">
+            <div class="header-left">
+              <div class="title-with-icon">
+                <img src="/icons/steamdt.png" alt="SteamDT" class="title-icon steamdt-icon" />
+                <span class="chart-title">SteamDT 市场指数K线图</span>
+              </div>
+              
+              <!-- 市场统计信息 -->
+              <div class="stats-inline" v-if="statsDataSteamDT">
+                <div class="stat-inline-item">
+                  <span class="stat-inline-label">当前指数</span>
+                  <span class="stat-inline-value" :class="{ 'up': statsDataSteamDT.change > 0, 'down': statsDataSteamDT.change < 0 }">
+                    {{ statsDataSteamDT.latest }}
+                  </span>
+                </div>
+                <div class="stat-inline-item">
+                  <span class="stat-inline-label">涨跌幅</span>
+                  <span class="stat-inline-value" :class="{ 'up': statsDataSteamDT.change > 0, 'down': statsDataSteamDT.change < 0 }">
+                    {{ statsDataSteamDT.change > 0 ? '+' : '' }}{{ statsDataSteamDT.change }}%
+                  </span>
+                </div>
+                <div class="stat-inline-item">
+                  <span class="stat-inline-label">最高</span>
+                  <span class="stat-inline-value">{{ statsDataSteamDT.high }}</span>
+                </div>
+                <div class="stat-inline-item">
+                  <span class="stat-inline-label">最低</span>
+                  <span class="stat-inline-value">{{ statsDataSteamDT.low }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+        
+        <div ref="chartRefSteamDT" class="chart-container"></div>
+      </el-card>
+
+      <!-- CSQAQ K线图表 -->
+      <el-card class="chart-card" v-loading="loadingCSQAQ">
         <template #header>
           <div class="card-header">
             <div class="header-left">
@@ -10,102 +91,69 @@
                 <img src="/icons/CSQAQ.png" alt="CSQAQ" class="title-icon" />
                 <span class="chart-title">CSQAQ 市场指数K线图</span>
               </div>
-              <el-button-group class="period-buttons">
-                <el-button 
-                  size="small"
-                  :type="queryForm.period === '1h' ? 'primary' : ''"
-                  @click="changePeriod('1h')"
-                >
-                  1小时线
-                </el-button>
-                <el-button 
-                  size="small"
-                  :type="queryForm.period === '4h' ? 'primary' : ''"
-                  @click="changePeriod('4h')"
-                >
-                  4小时线
-                </el-button>
-                <el-button 
-                  size="small"
-                  :type="queryForm.period === '1d' ? 'primary' : ''"
-                  @click="changePeriod('1d')"
-                >
-                  日线
-                </el-button>
-                <el-button 
-                  size="small"
-                  :type="queryForm.period === '1w' ? 'primary' : ''"
-                  @click="changePeriod('1w')"
-                >
-                  周线
-                </el-button>
-              </el-button-group>
               
               <!-- 市场统计信息 -->
-              <div class="stats-inline" v-if="statsData">
+              <div class="stats-inline" v-if="statsDataCSQAQ">
                 <div class="stat-inline-item">
                   <span class="stat-inline-label">当前指数</span>
-                  <span class="stat-inline-value" :class="{ 'up': statsData.change > 0, 'down': statsData.change < 0 }">
-                    {{ statsData.latest }}
+                  <span class="stat-inline-value" :class="{ 'up': statsDataCSQAQ.change > 0, 'down': statsDataCSQAQ.change < 0 }">
+                    {{ statsDataCSQAQ.latest }}
                   </span>
                 </div>
                 <div class="stat-inline-item">
                   <span class="stat-inline-label">涨跌幅</span>
-                  <span class="stat-inline-value" :class="{ 'up': statsData.change > 0, 'down': statsData.change < 0 }">
-                    {{ statsData.change > 0 ? '+' : '' }}{{ statsData.change }}%
+                  <span class="stat-inline-value" :class="{ 'up': statsDataCSQAQ.change > 0, 'down': statsDataCSQAQ.change < 0 }">
+                    {{ statsDataCSQAQ.change > 0 ? '+' : '' }}{{ statsDataCSQAQ.change }}%
                   </span>
                 </div>
                 <div class="stat-inline-item">
                   <span class="stat-inline-label">最高</span>
-                  <span class="stat-inline-value">{{ statsData.high }}</span>
+                  <span class="stat-inline-value">{{ statsDataCSQAQ.high }}</span>
                 </div>
                 <div class="stat-inline-item">
                   <span class="stat-inline-label">最低</span>
-                  <span class="stat-inline-value">{{ statsData.low }}</span>
+                  <span class="stat-inline-value">{{ statsDataCSQAQ.low }}</span>
                 </div>
               </div>
-            </div>
-            <div class="header-right">
-              <el-tag v-if="lastUpdateTime" type="info" size="small">
-                更新: {{ lastUpdateTime }}
-              </el-tag>
-              <el-button size="small" @click="fetchData" :loading="loading">
-                <el-icon><Refresh /></el-icon>
-              </el-button>
             </div>
           </div>
         </template>
         
-        <div ref="chartRef" class="chart-container"></div>
+        <div ref="chartRefCSQAQ" class="chart-container"></div>
       </el-card>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import axios from 'axios'
 
 const loading = ref(false)
-const chartRef = ref(null)
+const loadingSteamDT = ref(false)
+const loadingCSQAQ = ref(false)
+const chartRefSteamDT = ref(null)
+const chartRefCSQAQ = ref(null)
 const lastUpdateTime = ref('')
-const statsData = ref(null)
-let chartInstance = null
+const statsDataSteamDT = ref(null)
+const statsDataCSQAQ = ref(null)
+let chartInstanceSteamDT = null
+let chartInstanceCSQAQ = null
 
 const queryForm = reactive({
   period: '1h'
 })
 
 // 初始化图表
-const initChart = () => {
-  if (!chartRef.value) return
+const initChart = (chartRef, chartInstance) => {
+  if (!chartRef) return null
   
-  chartInstance = echarts.init(chartRef.value, 'dark', {
-    renderer: 'canvas',  // 使用canvas渲染，性能更好
-    useDirtyRect: true   // 启用脏矩形优化
+  const instance = echarts.init(chartRef, 'dark', {
+    renderer: 'canvas',
+    useDirtyRect: true
   })
   
   const option = {
@@ -286,7 +334,18 @@ const initChart = () => {
     ]
   }
   
-  chartInstance.setOption(option)
+  instance.setOption(option)
+  return instance
+}
+
+// 初始化所有图表
+const initAllCharts = () => {
+  if (chartRefSteamDT.value) {
+    chartInstanceSteamDT = initChart(chartRefSteamDT.value, chartInstanceSteamDT)
+  }
+  if (chartRefCSQAQ.value) {
+    chartInstanceCSQAQ = initChart(chartRefCSQAQ.value, chartInstanceCSQAQ)
+  }
 }
 
 // 计算移动平均线
@@ -306,11 +365,35 @@ const calculateMA = (data, period) => {
   return result
 }
 
-// 获取数据
-const fetchData = async () => {
-  loading.value = true
+// 获取 SteamDT 数据
+const fetchSteamDTData = async () => {
+  loadingSteamDT.value = true
   try {
-    // 通过后端Spider服务调用CSQAQ API获取指数K线图数据
+    const response = await axios.get('/spider/steamdtSpiderV1/getKline', {
+      params: {
+        period: queryForm.period
+      }
+    })
+    
+    if (response.data && response.data.code === 200) {
+      const data = response.data.data
+      updateChart(data, chartInstanceSteamDT, 'SteamDT')
+      updateStats(data, 'SteamDT')
+    } else {
+      throw new Error(response.data.message || 'SteamDT数据加载失败')
+    }
+  } catch (error) {
+    console.error('获取SteamDT数据失败:', error)
+    ElMessage.error('获取SteamDT数据失败: ' + (error.message || '请检查网络连接'))
+  } finally {
+    loadingSteamDT.value = false
+  }
+}
+
+// 获取 CSQAQ 数据
+const fetchCSQAQData = async () => {
+  loadingCSQAQ.value = true
+  try {
     const response = await axios.get('/spider/csqaqSpiderV1/getKline', {
       params: {
         period: queryForm.period
@@ -319,23 +402,33 @@ const fetchData = async () => {
     
     if (response.data && response.data.code === 200) {
       const data = response.data.data
-      updateChart(data)
-      updateStats(data)
-      lastUpdateTime.value = new Date().toLocaleString('zh-CN')
-      ElMessage.success('数据加载成功')
+      updateChart(data, chartInstanceCSQAQ, 'CSQAQ')
+      updateStats(data, 'CSQAQ')
     } else {
-      throw new Error(response.data.message || '数据加载失败')
+      throw new Error(response.data.message || 'CSQAQ数据加载失败')
     }
   } catch (error) {
-    console.error('获取数据失败:', error)
-    ElMessage.error('获取数据失败: ' + (error.message || '请检查网络连接'))
+    console.error('获取CSQAQ数据失败:', error)
+    ElMessage.error('获取CSQAQ数据失败: ' + (error.message || '请检查网络连接'))
   } finally {
-    loading.value = false
+    loadingCSQAQ.value = false
   }
 }
 
+// 获取所有数据
+const fetchAllData = async () => {
+  loading.value = true
+  await Promise.all([
+    fetchSteamDTData(),
+    fetchCSQAQData()
+  ])
+  lastUpdateTime.value = new Date().toLocaleString('zh-CN')
+  loading.value = false
+  ElMessage.success('数据加载成功')
+}
+
 // 更新图表
-const updateChart = (data) => {
+const updateChart = (data, chartInstance, dataSource) => {
   if (!chartInstance || !data || data.length === 0) return
   
   const times = data.map(item => item.time)
@@ -579,7 +672,7 @@ const updateChart = (data) => {
 }
 
 // 更新统计信息
-const updateStats = (data) => {
+const updateStats = (data, dataSource) => {
   if (!data || data.length === 0) return
   
   const latest = parseFloat(data[data.length - 1].close)
@@ -590,37 +683,49 @@ const updateStats = (data) => {
   const high = Math.max(...prices).toFixed(2)
   const low = Math.min(...data.map(item => parseFloat(item.low))).toFixed(2)
   
-  statsData.value = {
+  const stats = {
     latest: latest.toFixed(2),
     change: parseFloat(change),
     high,
     low
+  }
+  
+  if (dataSource === 'SteamDT') {
+    statsDataSteamDT.value = stats
+  } else if (dataSource === 'CSQAQ') {
+    statsDataCSQAQ.value = stats
   }
 }
 
 // 周期变化处理
 const changePeriod = (period) => {
   queryForm.period = period
-  fetchData()
+  fetchAllData()
 }
 
 // 窗口大小变化处理
 const handleResize = () => {
-  if (chartInstance) {
-    chartInstance.resize()
+  if (chartInstanceSteamDT) {
+    chartInstanceSteamDT.resize()
+  }
+  if (chartInstanceCSQAQ) {
+    chartInstanceCSQAQ.resize()
   }
 }
 
 onMounted(async () => {
   await nextTick()
-  initChart()
-  fetchData()
+  initAllCharts()
+  fetchAllData()
   window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {
-  if (chartInstance) {
-    chartInstance.dispose()
+  if (chartInstanceSteamDT) {
+    chartInstanceSteamDT.dispose()
+  }
+  if (chartInstanceCSQAQ) {
+    chartInstanceCSQAQ.dispose()
   }
   window.removeEventListener('resize', handleResize)
 })
@@ -629,7 +734,7 @@ onUnmounted(() => {
 <style scoped>
 .market-overview-container {
   padding: 2rem;
-  max-width: 1600px;
+  max-width: 1800px;
   margin: 0 auto;
 }
 
@@ -637,6 +742,15 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+}
+
+.period-selector {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 4px;
 }
 
 .chart-card {
@@ -675,15 +789,18 @@ onUnmounted(() => {
   object-fit: contain;
 }
 
+.steamdt-icon {
+  width: 54px;
+  height: 54px;
+}
+
 .chart-title {
   font-weight: 600;
   color: #ffffff;
   font-size: 1rem;
 }
 
-.period-buttons {
-  margin-left: 1rem;
-}
+
 
 .stats-inline {
   display: flex;
