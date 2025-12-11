@@ -1,7 +1,7 @@
 <template>
   <div class="market-overview-container">
     <div class="content-wrapper">
-      <!-- 时间周期选择 -->
+      <!-- 通用时间周期选择 -->
       <div class="period-selector">
         <el-button-group>
           <el-button 
@@ -38,49 +38,9 @@
         </el-tag>
         <el-button size="small" @click="fetchAllData" :loading="loading" style="margin-left: 1rem;">
           <el-icon><Refresh /></el-icon>
-          刷新
+          刷新全部
         </el-button>
       </div>
-
-      <!-- SteamDT K线图表 -->
-      <el-card class="chart-card" v-loading="loadingSteamDT">
-        <template #header>
-          <div class="card-header">
-            <div class="header-left">
-              <div class="title-with-icon">
-                <img src="/icons/steamdt.png" alt="SteamDT" class="title-icon steamdt-icon" />
-                <span class="chart-title">SteamDT 市场指数K线图</span>
-              </div>
-              
-              <!-- 市场统计信息 -->
-              <div class="stats-inline" v-if="statsDataSteamDT">
-                <div class="stat-inline-item">
-                  <span class="stat-inline-label">当前指数</span>
-                  <span class="stat-inline-value" :class="{ 'up': statsDataSteamDT.change > 0, 'down': statsDataSteamDT.change < 0 }">
-                    {{ statsDataSteamDT.latest }}
-                  </span>
-                </div>
-                <div class="stat-inline-item">
-                  <span class="stat-inline-label">涨跌幅</span>
-                  <span class="stat-inline-value" :class="{ 'up': statsDataSteamDT.change > 0, 'down': statsDataSteamDT.change < 0 }">
-                    {{ statsDataSteamDT.change > 0 ? '+' : '' }}{{ statsDataSteamDT.change }}%
-                  </span>
-                </div>
-                <div class="stat-inline-item">
-                  <span class="stat-inline-label">最高</span>
-                  <span class="stat-inline-value">{{ statsDataSteamDT.high }}</span>
-                </div>
-                <div class="stat-inline-item">
-                  <span class="stat-inline-label">最低</span>
-                  <span class="stat-inline-value">{{ statsDataSteamDT.low }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </template>
-        
-        <div ref="chartRefSteamDT" class="chart-container"></div>
-      </el-card>
 
       <!-- CSQAQ K线图表 -->
       <el-card class="chart-card" v-loading="loadingCSQAQ">
@@ -121,14 +81,63 @@
         
         <div ref="chartRefCSQAQ" class="chart-container"></div>
       </el-card>
+
+      <!-- SteamDT K线图表 -->
+      <el-card class="chart-card" v-loading="loadingSteamDT" v-if="queryForm.period !== '4h'">
+        <template #header>
+          <div class="card-header">
+            <div class="header-left">
+              <div class="title-with-icon">
+                <img src="/icons/steamdt.png" alt="SteamDT" class="title-icon steamdt-icon" />
+                <span class="chart-title">SteamDT 市场指数K线图</span>
+              </div>
+              
+              <!-- 市场统计信息 -->
+              <div class="stats-inline" v-if="statsDataSteamDT">
+                <div class="stat-inline-item">
+                  <span class="stat-inline-label">当前指数</span>
+                  <span class="stat-inline-value" :class="{ 'up': statsDataSteamDT.change > 0, 'down': statsDataSteamDT.change < 0 }">
+                    {{ statsDataSteamDT.latest }}
+                  </span>
+                </div>
+                <div class="stat-inline-item">
+                  <span class="stat-inline-label">涨跌幅</span>
+                  <span class="stat-inline-value" :class="{ 'up': statsDataSteamDT.change > 0, 'down': statsDataSteamDT.change < 0 }">
+                    {{ statsDataSteamDT.change > 0 ? '+' : '' }}{{ statsDataSteamDT.change }}%
+                  </span>
+                </div>
+                <div class="stat-inline-item">
+                  <span class="stat-inline-label">最高</span>
+                  <span class="stat-inline-value">{{ statsDataSteamDT.high }}</span>
+                </div>
+                <div class="stat-inline-item">
+                  <span class="stat-inline-label">最低</span>
+                  <span class="stat-inline-value">{{ statsDataSteamDT.low }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+        
+        <div ref="chartRefSteamDT" class="chart-container"></div>
+      </el-card>
+
+      <!-- SteamDT 不支持 4小时线提示 -->
+      <el-card class="chart-card" v-if="queryForm.period === '4h'">
+        <div class="no-data-tip">
+          <el-icon :size="48" color="#909399"><WarningFilled /></el-icon>
+          <p>SteamDT 不支持 4小时线数据</p>
+          <p class="tip-sub">请选择其他时间周期查看 SteamDT 数据</p>
+        </div>
+      </el-card>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Refresh } from '@element-plus/icons-vue'
+import { Refresh, WarningFilled } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import axios from 'axios'
 
@@ -367,6 +376,11 @@ const calculateMA = (data, period) => {
 
 // 获取 SteamDT 数据
 const fetchSteamDTData = async () => {
+  // SteamDT 不支持 4小时线
+  if (queryForm.period === '4h') {
+    return
+  }
+  
   loadingSteamDT.value = true
   try {
     const response = await axios.get('/spider/steamdtSpiderV1/getKline', {
@@ -751,6 +765,7 @@ onUnmounted(() => {
   background: #1e1e1e;
   border: 1px solid #333;
   border-radius: 4px;
+  margin-bottom: 1.5rem;
 }
 
 .chart-card {
@@ -840,6 +855,27 @@ onUnmounted(() => {
 .chart-container {
   width: 100%;
   height: 800px;
+}
+
+.no-data-tip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  color: #909399;
+}
+
+.no-data-tip p {
+  margin: 1rem 0 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.no-data-tip .tip-sub {
+  font-size: 0.9rem;
+  color: #606266;
+  margin-top: 0.5rem;
 }
 
 :deep(.el-form-item__label) {
