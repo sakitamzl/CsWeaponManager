@@ -336,6 +336,14 @@ export const API_CONFIG = {
 
     
 
+    // 图片相关
+
+    WEAPON_IMAGE: (imageName) => `/api/v1/images/weapon_image/${imageName}`,  // 获取武器图片
+
+    WEAPON_IMAGE_CHECK: (imageName) => `/api/v1/images/weapon_image/check/${imageName}`,  // 检查武器图片是否存在
+
+    
+
     // 登录设置相关
 
     LOGIN_SETTINGS: '/loginSettingsV1/api/login-settings',  // 获取/保存登录设置
@@ -689,6 +697,14 @@ export const apiUrls = {
   // CSQAQ API
 
   csqaqUploadMapping: () => getApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_UPLOAD_MAPPING),
+
+  
+
+  // 图片API
+
+  weaponImage: (imageName) => getApiUrl(API_CONFIG.ENDPOINTS.WEAPON_IMAGE(imageName)),
+
+  weaponImageCheck: (imageName) => getApiUrl(API_CONFIG.ENDPOINTS.WEAPON_IMAGE_CHECK(imageName)),
 
 }
 

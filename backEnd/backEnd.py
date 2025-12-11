@@ -41,6 +41,7 @@ from src.web_side.webSide.settings.database_manager import database_manager_bp
 from src.web_side.webSide.settings.auto_search_weapon_api import search_rename_bp
 from src.web_side.webSide.version_update import version_update_bp
 from src.web_side.CSQAQ.csqaq_api import csqaqApiV1
+from src.web_side.webSide.read_imges import readImagesV1
 from src.db_manager import init_database
 from src.Unites.auto_process.task_scheduler import get_scheduler
 
@@ -95,6 +96,7 @@ def blankEndApi():
     app.register_blueprint(search_rename_bp)  # 改名饰品搜索API
     app.register_blueprint(version_update_bp)  # 版本更新API
     app.register_blueprint(csqaqApiV1, url_prefix='/csqaqApiV1')  # CSQAQ API
+    app.register_blueprint(readImagesV1, url_prefix='/api/v1/images')  # 图片读取API
     
     # 禁用 werkzeug 的 HTTP 请求日志
     log = logging.getLogger('werkzeug')

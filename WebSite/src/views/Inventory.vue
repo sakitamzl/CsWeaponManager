@@ -1603,7 +1603,7 @@ export default {
         .replace(/\s/g, '_')          // 剩余所有空格 -> "_"
         + '.png'
 
-      return `/weapon_imgs/${imageName}`
+      return apiUrls.weaponImage(imageName)
     }
 
     // 处理图片加载错误
@@ -1653,7 +1653,7 @@ export default {
               .replace(/\s*\|\s*/g, '___')
               .replace(/\s/g, '_')
               + '.png'
-            imageUrl = `/weapon_imgs/${imageName}`
+            imageUrl = apiUrls.weaponImage(imageName)
           }
 
           return {
@@ -1682,7 +1682,7 @@ export default {
             .replace(/\s*\|\s*/g, '___')
             .replace(/\s/g, '_')
             + '.png'
-          imageUrl = `/weapon_imgs/${imageName}`
+          imageUrl = apiUrls.weaponImage(imageName)
         }
 
         return {

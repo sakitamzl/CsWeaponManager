@@ -723,7 +723,7 @@ export default {
         .replace(/\s*\|\s*/g, '___')
         .replace(/\s/g, '_')
         + '.png'
-      return `/weapon_imgs/${imageName}`
+      return apiUrls.weaponImage(imageName)
     }
 
     // 组合标题：武器名 | 饰品名 （磨损）；若两者相同，仅显示一次

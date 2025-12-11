@@ -1536,7 +1536,7 @@ export default {
         .replace(/\s/g, '_')
         .replace(/\*/g, '_')
         + '.png'
-      return `/weapon_imgs/${imageName}`
+      return apiUrls.weaponImage(imageName)
     }
 
     // 获取组合后的商品标题，若 weapon_name 与 item_name 相同则只显示一次
@@ -1590,7 +1590,7 @@ export default {
               .replace(/\s/g, '_')
               .replace(/\*/g, '_')
               .replace(/™/g, '?')
-            imageUrl = `/weapon_imgs/Sticker___${imageName}.png`
+            imageUrl = apiUrls.weaponImage(`Sticker___${imageName}.png`)
           }
           
           return {
@@ -1627,7 +1627,7 @@ export default {
             .replace(/\*/g, '_')
             .replace(/™/g, '?')
             + '.png'
-          imageUrl = `/weapon_imgs/${imageName}`
+          imageUrl = apiUrls.weaponImage(imageName)
         }
         
         return {
@@ -1654,7 +1654,7 @@ export default {
         .replace(/\*/g, '_')
         .replace(/™/g, '?')
         + '.png'
-      return `/weapon_imgs/${imageName}`
+      return apiUrls.weaponImage(imageName)
     }
 
     // 打开预览弹窗
