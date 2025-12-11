@@ -18,13 +18,13 @@
             <span>市场大盘</span>
           </li>
           <li 
-            :class="{ active: $route.name === 'CSQAQ' }"
-            @click="navigateTo('/data-website/csqaq')"
+            :class="{ active: $route.name === 'DataWebsiteItemSearch' }"
+            @click="navigateTo('/data-website/item-search')"
           >
             <el-icon :size="18">
-              <DataAnalysis />
+              <Search />
             </el-icon>
-            <span>CSQAQ</span>
+            <span>饰品搜索</span>
           </li>
         </ul>
       </div>
@@ -48,7 +48,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { DataAnalysis, TrendCharts, ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
+import { TrendCharts, Search, ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const sidebarCollapsed = ref(false)

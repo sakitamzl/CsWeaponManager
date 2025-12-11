@@ -163,10 +163,10 @@ const routes = [
             meta: { title: '市场大盘' }
           },
           {
-            path: 'csqaq',
-            name: 'CSQAQ',
-            component: () => import('@/views/data_website/CSQAQ.vue'),
-            meta: { title: 'CSQAQ' }
+            path: 'item-search',
+            name: 'DataWebsiteItemSearch',
+            component: () => import('@/views/data_website/ItemSearch.vue'),
+            meta: { title: '饰品搜索' }
           }
         ]
       }

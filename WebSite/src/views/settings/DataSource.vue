@@ -917,6 +917,28 @@
           </el-collapse>
         </template>
 
+        <!-- SteamDT特有配置 -->
+        <template v-else-if="editForm.type === 'steamdt'">
+          <el-collapse v-model="editSteamdtCollapse">
+            <el-collapse-item title="SteamDT配置" name="config">
+              <el-form-item label="API_KEY" required>
+                <el-input 
+                  v-model="editForm.steamdtApiKey" 
+                  type="textarea"
+                  :rows="3"
+                  placeholder="请输入API_KEY"
+                />
+              </el-form-item>
+              <el-form-item label="回调域名" required>
+                <el-input 
+                  v-model="editForm.steamdtCallbackDomain" 
+                  placeholder="请输入回调域名"
+                />
+              </el-form-item>
+            </el-collapse-item>
+          </el-collapse>
+        </template>
+
         <!-- 通用配置 -->
         <template v-else>
           <el-form-item label="API地址">
@@ -1060,8 +1082,19 @@
               v-if="isIndependentDataSourceMode"
               label="CSQAQ" 
               value="csqaq"
+              :disabled="isIndependentTypeDisabled('csqaq')"
             >
               <span>CSQAQ</span>
+              <span v-if="isIndependentTypeDisabled('csqaq')" style="color: #909399; font-size: 12px; margin-left: 10px;">(已存在)</span>
+            </el-option>
+            <el-option 
+              v-if="isIndependentDataSourceMode"
+              label="SteamDT" 
+              value="steamdt"
+              :disabled="isIndependentTypeDisabled('steamdt')"
+            >
+              <span>SteamDT</span>
+              <span v-if="isIndependentTypeDisabled('steamdt')" style="color: #909399; font-size: 12px; margin-left: 10px;">(已存在)</span>
             </el-option>
           </el-select>
         </el-form-item>
@@ -1678,9 +1711,31 @@
             </el-collapse-item>
           </el-collapse>
         </template>
+
+        <!-- SteamDT特有配置 -->
+        <template v-else-if="inputForm.type === 'steamdt'">
+          <el-collapse v-model="inputSteamdtCollapse">
+            <el-collapse-item title="SteamDT配置" name="config">
+              <el-form-item label="API_KEY" required>
+                <el-input 
+                  v-model="inputForm.steamdtApiKey" 
+                  type="textarea"
+                  :rows="3"
+                  placeholder="请输入API_KEY"
+                />
+              </el-form-item>
+              <el-form-item label="回调域名" required>
+                <el-input 
+                  v-model="inputForm.steamdtCallbackDomain" 
+                  placeholder="请输入回调域名"
+                />
+              </el-form-item>
+            </el-collapse-item>
+          </el-collapse>
+        </template>
         
         <!-- 通用配置 -->
-        <template v-else-if="inputForm.type && inputForm.type !== 'youpin' && inputForm.type !== 'steam' && inputForm.type !== 'perfectworld' && inputForm.type !== 'csfloat' && inputForm.type !== 'csqaq'">
+        <template v-else-if="inputForm.type && inputForm.type !== 'youpin' && inputForm.type !== 'steam' && inputForm.type !== 'perfectworld' && inputForm.type !== 'csfloat' && inputForm.type !== 'csqaq' && inputForm.type !== 'steamdt'">
           <el-form-item label="API地址">
             <el-input 
               v-model="inputForm.apiUrl" 
@@ -1914,12 +1969,14 @@ export default {
     const inputPerfectWorldCollapse = ref([])
     const inputCsfloatCollapse = ref([])
     const inputCsqaqCollapse = ref(['config'])
+    const inputSteamdtCollapse = ref(['config'])
     const inputSteamCollapse = ref([])
     const editSteamCollapse = ref([])
     const editSteamLoginCollapse = ref([])
     const editPerfectWorldCollapse = ref([])
     const editCsfloatCollapse = ref([])
     const editCsqaqCollapse = ref(['config'])
+    const editSteamdtCollapse = ref(['config'])
     
     const editForm = ref({
       name: '',
@@ -1979,7 +2036,10 @@ export default {
       csfloatCookie: '',
       csfloatSteamID: '',
       // CSQAQ特有字段
-      csqaqApiToken: ''
+      csqaqApiToken: '',
+      // SteamDT特有字段
+      steamdtApiKey: '',
+      steamdtCallbackDomain: ''
     })
     
     const inputForm = ref({
@@ -2042,7 +2102,10 @@ export default {
       csfloatCookie: '',
       csfloatSteamID: '',
       // CSQAQ特有字段
-      csqaqApiToken: ''
+      csqaqApiToken: '',
+      // SteamDT特有字段
+      steamdtApiKey: '',
+      steamdtCallbackDomain: ''
     })
 
     const dataSources = ref([])
@@ -2059,7 +2122,7 @@ export default {
     }
 
     // 独立数据源类型列表
-    const independentDataSourceTypes = ['csqaq']
+    const independentDataSourceTypes = ['csqaq', 'steamdt']
 
     // 独立数据源的计算属性
     const independentDataSources = computed(() => {
@@ -2115,6 +2178,11 @@ export default {
       return existingTypesInCurrentGroup.value.includes(type)
     }
 
+    // 检查独立数据源类型是否已存在（独立数据源全局只能有一个）
+    const isIndependentTypeDisabled = (type) => {
+      return independentDataSources.value.some(source => source.type === type)
+    }
+
     const getSourceTypeLabel = (type) => {
       const labels = {
         steam: 'Steam市场',
@@ -2123,7 +2191,8 @@ export default {
         buff: '网易BUFF',
         youpin: '悠悠有品',
         csfloat: 'CsFloat',
-        csqaq: 'CSQAQ'
+        csqaq: 'CSQAQ',
+        steamdt: 'SteamDT'
       }
       return labels[type] || type
     }
@@ -2178,6 +2247,17 @@ export default {
       if (!inputForm.value.name || !inputForm.value.type) {
         ElMessage.error('请填写必要信息')
         return
+      }
+
+      // 独立数据源类型检查：每种类型只能存在一个
+      if (independentDataSourceTypes.includes(inputForm.value.type)) {
+        const existingSource = independentDataSources.value.find(
+          source => source.type === inputForm.value.type
+        )
+        if (existingSource) {
+          ElMessage.error(`${getSourceTypeLabel(inputForm.value.type)} 数据源已存在，每种独立数据源只能配置一个`)
+          return
+        }
       }
 
       // BUFF类型的字段校验 - 简化验证，只检查必要字段
@@ -2368,6 +2448,18 @@ export default {
         }
       }
 
+      // SteamDT类型的字段校验
+      if (inputForm.value.type === 'steamdt') {
+        if (!inputForm.value.steamdtApiKey) {
+          ElMessage.error('请填写API_KEY')
+          return
+        }
+        if (!inputForm.value.steamdtCallbackDomain) {
+          ElMessage.error('请填写回调域名')
+          return
+        }
+      }
+
       submitting.value = true
       try {
         // 获取当前时间作为创建时间
@@ -2491,6 +2583,12 @@ export default {
           // CSQAQ特殊配置
           requestData.configJson = JSON.stringify({
             ApiToken: inputForm.value.csqaqApiToken
+          })
+        } else if (inputForm.value.type === 'steamdt') {
+          // SteamDT特殊配置
+          requestData.configJson = JSON.stringify({
+            API_KEY: inputForm.value.steamdtApiKey,
+            CallbackDomain: inputForm.value.steamdtCallbackDomain
           })
         } else {
           requestData.configJson = JSON.stringify({
@@ -3114,7 +3212,10 @@ export default {
         csfloatCookie: '',
         csfloatSteamID: '',
         // CSQAQ特有字段
-        csqaqApiToken: ''
+        csqaqApiToken: '',
+        // SteamDT特有字段
+        steamdtApiKey: '',
+        steamdtCallbackDomain: ''
       }
       editingSourceId.value = null
     }
@@ -3737,6 +3838,11 @@ export default {
         // CSQAQ配置
         console.log('CSQAQ配置解析:', config)
         editForm.value.csqaqApiToken = config.ApiToken || ''
+      } else if (source.type === 'steamdt') {
+        // SteamDT配置
+        console.log('SteamDT配置解析:', config)
+        editForm.value.steamdtApiKey = config.API_KEY || ''
+        editForm.value.steamdtCallbackDomain = config.CallbackDomain || ''
       } else {
         // 通用配置 - 检查多种可能的字段名
         editForm.value.apiUrl = config.api_url || source.apiUrl || ''
@@ -3849,11 +3955,25 @@ export default {
 
     // 打开添加独立数据源对话框（CSQAQ等独立数据源）
     const openAddIndependentDataSource = () => {
+      // 检查是否所有独立数据源类型都已存在
+      const availableTypes = independentDataSourceTypes.filter(
+        type => !isIndependentTypeDisabled(type)
+      )
+      
+      if (availableTypes.length === 0) {
+        ElMessage.warning('所有独立数据源类型都已配置，每种类型只能存在一个配置')
+        return
+      }
+      
       currentSteamID.value = null // 清空steamID
       resetForm() // 先重置表单
       isIndependentDataSourceMode.value = true // 设置为独立数据源模式
-      inputForm.value.type = 'csqaq' // 默认选择CSQAQ
-      inputForm.value.name = 'CSQAQ' // 默认名称
+      
+      // 默认选择第一个可用的独立数据源类型
+      const defaultType = availableTypes[0]
+      inputForm.value.type = defaultType
+      inputForm.value.name = getSourceTypeLabel(defaultType)
+      
       addDialogVisible.value = true
     }
 
@@ -4432,6 +4552,18 @@ export default {
         }
       }
 
+      // SteamDT类型的字段校验
+      if (editForm.value.type === 'steamdt') {
+        if (!editForm.value.steamdtApiKey) {
+          ElMessage.error('请填写API_KEY')
+          return
+        }
+        if (!editForm.value.steamdtCallbackDomain) {
+          ElMessage.error('请填写回调域名')
+          return
+        }
+      }
+
       editSubmitting.value = true
       try {
         let requestData = {
@@ -4544,6 +4676,12 @@ export default {
           // CSQAQ特殊配置
           requestData.configJson = JSON.stringify({
             ApiToken: editForm.value.csqaqApiToken
+          })
+        } else if (editForm.value.type === 'steamdt') {
+          // SteamDT特殊配置
+          requestData.configJson = JSON.stringify({
+            API_KEY: editForm.value.steamdtApiKey,
+            CallbackDomain: editForm.value.steamdtCallbackDomain
           })
         } else if (editForm.value.type === 'steam_login') {
           // Steam登录特殊配置（兼容旧数据，使用与steam相同的配置）
@@ -5094,6 +5232,7 @@ export default {
       currentSteamID,
       existingTypesInCurrentGroup,
       isTypeDisabled,
+      isIndependentTypeDisabled,
       getSourceTypeLabel,
       getSourceTypeColor,
       getUpdateFreqLabel,
@@ -5136,12 +5275,14 @@ export default {
       inputPerfectWorldCollapse,
       inputCsfloatCollapse,
       inputCsqaqCollapse,
+      inputSteamdtCollapse,
       inputSteamCollapse,
       editSteamCollapse,
       editSteamLoginCollapse,
       editPerfectWorldCollapse,
       editCsfloatCollapse,
       editCsqaqCollapse,
+      editSteamdtCollapse,
       handleEditBuffCollectAll,
       handleEditCsfloatCollectAll,
       handleEditSteamCollectAll,
