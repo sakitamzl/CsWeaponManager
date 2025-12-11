@@ -1,54 +1,51 @@
 <template>
   <div class="market-overview-container">
-    <div class="page-header">
-      <h1>市场大盘</h1>
-      <p class="subtitle">CS饰品市场指数K线图</p>
-    </div>
-
     <div class="content-wrapper">
-      <!-- 控制面板 -->
-      <el-card class="control-card">
-        <el-form :inline="true" :model="queryForm">
-          <el-form-item label="时间周期">
-            <el-select v-model="queryForm.period" @change="handlePeriodChange" style="width: 120px;">
-              <el-option label="1分钟" value="1m" />
-              <el-option label="5分钟" value="5m" />
-              <el-option label="15分钟" value="15m" />
-              <el-option label="30分钟" value="30m" />
-              <el-option label="1小时" value="1h" />
-              <el-option label="4小时" value="4h" />
-              <el-option label="1天" value="1d" />
-              <el-option label="1周" value="1w" />
-            </el-select>
-          </el-form-item>
-          
-          <el-form-item label="数据条数">
-            <el-input-number 
-              v-model="queryForm.limit" 
-              :min="10" 
-              :max="1000" 
-              :step="10"
-              style="width: 120px;"
-            />
-          </el-form-item>
-          
-          <el-form-item>
-            <el-button type="primary" @click="fetchData" :loading="loading">
-              <el-icon style="margin-right: 5px;"><Refresh /></el-icon>
-              刷新数据
-            </el-button>
-          </el-form-item>
-        </el-form>
-      </el-card>
-
       <!-- K线图表 -->
       <el-card class="chart-card" v-loading="loading">
         <template #header>
           <div class="card-header">
-            <span>市场指数K线图</span>
-            <el-tag v-if="lastUpdateTime" type="info" size="small">
-              更新时间: {{ lastUpdateTime }}
-            </el-tag>
+            <div class="header-left">
+              <span class="chart-title">市场指数K线图</span>
+              <el-button-group class="period-buttons">
+                <el-button 
+                  size="small"
+                  :type="queryForm.period === '1h' ? 'primary' : ''"
+                  @click="changePeriod('1h')"
+                >
+                  1小时线
+                </el-button>
+                <el-button 
+                  size="small"
+                  :type="queryForm.period === '4h' ? 'primary' : ''"
+                  @click="changePeriod('4h')"
+                >
+                  4小时线
+                </el-button>
+                <el-button 
+                  size="small"
+                  :type="queryForm.period === '1d' ? 'primary' : ''"
+                  @click="changePeriod('1d')"
+                >
+                  日线
+                </el-button>
+                <el-button 
+                  size="small"
+                  :type="queryForm.period === '1w' ? 'primary' : ''"
+                  @click="changePeriod('1w')"
+                >
+                  周线
+                </el-button>
+              </el-button-group>
+            </div>
+            <div class="header-right">
+              <el-tag v-if="lastUpdateTime" type="info" size="small">
+                更新时间: {{ lastUpdateTime }}
+              </el-tag>
+              <el-button size="small" @click="fetchData" :loading="loading">
+                <el-icon><Refresh /></el-icon>
+              </el-button>
+            </div>
           </div>
         </template>
         
@@ -112,8 +109,7 @@ const statsData = ref(null)
 let chartInstance = null
 
 const queryForm = reactive({
-  period: '1h',
-  limit: 100
+  period: '1h'
 })
 
 // 初始化图表
@@ -175,20 +171,26 @@ const initChart = () => {
     dataZoom: [
       {
         type: 'inside',
-        start: 50,
-        end: 100
+        start: 0,
+        end: 100,
+        zoomOnMouseWheel: true,  // 启用鼠标滚轮缩放
+        moveOnMouseMove: true,   // 启用鼠标拖拽平移
+        moveOnMouseWheel: false  // 禁用滚轮平移（只用于缩放）
       },
       {
         show: true,
         type: 'slider',
         bottom: '3%',
-        start: 50,
+        start: 0,
         end: 100,
         backgroundColor: '#2a2a2a',
-        fillerColor: 'rgba(76, 175, 80, 0.2)',
+        fillerColor: 'rgba(239, 83, 80, 0.2)',
         borderColor: '#3a3a3a',
         textStyle: {
           color: '#b0b0b0'
+        },
+        handleStyle: {
+          color: '#ef5350'
         }
       }
     ],
@@ -198,10 +200,10 @@ const initChart = () => {
         type: 'candlestick',
         data: [],
         itemStyle: {
-          color: '#4CAF50',
-          color0: '#f56c6c',
-          borderColor: '#4CAF50',
-          borderColor0: '#f56c6c'
+          color: '#ef5350',      // 上涨红色
+          color0: '#00c853',     // 下跌绿色（更鲜艳的绿色）
+          borderColor: '#ef5350', // 上涨边框红色
+          borderColor0: '#00c853' // 下跌边框绿色
         }
       },
       {
@@ -264,11 +266,10 @@ const calculateMA = (data, period) => {
 const fetchData = async () => {
   loading.value = true
   try {
-    // 调用CSQAQ API获取指数K线图数据
-    const response = await axios.get('https://api.csqaq.com/api/kline', {
+    // 通过后端Spider服务调用CSQAQ API获取指数K线图数据
+    const response = await axios.get('/spider/csqaqSpiderV1/getKline', {
       params: {
-        period: queryForm.period,
-        limit: queryForm.limit
+        period: queryForm.period
       }
     })
     
@@ -284,46 +285,9 @@ const fetchData = async () => {
   } catch (error) {
     console.error('获取数据失败:', error)
     ElMessage.error('获取数据失败: ' + (error.message || '请检查网络连接'))
-    
-    // 使用模拟数据
-    useMockData()
   } finally {
     loading.value = false
   }
-}
-
-// 使用模拟数据
-const useMockData = () => {
-  const mockData = []
-  const basePrice = 1000
-  let currentPrice = basePrice
-  
-  for (let i = 0; i < queryForm.limit; i++) {
-    const change = (Math.random() - 0.5) * 50
-    const open = currentPrice
-    const close = currentPrice + change
-    const high = Math.max(open, close) + Math.random() * 20
-    const low = Math.min(open, close) - Math.random() * 20
-    
-    mockData.push({
-      time: new Date(Date.now() - (queryForm.limit - i) * 3600000).toLocaleString('zh-CN', { 
-        month: '2-digit', 
-        day: '2-digit', 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      }),
-      open: open.toFixed(2),
-      close: close.toFixed(2),
-      high: high.toFixed(2),
-      low: low.toFixed(2)
-    })
-    
-    currentPrice = close
-  }
-  
-  updateChart(mockData)
-  updateStats(mockData)
-  lastUpdateTime.value = new Date().toLocaleString('zh-CN')
 }
 
 // 更新图表
@@ -342,10 +306,51 @@ const updateChart = (data) => {
   const ma10 = calculateMA(klineData, 10)
   const ma20 = calculateMA(klineData, 20)
   
+  // 根据周期计算默认显示的数据范围
+  // 1小时线：显示最近3天（72小时）
+  // 4小时线：显示最近12天（72个数据点）
+  // 日线：显示最近3个月（90天）
+  // 周线：显示最近1年（52周）
+  let defaultDisplayCount = 72
+  switch (queryForm.period) {
+    case '1h':
+      defaultDisplayCount = 72  // 3天 * 24小时
+      break
+    case '4h':
+      defaultDisplayCount = 72  // 12天 * 6个点
+      break
+    case '1d':
+      defaultDisplayCount = 90  // 3个月
+      break
+    case '1w':
+      defaultDisplayCount = 52  // 1年
+      break
+  }
+  
+  // 计算显示范围的百分比
+  const totalCount = data.length
+  const startPercent = Math.max(0, ((totalCount - defaultDisplayCount) / totalCount) * 100)
+  const endPercent = 100
+  
   chartInstance.setOption({
     xAxis: {
       data: times
     },
+    dataZoom: [
+      {
+        type: 'inside',
+        start: startPercent,
+        end: endPercent,
+        zoomOnMouseWheel: true,
+        moveOnMouseMove: true,
+        moveOnMouseWheel: false
+      },
+      {
+        type: 'slider',
+        start: startPercent,
+        end: endPercent
+      }
+    ],
     series: [
       {
         data: klineData
@@ -384,7 +389,8 @@ const updateStats = (data) => {
 }
 
 // 周期变化处理
-const handlePeriodChange = () => {
+const changePeriod = (period) => {
+  queryForm.period = period
   fetchData()
 }
 
@@ -417,30 +423,12 @@ onUnmounted(() => {
   margin: 0 auto;
 }
 
-.page-header {
-  margin-bottom: 2rem;
-}
-
-.page-header h1 {
-  font-size: 2rem;
-  color: #ffffff;
-  margin: 0 0 0.5rem 0;
-  font-weight: 600;
-}
-
-.subtitle {
-  color: #909399;
-  font-size: 0.875rem;
-  margin: 0;
-}
-
 .content-wrapper {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
-.control-card,
 .chart-card,
 .stats-card {
   background: #1e1e1e;
@@ -451,8 +439,29 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  width: 100%;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.chart-title {
   font-weight: 600;
   color: #ffffff;
+  font-size: 1rem;
+}
+
+.period-buttons {
+  margin-left: 1rem;
 }
 
 .chart-container {
@@ -482,11 +491,11 @@ onUnmounted(() => {
 }
 
 .stat-value.up {
-  color: #4CAF50;
+  color: #ef5350;  /* 上涨红色 */
 }
 
 .stat-value.down {
-  color: #f56c6c;
+  color: #00c853;  /* 下跌绿色 */
 }
 
 :deep(.el-form-item__label) {
@@ -529,8 +538,26 @@ onUnmounted(() => {
     padding: 1rem;
   }
 
-  .page-header h1 {
-    font-size: 1.5rem;
+  .card-header {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+
+  .header-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .header-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .period-buttons {
+    margin-left: 0;
   }
 
   .chart-container {
