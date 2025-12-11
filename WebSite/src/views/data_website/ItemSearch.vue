@@ -197,22 +197,25 @@
       <div v-if="!isSearching && searchResults.length === 0 && hasSearched" class="empty-state">
         <el-empty description="未找到相关饰品" />
       </div>
-    </el-card>
 
-    <!-- 详细信息抽屉 -->
-    <el-drawer
-      v-model="drawerVisible"
-      title="饰品详细信息"
-      :size="800"
-      direction="rtl"
-      :close-on-click-modal="false"
-    >
-      <div v-if="loadingDetail" class="drawer-loading">
-        <el-icon class="is-loading" :size="40"><Loading /></el-icon>
-        <p>加载中...</p>
-      </div>
-      
-      <div v-else-if="currentItemDetail" class="detail-content">
+      <!-- 详细信息区域 -->
+      <div v-if="currentItemDetail" class="detail-section-wrapper">
+        <el-card class="detail-card">
+          <template #header>
+            <div class="detail-card-header">
+              <span>饰品详细信息</span>
+              <el-button type="text" @click="closeDetail">
+                <el-icon><Close /></el-icon>
+              </el-button>
+            </div>
+          </template>
+
+          <div v-if="loadingDetail" class="detail-loading">
+            <el-icon class="is-loading" :size="40"><Loading /></el-icon>
+            <p>加载中...</p>
+          </div>
+          
+          <div v-else class="detail-content">
         <div class="detail-header">
           <img 
             v-if="currentItemDetail.goods_info.img" 
@@ -308,15 +311,17 @@
             <p>K线图功能开发中...</p>
           </div>
         </div>
+          </div>
+        </el-card>
       </div>
-    </el-drawer>
+    </el-card>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Loading } from '@element-plus/icons-vue'
+import { Loading, Close } from '@element-plus/icons-vue'
 import axios from 'axios'
 import { API_CONFIG } from '@/config/api.js'
 
@@ -327,7 +332,6 @@ const hasSearched = ref(false)
 const weaponNameList = ref([])
 const isLoadingWeaponNames = ref(false)
 const searchingItems = ref({})
-const drawerVisible = ref(false)
 const currentItemDetail = ref(null)
 const loadingDetail = ref(false)
 
@@ -458,8 +462,7 @@ const handleSearchCSQAQ = async (row) => {
   }
   
   loadingDetail.value = true
-  drawerVisible.value = true
-  currentItemDetail.value = null
+  currentItemDetail.value = { loading: true }
   
   try {
     const response = await axios.get(
@@ -474,21 +477,28 @@ const handleSearchCSQAQ = async (row) => {
     if (response.data.success && response.data.data) {
       currentItemDetail.value = response.data.data
       ElMessage.success('数据加载成功')
+      
+      // 滚动到详细信息区域
+      setTimeout(() => {
+        const detailElement = document.querySelector('.detail-section-wrapper')
+        if (detailElement) {
+          detailElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      }, 100)
     } else {
       throw new Error(response.data.message || '获取详细信息失败')
     }
   } catch (error) {
     console.error('获取CSQAQ详细信息失败:', error)
     ElMessage.error(error.message || '获取详细信息失败，请稍后重试')
-    drawerVisible.value = false
+    currentItemDetail.value = null
   } finally {
     loadingDetail.value = false
   }
 }
 
-// 关闭抽屉
-const closeDrawer = () => {
-  drawerVisible.value = false
+// 关闭详细信息
+const closeDetail = () => {
   currentItemDetail.value = null
 }
 </script>
@@ -632,7 +642,23 @@ const closeDrawer = () => {
   background-color: #333;
 }
 
-.drawer-loading {
+.detail-section-wrapper {
+  margin-top: 2rem;
+}
+
+.detail-card {
+  background: #1e1e1e;
+  border: 1px solid #333;
+}
+
+.detail-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.detail-loading {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -641,7 +667,7 @@ const closeDrawer = () => {
   color: #909399;
 }
 
-.drawer-loading p {
+.detail-loading p {
   margin-top: 1rem;
 }
 
@@ -714,21 +740,12 @@ const closeDrawer = () => {
   color: #909399;
 }
 
-:deep(.el-drawer__header) {
+:deep(.detail-card .el-card__header) {
   background-color: #252525;
   border-bottom: 1px solid #333;
-  margin-bottom: 0;
-  padding: 1.5rem;
 }
 
-:deep(.el-drawer__title) {
-  color: #ffffff;
-  font-size: 1.2rem;
-  font-weight: 600;
-}
-
-:deep(.el-drawer__body) {
-  background-color: #1e1e1e;
+:deep(.detail-card .el-card__body) {
   padding: 1.5rem;
 }
 
