@@ -2,7 +2,7 @@
 echo Starting PyInstaller packaging process...
 
 :: Set version number (modify this for each release)
-set VERSION=v2.0.3
+set VERSION=v2.1.1
 
 :: Sync version to package.json
 echo Syncing version to package.json...
@@ -47,10 +47,12 @@ if exist "backEnd\dist" rmdir /s /q "backEnd\dist"
 if exist "backEnd\build" rmdir /s /q "backEnd\build"
 if exist "Spider\dist" rmdir /s /q "Spider\dist"
 if exist "Spider\build" rmdir /s /q "Spider\build"
+if exist "WebServer\dist" rmdir /s /q "WebServer\dist"
+if exist "WebServer\build" rmdir /s /q "WebServer\build"
 
 :: Package backEnd.py
 echo.
-echo [1/2] Packaging backEnd.exe...
+echo [1/3] Packaging backEnd.exe...
 cd backEnd
 pyinstaller -F backEnd.py --distpath "..\Releases\%VERSION%"
 if %errorlevel% neq 0 (
@@ -63,11 +65,24 @@ cd ..
 
 :: Package Spider.py
 echo.
-echo [2/2] Packaging Spider.exe...
+echo [2/3] Packaging Spider.exe...
 cd Spider
 pyinstaller -F Spider.py --distpath "..\Releases\%VERSION%"
 if %errorlevel% neq 0 (
     echo Error: Failed to package Spider.py
+    cd ..
+    pause
+    exit /b 1
+)
+cd ..
+
+:: Package WebServer.py
+echo.
+echo [3/3] Packaging WebServer.exe...
+cd WebServer
+pyinstaller -F WebServer.py --distpath "..\Releases\%VERSION%"
+if %errorlevel% neq 0 (
+    echo Error: Failed to package WebServer.py
     cd ..
     pause
     exit /b 1
@@ -100,54 +115,46 @@ if exist "Documents" (
     echo Warning: Documents folder not found
 )
 
+:: Build and copy WebSite
 if exist "WebSite" (
-    echo Copying WebSite files and folders...
+    echo Building WebSite...
+    cd WebSite
     
-    :: Create WebSite directory
-    if not exist "Releases\%VERSION%\WebSite" mkdir "Releases\%VERSION%\WebSite"
-    
-    :: Copy public folder (exclude weapon_imgs)
-    if exist "WebSite\public" (
-        xcopy "WebSite\public" "Releases\%VERSION%\WebSite\public\" /E /I /H /Y /Q
-        if exist "Releases\%VERSION%\WebSite\public\weapon_imgs" (
-            rmdir /s /q "Releases\%VERSION%\WebSite\public\weapon_imgs"
-            echo - excluded weapon_imgs folder from public copy
-        ) else (
-            echo - public folder copied
+    :: Install dependencies if node_modules doesn't exist
+    if not exist "node_modules" (
+        echo Installing WebSite dependencies...
+        call npm install
+        if %errorlevel% neq 0 (
+            echo Error: Failed to install WebSite dependencies
+            cd ..
+            pause
+            exit /b 1
         )
     )
     
-    :: Copy src folder
-    if exist "WebSite\src" (
-        xcopy "WebSite\src" "Releases\%VERSION%\WebSite\src\" /E /I /H /Y /Q
-        echo - src folder copied
+    :: Build WebSite
+    echo Building WebSite production bundle...
+    call npm run build
+    if %errorlevel% neq 0 (
+        echo Error: Failed to build WebSite
+        cd ..
+        pause
+        exit /b 1
     )
     
-    :: Copy package.json
-    if exist "WebSite\package.json" (
-        copy "WebSite\package.json" "Releases\%VERSION%\WebSite\package.json" >nul
-        echo - package.json copied
-    )
+    cd ..
     
-    :: Copy package-lock.json
-    if exist "WebSite\package-lock.json" (
-        copy "WebSite\package-lock.json" "Releases\%VERSION%\WebSite\package-lock.json" >nul
-        echo - package-lock.json copied
+    :: Copy built dist folder
+    if exist "WebSite\dist" (
+        echo Copying WebSite dist folder...
+        if not exist "Releases\%VERSION%\WebSite" mkdir "Releases\%VERSION%\WebSite"
+        xcopy "WebSite\dist" "Releases\%VERSION%\WebSite\dist\" /E /I /H /Y /Q
+        echo - WebSite dist folder copied successfully
+    ) else (
+        echo Error: WebSite dist folder not found after build
+        pause
+        exit /b 1
     )
-    
-    :: Copy vue.config.js
-    if exist "WebSite\vue.config.js" (
-        copy "WebSite\vue.config.js" "Releases\%VERSION%\WebSite\vue.config.js" >nul
-        echo - vue.config.js copied
-    )
-    
-    :: Copy README.md if exists
-    if exist "WebSite\README.md" (
-        copy "WebSite\README.md" "Releases\%VERSION%\WebSite\README.md" >nul
-        echo - README.md copied
-    )
-
-    echo WebSite files copied successfully
 ) else (
     echo Warning: WebSite folder not found
 )
@@ -171,6 +178,8 @@ if exist "backEnd\build" rmdir /s /q "backEnd\build"
 if exist "backEnd\*.spec" del /q "backEnd\*.spec"
 if exist "Spider\build" rmdir /s /q "Spider\build"
 if exist "Spider\*.spec" del /q "Spider\*.spec"
+if exist "WebServer\build" rmdir /s /q "WebServer\build"
+if exist "WebServer\*.spec" del /q "WebServer\*.spec"
 
 :: Display results
 echo.

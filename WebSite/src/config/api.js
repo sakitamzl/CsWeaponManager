@@ -2,14 +2,12 @@
 
 export const API_CONFIG = {
 
-  // API 基础地址
-
+  // API 基础地址（通过代理访问）
   BASE_URL: '/api',
 
   
 
-  // 爬虫服务器地址（使用相对路径，通过代理访问）
-
+  // 爬虫服务器地址（通过代理访问）
   SPIDER_BASE_URL: '/spider',
 
   

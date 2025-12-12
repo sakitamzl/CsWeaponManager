@@ -1,15 +1,24 @@
 import os
+import sys
 from flask import Blueprint, jsonify, request
 
 version_update_bp = Blueprint('version_update', __name__)
 
 def get_base_dir():
-    """获取项目根目录"""
-    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
+    """获取程序运行的基础目录"""
+    if getattr(sys, 'frozen', False):
+        # 打包后的可执行文件，返回 exe 所在目录
+        return os.path.dirname(sys.executable)
+    else:
+        # 开发环境，返回项目根目录
+        return os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
 
 def get_documents_dir():
     """获取 Documents 目录路径"""
-    return os.path.join(get_base_dir(), 'Documents')
+    docs_dir = os.path.join(get_base_dir(), 'Documents')
+    print(f"📁 Documents 目录路径: {docs_dir}")
+    print(f"📁 Documents 目录是否存在: {os.path.exists(docs_dir)}")
+    return docs_dir
 
 def scan_directory(path, base_path):
     """递归扫描目录，返回文件树结构"""

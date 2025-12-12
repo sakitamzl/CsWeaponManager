@@ -3,14 +3,28 @@
 提供武器图片的后端访问接口
 """
 import os
+import sys
 from flask import Blueprint, send_file, jsonify
 from pathlib import Path
 
 readImagesV1 = Blueprint('readImagesV1', __name__)
 
-# 获取图片文件夹路径（与backEnd.py同目录）
-BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+def get_base_dir():
+    """获取程序运行的基础目录"""
+    if getattr(sys, 'frozen', False):
+        # 打包后的可执行文件，返回 exe 所在目录
+        return Path(sys.executable).parent
+    else:
+        # 开发环境，返回项目根目录
+        return Path(__file__).resolve().parent.parent.parent.parent
+
+# 获取图片文件夹路径
+BASE_DIR = get_base_dir()
 WEAPON_IMGS_DIR = BASE_DIR / 'weapon_imgs'
+
+# 打印调试信息
+print(f"📁 图片目录路径: {WEAPON_IMGS_DIR}")
+print(f"📁 图片目录是否存在: {WEAPON_IMGS_DIR.exists()}")
 
 
 @readImagesV1.route('/weapon_image/<path:image_name>', methods=['GET'])
