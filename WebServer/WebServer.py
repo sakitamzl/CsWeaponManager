@@ -107,25 +107,25 @@ def serve_static(path):
     - 如果文件存在，返回文件
     - 如果文件不存在，返回 index.html（用于 SPA 前端路由）
     """
-    print(f"[DEBUG] 请求路径: /{path}")
+    # print(f"[DEBUG] 请求路径: /{path}")
     
     # 如果是根路径，直接返回 index.html
     if path == '':
-        print(f"[DEBUG] 返回根路径 index.html")
+        # print(f"[DEBUG] 返回根路径 index.html")
         return send_from_directory(app.static_folder, 'index.html')
     
     # 构建完整的文件路径
     static_file_path = os.path.join(app.static_folder, path)
-    print(f"[DEBUG] 检查文件: {static_file_path}")
+    # print(f"[DEBUG] 检查文件: {static_file_path}")
     
     # 如果文件存在且是文件（不是目录），返回该文件
     if os.path.exists(static_file_path) and os.path.isfile(static_file_path):
-        print(f"[DEBUG] 文件存在，返回: {path}")
+        # print(f"[DEBUG] 文件存在，返回: {path}")
         return send_from_directory(app.static_folder, path)
     
     # SPA fallback - 所有未匹配的路由返回 index.html
     # 这样可以支持前端路由（如 /inventory, /settings 等）
-    print(f"[DEBUG] 文件不存在，返回 index.html (SPA fallback)")
+    # print(f"[DEBUG] 文件不存在，返回 index.html (SPA fallback)")
     return send_from_directory(app.static_folder, 'index.html')
 
 def webServer():
