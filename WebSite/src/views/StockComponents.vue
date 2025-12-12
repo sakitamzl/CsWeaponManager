@@ -68,6 +68,13 @@
             <el-button type="primary" plain @click="handleFillAllPlatformPrices" :loading="platformPriceLoading" :disabled="!selectedSteamId">
               获取/更新平台价格
             </el-button>
+            <el-button 
+              :type="showPriceDiff ? 'info' : 'primary'" 
+              @click="showPriceDiff = !showPriceDiff" 
+              class="action-button"
+            >
+              {{ showPriceDiff ? '显示价格' : '显示差价' }}
+            </el-button>
             <el-switch
               v-model="groupMode"
               active-text="组合模式"
@@ -236,21 +243,38 @@
                         </div>
                       </div>
                       <div class="expand-item-prices">
+                        <!-- 第一行：购入和Steam -->
                         <div class="expand-price-item" v-if="item.buy_price && item.buy_price !== '0'">
                           <span class="expand-label">购入:</span>
                           <span class="expand-value">¥{{ parseFloat(item.buy_price).toFixed(2) }}</span>
                         </div>
+                        <div class="expand-price-item" v-if="item.steam_price && item.steam_price !== '0'">
+                          <span class="expand-label">Steam:</span>
+                          <span 
+                            class="expand-value"
+                            :style="item.buy_price && item.buy_price !== '0' ? { color: parseFloat(item.steam_price) >= parseFloat(item.buy_price) ? '#f56c6c' : '#4CAF50' } : {}"
+                          >
+                            ¥{{ showPriceDiff && item.buy_price && item.buy_price !== '0' ? Math.abs(parseFloat(item.steam_price) - parseFloat(item.buy_price)).toFixed(2) : parseFloat(item.steam_price).toFixed(2) }}
+                          </span>
+                        </div>
+                        <!-- 第二行：悠悠和BUFF -->
                         <div class="expand-price-item" v-if="item.yyyp_price && item.yyyp_price !== '0'">
                           <span class="expand-label">悠悠:</span>
-                          <span class="expand-value">¥{{ parseFloat(item.yyyp_price).toFixed(2) }}</span>
+                          <span 
+                            class="expand-value"
+                            :style="item.buy_price && item.buy_price !== '0' ? { color: parseFloat(item.yyyp_price) >= parseFloat(item.buy_price) ? '#f56c6c' : '#4CAF50' } : {}"
+                          >
+                            ¥{{ showPriceDiff && item.buy_price && item.buy_price !== '0' ? Math.abs(parseFloat(item.yyyp_price) - parseFloat(item.buy_price)).toFixed(2) : parseFloat(item.yyyp_price).toFixed(2) }}
+                          </span>
                         </div>
                         <div class="expand-price-item" v-if="item.buff_price && item.buff_price !== '0'">
                           <span class="expand-label">BUFF:</span>
-                          <span class="expand-value">¥{{ parseFloat(item.buff_price).toFixed(2) }}</span>
-                        </div>
-                        <div class="expand-price-item" v-if="item.steam_price && item.steam_price !== '0'">
-                          <span class="expand-label">Steam:</span>
-                          <span class="expand-value">¥{{ parseFloat(item.steam_price).toFixed(2) }}</span>
+                          <span 
+                            class="expand-value"
+                            :style="item.buy_price && item.buy_price !== '0' ? { color: parseFloat(item.buff_price) >= parseFloat(item.buy_price) ? '#f56c6c' : '#4CAF50' } : {}"
+                          >
+                            ¥{{ showPriceDiff && item.buy_price && item.buy_price !== '0' ? Math.abs(parseFloat(item.buff_price) - parseFloat(item.buy_price)).toFixed(2) : parseFloat(item.buff_price).toFixed(2) }}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -396,19 +420,55 @@
             />
           </template>
         </el-table-column>
-        <el-table-column prop="yyyp_price" label="悠悠价格" min-width="110" sortable>
+        <el-table-column prop="yyyp_price" label="悠悠价格" min-width="150" sortable>
           <template #default="scope">
-            ¥{{ formatPrice(scope.row.yyyp_price) }}
+            <span 
+              v-if="scope.row.yyyp_price && scope.row.buy_price"
+              :style="{
+                color: parseFloat(scope.row.yyyp_price) < parseFloat(scope.row.buy_price) ? '#4CAF50' : '#f56c6c',
+                fontWeight: 'bold'
+              }"
+            >
+              {{ parseFloat(scope.row.yyyp_price) < parseFloat(scope.row.buy_price) ? '-' : '+' }}¥{{ showPriceDiff ? Math.abs(parseFloat(scope.row.yyyp_price) - parseFloat(scope.row.buy_price)).toFixed(2) : formatPrice(scope.row.yyyp_price) }}
+            </span>
+            <span v-else-if="scope.row.yyyp_price" style="color: #fff; font-weight: bold;">
+              ¥{{ formatPrice(scope.row.yyyp_price) }}
+            </span>
+            <span v-else style="color: #888;">-</span>
           </template>
         </el-table-column>
-        <el-table-column prop="buff_price" label="BUFF价格" min-width="110" sortable>
+        <el-table-column prop="buff_price" label="BUFF价格" min-width="150" sortable>
           <template #default="scope">
-            ¥{{ formatPrice(scope.row.buff_price) }}
+            <span 
+              v-if="scope.row.buff_price && scope.row.buy_price"
+              :style="{
+                color: parseFloat(scope.row.buff_price) < parseFloat(scope.row.buy_price) ? '#4CAF50' : '#f56c6c',
+                fontWeight: 'bold'
+              }"
+            >
+              {{ parseFloat(scope.row.buff_price) < parseFloat(scope.row.buy_price) ? '-' : '+' }}¥{{ showPriceDiff ? Math.abs(parseFloat(scope.row.buff_price) - parseFloat(scope.row.buy_price)).toFixed(2) : formatPrice(scope.row.buff_price) }}
+            </span>
+            <span v-else-if="scope.row.buff_price" style="color: #fff; font-weight: bold;">
+              ¥{{ formatPrice(scope.row.buff_price) }}
+            </span>
+            <span v-else style="color: #888;">-</span>
           </template>
         </el-table-column>
-        <el-table-column prop="steam_price" label="Steam价格" min-width="110" sortable>
+        <el-table-column prop="steam_price" label="Steam价格" min-width="150" sortable>
           <template #default="scope">
-            ¥{{ formatPrice(scope.row.steam_price) }}
+            <span 
+              v-if="scope.row.steam_price && scope.row.buy_price"
+              :style="{
+                color: parseFloat(scope.row.steam_price) < parseFloat(scope.row.buy_price) ? '#4CAF50' : '#f56c6c',
+                fontWeight: 'bold'
+              }"
+            >
+              {{ parseFloat(scope.row.steam_price) < parseFloat(scope.row.buy_price) ? '-' : '+' }}¥{{ showPriceDiff ? Math.abs(parseFloat(scope.row.steam_price) - parseFloat(scope.row.buy_price)).toFixed(2) : formatPrice(scope.row.steam_price) }}
+            </span>
+            <span v-else-if="scope.row.steam_price" style="color: #fff; font-weight: bold;">
+              ¥{{ formatPrice(scope.row.steam_price) }}
+            </span>
+            <span v-else style="color: #888;">-</span>
           </template>
         </el-table-column>
       </el-table>
@@ -444,9 +504,10 @@ export default {
     const componentData = ref([])
     const groupedData = ref([])
     const groupMode = ref(true)
+    const showPriceDiff = ref(false)
     const searchText = ref('')
     const currentPage = ref(1)
-    const pageSize = ref(20)
+    const pageSize = ref(10)
     const totalItems = ref(0)
     const steamIdList = ref([])
     const selectedSteamId = ref('')
@@ -1363,6 +1424,7 @@ export default {
     return {
       loading,
       groupMode,
+      showPriceDiff,
       updateLoading,
       updateAllLoading,
       platformPriceLoading,
