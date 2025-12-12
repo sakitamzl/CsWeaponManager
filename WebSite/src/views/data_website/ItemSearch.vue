@@ -231,30 +231,29 @@
               <el-tag type="success">{{ currentItemDetail.goods_info.type_localized_name }}</el-tag>
             </div>
           </div>
+          <div class="basic-info-box">
+            <h3 class="section-title">基本信息</h3>
+            <el-descriptions :column="2" border size="small">
+              <el-descriptions-item label="存世量">
+                <span class="highlight-value">{{ currentItemDetail.goods_info.statistic }}</span>
+              </el-descriptions-item>
+              <el-descriptions-item label="CSQAQ ID">
+                {{ currentItemDetail.goods_info.id }}
+              </el-descriptions-item>
+              <el-descriptions-item label="BUFF ID">
+                {{ currentItemDetail.goods_info.buff_id }}
+              </el-descriptions-item>
+              <el-descriptions-item label="悠悠有品 ID">
+                {{ currentItemDetail.goods_info.yyyp_id }}
+              </el-descriptions-item>
+              <el-descriptions-item label="磨损范围" :span="2">
+                {{ currentItemDetail.goods_info.min_float }} - {{ currentItemDetail.goods_info.max_float }}
+              </el-descriptions-item>
+            </el-descriptions>
+          </div>
         </div>
 
         <el-divider />
-
-        <div class="detail-section">
-          <h3 class="section-title">基本信息</h3>
-          <el-descriptions :column="2" border>
-            <el-descriptions-item label="存世量">
-              <span class="highlight-value">{{ currentItemDetail.goods_info.statistic }}</span>
-            </el-descriptions-item>
-            <el-descriptions-item label="CSQAQ ID">
-              {{ currentItemDetail.goods_info.id }}
-            </el-descriptions-item>
-            <el-descriptions-item label="BUFF ID">
-              {{ currentItemDetail.goods_info.buff_id }}
-            </el-descriptions-item>
-            <el-descriptions-item label="悠悠有品 ID">
-              {{ currentItemDetail.goods_info.yyyp_id }}
-            </el-descriptions-item>
-            <el-descriptions-item label="磨损范围" :span="2">
-              {{ currentItemDetail.goods_info.min_float }} - {{ currentItemDetail.goods_info.max_float }}
-            </el-descriptions-item>
-          </el-descriptions>
-        </div>
 
         <div class="detail-section">
           <h3 class="section-title">价格信息</h3>
@@ -688,10 +687,12 @@ const closeDetail = () => {
   background: #2a2a2a;
   border-radius: 8px;
   padding: 1rem;
+  flex-shrink: 0;
 }
 
 .item-info {
-  flex: 1;
+  flex: 0 0 auto;
+  min-width: 300px;
 }
 
 .item-name {
@@ -705,6 +706,21 @@ const closeDetail = () => {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+
+.basic-info-box {
+  flex: 1;
+  background: #252525;
+  border-radius: 8px;
+  padding: 1rem;
+  border: 1px solid #333;
+}
+
+.basic-info-box .section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 0.75rem 0;
 }
 
 .detail-section {
