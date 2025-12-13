@@ -153,7 +153,7 @@ const routes = [
         path: '/data-website',
         name: 'DataWebsite',
         component: DataWebsite,
-        meta: { title: '第三方数据网站' },
+        meta: { title: '第三方数据' },
         redirect: '/data-website/market-overview',
         children: [
           {

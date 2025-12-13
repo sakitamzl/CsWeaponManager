@@ -104,7 +104,7 @@ export default {
         },
         {
           path: '/data-website',
-          title: '第三方数据网站',
+          title: '第三方数据',
           icon: '/icons/data_from.png'
         },
         {

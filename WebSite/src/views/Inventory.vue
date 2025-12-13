@@ -536,14 +536,15 @@
           v-for="item in currentDisplayData"
           :key="item.assetid"
           class="inventory-card"
+          :data-assetid="item.assetid"
           @click="openPreview(item)"
         >
           <div class="card-image">
             <img
               v-if="getWeaponImage(item.steam_hash_name)"
-              :src="getWeaponImage(item.steam_hash_name)"
+              :data-src="getWeaponImage(item.steam_hash_name)"
               :alt="item.item_name"
-              loading="lazy"
+              class="lazy-image"
               @error="(e) => handleImageError(e, item.steam_hash_name)"
             />
             <div v-else class="image-placeholder">
@@ -559,9 +560,9 @@
               >
                 <img
                   v-if="sticker.image"
-                  :src="sticker.image"
+                  :data-src="sticker.image"
                   :alt="sticker.name"
-                  class="sticker-img-overlay"
+                  class="sticker-img-overlay lazy-image"
                   @error="(e) => e.target.style.display = 'none'"
                 />
                 <div v-else class="sticker-placeholder-overlay">?</div>
@@ -575,9 +576,9 @@
               >
                 <img
                   v-if="parsePendant(item.pendant).image"
-                  :src="parsePendant(item.pendant).image"
+                  :data-src="parsePendant(item.pendant).image"
                   :alt="parsePendant(item.pendant).name"
-                  class="pendant-img-overlay"
+                  class="pendant-img-overlay lazy-image"
                   @error="(e) => e.target.style.display = 'none'"
                 />
                 <div v-else class="pendant-placeholder-overlay">🎗️</div>
@@ -822,7 +823,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
@@ -873,6 +874,9 @@ export default {
     // 预览弹窗相关
     const previewVisible = ref(false)
     const previewItem = ref(null)
+
+    // 懒加载图片观察器
+    let imageObserver = null
 
     // API 基础地址
     const API_BASE = `${API_CONFIG.BASE_URL}/webInventoryV1`
@@ -1161,6 +1165,53 @@ export default {
       }
     }
 
+    // 设置懒加载图片观察器
+    const setupLazyImageObserver = () => {
+      nextTick(() => {
+        // 清理旧的观察器
+        if (imageObserver) {
+          imageObserver.disconnect()
+        }
+
+        // 创建新的观察器
+        imageObserver = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            const img = entry.target
+            
+            if (entry.isIntersecting) {
+              // 图片进入视口，加载图片
+              const src = img.getAttribute('data-src')
+              if (src && !img.src) {
+                img.src = src
+                img.classList.add('loaded')
+              }
+            } else {
+              // 图片离开视口，释放内存
+              if (img.src && img.classList.contains('loaded')) {
+                // 保存 data-src 以便重新加载
+                if (!img.getAttribute('data-src')) {
+                  img.setAttribute('data-src', img.src)
+                }
+                // 清空 src 释放内存
+                img.removeAttribute('src')
+                img.classList.remove('loaded')
+              }
+            }
+          })
+        }, {
+          root: null, // 使用视口作为根
+          rootMargin: '200px', // 提前200px开始加载
+          threshold: 0.01
+        })
+
+        // 观察所有懒加载图片
+        const lazyImages = document.querySelectorAll('.lazy-image')
+        lazyImages.forEach(img => {
+          imageObserver.observe(img)
+        })
+      })
+    }
+
     // 设置滚动监听（使用 Intersection Observer）
     const setupScrollObserver = () => {
       nextTick(() => {
@@ -1198,6 +1249,9 @@ export default {
           observer.observe(trigger)
           trigger._observer = observer
         }
+
+        // 设置懒加载图片观察器
+        setupLazyImageObserver()
       })
     }
 
@@ -1857,6 +1911,14 @@ export default {
       })
     })
 
+    // 组件卸载时清理观察器
+    onUnmounted(() => {
+      if (imageObserver) {
+        imageObserver.disconnect()
+        imageObserver = null
+      }
+    })
+
     return {
       loading,
       fetchingInventory,
@@ -1922,6 +1984,30 @@ export default {
 </script>
 
 <style scoped>
+/* 懒加载图片样式 */
+.lazy-image {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+  background: linear-gradient(90deg, #2a2a2a 25%, #333 50%, #2a2a2a 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+.lazy-image.loaded {
+  opacity: 1;
+  background: none;
+  animation: none;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 .steam-id-select {
   min-width: 250px;
   max-width: 350px;

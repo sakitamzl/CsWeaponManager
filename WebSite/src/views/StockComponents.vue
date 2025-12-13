@@ -429,7 +429,7 @@
                 fontWeight: 'bold'
               }"
             >
-              {{ parseFloat(scope.row.yyyp_price) < parseFloat(scope.row.buy_price) ? '-' : '+' }}¥{{ showPriceDiff ? Math.abs(parseFloat(scope.row.yyyp_price) - parseFloat(scope.row.buy_price)).toFixed(2) : formatPrice(scope.row.yyyp_price) }}
+              {{ showPriceDiff ? (parseFloat(scope.row.yyyp_price) < parseFloat(scope.row.buy_price) ? '-' : '+') : '' }}¥{{ showPriceDiff ? Math.abs(parseFloat(scope.row.yyyp_price) - parseFloat(scope.row.buy_price)).toFixed(2) : formatPrice(scope.row.yyyp_price) }}
             </span>
             <span v-else-if="scope.row.yyyp_price" style="color: #fff; font-weight: bold;">
               ¥{{ formatPrice(scope.row.yyyp_price) }}
@@ -446,7 +446,7 @@
                 fontWeight: 'bold'
               }"
             >
-              {{ parseFloat(scope.row.buff_price) < parseFloat(scope.row.buy_price) ? '-' : '+' }}¥{{ showPriceDiff ? Math.abs(parseFloat(scope.row.buff_price) - parseFloat(scope.row.buy_price)).toFixed(2) : formatPrice(scope.row.buff_price) }}
+              {{ showPriceDiff ? (parseFloat(scope.row.buff_price) < parseFloat(scope.row.buy_price) ? '-' : '+') : '' }}¥{{ showPriceDiff ? Math.abs(parseFloat(scope.row.buff_price) - parseFloat(scope.row.buy_price)).toFixed(2) : formatPrice(scope.row.buff_price) }}
             </span>
             <span v-else-if="scope.row.buff_price" style="color: #fff; font-weight: bold;">
               ¥{{ formatPrice(scope.row.buff_price) }}
@@ -463,7 +463,7 @@
                 fontWeight: 'bold'
               }"
             >
-              {{ parseFloat(scope.row.steam_price) < parseFloat(scope.row.buy_price) ? '-' : '+' }}¥{{ showPriceDiff ? Math.abs(parseFloat(scope.row.steam_price) - parseFloat(scope.row.buy_price)).toFixed(2) : formatPrice(scope.row.steam_price) }}
+              {{ showPriceDiff ? (parseFloat(scope.row.steam_price) < parseFloat(scope.row.buy_price) ? '-' : '+') : '' }}¥{{ showPriceDiff ? Math.abs(parseFloat(scope.row.steam_price) - parseFloat(scope.row.buy_price)).toFixed(2) : formatPrice(scope.row.steam_price) }}
             </span>
             <span v-else-if="scope.row.steam_price" style="color: #fff; font-weight: bold;">
               ¥{{ formatPrice(scope.row.steam_price) }}
