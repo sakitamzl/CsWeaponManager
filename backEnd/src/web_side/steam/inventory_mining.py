@@ -13,6 +13,60 @@ logger = Log()
 inventoryMiningV1 = Blueprint('inventoryMiningV1', __name__)
 
 
+@inventoryMiningV1.route('/clear', methods=['POST'])
+def clear_mining_data():
+    """
+    清空指定Steam ID的挖掘数据
+    
+    请求参数:
+    {
+        "source_steam_id": "源Steam ID"
+    }
+    """
+    try:
+        data = request.get_json()
+        if not data or 'source_steam_id' not in data:
+            return jsonify({
+                'success': False,
+                'message': '缺少source_steam_id参数'
+            }), 400
+        
+        source_steam_id = data['source_steam_id']
+        
+        logger.write_log(f"[库存挖掘] 开始清空数据 - Steam ID: {source_steam_id}", 'info')
+        
+        db = DatabaseManager()
+        
+        # 先查询要删除的记录数
+        count_sql = "SELECT COUNT(*) FROM user_inventory_mining WHERE source_steam_id = ?"
+        count_result = db.execute_query(count_sql, (source_steam_id,))
+        delete_count = count_result[0][0] if count_result else 0
+        
+        # 删除数据
+        delete_sql = "DELETE FROM user_inventory_mining WHERE source_steam_id = ?"
+        affected = db.execute_update(delete_sql, (source_steam_id,))
+        
+        logger.write_log(f"[库存挖掘] 清空完成 - 删除 {affected} 条记录", 'info')
+        
+        return jsonify({
+            'success': True,
+            'message': f'成功清空 {affected} 条记录',
+            'data': {
+                'deleted_count': affected
+            }
+        }), 200
+        
+    except Exception as e:
+        import traceback
+        error_msg = f'清空挖掘数据失败: {str(e)}'
+        logger.write_log(error_msg, 'error')
+        logger.write_log(f"详细错误: {traceback.format_exc()}", 'error')
+        return jsonify({
+            'success': False,
+            'message': error_msg
+        }), 500
+
+
 @inventoryMiningV1.route('/batch', methods=['POST'])
 def batch_save_mining_data():
     """
