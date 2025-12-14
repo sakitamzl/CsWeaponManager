@@ -63,6 +63,15 @@
             <span>开荒工具</span>
           </li>
           <li 
+            :class="{ active: $route.name === 'InventoryMining' }"
+            @click="navigateTo('/settings/inventory-mining')"
+          >
+            <el-icon :size="18">
+              <DataAnalysis />
+            </el-icon>
+            <span>库存挖掘</span>
+          </li>
+          <li 
             :class="{ active: $route.name === 'SystemSettings' }"
             @click="navigateTo('/settings/system-settings')"
           >
@@ -127,7 +136,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { EditPen, SetUp, Setting, Box, Timer, DataBoard, ArrowLeft, ArrowRight, PriceTag, ChatLineRound, Refresh } from '@element-plus/icons-vue'
+import { EditPen, SetUp, Setting, Box, Timer, DataBoard, ArrowLeft, ArrowRight, PriceTag, ChatLineRound, Refresh, DataAnalysis } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const sidebarCollapsed = ref(false)

@@ -146,6 +146,12 @@ const routes = [
             name: 'DevTools',
             component: () => import('@/views/settings/DevTool.vue'),
             meta: { title: '开荒工具' }
+          },
+          {
+            path: 'inventory-mining',
+            name: 'InventoryMining',
+            component: () => import('@/views/settings/InventoryMining.vue'),
+            meta: { title: '库存挖掘' }
           }
         ]
       },
