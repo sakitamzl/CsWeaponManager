@@ -314,6 +314,50 @@ def batch_save_mining_data():
         }), 500
 
 
+@inventoryMiningV1.route('/latest', methods=['GET'])
+def get_latest_source_steam_id():
+    """
+    获取最新的挖掘记录的source_steam_id
+    """
+    try:
+        db = DatabaseManager()
+        
+        # 查询最新的一条记录
+        query_sql = """
+            SELECT source_steam_id, MAX(mining_time) as latest_time
+            FROM user_inventory_mining
+            GROUP BY source_steam_id
+            ORDER BY latest_time DESC
+            LIMIT 1
+        """
+        
+        result = db.execute_query(query_sql)
+        
+        if result and len(result) > 0:
+            return jsonify({
+                'success': True,
+                'data': {
+                    'source_steam_id': result[0][0],
+                    'latest_time': result[0][1]
+                }
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'message': '没有找到挖掘记录'
+            }), 404
+            
+    except Exception as e:
+        import traceback
+        error_msg = f'获取最新Steam ID失败: {str(e)}'
+        logger.write_log(error_msg, 'error')
+        logger.write_log(f"详细错误: {traceback.format_exc()}", 'error')
+        return jsonify({
+            'success': False,
+            'message': error_msg
+        }), 500
+
+
 @inventoryMiningV1.route('/query', methods=['POST'])
 def query_mining_data():
     """

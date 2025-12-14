@@ -80,13 +80,14 @@
 
     <!-- 用户树形图 -->
     <div v-if="userTreeData.length > 0" class="user-tree-section">
-      <h3 class="section-title">用户库存分布</h3>
+      <h3 class="section-title">用户库存分布（点击筛选）</h3>
       <el-tree
         :data="userTreeData"
         :props="treeProps"
         default-expand-all
         class="user-tree"
         node-key="id"
+        @node-click="handleTreeNodeClick"
       >
         <template #default="{ node, data }">
           <div class="tree-node">
@@ -110,44 +111,40 @@
 
     <!-- 挖掘结果展示 -->
     <div v-if="miningItems.length > 0" class="results-table-section">
-      <div class="section-header">
-        <h3 class="section-title">物品列表</h3>
-        <el-switch
-          v-model="groupMode"
-          active-text="组合模式"
-          inactive-text="明细模式"
-          @change="handleToggleGroupMode"
-        />
-      </div>
-      
-      <div class="table-filters">
-        <el-select v-model="selectedUser" placeholder="筛选用户" clearable @change="filterByUser">
-          <el-option label="全部用户" value="" />
-          <el-option
-            v-for="user in userList"
-            :key="user.steam_id"
-            :label="`${user.name} (${user.count}件)`"
-            :value="user.steam_id"
+      <!-- 分页器 - 顶部（包含切换和筛选信息） -->
+      <div class="pagination-toolbar">
+        <div class="toolbar-left">
+          <el-switch
+            v-model="groupMode"
+            active-text="组合模式"
+            inactive-text="明细模式"
+            @change="handleToggleGroupMode"
           />
-        </el-select>
-        <el-select v-model="selectedWeaponType" placeholder="筛选武器类型" clearable @change="filterByWeaponType">
-          <el-option label="全部类型" value="" />
-          <el-option
-            v-for="type in weaponTypes"
-            :key="type"
-            :label="type"
-            :value="type"
+          <span v-if="selectedUser" class="filter-info">
+            <el-tag type="info" closable @close="selectedUser = ''; currentPage = 1; updateDisplayData()">
+              {{ userList.find(u => u.steam_id === selectedUser)?.name || '未知用户' }}
+            </el-tag>
+          </span>
+        </div>
+        <div class="toolbar-right">
+          <el-pagination
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            :total="totalItems"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
           />
-        </el-select>
+        </div>
       </div>
 
       <!-- 表格视图 -->
       <el-table
         ref="tableRef"
-        :data="currentDisplayData"
+        :data="paginatedData"
         style="width: 100%"
         :header-row-style="{ backgroundColor: 'var(--bg-tertiary)' }"
-        height="500"
         @row-click="handleRowClick"
         :row-key="row => row.steam_hash_name || row.assetid"
       >
@@ -285,6 +282,10 @@
           <template #default="scope">
             <div class="item-name-cell">
               <div class="item-title">{{ getItemTitle(scope.row) }}</div>
+              <!-- 组合模式下数量为1时显示所属用户 -->
+              <div v-if="groupMode && scope.row.item_count === 1 && scope.row.persona_names && scope.row.persona_names[0]" class="item-owner">
+                <el-tag size="small" type="info">{{ scope.row.persona_names[0] }}</el-tag>
+              </div>
               <div class="item-extras" v-if="hasExtras(scope.row)">
                 <!-- 印花图片 -->
                 <div class="sticker-list" v-if="scope.row.sticker || (scope.row.stickers && scope.row.stickers[0])">
@@ -327,7 +328,7 @@
         
         <el-table-column v-if="!groupMode" prop="persona_name" label="所属用户" width="150" />
         
-        <el-table-column label="数量" width="120" align="center">
+        <el-table-column label="数量" width="120" align="center" sortable :sort-method="sortByCount">
           <template #default="scope">
             <span>{{ groupMode ? (scope.row.item_count || 0) : 1 }}</span>
           </template>
@@ -360,7 +361,7 @@
         
         <el-table-column prop="float_range" label="磨损范围" min-width="120" />
         
-        <el-table-column label="价格" min-width="150">
+        <el-table-column label="价格" min-width="150" sortable :sort-method="sortByPrice">
           <template #default="scope">
             <span v-if="groupMode && scope.row.total_value" style="color: #4CAF50; font-weight: bold;">
               ¥{{ scope.row.total_value.toFixed(2) }}
@@ -386,16 +387,32 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <!-- 分页器 - 底部 -->
+      <div class="pagination-toolbar">
+        <div class="toolbar-left"></div>
+        <div class="toolbar-right">
+          <el-pagination
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            :total="totalItems"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+          />
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { User } from '@element-plus/icons-vue'
-import { API_CONFIG } from '@/config/api.js'
+import { API_CONFIG, apiUrls } from '@/config/api.js'
 
 export default {
   name: 'InventoryMining',
@@ -418,6 +435,9 @@ export default {
     const groupedData = ref([])  // 组合后的数据
     const expandedRowPages = ref({})  // 展开行的分页状态
     const tableRef = ref(null)
+    const currentPage = ref(1)
+    const pageSize = ref(10)
+    const totalItems = ref(0)
     
     // Tree组件配置
     const treeProps = {
@@ -573,6 +593,9 @@ export default {
           
           // 构建用户树形数据
           buildUserTree(items, steamId)
+          
+          // 更新显示数据
+          updateDisplayData()
         }
         
         if (statsResponse.data.success) {
@@ -614,6 +637,9 @@ export default {
           
           // 构建用户树形数据
           buildUserTree(items, steamId)
+          
+          // 更新显示数据
+          updateDisplayData()
         }
       } catch (error) {
         console.error('加载挖掘结果失败:', error)
@@ -778,23 +804,38 @@ export default {
         items = items.filter(item => item.weapon_type === selectedWeaponType.value)
       }
       
-      // 更新组合数据
-      if (groupMode.value) {
-        groupedData.value = groupItemsByHashName(items)
-      }
-      
-      return items
+      // 按价格从大到小排序
+      return items.sort((a, b) => {
+        const priceA = parseFloat(a.market_price) || 0
+        const priceB = parseFloat(b.market_price) || 0
+        return priceB - priceA
+      })
     })
-    
-    // 按用户筛选
-    const filterByUser = () => {
-      // 筛选逻辑已在 computed 中处理，会自动触发更新
-    }
     
     // 按武器类型筛选
     const filterByWeaponType = () => {
-      // 筛选逻辑已在 computed 中处理，会自动触发更新
+      currentPage.value = 1
+      updateDisplayData()
     }
+    
+    // 更新显示数据（组合或明细）
+    const updateDisplayData = () => {
+      if (groupMode.value) {
+        const grouped = groupItemsByHashName(filteredItems.value)
+        totalItems.value = grouped.length
+        groupedData.value = grouped
+      } else {
+        totalItems.value = filteredItems.value.length
+      }
+    }
+    
+    // 分页后的当前显示数据
+    const paginatedData = computed(() => {
+      const data = groupMode.value ? groupedData.value : filteredItems.value
+      const start = (currentPage.value - 1) * pageSize.value
+      const end = start + pageSize.value
+      return data.slice(start, end)
+    })
 
     // 查看历史记录
     const viewMiningHistory = () => {
@@ -825,7 +866,7 @@ export default {
         .replace(/\s*\|\s*/g, '___')
         .replace(/\s/g, '_')
         + '.png'
-      return `${API_CONFIG.BASE_URL}/weapon_imgs/${imageName}`
+      return apiUrls.weaponImage(imageName)
     }
     
     // 组合数据 - 按steam_hash_name分组
@@ -874,7 +915,8 @@ export default {
         }
       })
       
-      return Array.from(grouped.values())
+      // 转换为数组并按总价值从大到小排序
+      return Array.from(grouped.values()).sort((a, b) => b.total_value - a.total_value)
     }
     
     // 当数据更新时，重新组合
@@ -886,15 +928,53 @@ export default {
     
     // 切换组合模式
     const handleToggleGroupMode = () => {
-      if (groupMode.value) {
-        updateGroupedData()
-      }
+      currentPage.value = 1
+      updateDisplayData()
     }
     
-    // 当前显示的数据
-    const currentDisplayData = computed(() => {
-      return groupMode.value ? groupedData.value : filteredItems.value
-    })
+    // 分页处理
+    const handleSizeChange = (val) => {
+      pageSize.value = val
+      currentPage.value = 1
+    }
+
+    const handleCurrentChange = (val) => {
+      currentPage.value = val
+    }
+    
+    // 点击树节点筛选用户
+    const handleTreeNodeClick = (data) => {
+      if (data.steam_id) {
+        selectedUser.value = data.steam_id
+      } else if (data.id === 'root' || data.id === 'friends') {
+        selectedUser.value = ''
+      }
+      currentPage.value = 1
+      updateDisplayData()
+    }
+    
+    // 按数量排序
+    const sortByCount = (a, b) => {
+      const countA = groupMode.value ? (a.item_count || 0) : 1
+      const countB = groupMode.value ? (b.item_count || 0) : 1
+      return countA - countB
+    }
+    
+    // 按价格排序
+    const sortByPrice = (a, b) => {
+      let priceA = 0
+      let priceB = 0
+      
+      if (groupMode.value) {
+        priceA = a.total_value || 0
+        priceB = b.total_value || 0
+      } else {
+        priceA = parseFloat(a.market_price) || 0
+        priceB = parseFloat(b.market_price) || 0
+      }
+      
+      return priceA - priceB
+    }
     
     // 获取展开行的详细数据（带分页）
     const getExpandedItems = (row) => {
@@ -1007,7 +1087,7 @@ export default {
             const imageName = hashName
               .replace(/\s*\|\s*/g, '___')
               .replace(/\s/g, '_')
-            imageUrl = `${API_CONFIG.BASE_URL}/weapon_imgs/Sticker___${imageName}.png`
+            imageUrl = apiUrls.weaponImage(`Sticker___${imageName}.png`)
           }
 
           return {
@@ -1038,7 +1118,7 @@ export default {
             .replace(/\s*\|\s*/g, '___')
             .replace(/\s/g, '_')
             + '.png'
-          imageUrl = `${API_CONFIG.BASE_URL}/weapon_imgs/${imageName}`
+          imageUrl = apiUrls.weaponImage(imageName)
         }
 
         return {
@@ -1051,6 +1131,39 @@ export default {
       }
     }
 
+    // 加载最新的挖掘数据
+    const loadLatestMiningData = async () => {
+      try {
+        // 获取最新的source_steam_id
+        const response = await axios.get(`${API_CONFIG.BASE_URL}/api/v1/steam/inventory/mining/latest`)
+
+        if (response.data.success) {
+          const sourceSteamId = response.data.data.source_steam_id
+          
+          if (sourceSteamId) {
+            // 设置Steam ID
+            inputSteamId.value = sourceSteamId
+            currentMiningId.value = sourceSteamId
+            lastMiningTime.value = response.data.data.latest_time || ''
+            
+            // 加载该Steam ID的所有数据
+            await loadMiningResults(sourceSteamId)
+            await loadMiningStats(sourceSteamId)
+            
+            ElMessage.success('已加载最新的挖掘数据')
+          }
+        }
+      } catch (error) {
+        console.error('加载最新挖掘数据失败:', error)
+        // 不显示错误提示，因为可能是首次使用，没有数据
+      }
+    }
+    
+    // 页面加载时获取数据
+    onMounted(() => {
+      loadLatestMiningData()
+    })
+    
     // 组件卸载时清理定时器
     onUnmounted(() => {
       stopPolling()
@@ -1072,16 +1185,21 @@ export default {
       filteredItems,
       groupMode,
       groupedData,
-      currentDisplayData,
+      paginatedData,
       expandedRowPages,
       tableRef,
+      currentPage,
+      pageSize,
+      totalItems,
       startMining,
       viewMiningHistory,
       getRecommendationType,
-      filterByUser,
       filterByWeaponType,
       getWeaponImage,
       handleToggleGroupMode,
+      handleSizeChange,
+      handleCurrentChange,
+      handleTreeNodeClick,
       getExpandedItems,
       getExpandedTotal,
       getItemsPerPage,
@@ -1090,7 +1208,9 @@ export default {
       getItemTitle,
       hasExtras,
       parseStickers,
-      parsePendant
+      parsePendant,
+      sortByCount,
+      sortByPrice
     }
   }
 }
@@ -1251,6 +1371,13 @@ export default {
   align-items: center;
   justify-content: space-between;
   padding: 0.5rem 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tree-node:hover {
+  background: rgba(76, 175, 80, 0.1);
+  border-radius: 4px;
 }
 
 .tree-node-content {
@@ -1280,17 +1407,31 @@ export default {
   margin-left: 0.5rem;
 }
 
-.table-filters {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.section-header {
+.pagination-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  padding: 1rem 0;
+  gap: 1rem;
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 0 0 auto;
+}
+
+.toolbar-right {
+  display: flex;
+  justify-content: flex-end;
+  flex: 1 1 auto;
+}
+
+.filter-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 /* 卡片视图样式 */
@@ -1445,6 +1586,10 @@ export default {
   font-size: 0.95rem;
   font-weight: 500;
   color: #ffffff;
+  margin-bottom: 0.5rem;
+}
+
+.item-owner {
   margin-bottom: 0.5rem;
 }
 
@@ -1868,5 +2013,73 @@ export default {
     align-items: flex-start;
     gap: 1rem;
   }
+}
+
+/* Element Plus 分页器样式 */
+:deep(.el-pagination) {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+:deep(.el-pagination .el-pager li) {
+  background-color: transparent;
+  color: #fff;
+  border: 1px solid #333;
+}
+
+:deep(.el-pagination .el-pager li:hover) {
+  background-color: #333;
+}
+
+:deep(.el-pagination .el-pager li.is-active) {
+  background-color: #4CAF50;
+  color: #fff;
+}
+
+:deep(.el-pagination .btn-prev),
+:deep(.el-pagination .btn-next) {
+  background-color: transparent;
+  color: #fff;
+  border: 1px solid #333;
+}
+
+:deep(.el-pagination .btn-prev:hover),
+:deep(.el-pagination .btn-next:hover) {
+  background-color: #333;
+}
+
+:deep(.el-pagination .el-select .el-input__inner) {
+  background-color: #484848 !important;
+  color: #fff;
+  border: 1px solid #333;
+}
+
+:deep(.el-pagination .el-input__inner) {
+  background-color: #484848 !important;
+  color: #fff;
+  border: 1px solid #333;
+}
+
+/* 表格样式 */
+:deep(.el-table) {
+  background-color: transparent;
+  color: #fff;
+}
+
+:deep(.el-table th) {
+  background-color: var(--bg-tertiary) !important;
+  color: #fff;
+  border-bottom: 1px solid var(--border-default);
+}
+
+:deep(.el-table td) {
+  background-color: transparent !important;
+  border-bottom: 1px solid var(--border-default);
+  color: #fff;
+}
+
+:deep(.el-table tr:hover > td) {
+  background-color: rgba(76, 175, 80, 0.1) !important;
 }
 </style>
