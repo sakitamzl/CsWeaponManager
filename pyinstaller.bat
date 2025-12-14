@@ -2,7 +2,7 @@
 echo Starting PyInstaller packaging process...
 
 :: Set version number (modify this for each release)
-set VERSION=v2.1.1
+set VERSION=v2.1.2
 
 :: Sync version to package.json
 echo Syncing version to package.json...
@@ -54,7 +54,7 @@ if exist "WebServer\build" rmdir /s /q "WebServer\build"
 echo.
 echo [1/3] Packaging backEnd.exe...
 cd backEnd
-pyinstaller -F backEnd.py --distpath "..\Releases\%VERSION%"
+pyinstaller --onefile --clean --noconfirm backEnd.py --distpath "..\Releases\%VERSION%"
 if %errorlevel% neq 0 (
     echo Error: Failed to package backEnd.py
     cd ..
@@ -67,7 +67,7 @@ cd ..
 echo.
 echo [2/3] Packaging Spider.exe...
 cd Spider
-pyinstaller -F Spider.py --distpath "..\Releases\%VERSION%"
+pyinstaller --onefile --clean --noconfirm Spider.py --distpath "..\Releases\%VERSION%"
 if %errorlevel% neq 0 (
     echo Error: Failed to package Spider.py
     cd ..
@@ -80,7 +80,7 @@ cd ..
 echo.
 echo [3/3] Packaging WebServer.exe...
 cd WebServer
-pyinstaller -F WebServer.py --distpath "..\Releases\%VERSION%"
+pyinstaller --onefile --clean --noconfirm WebServer.py --distpath "..\Releases\%VERSION%"
 if %errorlevel% neq 0 (
     echo Error: Failed to package WebServer.py
     cd ..

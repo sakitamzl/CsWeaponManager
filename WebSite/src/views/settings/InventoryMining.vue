@@ -6,7 +6,7 @@
       <div class="mining-controls">
         <el-input
           v-model="inputSteamId"
-          placeholder="请输入Steam ID (例如: 76561198334278515)"
+          placeholder=""
           class="steam-id-input"
           :disabled="isMining"
           clearable
@@ -51,10 +51,6 @@
         </div>
       </div>
 
-      <div v-if="lastMiningTime" class="mining-info">
-        <span class="mining-time">最后挖掘时间: {{ lastMiningTime }}</span>
-      </div>
-
       <div v-if="miningResult" class="result-section">
         <h3 class="result-title">挖掘结果</h3>
         <div class="result-stats">
@@ -80,7 +76,6 @@
 
     <!-- 用户树形图 -->
     <div v-if="userTreeData.length > 0" class="user-tree-section">
-      <h3 class="section-title">用户库存分布（点击筛选）</h3>
       <el-tree
         :data="userTreeData"
         :props="treeProps"
@@ -1141,8 +1136,7 @@ export default {
           const sourceSteamId = response.data.data.source_steam_id
           
           if (sourceSteamId) {
-            // 设置Steam ID
-            inputSteamId.value = sourceSteamId
+            // 不自动填充Steam ID，只加载数据
             currentMiningId.value = sourceSteamId
             lastMiningTime.value = response.data.data.latest_time || ''
             
@@ -1282,19 +1276,6 @@ export default {
 .progress-value.highlight {
   color: #409eff;
   font-size: 1.3rem;
-}
-
-.mining-info {
-  margin-top: 1rem;
-  padding: 0.75rem 1rem;
-  background: rgba(64, 158, 255, 0.1);
-  border-radius: 6px;
-  border-left: 3px solid #409eff;
-}
-
-.mining-time {
-  color: #b0b0b0;
-  font-size: 0.9rem;
 }
 
 .result-section {
