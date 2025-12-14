@@ -1,0 +1,502 @@
+# -*- coding: utf-8 -*-
+"""
+库存挖掘API - 处理挖掘数据的保存和查询
+"""
+
+from flask import jsonify, request, Blueprint
+from src.db_manager.steam.user_inventory_mining import UserInventoryMiningModel
+from src.db_manager.database import DatabaseManager
+from src.log import Log
+from datetime import datetime
+
+logger = Log()
+inventoryMiningV1 = Blueprint('inventoryMiningV1', __name__)
+
+
+@inventoryMiningV1.route('/batch', methods=['POST'])
+def batch_save_mining_data():
+    """
+    批量保存库存挖掘数据
+    
+    请求参数:
+    {
+        "items": [
+            {
+                "source_steam_id": "源Steam ID",
+                "target_steam_id": "目标Steam ID",
+                "relationship": "self/friend",
+                "persona_name": "用户昵称",
+                "avatar_url": "头像URL",
+                "profile_url": "个人资料URL",
+                "assetid": "资产ID",
+                "instanceid": "实例ID",
+                "classid": "类ID",
+                "item_name": "物品名称",
+                "weapon_name": "武器名称",
+                "steam_hash_name": "Steam hash name",
+                "float_range": "磨损范围",
+                "weapon_type": "武器类型",
+                "weapon_float": "磨损值",
+                "icon_url": "图标URL",
+                "market_price": "市场价格",
+                "sticker": "印花信息",
+                "pendant": "挂件信息",
+                "rename": "改名信息",
+                "rarity": "稀有度",
+                "tradable": 1/0,
+                "marketable": 1/0,
+                "mining_time": "挖掘时间"
+            }
+        ]
+    }
+    """
+    try:
+        data = request.get_json()
+        if not data or 'items' not in data:
+            return jsonify({
+                'success': False,
+                'message': '缺少items参数'
+            }), 400
+        
+        items = data['items']
+        if not items:
+            return jsonify({
+                'success': False,
+                'message': '物品列表为空'
+            }), 400
+        
+        logger.write_log(f"[库存挖掘] 开始批量保存数据 - 共 {len(items)} 件物品", 'info')
+        
+        db = DatabaseManager()
+        success_count = 0
+        update_count = 0
+        insert_count = 0
+        fail_count = 0
+        failed_items = []
+        
+        for item in items:
+            try:
+                source_steam_id = item.get('source_steam_id')
+                target_steam_id = item.get('target_steam_id')
+                assetid = item.get('assetid')
+                steam_hash_name = item.get('steam_hash_name')
+                
+                if not all([source_steam_id, target_steam_id, assetid]):
+                    fail_count += 1
+                    failed_items.append({
+                        'assetid': assetid,
+                        'reason': '缺少必要字段'
+                    })
+                    continue
+                
+                # 从 weapon_classID 表中获取价格信息
+                market_price = None
+                if steam_hash_name:
+                    try:
+                        price_sql = """
+                            SELECT yyyp_Price, buff_Price 
+                            FROM weapon_classID 
+                            WHERE steam_hash_name = ?
+                        """
+                        price_result = db.execute_query(price_sql, (steam_hash_name,))
+                        if price_result and len(price_result) > 0:
+                            yyyp_price = price_result[0][0]
+                            buff_price = price_result[0][1]
+                            
+                            # 优先使用悠悠有品价格，如果没有则使用BUFF价格
+                            if yyyp_price and yyyp_price != '0':
+                                market_price = yyyp_price
+                            elif buff_price and buff_price != '0':
+                                market_price = buff_price
+                    except Exception as e:
+                        logger.write_log(f"[库存挖掘] 获取价格失败 - steam_hash_name: {steam_hash_name}, 错误: {str(e)}", 'warning')
+                
+                # 如果从weapon_classID获取到了价格，更新item中的market_price
+                if market_price:
+                    item['market_price'] = market_price
+                
+                # 检查是否已存在
+                check_sql = """
+                    SELECT id FROM user_inventory_mining 
+                    WHERE source_steam_id = ? AND target_steam_id = ? AND assetid = ?
+                """
+                existing = db.execute_query(check_sql, (source_steam_id, target_steam_id, assetid))
+                
+                if existing:
+                    # 更新现有记录
+                    update_sql = """
+                        UPDATE user_inventory_mining SET
+                            relationship = ?,
+                            persona_name = ?,
+                            avatar_url = ?,
+                            profile_url = ?,
+                            instanceid = ?,
+                            classid = ?,
+                            item_name = ?,
+                            weapon_name = ?,
+                            steam_hash_name = ?,
+                            float_range = ?,
+                            weapon_type = ?,
+                            weapon_float = ?,
+                            icon_url = ?,
+                            market_price = ?,
+                            sticker = ?,
+                            pendant = ?,
+                            rename = ?,
+                            rarity = ?,
+                            tradable = ?,
+                            marketable = ?,
+                            mining_time = ?
+                        WHERE source_steam_id = ? AND target_steam_id = ? AND assetid = ?
+                    """
+                    params = (
+                        item.get('relationship'),
+                        item.get('persona_name'),
+                        item.get('avatar_url'),
+                        item.get('profile_url'),
+                        item.get('instanceid'),
+                        item.get('classid'),
+                        item.get('item_name'),
+                        item.get('weapon_name'),
+                        item.get('steam_hash_name'),
+                        item.get('float_range'),
+                        item.get('weapon_type'),
+                        item.get('weapon_float'),
+                        item.get('icon_url'),
+                        item.get('market_price'),
+                        item.get('sticker'),
+                        item.get('pendant'),
+                        item.get('rename'),
+                        item.get('rarity'),
+                        item.get('tradable'),
+                        item.get('marketable'),
+                        item.get('mining_time'),
+                        source_steam_id,
+                        target_steam_id,
+                        assetid
+                    )
+                    affected = db.execute_update(update_sql, params)
+                    if affected > 0:
+                        update_count += 1
+                        success_count += 1
+                else:
+                    # 插入新记录
+                    insert_sql = """
+                        INSERT INTO user_inventory_mining (
+                            source_steam_id, target_steam_id, relationship, persona_name,
+                            avatar_url, profile_url, assetid, instanceid, classid,
+                            item_name, weapon_name, steam_hash_name, float_range,
+                            weapon_type, weapon_float, icon_url, market_price,
+                            sticker, pendant, rename, rarity, tradable, marketable,
+                            mining_time
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """
+                    params = (
+                        source_steam_id,
+                        target_steam_id,
+                        item.get('relationship'),
+                        item.get('persona_name'),
+                        item.get('avatar_url'),
+                        item.get('profile_url'),
+                        assetid,
+                        item.get('instanceid'),
+                        item.get('classid'),
+                        item.get('item_name'),
+                        item.get('weapon_name'),
+                        item.get('steam_hash_name'),
+                        item.get('float_range'),
+                        item.get('weapon_type'),
+                        item.get('weapon_float'),
+                        item.get('icon_url'),
+                        item.get('market_price'),
+                        item.get('sticker'),
+                        item.get('pendant'),
+                        item.get('rename'),
+                        item.get('rarity'),
+                        item.get('tradable'),
+                        item.get('marketable'),
+                        item.get('mining_time')
+                    )
+                    affected = db.execute_update(insert_sql, params)
+                    if affected > 0:
+                        insert_count += 1
+                        success_count += 1
+                
+            except Exception as e:
+                fail_count += 1
+                failed_items.append({
+                    'assetid': item.get('assetid'),
+                    'reason': str(e)
+                })
+                logger.write_log(f"[库存挖掘] 保存物品失败 - assetid: {item.get('assetid')}, 错误: {str(e)}", 'error')
+                continue
+        
+        logger.write_log(
+            f"[库存挖掘] 批量保存完成 - 成功: {success_count} (更新: {update_count}, 新增: {insert_count}), 失败: {fail_count}",
+            'info'
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': f'批量保存完成',
+            'data': {
+                'success_count': success_count,
+                'update_count': update_count,
+                'insert_count': insert_count,
+                'fail_count': fail_count,
+                'total': len(items),
+                'failed_items': failed_items[:10]  # 只返回前10个失败项
+            }
+        }), 200
+        
+    except Exception as e:
+        import traceback
+        error_msg = f'批量保存挖掘数据失败: {str(e)}'
+        logger.write_log(error_msg, 'error')
+        logger.write_log(f"详细错误: {traceback.format_exc()}", 'error')
+        return jsonify({
+            'success': False,
+            'message': error_msg
+        }), 500
+
+
+@inventoryMiningV1.route('/query', methods=['POST'])
+def query_mining_data():
+    """
+    查询库存挖掘数据
+    
+    请求参数:
+    {
+        "source_steam_id": "源Steam ID",
+        "relationship": "self/friend/all",  // 可选，默认all
+        "weapon_type": "武器类型",  // 可选
+        "limit": 100,  // 可选
+        "offset": 0  // 可选
+    }
+    """
+    try:
+        data = request.get_json()
+        if not data or 'source_steam_id' not in data:
+            return jsonify({
+                'success': False,
+                'message': '缺少source_steam_id参数'
+            }), 400
+        
+        source_steam_id = data['source_steam_id']
+        relationship = data.get('relationship', 'all')
+        weapon_type = data.get('weapon_type')
+        limit = data.get('limit', 100)
+        offset = data.get('offset', 0)
+        
+        db = DatabaseManager()
+        
+        # 构建查询条件
+        where_clauses = ['source_steam_id = ?']
+        params = [source_steam_id]
+        
+        if relationship and relationship != 'all':
+            where_clauses.append('relationship = ?')
+            params.append(relationship)
+        
+        if weapon_type:
+            where_clauses.append('weapon_type = ?')
+            params.append(weapon_type)
+        
+        where_sql = ' AND '.join(where_clauses)
+        
+        # 查询数据
+        query_sql = f"""
+            SELECT * FROM user_inventory_mining
+            WHERE {where_sql}
+            ORDER BY mining_time DESC
+            LIMIT ? OFFSET ?
+        """
+        params.extend([limit, offset])
+        
+        results = db.execute_query(query_sql, tuple(params))
+        
+        # 查询总数
+        count_sql = f"SELECT COUNT(*) FROM user_inventory_mining WHERE {where_sql}"
+        count_result = db.execute_query(count_sql, tuple(params[:-2]))
+        total_count = count_result[0][0] if count_result else 0
+        
+        # 转换为字典列表
+        items = []
+        if results:
+            columns = [
+                'id', 'source_steam_id', 'target_steam_id', 'relationship',
+                'persona_name', 'avatar_url', 'profile_url', 'assetid',
+                'instanceid', 'classid', 'item_name', 'weapon_name',
+                'steam_hash_name', 'float_range', 'weapon_type', 'weapon_float',
+                'icon_url', 'market_price', 'sticker', 'pendant', 'rename',
+                'rarity', 'tradable', 'marketable', 'mining_time', 'created_at'
+            ]
+            for row in results:
+                item = dict(zip(columns, row))
+                items.append(item)
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'items': items,
+                'total': total_count,
+                'limit': limit,
+                'offset': offset
+            }
+        }), 200
+        
+    except Exception as e:
+        import traceback
+        error_msg = f'查询挖掘数据失败: {str(e)}'
+        logger.write_log(error_msg, 'error')
+        logger.write_log(f"详细错误: {traceback.format_exc()}", 'error')
+        return jsonify({
+            'success': False,
+            'message': error_msg
+        }), 500
+
+
+@inventoryMiningV1.route('/stats', methods=['POST'])
+def get_mining_stats():
+    """
+    获取挖掘统计信息（包含价值统计）
+    
+    请求参数:
+    {
+        "source_steam_id": "源Steam ID"
+    }
+    """
+    try:
+        data = request.get_json()
+        if not data or 'source_steam_id' not in data:
+            return jsonify({
+                'success': False,
+                'message': '缺少source_steam_id参数'
+            }), 400
+        
+        source_steam_id = data['source_steam_id']
+        db = DatabaseManager()
+        
+        # 总物品数
+        total_sql = "SELECT COUNT(*) FROM user_inventory_mining WHERE source_steam_id = ?"
+        total_result = db.execute_query(total_sql, (source_steam_id,))
+        total_items = total_result[0][0] if total_result else 0
+        
+        # 自己的物品数
+        self_sql = "SELECT COUNT(*) FROM user_inventory_mining WHERE source_steam_id = ? AND relationship = 'self'"
+        self_result = db.execute_query(self_sql, (source_steam_id,))
+        self_items = self_result[0][0] if self_result else 0
+        
+        # 好友的物品数
+        friends_sql = "SELECT COUNT(*) FROM user_inventory_mining WHERE source_steam_id = ? AND relationship = 'friend'"
+        friends_result = db.execute_query(friends_sql, (source_steam_id,))
+        friends_items = friends_result[0][0] if friends_result else 0
+        
+        # 好友数量
+        friends_count_sql = """
+            SELECT COUNT(DISTINCT target_steam_id) 
+            FROM user_inventory_mining 
+            WHERE source_steam_id = ? AND relationship = 'friend'
+        """
+        friends_count_result = db.execute_query(friends_count_sql, (source_steam_id,))
+        friends_count = friends_count_result[0][0] if friends_count_result else 0
+        
+        # 最新挖掘时间
+        latest_sql = """
+            SELECT mining_time FROM user_inventory_mining 
+            WHERE source_steam_id = ? 
+            ORDER BY mining_time DESC LIMIT 1
+        """
+        latest_result = db.execute_query(latest_sql, (source_steam_id,))
+        latest_time = latest_result[0][0] if latest_result else None
+        
+        # 计算总价值（所有有价格的物品）
+        total_value_sql = """
+            SELECT SUM(CAST(market_price AS REAL))
+            FROM user_inventory_mining
+            WHERE source_steam_id = ? 
+            AND market_price IS NOT NULL 
+            AND market_price != '' 
+            AND market_price != '0'
+        """
+        total_value_result = db.execute_query(total_value_sql, (source_steam_id,))
+        total_value = round(total_value_result[0][0], 2) if total_value_result and total_value_result[0][0] else 0
+        
+        # 计算自己的库存价值
+        self_value_sql = """
+            SELECT SUM(CAST(market_price AS REAL))
+            FROM user_inventory_mining
+            WHERE source_steam_id = ? 
+            AND relationship = 'self'
+            AND market_price IS NOT NULL 
+            AND market_price != '' 
+            AND market_price != '0'
+        """
+        self_value_result = db.execute_query(self_value_sql, (source_steam_id,))
+        self_value = round(self_value_result[0][0], 2) if self_value_result and self_value_result[0][0] else 0
+        
+        # 计算好友的库存价值
+        friends_value_sql = """
+            SELECT SUM(CAST(market_price AS REAL))
+            FROM user_inventory_mining
+            WHERE source_steam_id = ? 
+            AND relationship = 'friend'
+            AND market_price IS NOT NULL 
+            AND market_price != '' 
+            AND market_price != '0'
+        """
+        friends_value_result = db.execute_query(friends_value_sql, (source_steam_id,))
+        friends_value = round(friends_value_result[0][0], 2) if friends_value_result and friends_value_result[0][0] else 0
+        
+        # 按用户统计价值（Top 10）
+        user_value_sql = """
+            SELECT 
+                target_steam_id,
+                persona_name,
+                relationship,
+                COUNT(*) as item_count,
+                SUM(CAST(CASE WHEN market_price IS NOT NULL AND market_price != '' AND market_price != '0' 
+                    THEN market_price ELSE '0' END AS REAL)) as total_value
+            FROM user_inventory_mining
+            WHERE source_steam_id = ?
+            GROUP BY target_steam_id, persona_name, relationship
+            ORDER BY total_value DESC
+            LIMIT 10
+        """
+        user_value_result = db.execute_query(user_value_sql, (source_steam_id,))
+        
+        top_users = []
+        if user_value_result:
+            for row in user_value_result:
+                top_users.append({
+                    'steam_id': row[0],
+                    'name': row[1] or f'用户_{row[0][-4:]}',
+                    'relationship': row[2],
+                    'item_count': row[3],
+                    'total_value': round(row[4], 2)
+                })
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'total_items': total_items,
+                'self_items': self_items,
+                'friends_items': friends_items,
+                'friends_count': friends_count,
+                'latest_mining_time': latest_time,
+                'total_value': total_value,
+                'self_value': self_value,
+                'friends_value': friends_value,
+                'top_users': top_users
+            }
+        }), 200
+        
+    except Exception as e:
+        import traceback
+        error_msg = f'获取统计信息失败: {str(e)}'
+        logger.write_log(error_msg, 'error')
+        logger.write_log(f"详细错误: {traceback.format_exc()}", 'error')
+        return jsonify({
+            'success': False,
+            'message': error_msg
+        }), 500

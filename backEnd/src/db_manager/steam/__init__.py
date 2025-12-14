@@ -10,6 +10,7 @@ from .steam_inventory_history import SteamInventoryHistoryModel
 from .steam_inventory_history_index import SteamInventoryHistoryIndexModel
 from .steam_inventory import SteamInventoryModel
 from .steam_stock_components import SteamStockComponentsModel
+from .user_inventory_mining import UserInventoryMiningModel
 
 __all__ = [
     'SteamBuyModel',
