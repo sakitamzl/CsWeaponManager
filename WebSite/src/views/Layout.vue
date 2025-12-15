@@ -1,24 +1,16 @@
 <template>
-  <div class="container">
-    <aside class="sidebar" :class="{ collapsed: isCollapsed }">
+  <div class="container" @click="handleContainerClick">
+    <aside class="sidebar" :class="{ collapsed: isCollapsed }" @click.stop="handleSidebarClick">
       <div class="sidebar-header">
         <h1 v-if="!isCollapsed">CsWeaponManager</h1>
         <h1 v-else class="collapsed-title">CS</h1>
-        <button @click="toggleSidebar" class="toggle-btn" :title="isCollapsed ? '展开侧边栏' : '收起侧边栏'">
-          <img 
-            src="/icons/left-arrow.png" 
-            alt="toggle sidebar" 
-            class="toggle-icon"
-            :class="{ rotated: isCollapsed }"
-          >
-        </button>
       </div>
       <ul>
         <li 
           v-for="item in menuItems" 
           :key="item.path"
           :class="{ active: $route.path === item.path }"
-          @click="handleMenuClick(item.path)"
+          @click.stop="handleMenuClick(item.path)"
           :title="isCollapsed ? item.title : ''"
         >
           <img :src="item.icon" :alt="item.title" class="menu-icon">
@@ -26,15 +18,18 @@
         </li>
       </ul>
       
+      <!-- 空白填充区域，用于捕获点击事件 -->
+      <div class="sidebar-spacer"></div>
+      
       <!-- 用户信息和退出按钮 -->
-      <div class="sidebar-footer" v-if="isLoggedIn">
+      <div class="sidebar-footer" v-if="isLoggedIn" @click.stop>
         <div class="user-info" v-if="!isCollapsed">
           <span class="username">{{ username }}</span>
-          <button @click="handleLogout" class="logout-btn" title="退出登录">
+          <button @click.stop="handleLogout" class="logout-btn" title="退出登录">
             退出
           </button>
         </div>
-        <button v-else @click="handleLogout" class="logout-btn-icon" title="退出登录">
+        <button v-else @click.stop="handleLogout" class="logout-btn-icon" title="退出登录">
           🚪
         </button>
       </div>
@@ -53,7 +48,7 @@ export default {
   name: 'Layout',
   data() {
     return {
-      isCollapsed: false,
+      isCollapsed: false, // 默认展开状态
       isLoggedIn: false,
       username: '',
       menuItems: [
@@ -130,12 +125,26 @@ export default {
     this.isLoggedIn = localStorage.getItem('isLoggedIn') === 'true'
     this.username = localStorage.getItem('username') || '用户'
   },
+  watch: {
+    // 监听路由变化，切换页面时自动收缩侧边栏
+    '$route'() {
+      this.isCollapsed = true
+    }
+  },
   methods: {
     handleMenuClick(path) {
       this.$router.push(path)
     },
-    toggleSidebar() {
+    handleSidebarClick(event) {
+      // 点击侧边栏空白区域切换展开/收缩状态
+      console.log('Sidebar clicked:', event.target.className)
       this.isCollapsed = !this.isCollapsed
+    },
+    handleContainerClick() {
+      // 点击主内容区域时，只在展开状态下才收缩侧边栏
+      if (!this.isCollapsed) {
+        this.isCollapsed = true
+      }
     },
     handleLogout() {
       ElMessageBox.confirm(
@@ -168,10 +177,11 @@ export default {
 /* 侧边栏头部 */
 .sidebar-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   margin-bottom: 1.875rem;
   padding-right: 0.5rem;
+  cursor: pointer;
 }
 
 .collapsed-title {
@@ -180,45 +190,6 @@ export default {
   margin: 0;
   text-align: center;
   width: 100%;
-}
-
-/* 切换按钮 */
-.toggle-btn {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-default);
-  border-radius: 0.25rem;
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.875rem;
-  transition: all 0.2s ease;
-  min-width: 2rem;
-  height: 1.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.toggle-btn:hover {
-  background: var(--bg-overlay);
-  color: var(--text-primary);
-  border-color: var(--text-accent);
-}
-
-/* 切换图标 */
-.toggle-icon {
-  width: 1rem;
-  height: 1rem;
-  transition: transform 0.3s ease;
-  filter: brightness(0) saturate(100%) invert(59%) sepia(11%) saturate(200%) hue-rotate(176deg) brightness(90%) contrast(94%);
-}
-
-.toggle-btn:hover .toggle-icon {
-  filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(2%) hue-rotate(28deg) brightness(107%) contrast(101%);
-}
-
-.toggle-icon.rotated {
-  transform: rotate(180deg);
 }
 
 /* 侧边栏收缩状态 */
@@ -230,12 +201,6 @@ export default {
 
 .sidebar.collapsed .sidebar-header {
   justify-content: center;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.sidebar.collapsed .toggle-btn {
-  margin-top: 0.5rem;
 }
 
 /* 菜单项 */
@@ -271,11 +236,26 @@ export default {
 /* 过渡动画 */
 .sidebar {
   transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.sidebar ul {
+  cursor: default;
+}
+
+.sidebar li {
+  cursor: pointer;
+}
+
+/* 空白填充区域 */
+.sidebar-spacer {
+  flex: 1;
+  min-height: 2rem;
+  cursor: pointer;
 }
 
 /* 侧边栏底部用户信息 */
 .sidebar-footer {
-  margin-top: auto;
   padding: 1rem;
   border-top: 1px solid #333;
 }
@@ -344,18 +324,6 @@ export default {
     min-width: 3rem;
     max-width: 3rem;
     width: 3rem;
-  }
-  
-  .toggle-btn {
-    font-size: 0.75rem;
-    padding: 0.125rem 0.25rem;
-    min-width: 1.5rem;
-    height: 1.5rem;
-  }
-  
-  .toggle-icon {
-    width: 0.75rem;
-    height: 0.75rem;
   }
 }
 </style>
