@@ -15,7 +15,7 @@ def getNowLentingList():
         current_time = today()
         # 仅筛选未完成且非“已转租/已归还”的订单
         records = YyypLentModel.find_all(
-            where="status NOT IN ('完成', '已转租', '已归还') AND lean_end_time IS NOT NULL AND lean_end_time <= ?",
+            where=" status IN ('租赁中', '转租中') AND lean_end_time <= ? or lean_end_time is null and status != '已取消'",
             params=(current_time,)
         )
         data = [[record.ID] for record in records]
@@ -217,6 +217,51 @@ def insert_webside_lentdata():
         import traceback
         traceback.print_exc()
         return '写入失败', 500
+
+
+@youpin898LentV1.route('/updateMainLentData', methods=['post'])
+def updateMainLentData():
+    """更新租赁主表数据"""
+    try:
+        data = request.get_json()
+        ID = data['ID']
+        status = data['status']
+        status_sub = data.get('status_sub', '')
+        orderSubStatusName = data['orderSubStatusName']
+        lean_end_time = data.get('lean_end_time')
+        totalLeaseDays = data.get('totalLeaseDays')
+        leaseMaxDays = data.get('leaseMaxDays')
+        
+        # 查找主表记录
+        lent_main = LentModel.find_by_id(ID=ID)
+        if not lent_main:
+            return jsonify({'success': False, 'message': '主表记录不存在'}), 404
+        
+        # 如果当前状态已是终态，则跳过更新
+        if lent_main.status in ('已转租', '已归还'):
+            return jsonify({'success': True, 'message': 'skip_final_status'}), 200
+        
+        # 更新字段
+        lent_main.status = status
+        lent_main.status_sub = status_sub
+        lent_main.last_status = orderSubStatusName
+        lent_main.lean_end_time = lean_end_time
+        lent_main.total_Lease_Days = totalLeaseDays
+        
+        if leaseMaxDays is not None:
+            lent_main.max_Lease_Days = leaseMaxDays
+        
+        # 保存更新
+        if lent_main.save():
+            return jsonify({'success': True, 'message': 'update_info'}), 200
+        else:
+            return jsonify({'success': False, 'message': 'update_error'}), 500
+            
+    except Exception as e:
+        print(f"更新租赁主表数据失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': 'update_error', 'error': str(e)}), 500
 
 
 @youpin898LentV1.route('/insert_main_lentdata', methods=['post'])
