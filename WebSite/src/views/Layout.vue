@@ -108,6 +108,11 @@ export default {
           icon: '/icons/data_from.png'
         },
         {
+          path: '/data-spider',
+          title: '数据挖掘',
+          icon: '/icons/铲子.png'
+        },
+        {
           path: '/settings',
           title: '其他功能',
           icon: '/icons/setting.png'

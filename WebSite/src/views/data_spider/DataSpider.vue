@@ -1,5 +1,5 @@
 <template>
-  <div class="settings-container" :class="{ 'main-sidebar-collapsed': isMainSidebarCollapsed }">
+  <div class="data-spider-container" :class="{ 'main-sidebar-collapsed': isMainSidebarCollapsed }">
     <!-- 二级左侧栏 -->
     <aside class="secondary-sidebar" :class="{ collapsed: sidebarCollapsed }">
       <div class="sidebar-content">
@@ -9,83 +9,31 @@
         
         <ul class="category-list">
           <li 
-            :class="{ active: $route.name === 'DataSource' }"
-            @click="navigateTo('/settings/data-source')"
+            :class="{ active: $route.name === 'DataSpiderSearchRename' }"
+            @click="navigateTo('/data-spider/search-rename')"
           >
             <el-icon :size="18">
-              <DataBoard />
+              <Edit />
             </el-icon>
-            <span>数据来源</span>
+            <span>爬取改名</span>
           </li>
           <li 
-            :class="{ active: $route.name === 'AutoManager' }"
-            @click="navigateTo('/settings/auto-manager')"
+            :class="{ active: $route.name === 'DataSpiderSearchPendant' }"
+            @click="navigateTo('/data-spider/search-pendant')"
           >
             <el-icon :size="18">
-              <Timer />
+              <Medal />
             </el-icon>
-            <span>自动化管理</span>
+            <span>爬取挂件</span>
           </li>
           <li 
-            :class="{ active: $route.name === 'SteamInventoryHistory' }"
-            @click="navigateTo('/settings/steam-inventory-history')"
+            :class="{ active: $route.name === 'DataSpiderInventoryMining' }"
+            @click="navigateTo('/data-spider/inventory-mining')"
           >
             <el-icon :size="18">
-              <Box />
+              <Search />
             </el-icon>
-            <span>Steam交易历史</span>
-          </li>
-          <li 
-            :class="{ active: $route.name === 'DevTools' }"
-            @click="navigateTo('/settings/dev-tools')"
-          >
-            <el-icon :size="18">
-              <SetUp />
-            </el-icon>
-            <span>开荒工具</span>
-          </li>
-          <li 
-            :class="{ active: $route.name === 'SystemSettings' }"
-            @click="navigateTo('/settings/system-settings')"
-          >
-            <el-icon :size="18">
-              <Setting />
-            </el-icon>
-            <span>登录设置</span>
-          </li>
-          <li 
-            :class="{ active: $route.name === 'DatabaseManager' }"
-            @click="navigateTo('/settings/database-manager')"
-          >
-            <img src="/icons/database.png" class="menu-icon" alt="database" />
-            <span>数据库管理</span>
-          </li>
-          <li 
-            :class="{ active: $route.name === 'MessageBox' }"
-            @click="navigateTo('/settings/yyyp-message-box')"
-          >
-            <el-icon :size="18">
-              <ChatLineRound />
-            </el-icon>
-            <span>悠悠有品消息</span>
-          </li>
-          <li 
-            :class="{ active: $route.name === 'BuffMessageBox' }"
-            @click="navigateTo('/settings/buff-message-box')"
-          >
-            <el-icon :size="18">
-              <ChatLineRound />
-            </el-icon>
-            <span>BUFF消息</span>
-          </li>
-          <li 
-            :class="{ active: $route.name === 'VersionUpdate' }"
-            @click="navigateTo('/settings/version-update')"
-          >
-            <el-icon :size="18">
-              <Refresh />
-            </el-icon>
-            <span>更新日志</span>
+            <span>库存挖掘</span>
           </li>
         </ul>
       </div>
@@ -109,7 +57,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { SetUp, Setting, Box, Timer, DataBoard, ArrowLeft, ArrowRight, ChatLineRound, Refresh } from '@element-plus/icons-vue'
+import { Search, Edit, Medal, ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const sidebarCollapsed = ref(false)
@@ -165,7 +113,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.settings-container {
+.data-spider-container {
   display: flex;
   min-height: 100vh;
   width: 100%;
@@ -195,7 +143,7 @@ onUnmounted(() => {
 }
 
 /* 当主侧边栏收缩时，二级侧边栏也跟随调整 */
-.settings-container.main-sidebar-collapsed .secondary-sidebar {
+.data-spider-container.main-sidebar-collapsed .secondary-sidebar {
   left: 4rem;
 }
 
@@ -230,19 +178,19 @@ onUnmounted(() => {
 }
 
 /* 当主侧边栏收缩时 */
-.settings-container.main-sidebar-collapsed .toggle-button {
+.data-spider-container.main-sidebar-collapsed .toggle-button {
   left: calc(4rem + 220px + 2px);
 }
 
-.settings-container.main-sidebar-collapsed .toggle-button.collapsed {
+.data-spider-container.main-sidebar-collapsed .toggle-button.collapsed {
   left: 4rem;
 }
 
 .toggle-button:hover {
-  background: linear-gradient(90deg, rgba(64, 158, 255, 0.2) 0%, rgba(64, 158, 255, 0.3) 100%);
-  color: #409eff;
-  border-color: #409eff;
-  box-shadow: 2px 0 12px rgba(64, 158, 255, 0.4);
+  background: linear-gradient(90deg, rgba(76, 175, 80, 0.2) 0%, rgba(76, 175, 80, 0.3) 100%);
+  color: #4CAF50;
+  border-color: #4CAF50;
+  box-shadow: 2px 0 12px rgba(76, 175, 80, 0.4);
   transform: translateY(-50%) translateX(2px);
 }
 
@@ -265,13 +213,6 @@ onUnmounted(() => {
   padding: 1.5rem 1.5rem 1rem 1.5rem;
   border-bottom: 1px solid #3a3a3a;
   margin-bottom: 0;
-}
-
-.sidebar-header h2 {
-  font-size: 1.125rem;
-  color: #ffffff;
-  margin: 0;
-  font-weight: 600;
 }
 
 .category-list {
@@ -298,7 +239,7 @@ onUnmounted(() => {
 }
 
 .category-list li.active {
-  background-color: #409eff;
+  background-color: #4CAF50;
   color: #ffffff;
   font-weight: 600;
 }
@@ -310,17 +251,11 @@ onUnmounted(() => {
   top: 0;
   bottom: 0;
   width: 3px;
-  background-color: #66b1ff;
+  background-color: #66bb6a;
 }
 
 .category-list li span {
   flex: 1;
-}
-
-.category-list li .menu-icon {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
 }
 
 /* 主内容区域包装器 */
@@ -336,74 +271,9 @@ onUnmounted(() => {
 }
 
 /* 响应式设计 */
-/* 大屏幕优化 */
-@media (min-width: 1920px) {
-  .secondary-sidebar {
-    width: 240px;
-  }
-
-  .toggle-button {
-    left: calc(var(--main-sidebar-width, max(15rem, min(18vw, 20rem))) + 240px + 2px);
-  }
-
-  .settings-container.main-sidebar-collapsed .toggle-button {
-    left: calc(4rem + 240px + 2px);
-  }
-
-  .main-wrapper {
-    margin-left: 240px;
-  }
-}
-
-/* 中等屏幕 */
-@media (max-width: 1440px) {
-  .secondary-sidebar {
-    width: 200px;
-  }
-
-  .toggle-button {
-    left: calc(var(--main-sidebar-width, max(15rem, min(18vw, 20rem))) + 200px + 2px);
-  }
-
-  .settings-container.main-sidebar-collapsed .toggle-button {
-    left: calc(4rem + 200px + 2px);
-  }
-
-  .main-wrapper {
-    margin-left: 200px;
-  }
-
-  .category-list li {
-    padding: 0.875rem 1.25rem;
-    font-size: 0.9375rem;
-  }
-}
-
-/* 小屏幕 */
 @media (max-width: 768px) {
   .secondary-sidebar {
     width: 180px;
-  }
-
-  .secondary-sidebar.collapsed {
-    width: 0;
-  }
-
-  .sidebar-header h2 {
-    font-size: 1rem;
-  }
-
-  .category-list li {
-    padding: 0.75rem 1rem;
-    font-size: 0.875rem;
-  }
-
-  .toggle-button {
-    left: calc(3rem + 180px - 36px);
-  }
-
-  .secondary-sidebar.collapsed .toggle-button {
-    left: 3rem;
   }
 
   .main-wrapper {
@@ -412,26 +282,6 @@ onUnmounted(() => {
 
   .main-wrapper.expanded {
     margin-left: 0;
-  }
-}
-
-@media (min-width: 1200px) and (max-width: 1919px) {
-  .toggle-button {
-    left: calc(max(18rem, 16vw) + 220px - 36px);
-  }
-
-  .secondary-sidebar.collapsed .toggle-button {
-    left: max(18rem, 16vw);
-  }
-}
-
-@media (min-width: 1600px) and (max-width: 1919px) {
-  .toggle-button {
-    left: calc(max(20rem, 14vw) + 220px - 36px);
-  }
-
-  .secondary-sidebar.collapsed .toggle-button {
-    left: max(20rem, 14vw);
   }
 }
 
@@ -472,4 +322,3 @@ onUnmounted(() => {
   background: rgba(90, 90, 90, 0.8);
 }
 </style>
-

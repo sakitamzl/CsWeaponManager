@@ -10,6 +10,7 @@ import Setting from '@/views/Setting.vue'
 import StockComponents from '@/views/StockComponents.vue'
 import Settings from '@/views/Settings.vue'
 import DataWebsite from '@/views/data_website/DataWebsite.vue'
+import DataSpider from '@/views/data_spider/DataSpider.vue'
 import Login from '@/views/Login.vue'
 import axios from 'axios'
 import { apiUrls } from '@/config/api'
@@ -94,18 +95,6 @@ const routes = [
             meta: { title: '自动化管理' }
           },
           {
-            path: 'search-rename',
-            name: 'SearchRename',
-            component: () => import('@/views/settings/SearchWeaponRename.vue'),
-            meta: { title: '爬取改名' }
-          },
-          {
-            path: 'search-pendant',
-            name: 'SearchPendant',
-            component: () => import('@/views/settings/SearchPendant.vue'),
-            meta: { title: '爬取挂件' }
-          },
-          {
             path: 'steam-inventory-history',
             name: 'SteamInventoryHistory',
             component: () => import('@/views/settings/SteamInventoryHistory.vue'),
@@ -146,12 +135,6 @@ const routes = [
             name: 'DevTools',
             component: () => import('@/views/settings/DevTool.vue'),
             meta: { title: '开荒工具' }
-          },
-          {
-            path: 'inventory-mining',
-            name: 'InventoryMining',
-            component: () => import('@/views/settings/InventoryMining.vue'),
-            meta: { title: '库存挖掘' }
           }
         ]
       },
@@ -173,6 +156,33 @@ const routes = [
             name: 'DataWebsiteItemSearch',
             component: () => import('@/views/data_website/ItemSearch.vue'),
             meta: { title: '饰品搜索' }
+          }
+        ]
+      },
+      {
+        path: '/data-spider',
+        name: 'DataSpider',
+        component: DataSpider,
+        meta: { title: '数据挖掘' },
+        redirect: '/data-spider/search-rename',
+        children: [
+          {
+            path: 'search-rename',
+            name: 'DataSpiderSearchRename',
+            component: () => import('@/views/data_spider/SearchWeaponRename.vue'),
+            meta: { title: '爬取改名' }
+          },
+          {
+            path: 'search-pendant',
+            name: 'DataSpiderSearchPendant',
+            component: () => import('@/views/data_spider/SearchPendant.vue'),
+            meta: { title: '爬取挂件' }
+          },
+          {
+            path: 'inventory-mining',
+            name: 'DataSpiderInventoryMining',
+            component: () => import('@/views/data_spider/InventoryMining.vue'),
+            meta: { title: '库存挖掘' }
           }
         ]
       }
