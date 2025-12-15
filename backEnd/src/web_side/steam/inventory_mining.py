@@ -623,15 +623,22 @@ def get_mining_history():
         db = DatabaseManager()
         
         # 查询所有不同的source_steam_id及其最新挖掘时间和统计信息
+        # 同时获取主用户的昵称和头像（从relationship='self'的记录中获取）
         query_sql = """
             SELECT 
-                source_steam_id,
-                MAX(mining_time) as latest_time,
+                m.source_steam_id,
+                MAX(m.mining_time) as latest_time,
                 COUNT(*) as total_items,
-                SUM(CAST(CASE WHEN market_price IS NOT NULL AND market_price != '' AND market_price != '0' 
-                    THEN market_price ELSE '0' END AS REAL)) as total_value
-            FROM user_inventory_mining
-            GROUP BY source_steam_id
+                SUM(CAST(CASE WHEN m.market_price IS NOT NULL AND m.market_price != '' AND m.market_price != '0' 
+                    THEN m.market_price ELSE '0' END AS REAL)) as total_value,
+                (SELECT persona_name FROM user_inventory_mining 
+                 WHERE source_steam_id = m.source_steam_id AND relationship = 'self' 
+                 LIMIT 1) as persona_name,
+                (SELECT avatar_url FROM user_inventory_mining 
+                 WHERE source_steam_id = m.source_steam_id AND relationship = 'self' 
+                 LIMIT 1) as avatar_url
+            FROM user_inventory_mining m
+            GROUP BY m.source_steam_id
             ORDER BY latest_time DESC
         """
         
@@ -640,8 +647,17 @@ def get_mining_history():
         history_list = []
         if results:
             for row in results:
+                source_steam_id = row[0]
+                persona_name = row[4] if row[4] else source_steam_id
+                
+                # 如果昵称是默认的"用户_xxxx"格式，使用Steam ID
+                if persona_name and persona_name.startswith('用户_'):
+                    persona_name = source_steam_id
+                
                 history_list.append({
-                    'source_steam_id': row[0],
+                    'source_steam_id': source_steam_id,
+                    'persona_name': persona_name,
+                    'avatar_url': row[5] if row[5] else '',
                     'latest_time': row[1],
                     'total_items': row[2],
                     'total_value': round(row[3], 2) if row[3] else 0
@@ -655,6 +671,61 @@ def get_mining_history():
     except Exception as e:
         import traceback
         error_msg = f'获取历史记录失败: {str(e)}'
+        logger.write_log(error_msg, 'error')
+        logger.write_log(f"详细错误: {traceback.format_exc()}", 'error')
+        return jsonify({
+            'success': False,
+            'message': error_msg
+        }), 500
+
+
+@inventoryMiningV1.route('/history/<steam_id>', methods=['DELETE'])
+def delete_mining_history(steam_id):
+    """
+    删除指定Steam ID的挖掘历史记录
+    
+    URL参数:
+        steam_id: 要删除的Steam ID
+    """
+    try:
+        if not steam_id:
+            return jsonify({
+                'success': False,
+                'message': '缺少steam_id参数'
+            }), 400
+        
+        logger.write_log(f"[库存挖掘] 开始删除历史记录 - Steam ID: {steam_id}", 'info')
+        
+        db = DatabaseManager()
+        
+        # 先查询要删除的记录数
+        count_sql = "SELECT COUNT(*) FROM user_inventory_mining WHERE source_steam_id = ?"
+        count_result = db.execute_query(count_sql, (steam_id,))
+        delete_count = count_result[0][0] if count_result else 0
+        
+        if delete_count == 0:
+            return jsonify({
+                'success': False,
+                'message': '未找到该Steam ID的历史记录'
+            }), 404
+        
+        # 删除数据
+        delete_sql = "DELETE FROM user_inventory_mining WHERE source_steam_id = ?"
+        affected = db.execute_update(delete_sql, (steam_id,))
+        
+        logger.write_log(f"[库存挖掘] 删除历史记录完成 - 删除 {affected} 条记录", 'info')
+        
+        return jsonify({
+            'success': True,
+            'message': f'成功删除 {affected} 条记录',
+            'data': {
+                'deleted_count': affected
+            }
+        }), 200
+        
+    except Exception as e:
+        import traceback
+        error_msg = f'删除历史记录失败: {str(e)}'
         logger.write_log(error_msg, 'error')
         logger.write_log(f"详细错误: {traceback.format_exc()}", 'error')
         return jsonify({

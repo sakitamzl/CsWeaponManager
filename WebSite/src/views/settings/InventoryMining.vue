@@ -33,7 +33,13 @@
               @click.stop="deleteHistory(history.source_steam_id)"
             />
             <div class="history-item-header">
-              <span class="history-name">{{ history.source_steam_id }}</span>
+              <img v-if="history.avatar_url" :src="history.avatar_url" class="history-avatar" />
+              <div class="history-name-container">
+                <span class="history-name">{{ history.persona_name || history.source_steam_id }}</span>
+                <span v-if="history.persona_name && history.persona_name !== history.source_steam_id" class="history-steam-id">
+                  {{ history.source_steam_id }}
+                </span>
+              </div>
             </div>
             <div class="history-meta">
               <div class="history-time">{{ formatTime(history.latest_time) }}</div>
@@ -75,6 +81,14 @@
         >
           {{ isMining ? '挖掘中...' : '开始挖掘' }}
         </el-button>
+        
+        <el-button 
+          type="danger" 
+          @click="stopMining"
+          :disabled="!isMining"
+        >
+          停止挖掘
+        </el-button>
       </div>
 
       <div v-if="miningProgress" class="progress-info">
@@ -115,22 +129,38 @@
         default-expand-all
         class="user-tree"
         node-key="id"
-        @node-click="handleTreeNodeClick"
       >
         <template #default="{ node, data }">
           <div class="tree-node">
-            <div class="tree-node-content">
+            <div class="tree-node-content" @click="handleTreeNodeClick(data)">
               <img v-if="data.avatar" :src="data.avatar" class="tree-avatar" />
               <el-icon v-else :size="24" class="tree-icon">
                 <User />
               </el-icon>
-              <span class="tree-label">{{ data.label }}</span>
-              <el-tag :type="data.type" size="small" class="tree-tag">
-                {{ data.count }} 件
-              </el-tag>
-              <el-tag v-if="data.value && data.value !== '0.00'" type="success" size="small" class="tree-tag">
-                ¥{{ data.value }}
-              </el-tag>
+              <div class="tree-label-container">
+                <span class="tree-label">{{ data.label }}</span>
+                <span v-if="data.steam_id && data.relationship === 'friend'" class="tree-steam-id">
+                  ({{ data.steam_id }})
+                </span>
+              </div>
+              <div class="tree-tags-container">
+                <el-tag :type="data.type" size="small" class="tree-tag">
+                  {{ data.count }} 件
+                </el-tag>
+                <el-tag v-if="data.value && data.value !== '0.00'" type="success" size="small" class="tree-tag">
+                  ¥{{ data.value }}
+                </el-tag>
+              </div>
+              <el-button 
+                v-if="data.steam_id && data.relationship === 'friend'"
+                type="primary" 
+                size="small"
+                class="tree-mine-btn"
+                :disabled="isMining"
+                @click.stop="mineUserFromTree(data.steam_id)"
+              >
+                挖掘
+              </el-button>
             </div>
           </div>
         </template>
@@ -461,6 +491,7 @@ export default {
     const inputSteamId = ref('')
     const historyList = ref([])  // 历史搜索记录列表
     const isMining = ref(false)
+    const miningAbortController = ref(null)  // 用于取消挖掘请求
     const miningProgress = ref(null)
     const lastMiningTime = ref('')
     const miningResult = ref(null)
@@ -556,6 +587,9 @@ export default {
       }
       ElMessage.info('开始挖掘库存...')
 
+      // 创建 AbortController 用于取消请求
+      miningAbortController.value = new AbortController()
+
       // 启动实时轮询更新
       startPolling(steamId)
 
@@ -565,6 +599,8 @@ export default {
           steamId: steamId,
           include_friends: true,
           max_friends: 999  // 获取所有好友的库存
+        }, {
+          signal: miningAbortController.value.signal
         })
 
         if (response.data.success) {
@@ -598,11 +634,24 @@ export default {
         }
       } catch (error) {
         console.error('挖掘失败:', error)
+        
+        // 检查是否是用户主动取消
+        if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
+          miningProgress.value.status = 'warning'
+          ElMessage.warning('挖掘已停止')
+          return
+        }
+        
         miningProgress.value.status = 'exception'
         
         let errorMessage = '挖掘失败'
         if (error.response) {
-          errorMessage = error.response.data?.message || errorMessage
+          // 检查 HTTP 状态码
+          if (error.response.status === 401) {
+            errorMessage = '该用户的库存当前为私密状态，无法获取'
+          } else {
+            errorMessage = error.response.data?.message || errorMessage
+          }
         } else if (error.request) {
           errorMessage = '无法连接到服务器'
         }
@@ -610,6 +659,7 @@ export default {
       } finally {
         isMining.value = false
         stopPolling()
+        miningAbortController.value = null
       }
     }
     
@@ -773,18 +823,33 @@ export default {
         }
       })
       
+      // 获取主用户信息
+      const selfUsers = Array.from(userMap.values()).filter(u => u.relationship === 'self')
+      let rootLabel = `Steam ID: ${sourceSteamId}`
+      let rootAvatar = null
+      
+      // 如果有主用户数据，使用主用户的名称
+      if (selfUsers.length > 0 && selfUsers[0].persona_name) {
+        const mainUser = selfUsers[0]
+        // 检查是否是默认的"用户_xxxx"格式
+        if (!mainUser.persona_name.startsWith('用户_')) {
+          rootLabel = mainUser.persona_name
+          rootAvatar = mainUser.avatar_url
+        }
+      }
+      
       // 根节点
       const rootNode = {
         id: 'root',
-        label: `Steam ID: ${sourceSteamId}`,
+        label: rootLabel,
         count: items.length,
         value: totalValue.toFixed(2),
         type: 'primary',
+        avatar: rootAvatar,
         children: []
       }
       
       // 自己的库存
-      const selfUsers = Array.from(userMap.values()).filter(u => u.relationship === 'self')
       if (selfUsers.length > 0) {
         selfUsers.forEach(user => {
           rootNode.children.push({
@@ -823,7 +888,8 @@ export default {
             value: user.total_value.toFixed(2),
             avatar: user.avatar_url,
             type: 'warning',
-            steam_id: user.steam_id
+            steam_id: user.steam_id,
+            relationship: 'friend'
           })
         })
         
@@ -941,6 +1007,75 @@ export default {
           ElMessage.error('删除失败')
         }
       }
+    }
+
+    // 停止挖掘
+    const stopMining = async () => {
+      if (!isMining.value) {
+        return
+      }
+      
+      try {
+        await ElMessageBox.confirm(
+          '确定要停止当前的挖掘任务吗？',
+          '确认停止',
+          {
+            confirmButtonText: '停止',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        )
+        
+        ElMessage.info('正在停止挖掘...')
+        
+        // 1. 调用后端取消接口
+        try {
+          await axios.post(`${API_CONFIG.SPIDER_BASE_URL}/steamSpiderV1/cancelMining`, {
+            steamId: currentMiningId.value
+          })
+          console.log('[前端] 已发送取消请求到后端')
+        } catch (error) {
+          console.error('调用后端取消接口失败:', error)
+        }
+        
+        // 2. 取消前端请求
+        if (miningAbortController.value) {
+          miningAbortController.value.abort()
+        }
+        
+      } catch (error) {
+        // 用户取消了停止操作
+        if (error !== 'cancel') {
+          console.error('停止挖掘失败:', error)
+        }
+      }
+    }
+
+    // 从树形结构中挖掘用户
+    const mineUserFromTree = async (steamId) => {
+      // 检查是否有正在进行的挖掘
+      if (isMining.value) {
+        ElMessage.warning('当前有挖掘任务正在进行，请等待完成后再试')
+        return
+      }
+
+      try {
+        await ElMessageBox.confirm(
+          `确定要挖掘用户 ${steamId} 及其好友的库存吗？\n\n⚠️ 注意：此操作将清空该用户的历史挖掘数据！`,
+          '确认挖掘',
+          {
+            confirmButtonText: '开始',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        )
+      } catch {
+        return
+      }
+
+      // 设置输入框的值并开始挖掘
+      inputSteamId.value = steamId
+      await startMining()
     }
 
     // 获取建议类型
@@ -1351,7 +1486,9 @@ export default {
       formatTime,
       deleteHistory,
       currentMiningId,
-      Delete
+      Delete,
+      mineUserFromTree,
+      stopMining
     }
   }
 }
@@ -1450,6 +1587,25 @@ export default {
 
 .history-item-header {
   margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.history-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid rgba(76, 175, 80, 0.3);
+  flex-shrink: 0;
+}
+
+.history-name-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .history-name {
@@ -1459,7 +1615,15 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  display: block;
+}
+
+.history-steam-id {
+  font-size: 0.75rem;
+  color: #888;
+  font-family: monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .history-meta {
@@ -1616,10 +1780,9 @@ export default {
   flex: 1;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 0.5rem 0;
-  cursor: pointer;
   transition: all 0.2s ease;
+  gap: 1rem;
 }
 
 .tree-node:hover {
@@ -1631,6 +1794,19 @@ export default {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+}
+
+.tree-mine-btn {
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.tree-node:hover .tree-mine-btn {
+  opacity: 1;
 }
 
 .tree-avatar {
@@ -1644,14 +1820,36 @@ export default {
   color: #409eff;
 }
 
+.tree-label-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
 .tree-label {
   color: #ffffff;
   font-size: 1rem;
   font-weight: 500;
 }
 
-.tree-tag {
+.tree-steam-id {
+  color: #4CAF50;
+  font-size: 0.85rem;
+  font-family: monospace;
+  white-space: nowrap;
+}
+
+.tree-tags-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   margin-left: 0.5rem;
+}
+
+.tree-tag {
+  flex-shrink: 0;
 }
 
 .pagination-toolbar {
