@@ -368,7 +368,7 @@ def query_mining_data():
         "source_steam_id": "源Steam ID",
         "relationship": "self/friend/all",  // 可选，默认all
         "weapon_type": "武器类型",  // 可选
-        "limit": 100,  // 可选
+        "limit": null,  // 可选，不传或null表示获取所有数据
         "offset": 0  // 可选
     }
     """
@@ -383,7 +383,7 @@ def query_mining_data():
         source_steam_id = data['source_steam_id']
         relationship = data.get('relationship', 'all')
         weapon_type = data.get('weapon_type')
-        limit = data.get('limit', 100)
+        limit = data.get('limit')  # 不设置默认值，None表示不限制
         offset = data.get('offset', 0)
         
         db = DatabaseManager()
@@ -402,20 +402,32 @@ def query_mining_data():
         
         where_sql = ' AND '.join(where_clauses)
         
-        # 查询数据
-        query_sql = f"""
-            SELECT * FROM user_inventory_mining
-            WHERE {where_sql}
-            ORDER BY mining_time DESC
-            LIMIT ? OFFSET ?
-        """
-        params.extend([limit, offset])
+        # 查询数据 - 如果没有limit则查询所有数据
+        if limit is not None:
+            query_sql = f"""
+                SELECT * FROM user_inventory_mining
+                WHERE {where_sql}
+                ORDER BY mining_time DESC
+                LIMIT ? OFFSET ?
+            """
+            params.extend([limit, offset])
+        else:
+            # 不限制数量，查询所有数据
+            query_sql = f"""
+                SELECT * FROM user_inventory_mining
+                WHERE {where_sql}
+                ORDER BY mining_time DESC
+            """
+            if offset > 0:
+                query_sql += f" OFFSET ?"
+                params.append(offset)
         
         results = db.execute_query(query_sql, tuple(params))
         
         # 查询总数
+        count_params = [p for p in params if p not in [limit, offset]]
         count_sql = f"SELECT COUNT(*) FROM user_inventory_mining WHERE {where_sql}"
-        count_result = db.execute_query(count_sql, tuple(params[:-2]))
+        count_result = db.execute_query(count_sql, tuple(count_params))
         total_count = count_result[0][0] if count_result else 0
         
         # 转换为字典列表
@@ -592,6 +604,57 @@ def get_mining_stats():
     except Exception as e:
         import traceback
         error_msg = f'获取统计信息失败: {str(e)}'
+        logger.write_log(error_msg, 'error')
+        logger.write_log(f"详细错误: {traceback.format_exc()}", 'error')
+        return jsonify({
+            'success': False,
+            'message': error_msg
+        }), 500
+
+
+@inventoryMiningV1.route('/history', methods=['GET'])
+def get_mining_history():
+    """
+    获取所有挖掘历史记录列表
+    
+    返回每个source_steam_id的最新挖掘记录
+    """
+    try:
+        db = DatabaseManager()
+        
+        # 查询所有不同的source_steam_id及其最新挖掘时间和统计信息
+        query_sql = """
+            SELECT 
+                source_steam_id,
+                MAX(mining_time) as latest_time,
+                COUNT(*) as total_items,
+                SUM(CAST(CASE WHEN market_price IS NOT NULL AND market_price != '' AND market_price != '0' 
+                    THEN market_price ELSE '0' END AS REAL)) as total_value
+            FROM user_inventory_mining
+            GROUP BY source_steam_id
+            ORDER BY latest_time DESC
+        """
+        
+        results = db.execute_query(query_sql)
+        
+        history_list = []
+        if results:
+            for row in results:
+                history_list.append({
+                    'source_steam_id': row[0],
+                    'latest_time': row[1],
+                    'total_items': row[2],
+                    'total_value': round(row[3], 2) if row[3] else 0
+                })
+        
+        return jsonify({
+            'success': True,
+            'data': history_list
+        }), 200
+        
+    except Exception as e:
+        import traceback
+        error_msg = f'获取历史记录失败: {str(e)}'
         logger.write_log(error_msg, 'error')
         logger.write_log(f"详细错误: {traceback.format_exc()}", 'error')
         return jsonify({

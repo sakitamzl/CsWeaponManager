@@ -1,9 +1,61 @@
 <template>
   <div class="inventory-mining-container">
-    <div class="mining-section">
-      <h2 class="section-title">库存挖掘</h2>
-      
-      <div class="mining-controls">
+    <div class="page-layout">
+      <!-- 左侧历史记录栏 -->
+      <aside class="history-sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-header-title">搜索历史</div>
+          <el-button 
+            type="info" 
+            size="small"
+            @click="loadHistoryList"
+          >
+            <el-icon><Refresh /></el-icon>
+          </el-button>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="history-list">
+          <div 
+            v-for="history in historyList" 
+            :key="history.source_steam_id"
+            class="history-item"
+            :class="{ active: currentMiningId === history.source_steam_id }"
+            @click="selectHistory(history.source_steam_id)"
+          >
+            <el-button 
+              type="danger" 
+              size="small"
+              class="history-delete-btn"
+              :icon="Delete"
+              circle
+              @click.stop="deleteHistory(history.source_steam_id)"
+            />
+            <div class="history-item-header">
+              <span class="history-name">{{ history.source_steam_id }}</span>
+            </div>
+            <div class="history-meta">
+              <div class="history-time">{{ formatTime(history.latest_time) }}</div>
+              <div class="history-stats">
+                <el-tag size="small" type="success">{{ history.total_items }} 件</el-tag>
+                <el-tag size="small" type="warning" v-if="history.total_value">¥{{ history.total_value }}</el-tag>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="!historyList || historyList.length === 0" class="empty-history">
+            <el-empty description="暂无搜索历史" :image-size="80" />
+          </div>
+        </div>
+      </aside>
+
+      <!-- 右侧主内容区域 -->
+      <div class="main-content-area">
+        <div class="mining-section">
+          <h2 class="section-title">库存挖掘</h2>
+          
+          <div class="mining-controls">
         <el-input
           v-model="inputSteamId"
           placeholder=""
@@ -22,14 +74,6 @@
           :loading="isMining"
         >
           {{ isMining ? '挖掘中...' : '开始挖掘' }}
-        </el-button>
-
-        <el-button 
-          type="success" 
-          @click="viewMiningHistory"
-          :disabled="isMining"
-        >
-          查看历史记录
         </el-button>
       </div>
 
@@ -60,10 +104,11 @@
           </div>
         </div>
       </div>
-    </div>
+        </div>
+        <!-- 结束 mining-section -->
 
-    <!-- 用户树形图 -->
-    <div v-if="userTreeData.length > 0" class="user-tree-section">
+        <!-- 用户树形图 -->
+        <div v-if="userTreeData && userTreeData.length > 0" class="user-tree-section">
       <el-tree
         :data="userTreeData"
         :props="treeProps"
@@ -90,12 +135,13 @@
           </div>
         </template>
       </el-tree>
-    </div>
+        </div>
+        <!-- 结束 user-tree-section -->
 
-    <!-- 挖掘结果展示 -->
-    <div v-if="miningItems.length > 0" class="results-table-section">
-      <!-- 分页器 - 顶部（包含切换和筛选信息） -->
-      <div class="pagination-toolbar">
+        <!-- 挖掘结果展示 -->
+        <div v-if="miningItems && miningItems.length > 0" class="results-table-section">
+          <!-- 分页器 - 顶部（包含切换和筛选信息） -->
+          <div class="pagination-toolbar">
         <div class="toolbar-left">
           <el-switch
             v-model="groupMode"
@@ -385,25 +431,35 @@
             @current-change="handleCurrentChange"
           />
         </div>
+          </div>
+          <!-- 结束 pagination-toolbar (bottom) -->
+        </div>
+        <!-- 结束 results-table-section -->
       </div>
+      <!-- 结束 main-content-area -->
     </div>
+    <!-- 结束 page-layout -->
   </div>
+  <!-- 结束 inventory-mining-container -->
 </template>
 
 <script>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { User } from '@element-plus/icons-vue'
+import { User, Refresh, Delete } from '@element-plus/icons-vue'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
 
 export default {
   name: 'InventoryMining',
   components: {
-    User
+    User,
+    Refresh,
+    Delete
   },
   setup() {
     const inputSteamId = ref('')
+    const historyList = ref([])  // 历史搜索记录列表
     const isMining = ref(false)
     const miningProgress = ref(null)
     const lastMiningTime = ref('')
@@ -508,7 +564,7 @@ export default {
         const response = await axios.post(`${API_CONFIG.SPIDER_BASE_URL}/steamSpiderV1/mineInventory`, {
           steamId: steamId,
           include_friends: true,
-          max_friends: 10
+          max_friends: 999  // 获取所有好友的库存
         })
 
         if (response.data.success) {
@@ -585,9 +641,8 @@ export default {
         // 同时获取数据和统计信息
         const [dataResponse, statsResponse] = await Promise.all([
           axios.post(`${API_CONFIG.BASE_URL}/api/v1/steam/inventory/mining/query`, {
-            source_steam_id: steamId,
-            limit: 1000,
-            offset: 0
+            source_steam_id: steamId
+            // 不传limit参数，获取所有数据
           }),
           axios.post(`${API_CONFIG.BASE_URL}/api/v1/steam/inventory/mining/stats`, {
             source_steam_id: steamId
@@ -641,9 +696,8 @@ export default {
     const loadMiningResults = async (steamId) => {
       try {
         const response = await axios.post(`${API_CONFIG.BASE_URL}/api/v1/steam/inventory/mining/query`, {
-          source_steam_id: steamId,
-          limit: 1000,
-          offset: 0
+          source_steam_id: steamId
+          // 不传limit参数，获取所有数据
         })
 
         if (response.data.success) {
@@ -852,13 +906,41 @@ export default {
       return data.slice(start, end)
     })
 
-    // 查看历史记录
-    const viewMiningHistory = () => {
-      if (!inputSteamId.value.trim()) {
-        ElMessage.warning('请先输入 Steam ID')
-        return
+    // 删除单个历史记录
+    const deleteHistory = async (steamId) => {
+      try {
+        await ElMessageBox.confirm(
+          `确定要删除 ${steamId} 的历史记录吗？`,
+          '确认删除',
+          {
+            confirmButtonText: '删除',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        )
+        
+        const response = await axios.delete(`${API_CONFIG.BASE_URL}/api/v1/steam/inventory/mining/history/${steamId}`)
+        
+        if (response.data.success) {
+          ElMessage.success('删除成功')
+          // 如果删除的是当前选中的记录，清空显示
+          if (currentMiningId.value === steamId) {
+            currentMiningId.value = ''
+            miningItems.value = []
+            miningResult.value = null
+            userTreeData.value = []
+          }
+          // 重新加载历史列表
+          await loadHistoryList()
+        } else {
+          ElMessage.error('删除失败')
+        }
+      } catch (error) {
+        if (error !== 'cancel') {
+          console.error('删除历史记录失败:', error)
+          ElMessage.error('删除失败')
+        }
       }
-      ElMessage.info('历史记录功能开发中...')
     }
 
     // 获取建议类型
@@ -1146,6 +1228,43 @@ export default {
       }
     }
 
+    // 加载历史记录列表
+    const loadHistoryList = async () => {
+      try {
+        const response = await axios.get(`${API_CONFIG.BASE_URL}/api/v1/steam/inventory/mining/history`)
+        
+        if (response.data.success) {
+          historyList.value = response.data.data || []
+        }
+      } catch (error) {
+        console.error('加载历史记录失败:', error)
+      }
+    }
+    
+    // 选择历史记录
+    const selectHistory = async (steamId) => {
+      currentMiningId.value = steamId
+      await loadMiningResults(steamId)
+      await loadMiningStats(steamId)
+    }
+    
+    // 格式化时间
+    const formatTime = (timeStr) => {
+      if (!timeStr) return ''
+      const date = new Date(timeStr)
+      const now = new Date()
+      const diff = now - date
+      const minutes = Math.floor(diff / 60000)
+      const hours = Math.floor(diff / 3600000)
+      const days = Math.floor(diff / 86400000)
+      
+      if (minutes < 1) return '刚刚'
+      if (minutes < 60) return `${minutes}分钟前`
+      if (hours < 24) return `${hours}小时前`
+      if (days < 7) return `${days}天前`
+      return date.toLocaleDateString('zh-CN')
+    }
+    
     // 加载最新的挖掘数据
     const loadLatestMiningData = async () => {
       try {
@@ -1176,6 +1295,7 @@ export default {
     // 页面加载时获取数据
     onMounted(() => {
       loadLatestMiningData()
+      loadHistoryList()
     })
     
     // 组件卸载时清理定时器
@@ -1206,7 +1326,6 @@ export default {
       pageSize,
       totalItems,
       startMining,
-      viewMiningHistory,
       getRecommendationType,
       filterByWeaponType,
       getWeaponImage,
@@ -1225,7 +1344,14 @@ export default {
       parsePendant,
       sortByCount,
       sortByPrice,
-      extractSteamId
+      extractSteamId,
+      historyList,
+      loadHistoryList,
+      selectHistory,
+      formatTime,
+      deleteHistory,
+      currentMiningId,
+      Delete
     }
   }
 }
@@ -1234,8 +1360,134 @@ export default {
 <style scoped>
 .inventory-mining-container {
   padding: 2rem;
-  max-width: 1400px;
+  max-width: 100%;
   margin: 0 auto;
+}
+
+.page-layout {
+  display: flex;
+  gap: 1.5rem;
+  min-height: calc(100vh - 150px);
+  max-width: 100%;
+}
+
+/* 左侧历史记录栏 */
+.history-sidebar {
+  width: 280px;
+  min-width: 280px;
+  flex-shrink: 0;
+  background-color: #1e1e1e;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  position: sticky;
+  top: 1rem;
+  max-height: calc(100vh - 2rem);
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.sidebar-header-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #4CAF50;
+}
+
+.sidebar-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #4CAF50, transparent);
+  margin-bottom: 1rem;
+}
+
+.history-list {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.history-item {
+  background-color: #252525;
+  border: 1px solid #333;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.history-item:hover {
+  border-color: #4CAF50;
+  background-color: #2a2a2a;
+}
+
+.history-item.active {
+  border-color: #4CAF50;
+  background-color: rgba(76, 175, 80, 0.1);
+  box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+}
+
+.history-delete-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 10;
+}
+
+.history-item:hover .history-delete-btn {
+  opacity: 1;
+}
+
+.history-item-header {
+  margin-bottom: 0.5rem;
+}
+
+.history-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+
+.history-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.history-time {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.history-stats {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.empty-history {
+  padding: 2rem 0;
+  text-align: center;
+}
+
+/* 右侧主内容区域 */
+.main-content-area {
+  flex: 1;
+  min-width: 0;
 }
 
 .mining-section {
@@ -2078,3 +2330,47 @@ export default {
   background-color: rgba(76, 175, 80, 0.1) !important;
 }
 </style>
+
+
+/* 响应式设计 */
+@media (max-width: 1024px) {
+  .page-layout {
+    flex-direction: column;
+  }
+
+  .history-sidebar {
+    width: 100%;
+    min-width: 100%;
+    position: relative;
+    top: 0;
+    max-height: 400px;
+  }
+
+  .main-content-area {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .inventory-mining-container {
+    padding: 1rem;
+  }
+
+  .history-sidebar {
+    padding: 1rem;
+  }
+
+  .mining-section {
+    padding: 1.5rem;
+  }
+
+  .mining-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .steam-id-input {
+    width: 100%;
+    min-width: 100%;
+  }
+}
