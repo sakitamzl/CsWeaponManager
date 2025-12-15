@@ -34,25 +34,13 @@
       </div>
 
       <div v-if="miningProgress" class="progress-info">
-        <div class="progress-item">
-          <span class="progress-label">当前进度:</span>
-          <el-progress 
-            :percentage="miningProgress.percentage" 
-            :status="miningProgress.status"
-          />
-        </div>
-        <div class="progress-item">
-          <span class="progress-label">已处理:</span>
-          <span class="progress-value">{{ miningProgress.processed }} / {{ miningProgress.total }}</span>
-        </div>
-        <div class="progress-item">
-          <span class="progress-label">发现潜力饰品:</span>
-          <span class="progress-value highlight">{{ miningProgress.found }}</span>
-        </div>
+        <el-progress 
+          :percentage="miningProgress.percentage" 
+          :status="miningProgress.status"
+        />
       </div>
 
       <div v-if="miningResult" class="result-section">
-        <h3 class="result-title">挖掘结果</h3>
         <div class="result-stats">
           <div class="stat-card">
             <div class="stat-label">总物品数</div>
@@ -63,7 +51,7 @@
             <div class="stat-value success">¥{{ miningResult.total_value || 0 }}</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">我的价值</div>
+            <div class="stat-label">账号价值</div>
             <div class="stat-value highlight">¥{{ miningResult.self_value || 0 }}</div>
           </div>
           <div class="stat-card">
@@ -440,24 +428,56 @@ export default {
       label: 'label'
     }
 
+    // 从URL中提取Steam ID或自定义ID
+    const extractSteamId = (input) => {
+      const trimmed = input.trim()
+      
+      // 尝试从URL中提取
+      // 匹配 https://steamcommunity.com/profiles/数字ID
+      const profileMatch = trimmed.match(/steamcommunity\.com\/profiles\/(\d{17})/)
+      if (profileMatch) {
+        return profileMatch[1]
+      }
+      
+      // 匹配 https://steamcommunity.com/id/自定义ID
+      const customIdMatch = trimmed.match(/steamcommunity\.com\/id\/([a-zA-Z0-9_-]+)/)
+      if (customIdMatch) {
+        return customIdMatch[1]
+      }
+      
+      // 如果不是URL，直接返回输入值
+      return trimmed
+    }
+    
     // 开始挖掘
     const startMining = async () => {
-      // 验证Steam ID格式
-      const steamId = inputSteamId.value.trim()
+      // 提取Steam ID
+      const input = inputSteamId.value.trim()
+      if (!input) {
+        ElMessage.warning('请输入 Steam ID、自定义ID 或 Steam个人资料链接')
+        return
+      }
+      
+      const steamId = extractSteamId(input)
+      
       if (!steamId) {
-        ElMessage.warning('请输入 Steam ID')
+        ElMessage.warning('无法识别输入的内容')
         return
       }
 
-      // 验证Steam ID格式（17位数字）
-      if (!/^\d{17}$/.test(steamId)) {
-        ElMessage.warning('Steam ID 格式不正确，应为17位数字')
+      // 验证格式：17位数字或自定义ID（字母数字组合）
+      const isNumericId = /^\d{17}$/.test(steamId)
+      const isCustomId = /^[a-zA-Z0-9_-]+$/.test(steamId)
+      
+      if (!isNumericId && !isCustomId) {
+        ElMessage.warning('ID 格式不正确，请输入17位数字Steam ID、自定义ID 或完整的Steam链接')
         return
       }
 
       try {
+        const idType = isNumericId ? 'Steam ID' : '自定义ID'
         await ElMessageBox.confirm(
-          `确定要开始挖掘 Steam ID: ${steamId} 及其好友的库存吗？\n\n⚠️ 注意：此操作将清空该Steam ID的历史挖掘数据！\n\n此操作将访问公开库存数据，可能需要几分钟时间。`,
+          `确定要开始挖掘 ${idType}: ${steamId} 及其好友的库存吗？\n\n⚠️ 注意：此操作将清空该ID的历史挖掘数据！\n\n此操作将访问公开库存数据，可能需要几分钟时间。`,
           '确认挖掘',
           {
             confirmButtonText: '开始',
@@ -715,7 +735,7 @@ export default {
         selfUsers.forEach(user => {
           rootNode.children.push({
             id: `self_${user.steam_id}`,
-            label: `我的库存 (${user.persona_name})`,
+            label: user.persona_name,
             count: user.items.length,
             value: user.total_value.toFixed(2),
             avatar: user.avatar_url,
@@ -1204,7 +1224,8 @@ export default {
       parseStickers,
       parsePendant,
       sortByCount,
-      sortByPrice
+      sortByPrice,
+      extractSteamId
     }
   }
 }
@@ -1282,13 +1303,6 @@ export default {
   margin-top: 2rem;
   padding-top: 2rem;
   border-top: 1px solid rgba(58, 58, 58, 0.8);
-}
-
-.result-title {
-  font-size: 1.2rem;
-  color: #ffffff;
-  margin: 0 0 1rem 0;
-  font-weight: 600;
 }
 
 .result-stats {
