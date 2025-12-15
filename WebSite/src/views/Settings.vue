@@ -176,7 +176,7 @@ onUnmounted(() => {
 /* 二级左侧栏 */
 .secondary-sidebar {
   position: fixed;
-  left: var(--main-sidebar-width, max(15rem, min(18vw, 20rem)));
+  left: var(--main-sidebar-width, max(calc(15rem - 50px), min(18vw, calc(20rem - 50px))));
   top: 0;
   bottom: 0;
   width: 220px;
@@ -206,7 +206,7 @@ onUnmounted(() => {
 /* 折叠/展开按钮 */
 .toggle-button {
   position: fixed;
-  left: calc(var(--main-sidebar-width, max(15rem, min(18vw, 20rem))) + 220px + 2px);
+  left: calc(var(--main-sidebar-width, max(calc(15rem - 50px), min(18vw, calc(20rem - 50px)))) + 220px + 2px);
   top: 50%;
   transform: translateY(-50%);
   width: 36px;
@@ -343,7 +343,7 @@ onUnmounted(() => {
   }
 
   .toggle-button {
-    left: calc(var(--main-sidebar-width, max(15rem, min(18vw, 20rem))) + 240px + 2px);
+    left: calc(var(--main-sidebar-width, max(calc(15rem - 50px), min(18vw, calc(20rem - 50px)))) + 240px + 2px);
   }
 
   .settings-container.main-sidebar-collapsed .toggle-button {
@@ -362,7 +362,7 @@ onUnmounted(() => {
   }
 
   .toggle-button {
-    left: calc(var(--main-sidebar-width, max(15rem, min(18vw, 20rem))) + 200px + 2px);
+    left: calc(var(--main-sidebar-width, max(calc(15rem - 50px), min(18vw, calc(20rem - 50px)))) + 200px + 2px);
   }
 
   .settings-container.main-sidebar-collapsed .toggle-button {
@@ -417,21 +417,21 @@ onUnmounted(() => {
 
 @media (min-width: 1200px) and (max-width: 1919px) {
   .toggle-button {
-    left: calc(max(18rem, 16vw) + 220px - 36px);
+    left: calc(max(calc(18rem - 50px), 16vw) + 220px - 36px);
   }
 
   .secondary-sidebar.collapsed .toggle-button {
-    left: max(18rem, 16vw);
+    left: max(calc(18rem - 50px), 16vw);
   }
 }
 
 @media (min-width: 1600px) and (max-width: 1919px) {
   .toggle-button {
-    left: calc(max(20rem, 14vw) + 220px - 36px);
+    left: calc(max(calc(20rem - 50px), 14vw) + 220px - 36px);
   }
 
   .secondary-sidebar.collapsed .toggle-button {
-    left: max(20rem, 14vw);
+    left: max(calc(20rem - 50px), 14vw);
   }
 }
 

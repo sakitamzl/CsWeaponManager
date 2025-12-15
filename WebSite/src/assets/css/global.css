@@ -85,8 +85,8 @@ div, section, article, aside, main, header, footer, nav {
     top: 0;
     left: 0;
     height: 100vh;
-    min-width: 15rem;
-    max-width: 20rem;
+    min-width: calc(15rem - 50px);
+    max-width: calc(20rem - 50px);
     width: 18vw;
     background-color: var(--bg-secondary);
     padding: 1.25rem;
@@ -434,7 +434,7 @@ div, section, article, aside, main, header, footer, nav {
 @media (min-width: 1200px) {
     .sidebar {
         width: 16vw;
-        min-width: 18rem;
+        min-width: calc(18rem - 50px);
     }
     
     .main-content {
@@ -453,7 +453,7 @@ div, section, article, aside, main, header, footer, nav {
 @media (min-width: 1600px) {
     .sidebar {
         width: 14vw;
-        min-width: 20rem;
+        min-width: calc(20rem - 50px);
     }
     
     .main-content {

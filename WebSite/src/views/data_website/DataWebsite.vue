@@ -115,7 +115,7 @@ onUnmounted(() => {
 /* 二级左侧栏 */
 .secondary-sidebar {
   position: fixed;
-  left: var(--main-sidebar-width, max(15rem, min(18vw, 20rem)));
+  left: var(--main-sidebar-width, max(calc(15rem - 50px), min(18vw, calc(20rem - 50px))));
   top: 0;
   bottom: 0;
   width: 220px;
@@ -145,7 +145,7 @@ onUnmounted(() => {
 /* 折叠/展开按钮 */
 .toggle-button {
   position: fixed;
-  left: calc(var(--main-sidebar-width, max(15rem, min(18vw, 20rem))) + 220px + 2px);
+  left: calc(var(--main-sidebar-width, max(calc(15rem - 50px), min(18vw, calc(20rem - 50px)))) + 220px + 2px);
   top: 50%;
   transform: translateY(-50%);
   width: 36px;
