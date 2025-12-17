@@ -5,6 +5,66 @@ from src.log import Log
 logger = Log()
 webSelectWeaponV1 = Blueprint('webSelectWeaponV1', __name__)
 
+@webSelectWeaponV1.route('/getPendantPrice', methods=['POST'])
+def getPendantPrice():
+    """
+    通过 steam_hash_name 获取单个挂件价格（悠悠有品平台专用）
+    请求体: {"steamHashName": "Charm | Baby's AK"}
+    返回: {"success": true, "data": {"yyyp_Price": "10.5", "yyyp_Rent": "5.2", "weapon_name": "宝宝AK"}}
+    注意: 使用完全匹配查询，不限制 weapon_type
+    """
+    try:
+        data = request.get_json() or {}
+        steam_hash_name = data.get('steamHashName', '').strip()
+        
+        if not steam_hash_name:
+            return jsonify({
+                "success": False,
+                "message": "steamHashName 参数不能为空"
+            }), 400
+        
+        # 只通过 steam_hash_name 完全匹配查询，不限制 weapon_type
+        where_clause = "[steam_hash_name] = ?"
+        params = (steam_hash_name,)
+        
+        records = WeaponClassIDModel.find_all(
+            where=where_clause, 
+            params=params
+        )
+        
+        if not records:
+            logger.write_log(f"[getPendantPrice] 未找到数据: {steam_hash_name}", 'WARNING')
+            return jsonify({
+                "success": False,
+                "message": f"未找到数据: {steam_hash_name}"
+            }), 404
+        
+        # 取第一条记录
+        record = records[0]
+        
+        result = {
+            'yyyp_Price': record.yyyp_Price,
+            'yyyp_Rent': record.yyyp_Rent,
+            'weapon_name': record.weapon_name
+        }
+        
+        logger.write_log(f"[getPendantPrice] 查询成功: {steam_hash_name} -> yyyp_Price={result['yyyp_Price']}, yyyp_Rent={result['yyyp_Rent']}", 'INFO')
+        
+        return jsonify({
+            "success": True,
+            "data": result
+        }), 200
+        
+    except Exception as e:
+        logger.write_log(f"获取挂件价格失败: {e}", 'ERROR')
+        import traceback
+        logger.write_log(f"错误堆栈: {traceback.format_exc()}", 'ERROR')
+        return jsonify({
+            "success": False,
+            "message": f"获取挂件价格失败: {str(e)}"
+        }), 500
+
+
 @webSelectWeaponV1.route('/getAllPendants', methods=['GET'])
 def getAllPendants():
     """
