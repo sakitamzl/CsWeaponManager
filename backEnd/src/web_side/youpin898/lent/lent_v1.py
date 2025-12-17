@@ -7,6 +7,42 @@ import requests
 
 youpin898LentV1 = Blueprint('youpin898LentV1', __name__)
 
+@youpin898LentV1.route('/getBuyoutLentList/<steamId>', methods=['get'])
+def getBuyoutLentList(steamId):
+    """获取状态为"被买断"且未同步到sell表的租赁订单列表"""
+    try:
+        # 从 lent 主表查询状态为"被买断"的订单
+        records = LentModel.find_all(
+            where="status in ('被买断', '已买断') AND data_user = ?",
+            params=(steamId,)
+        )
+        
+        # 返回需要的字段：ID, weapon_name, weapon_type, item_name, weapon_float, 
+        # float_range, buyer_user_name, lean_start_time, steam_hash_name, sticker, pendant, rename
+        data = [
+            [
+                record.ID,
+                record.weapon_name,
+                record.weapon_type,
+                record.item_name,
+                record.weapon_float,
+                record.float_range,
+                record.lenter_name,  # buyer_user_name
+                record.lean_start_time,
+                record.steam_hash_name,
+                record.sticker,
+                record.pendant,
+                record.rename
+            ] 
+            for record in records
+        ]
+        return jsonify(data), 200
+    except Exception as e:
+        print(f"查询被买断订单列表失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify([]), 500
+
 @youpin898LentV1.route('/getNowLentingList', methods=['get'])
 def getNowLentingList():
     """获取当前需要更新状态的租赁订单列表（未完成且已到达或超过结束时间的订单）"""
@@ -108,21 +144,35 @@ def getCount(steamId):
 
 @youpin898LentV1.route('/updateLentData', methods=['post'])
 def updateLentData():
-    """更新租赁订单状态"""
+    """更新租赁订单状态（完整更新）"""
     try:
         data = request.get_json()
         ID = data['ID']
+        
+        # 查找现有记录
+        lent_record = YyypLentModel.find_by_id(ID=ID)
+        if not lent_record:
+            return 'update_error', 404
+        
+        # 如果只传递了 status 和 from，则只更新 status（用于被买断同步）
+        if 'orderSubStatusName' not in data and 'lean_end_time' not in data:
+            status = data.get('status')
+            if status:
+                lent_record.status = status
+                if lent_record.save():
+                    return 'update_info', 200
+                else:
+                    return 'update_error', 500
+            else:
+                return 'update_error', 400
+        
+        # 完整更新逻辑
         status = data['status']  # orderStatusName -> status
         status_sub = data.get('status_sub', '')  # orderStatusDesc -> status_sub
         orderSubStatusName = data['orderSubStatusName']  # orderSubStatusName -> last_status
         lean_end_time = data['lean_end_time']
         totalLeaseDays = data['totalLeaseDays']
         leaseMaxDays = data.get('leaseMaxDays')  # 可选字段
-        
-        # 查找现有记录
-        lent_record = YyypLentModel.find_by_id(ID=ID)
-        if not lent_record:
-            return 'update_error', 404
         
         # 如果当前库状态已是终态，则跳过更新，避免覆盖
         if lent_record.status in ('已转租', '已归还'):
@@ -221,21 +271,35 @@ def insert_webside_lentdata():
 
 @youpin898LentV1.route('/updateMainLentData', methods=['post'])
 def updateMainLentData():
-    """更新租赁主表数据"""
+    """更新租赁主表数据（支持完整更新和简化状态更新）"""
     try:
         data = request.get_json()
         ID = data['ID']
+        
+        # 查找主表记录
+        lent_main = LentModel.find_by_id(ID=ID)
+        if not lent_main:
+            return jsonify({'success': False, 'message': '主表记录不存在'}), 404
+        
+        # 如果只传递了 status 和 from，则只更新 status（用于被买断同步）
+        if 'orderSubStatusName' not in data and 'lean_end_time' not in data:
+            status = data.get('status')
+            if status:
+                lent_main.status = status
+                if lent_main.save():
+                    return jsonify({'success': True, 'message': 'update_info'}), 200
+                else:
+                    return jsonify({'success': False, 'message': 'update_error'}), 500
+            else:
+                return jsonify({'success': False, 'message': '缺少status字段'}), 400
+        
+        # 完整更新逻辑
         status = data['status']
         status_sub = data.get('status_sub', '')
         orderSubStatusName = data['orderSubStatusName']
         lean_end_time = data.get('lean_end_time')
         totalLeaseDays = data.get('totalLeaseDays')
         leaseMaxDays = data.get('leaseMaxDays')
-        
-        # 查找主表记录
-        lent_main = LentModel.find_by_id(ID=ID)
-        if not lent_main:
-            return jsonify({'success': False, 'message': '主表记录不存在'}), 404
         
         # 如果当前状态已是终态，则跳过更新
         if lent_main.status in ('已转租', '已归还'):
