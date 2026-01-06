@@ -4,6 +4,7 @@ import Home from '@/views/Home.vue'
 import ItemSearch from '@/views/ItemSearch.vue'
 import Buy from '@/views/Buy.vue'
 import Sell from '@/views/Sell.vue'
+import Rental from '@/views/Rental.vue'
 import Lent from '@/views/Lent.vue'
 import Inventory from '@/views/Inventory.vue'
 import Setting from '@/views/Setting.vue'
@@ -50,6 +51,12 @@ const routes = [
         name: 'Sell',
         component: Sell,
         meta: { title: '已出售' }
+      },
+      {
+        path: '/rental',
+        name: 'Rental',
+        component: Rental,
+        meta: { title: '借贷列表' }
       },
       {
         path: '/rent',

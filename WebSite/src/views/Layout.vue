@@ -55,32 +55,37 @@ export default {
         {
           path: '/home',
           title: '主页',
-          icon: '/icons/indexPage.png'
+          icon: '/icons/new_home.png'
         },
         {
           path: '/item-search',
           title: '饰品搜索',
-          icon: '/icons/search.png'
+          icon: '/icons/new_search.png'
         },
         {
           path: '/buy',
           title: '购入列表',
-          icon: '/icons/buy.png'
+          icon: '/icons/buy_off.png'
         },
         {
           path: '/sell',
           title: '出售列表',
-          icon: '/icons/sell.png'
+          icon: '/icons/sell_off.png'
+        },
+        {
+          path: '/rental',
+          title: '借贷列表',
+          icon: '/icons/rental.png'
         },
         {
           path: '/rent',
           title: '出租列表',
-          icon: '/icons/label-zuhu.png'
+          icon: '/icons/rent.png'
         },
         {
           path: '/inventory',
           title: 'Steam库存',
-          icon: '/icons/In _library.png'
+          icon: '/icons/inventory.png'
         },
         // {
         //   path: '/sublet',
@@ -95,22 +100,22 @@ export default {
         {
           path: '/stock-components',
           title: '库存组件',
-          icon: '/icons/Stock_components.png'
+          icon: '/icons/stock-components.png'
         },
         {
           path: '/data-website',
           title: '第三方数据',
-          icon: '/icons/data_from.png'
+          icon: '/icons/data-website.png'
         },
         {
           path: '/data-spider',
           title: '数据挖掘',
-          icon: '/icons/铲子.png'
+          icon: '/icons/data-spider.png'
         },
         {
           path: '/settings',
           title: '其他功能',
-          icon: '/icons/setting.png'
+          icon: '/icons/settings.png'
         }
         // {
         //   path: '/setting',
