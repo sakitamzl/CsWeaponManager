@@ -5,6 +5,7 @@ from flask_cors import CORS
 from src.config.config_v1 import configV1
 from src.web_side.youpin898.buy.buy_v1 import youpin898BuyV1
 from src.web_side.youpin898.lent.lent_v1 import youpin898LentV1
+from src.web_side.youpin898.rental.rental_v1 import youpin898RentalV1
 from src.web_side.youpin898.sell.sell_v1 import youpin898SellV1
 from src.web_side.youpin898.message.message_v1 import youpin898MessageBoxV1
 from src.web_side.youpin898.select_weapon.select_weapon_v1 import youpin898SelectWeaponV1
@@ -64,6 +65,7 @@ def blankEndApi():
     app.register_blueprint(youpin898BuyV1, url_prefix = '/youpin898BuyV1')
     app.register_blueprint(youpin898SellV1, url_prefix = '/youpin898SellV1')
     app.register_blueprint(youpin898LentV1, url_prefix = '/youpin898LentV1')
+    app.register_blueprint(youpin898RentalV1, url_prefix = '/youpin898RentalV1')
     app.register_blueprint(youpin898MessageBoxV1, url_prefix = '/youpin898MessageBoxV1')
     app.register_blueprint(youpin898SelectWeaponV1, url_prefix = '/youpin898SelectWeaponV1')
     app.register_blueprint(indexPage, url_prefix = '/indexPage')

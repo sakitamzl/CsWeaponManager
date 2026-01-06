@@ -9,6 +9,7 @@ from .buy import BuyModel
 from .sell import SellModel
 from .lease import LeaseModel
 from .lent import LentModel
+from .rental import RentalModel
 from .weapon_classID import WeaponClassIDModel
 from .auto_search_weapon import AutoSearchWeaponModel
 
@@ -19,6 +20,7 @@ __all__ = [
     'SellModel',
     'LeaseModel',
     'LentModel',
+    'RentalModel',
     'WeaponClassIDModel',
     'AutoSearchWeaponModel'
 ]
