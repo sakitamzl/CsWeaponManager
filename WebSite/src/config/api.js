@@ -196,6 +196,17 @@ export const API_CONFIG = {
 
     
 
+    // 租赁（借入）数据相关
+    RENTAL_DATA: (min, max) => `/webRentalV1/getRentalData/${min}/${max}`,
+    RENTAL_STATS: '/webRentalV1/getRentalStats',
+    RENTAL_DATA_BY_STATUS: (status, min, max) => `/webRentalV1/getRentalDataByStatus/${encodeURIComponent(status)}/${min}/${max}`,
+    RENTAL_DATA_BY_STATUS_SUB: (statusSub, min, max) => `/webRentalV1/getRentalDataByStatusSub/${encodeURIComponent(statusSub)}/${min}/${max}`,
+    RENTAL_STATS_BY_STATUS_SUB: (statusSub) => `/webRentalV1/getRentalStatsByStatusSub/${encodeURIComponent(statusSub)}`,
+    RENTAL_SEARCH_BY_NAME: (itemName) => `/webRentalV1/selectRentalWeaponName/${encodeURIComponent(itemName)}`,
+    RENTAL_SEARCH_BY_TIME: (startDate, endDate) => `/webRentalV1/searchRentalByTimeRange/${startDate}/${endDate}`,
+    RENTAL_STATS_BY_TIME: (startDate, endDate) => `/webRentalV1/getRentalStatsByTimeRange/${startDate}/${endDate}`,
+    RENTAL_COUNT: '/webRentalV1/countRentalNumber',
+
     // 爬虫相关
 
     YOUPIN_SPIDER: '/youping898SpiderV1/newData',
@@ -547,6 +558,18 @@ export const apiUrls = {
   lentSearchByTypeWear: () => getApiUrl(API_CONFIG.ENDPOINTS.LENT_SEARCH_BY_TYPE_WEAR),
 
   lentStatsByTypeWear: () => getApiUrl(API_CONFIG.ENDPOINTS.LENT_STATS_BY_TYPE_WEAR),
+
+  
+  // 租赁（借入）数据
+  rentalData: (min, max) => getApiUrl(API_CONFIG.ENDPOINTS.RENTAL_DATA(min, max)),
+  rentalStats: () => getApiUrl(API_CONFIG.ENDPOINTS.RENTAL_STATS),
+  rentalDataByStatus: (status, min, max) => getApiUrl(API_CONFIG.ENDPOINTS.RENTAL_DATA_BY_STATUS(status, min, max)),
+  rentalDataByStatusSub: (statusSub, min, max) => getApiUrl(API_CONFIG.ENDPOINTS.RENTAL_DATA_BY_STATUS_SUB(statusSub, min, max)),
+  rentalStatsByStatusSub: (statusSub) => getApiUrl(API_CONFIG.ENDPOINTS.RENTAL_STATS_BY_STATUS_SUB(statusSub)),
+  rentalSearchByName: (itemName) => getApiUrl(API_CONFIG.ENDPOINTS.RENTAL_SEARCH_BY_NAME(itemName)),
+  rentalSearchByTime: (startDate, endDate) => getApiUrl(API_CONFIG.ENDPOINTS.RENTAL_SEARCH_BY_TIME(startDate, endDate)),
+  rentalStatsByTime: (startDate, endDate) => getApiUrl(API_CONFIG.ENDPOINTS.RENTAL_STATS_BY_TIME(startDate, endDate)),
+  rentalCount: () => getApiUrl(API_CONFIG.ENDPOINTS.RENTAL_COUNT),
 
   
 
