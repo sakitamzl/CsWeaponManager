@@ -798,6 +798,7 @@ export default {
     const mapSource = (val) => {
       if (!val) return '-'
       if (val.toLowerCase() === 'yyyp') return '悠悠有品'
+      if (val.toLowerCase() === 'buff') return 'BUFF'
       return val
     }
 

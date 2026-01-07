@@ -29,6 +29,24 @@ class RentalModel(BaseModel):
                 'primary_key': True,
                 'not_null': True
             },
+            'item_id': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None,
+                'comment': '商品ID (goods_id)'
+            },
+            'assetid': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None,
+                'comment': 'Steam资产ID'
+            },
+            'classid': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None,
+                'comment': 'Steam类别ID'
+            },
             'weapon_name': {
                 'type': 'TEXT',
                 'not_null': False,
@@ -82,19 +100,29 @@ class RentalModel(BaseModel):
             'price': {
                 'type': 'REAL',
                 'not_null': False,
-                'default': None
+                'default': None,
+                'comment': '日租金 (rent_unit_price)'
+            },
+            # 押金
+            'security_price': {
+                'type': 'REAL',
+                'not_null': False,
+                'default': None,
+                'comment': '押金'
             },
             # 总租赁天数
             'total_Lease_Days': {
                 'type': 'INTEGER',
                 'not_null': False,
-                'default': None
+                'default': None,
+                'comment': '租期天数 (rent_out_day)'
             },
             # 最大租期天数（如果有）
             'max_Lease_Days': {
                 'type': 'INTEGER',
                 'not_null': False,
-                'default': None
+                'default': None,
+                'comment': '最大租期天数 (max_rent_out_day，预留字段)'
             },
             # 租赁开始时间
             'lean_start_time': {

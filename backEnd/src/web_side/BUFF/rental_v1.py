@@ -32,8 +32,11 @@ def insert_db():
     try:
         data = request.get_json()
         
-        # 提取数据
+        # 提取数据 - ID是主键，必须提供
+        order_id = data.get('order_id', '')  # 订单ID (主键)
         item_id = data.get('item_id', '')
+        assetid = data.get('assetid', '')  # Steam资产ID
+        classid = data.get('classid', '')  # Steam类别ID
         weapon_type = data.get('weapon_type', '')
         item_name = data.get('item_name', '')
         weapon_name = data.get('weaponitem_name', '')
@@ -63,11 +66,14 @@ def insert_db():
         market_hash_name = data.get('market_hash_name', '')
         img_url = data.get('img_url', '')
         
-        # 查询steam_hash_name
+        # 查询steam_hash_name - 使用当前服务器地址
         steam_hash_name = None
         if market_hash_name:
             try:
-                steam_hash_name_url = f"http://127.0.0.1:5000/api/weaponV1/getSteamHashName/{market_hash_name}"
+                # 使用request.host_url获取当前backend地址
+                from flask import request as flask_request
+                base_url = flask_request.host_url.rstrip('/')
+                steam_hash_name_url = f"{base_url}/api/weaponV1/getSteamHashName/{market_hash_name}"
                 response = requests.get(steam_hash_name_url, timeout=5)
                 if response.status_code == 200:
                     result = response.json()
@@ -82,21 +88,25 @@ def insert_db():
         
         # 插入数据到rental表
         rental_data = {
+            'ID': order_id,  # 主键ID
             'item_id': item_id,
+            'assetid': assetid,  # Steam资产ID
+            'classid': classid,  # Steam类别ID
             'weapon_name': weapon_name,
             'weapon_type': weapon_type,
             'item_name': item_name,
             'weapon_float': weapon_float,
             'float_range': float_range,
-            'price': rent_unit_price,  # 租金/天
+            'price': rent_unit_price,  # 日租金
+            'security_price': security_price,  # 押金
             'lessor_name': seller_id,  # 出租人ID
             'status': state,
             'last_status': state_sub,
             'from': 'buff',
             'lean_start_time': rent_start_time,
             'lean_end_time': rent_end_time,
-            'total_Lease_Days': rented_day,  # 实际租赁天数
-            'max_Lease_Days': max_rent_out_day,  # 最大租期
+            'total_Lease_Days': max_rent_out_day,  # 租期天数 (rent_out_day)
+            'max_Lease_Days': max_rent_out_day,  # 最大租期（预留，与total_Lease_Days相同）
             'steam_hash_name': steam_hash_name,
             'sticker': sticker,
             'pendant': pendant,
@@ -104,7 +114,9 @@ def insert_db():
             'data_user': data_user,
         }
         
-        result = RentalModel().insert(rental_data)
+        # 使用save()方法而不是insert()
+        rental_model = RentalModel(**rental_data)
+        result = rental_model.save()
         
         if result:
             return jsonify({"success": True, "message": "数据插入成功"}), 200
@@ -123,7 +135,7 @@ def getLatestData(data_user):
     """获取指定用户最新的BUFF租入订单数据"""
     try:
         sql = f"""
-        SELECT item_id, lean_start_time 
+        SELECT ID, lean_start_time 
         FROM rental 
         WHERE data_user = '{data_user}' AND \"from\" = 'buff'
         ORDER BY lean_start_time DESC 
@@ -153,7 +165,7 @@ def selectNotEnd(data_user):
     """查询指定用户未结束的BUFF租入订单（状态不是'已完成'和'已取消'）"""
     try:
         sql = f"""
-        SELECT item_id 
+        SELECT ID 
         FROM rental 
         WHERE data_user = '{data_user}' 
             AND \"from\" = 'buff'
@@ -182,17 +194,17 @@ def updateOrderStatus():
     """更新BUFF租入订单状态"""
     try:
         data = request.get_json()
-        item_id = data.get('item_id', '')
+        order_id = data.get('order_id', '')  # 使用order_id作为主键
         state = data.get('state', '')
         state_sub = data.get('state_sub', '')
         
-        if not item_id:
+        if not order_id:
             return jsonify({"success": False, "error": "订单ID不能为空"}), 400
         
         sql = f"""
         UPDATE rental 
         SET status = '{state}', last_status = '{state_sub}'
-        WHERE item_id = '{item_id}' AND \"from\" = 'buff'
+        WHERE ID = '{order_id}' AND \"from\" = 'buff'
         """
         
         result = Date_base().update(sql)
