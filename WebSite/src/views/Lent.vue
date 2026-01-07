@@ -252,6 +252,41 @@
             <template #default="scope">
               <div class="item-name-cell">
                 <div class="item-title">{{ getItemTitle(scope.row) }}</div>
+                <div class="item-extras" v-if="hasExtras(scope.row)">
+                  <!-- 印花图片 -->
+                  <div class="sticker-list" v-if="scope.row.sticker">
+                    <div
+                      v-for="(sticker, idx) in parseStickers(scope.row.sticker)"
+                      :key="idx"
+                      class="sticker-item"
+                      :title="sticker.name || '未知贴纸'"
+                    >
+                      <img
+                        v-if="sticker.image"
+                        :src="sticker.image"
+                        :alt="sticker.name"
+                        class="sticker-img"
+                        @error="(e) => e.target.style.display = 'none'"
+                      />
+                      <div v-else class="sticker-placeholder">?</div>
+                    </div>
+                  </div>
+                  <!-- 挂件图片 -->
+                  <div class="pendant-list" v-if="scope.row.pendant">
+                    <img
+                      v-if="parsePendant(scope.row.pendant)?.image"
+                      :src="parsePendant(scope.row.pendant).image"
+                      :alt="parsePendant(scope.row.pendant)?.name"
+                      class="pendant-img"
+                      @error="(e) => e.target.style.display = 'none'"
+                    />
+                  </div>
+                  <!-- 改名标签 -->
+                  <div class="rename-tag" v-if="scope.row.rename">
+                    <span class="rename-icon">📝</span>
+                    <span class="rename-text">{{ scope.row.rename }}</span>
+                  </div>
+                </div>
               </div>
             </template>
           </el-table-column>
@@ -505,13 +540,64 @@
               </div>
             </div>
 
-            <!-- 右侧：预留扩展区域，目前简单显示订单信息 -->
+            <!-- 右侧：印花、挂件和订单信息 -->
             <div class="preview-right-section">
-              <div class="preview-rename" v-if="previewItem.ID">
-                <span class="preview-rename-icon">🧾</span>
-                <span class="preview-rename-text">
-                  订单 ID：{{ previewItem.ID }}
-                </span>
+              <!-- 订单ID - 放在最上方 -->
+              <div class="preview-order-id" v-if="previewItem.ID">
+                <span class="preview-order-icon">🧾</span>
+                <span class="preview-order-text">订单 ID：{{ previewItem.ID }}</span>
+              </div>
+
+              <!-- 改名标签 -->
+              <div class="preview-rename" v-if="previewItem.rename">
+                <span class="preview-rename-icon">🏷️</span>
+                <span class="preview-rename-text">{{ previewItem.rename }}</span>
+              </div>
+
+              <!-- 贴纸列表 -->
+              <div v-if="previewItem.sticker && parseStickers(previewItem.sticker).length > 0" class="preview-sticker-list-section">
+                <div class="preview-sticker-list">
+                  <div
+                    v-for="(sticker, index) in parseStickers(previewItem.sticker)"
+                    :key="index"
+                    class="preview-sticker-list-item"
+                  >
+                    <el-tooltip :content="sticker.name || '未知贴纸'" placement="left">
+                      <div class="preview-sticker-list-img-wrapper">
+                        <img
+                          v-if="sticker.image"
+                          :src="sticker.image"
+                          :alt="sticker.name"
+                          class="preview-sticker-list-img"
+                          @error="(e) => e.target.style.display = 'none'"
+                        />
+                        <div v-else class="preview-sticker-list-placeholder">?</div>
+                      </div>
+                    </el-tooltip>
+                    <div class="preview-sticker-list-name">{{ sticker.name || '未知贴纸' }}</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 挂件信息 -->
+              <div v-if="previewItem.pendant" class="preview-pendant-section">
+                <div class="preview-pendant-list">
+                  <div class="preview-pendant-list-item">
+                    <el-tooltip :content="parsePendant(previewItem.pendant)?.name || '挂件'" placement="left">
+                      <div class="preview-pendant-list-img-wrapper">
+                        <img
+                          v-if="parsePendant(previewItem.pendant)?.image"
+                          :src="parsePendant(previewItem.pendant).image"
+                          :alt="parsePendant(previewItem.pendant).name"
+                          class="preview-pendant-list-img"
+                          @error="(e) => e.target.style.display = 'none'"
+                        />
+                        <div v-else class="preview-pendant-list-placeholder">🎗️</div>
+                      </div>
+                    </el-tooltip>
+                    <div class="preview-pendant-list-name">{{ parsePendant(previewItem.pendant)?.name || '挂件' }}</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -752,6 +838,88 @@ export default {
       return title || item.ID || ''
     }
 
+    // 检查是否有额外信息（印花、挂件、改名）
+    const hasExtras = (item) => {
+      const result = !!(item.sticker || item.pendant || item.rename)
+      if (result) {
+        console.log('hasExtras - item:', item)
+        console.log('sticker:', item.sticker)
+        console.log('pendant:', item.pendant)
+        console.log('rename:', item.rename)
+      }
+      return result
+    }
+
+    // 解析印花数据
+    const parseStickers = (stickerData) => {
+      console.log('parseStickers - 输入数据:', stickerData)
+      if (!stickerData) return []
+      try {
+        const parsed = typeof stickerData === 'string' ? JSON.parse(stickerData) : stickerData
+        console.log('parseStickers - 解析后:', parsed)
+        if (!Array.isArray(parsed)) return []
+        
+        const result = parsed.map(sticker => {
+          const name = sticker.name || '未知贴纸'
+          const hashName = sticker.hashName || sticker.steam_hash_name || sticker.steamHashName
+          
+          let imageUrl = null
+          if (hashName) {
+            const imageName = hashName
+              .replace(/\s*\|\s*/g, '___')
+              .replace(/\s/g, '_')
+              .replace(/\*/g, '_')
+              .replace(/™/g, '?')
+            imageUrl = apiUrls.weaponImage(`Sticker___${imageName}.png`)
+            console.log('印花图片URL:', imageUrl)
+          }
+          
+          return {
+            name: name,
+            image: imageUrl
+          }
+        })
+        console.log('parseStickers - 返回结果:', result)
+        return result
+      } catch (e) {
+        console.error('解析印花数据失败:', e)
+        return []
+      }
+    }
+
+    // 解析挂件数据
+    const parsePendant = (pendantData) => {
+      if (!pendantData) return null
+      try {
+        const parsed = typeof pendantData === 'string' ? JSON.parse(pendantData) : pendantData
+        
+        let pendantObj = Array.isArray(parsed) ? parsed[0] : parsed
+        
+        if (!pendantObj || typeof pendantObj !== 'object') return null
+        
+        const hashName = pendantObj.hashName || pendantObj.steam_hash_name || pendantObj.steamHashName
+        
+        let imageUrl = null
+        if (hashName) {
+          const imageName = hashName
+            .replace(/\s*\|\s*/g, '___')
+            .replace(/\s/g, '_')
+            .replace(/\*/g, '_')
+            .replace(/™/g, '?')
+            + '.png'
+          imageUrl = apiUrls.weaponImage(imageName)
+        }
+        
+        return {
+          name: pendantObj.name || '挂件',
+          image: imageUrl
+        }
+      } catch (e) {
+        console.error('解析挂件数据失败:', e)
+        return null
+      }
+    }
+
     const createAbortSignal = (controllerRef) => {
       if (controllerRef.value) {
         controllerRef.value.abort()
@@ -802,6 +970,9 @@ export default {
           total_Lease_Days: item[13] || 0,
           max_Lease_Days: item[14] || 0,
           steam_hash_name: item[15] || '',
+          sticker: item[16] || null,
+          pendant: item[17] || null,
+          rename: item[18] || '',
           data_user: item[19] || ''
         }))
 
@@ -981,7 +1152,10 @@ export default {
           lean_end_time: item[12] || '',
           total_Lease_Days: item[13] || 0,
           max_Lease_Days: item[14] || 0,
-          steam_hash_name: item[15] || ''
+          steam_hash_name: item[15] || '',
+          sticker: item[16] || null,
+          pendant: item[17] || null,
+          rename: item[18] || ''
         }
       }).filter(Boolean)
 
@@ -1079,6 +1253,9 @@ export default {
             total_Lease_Days: item[13] || 0,
             max_Lease_Days: item[14] || 0,
             steam_hash_name: item[15] || '',
+            sticker: item[16] || null,
+            pendant: item[17] || null,
+            rename: item[18] || '',
             data_user: item[19] || ''
           }
         }).filter(item => item !== null)
@@ -1312,6 +1489,9 @@ export default {
           total_Lease_Days: item[13] || 0,
           max_Lease_Days: item[14] || 0,
           steam_hash_name: item[15] || '',
+          sticker: item[16] || null,
+          pendant: item[17] || null,
+          rename: item[18] || '',
           data_user: item[19] || ''
         }))
         
@@ -1634,6 +1814,9 @@ export default {
               total_Lease_Days: item[13] || 0,
               max_Lease_Days: item[14] || 0,
               steam_hash_name: item[15] || '',
+              sticker: item[16] || null,
+              pendant: item[17] || null,
+              rename: item[18] || '',
               data_user: item[19] || ''
             }
           })
@@ -1781,6 +1964,9 @@ export default {
       handleTimeSearch,
       getWeaponImage,
       getItemTitle,
+      hasExtras,
+      parseStickers,
+      parsePendant,
       openPreview
     }
   }
@@ -1986,6 +2172,98 @@ export default {
 
 .item-title {
   line-height: 1.4;
+}
+
+.item-extras {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* 印花列表样式 */
+.sticker-list {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.sticker-item {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sticker-item:hover {
+  transform: scale(2);
+  z-index: 10;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  border-color: rgba(76, 175, 80, 0.5);
+}
+
+.sticker-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
+.sticker-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 1rem;
+  font-weight: bold;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* 挂件样式 */
+.pendant-list {
+  display: flex;
+  gap: 4px;
+}
+
+.pendant-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  border-radius: 2px;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+}
+
+/* 改名标签样式 */
+.rename-tag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 3px;
+  font-size: 0.75rem;
+}
+
+.rename-icon {
+  font-size: 0.875rem;
+}
+
+.rename-text {
+  color: #4CAF50;
+  font-weight: 500;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* 磨损值进度条，与 /buy 一致 */
@@ -2243,6 +2521,26 @@ export default {
   font-size: 0.9rem;
 }
 
+.preview-order-id {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.preview-order-icon {
+  font-size: 1.2rem;
+}
+
+.preview-order-text {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
 .preview-rename {
   display: flex;
   align-items: center;
@@ -2251,6 +2549,7 @@ export default {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-color);
   border-radius: 6px;
+  margin-top: 1rem;
 }
 
 .preview-rename-icon {
@@ -2261,6 +2560,151 @@ export default {
   color: #fff;
   font-size: 1rem;
   font-weight: 500;
+}
+
+/* 预览弹窗中的贴纸列表 */
+.preview-sticker-list-section {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.preview-sticker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.preview-sticker-list-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.preview-sticker-list-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(76, 175, 80, 0.5);
+}
+
+.preview-sticker-list-img-wrapper {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.preview-sticker-list-img-wrapper:hover {
+  transform: scale(1.2);
+  border-color: rgba(76, 175, 80, 0.8);
+  z-index: 10;
+}
+
+.preview-sticker-list-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.preview-sticker-list-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.preview-sticker-list-name {
+  color: #fff;
+  font-size: 0.9rem;
+  flex: 1;
+  word-break: break-word;
+}
+
+/* 预览弹窗中的挂件 */
+.preview-pendant-section {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.preview-pendant-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.preview-pendant-list-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.preview-pendant-list-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 215, 0, 0.5);
+}
+
+.preview-pendant-list-img-wrapper {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.preview-pendant-list-img-wrapper:hover {
+  transform: scale(1.2);
+  border-color: rgba(255, 215, 0, 0.8);
+  z-index: 10;
+}
+
+.preview-pendant-list-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.preview-pendant-list-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 1.5rem;
+}
+
+.preview-pendant-list-name {
+  color: #fff;
+  font-size: 0.9rem;
+  flex: 1;
+  word-break: break-word;
 }
 
 :deep(.el-table) {
@@ -2521,6 +2965,10 @@ export default {
 
   .preview-image-section {
     height: 200px;
+  }
+
+  .preview-sticker-list {
+    height: auto;
   }
 }
 </style>

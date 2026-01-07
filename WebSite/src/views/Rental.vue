@@ -540,13 +540,64 @@
               </div>
             </div>
 
-            <!-- 右侧：预留扩展区域，目前简单显示订单信息 -->
+            <!-- 右侧：印花、挂件和订单信息 -->
             <div class="preview-right-section">
-              <div class="preview-rename" v-if="previewItem.ID">
-                <span class="preview-rename-icon">🧾</span>
-                <span class="preview-rename-text">
-                  订单 ID：{{ previewItem.ID }}
-                </span>
+              <!-- 订单ID - 放在最上方 -->
+              <div class="preview-order-id" v-if="previewItem.ID">
+                <span class="preview-order-icon">🧾</span>
+                <span class="preview-order-text">订单 ID：{{ previewItem.ID }}</span>
+              </div>
+
+              <!-- 改名标签 -->
+              <div class="preview-rename" v-if="previewItem.rename">
+                <span class="preview-rename-icon">🏷️</span>
+                <span class="preview-rename-text">{{ previewItem.rename }}</span>
+              </div>
+
+              <!-- 贴纸列表 -->
+              <div v-if="previewItem.sticker && parseStickers(previewItem.sticker).length > 0" class="preview-sticker-list-section">
+                <div class="preview-sticker-list">
+                  <div
+                    v-for="(sticker, index) in parseStickers(previewItem.sticker)"
+                    :key="index"
+                    class="preview-sticker-list-item"
+                  >
+                    <el-tooltip :content="sticker.name || '未知贴纸'" placement="left">
+                      <div class="preview-sticker-list-img-wrapper">
+                        <img
+                          v-if="sticker.image"
+                          :src="sticker.image"
+                          :alt="sticker.name"
+                          class="preview-sticker-list-img"
+                          @error="(e) => e.target.style.display = 'none'"
+                        />
+                        <div v-else class="preview-sticker-list-placeholder">?</div>
+                      </div>
+                    </el-tooltip>
+                    <div class="preview-sticker-list-name">{{ sticker.name || '未知贴纸' }}</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 挂件信息 -->
+              <div v-if="previewItem.pendant" class="preview-pendant-section">
+                <div class="preview-pendant-list">
+                  <div class="preview-pendant-list-item">
+                    <el-tooltip :content="parsePendant(previewItem.pendant)?.name || '挂件'" placement="left">
+                      <div class="preview-pendant-list-img-wrapper">
+                        <img
+                          v-if="parsePendant(previewItem.pendant)?.image"
+                          :src="parsePendant(previewItem.pendant).image"
+                          :alt="parsePendant(previewItem.pendant).name"
+                          class="preview-pendant-list-img"
+                          @error="(e) => e.target.style.display = 'none'"
+                        />
+                        <div v-else class="preview-pendant-list-placeholder">🎗️</div>
+                      </div>
+                    </el-tooltip>
+                    <div class="preview-pendant-list-name">{{ parsePendant(previewItem.pendant)?.name || '挂件' }}</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -899,7 +950,7 @@ export default {
           weapon_float: item[4] || 0,
           float_range: item[5] || '',
           price: item[6] || 0,
-          lenter_name: item[7] || '',
+          lessor_name: item[7] || '',
           status: item[8] || '',
           status_sub: item[9] || '',
           from: item[10] || '',
@@ -908,6 +959,9 @@ export default {
           total_Lease_Days: item[13] || 0,
           max_Lease_Days: item[14] || 0,
           steam_hash_name: item[15] || '',
+          sticker: item[16] || null,
+          pendant: item[17] || null,
+          rename: item[18] || '',
           data_user: item[19] || ''
         }))
 
@@ -968,7 +1022,7 @@ export default {
     const loadFilteredStats = async () => {
       try {
         // 使用 rental 统计接口
-        const response = await fetch(apiUrls.rentalStats(), {
+        const response = await fetch('/api/webRentalV1/getRentalStats', {
           method: 'GET',
           mode: 'cors',
           signal: createAbortSignal(statsController),
@@ -982,25 +1036,22 @@ export default {
         }
 
         const statsData = await response.json()
-        if (!statsData.success && statsData.totalCount === undefined) {
-          throw new Error(statsData.message || '统计接口返回异常')
-        }
 
         allDataStats.value = {
-          totalCount: statsData.totalCount ?? statsData.total_count ?? 0,
-          totalAmount: (statsData.totalAmount ?? statsData.total_amount ?? 0).toFixed(2),
-          avgPrice: (statsData.avgPrice ?? statsData.avg_price ?? 0).toFixed(2),
-          totalLeaseDays: statsData.totalLeaseDays ?? statsData.total_lease_days ?? 0,
-          avgLeaseDays: (statsData.avgLeaseDays ?? statsData.avg_lease_days ?? 0).toFixed(2),
-          rentingCount: statsData.rentingCount ?? statsData.renting_count ?? 0,
-          completedCount: statsData.completedCount ?? statsData.completed_count ?? 0,
-          cancelledCount: statsData.cancelledCount ?? statsData.cancelled_count ?? 0
+          totalCount: statsData.total_count ?? 0,
+          totalAmount: (statsData.total_amount ?? 0).toFixed(2),
+          avgPrice: (statsData.avg_price ?? 0).toFixed(2),
+          totalLeaseDays: statsData.total_lease_days ?? 0,
+          avgLeaseDays: (statsData.avg_lease_days ?? 0).toFixed(1),
+          rentingCount: statsData.renting_count ?? 0,
+          completedCount: statsData.completed_count ?? 0,
+          cancelledCount: statsData.cancelled_count ?? 0
         }
 
-      // 复用统计返回的总数作为分页总数，减少额外计数请求
-      if (typeof (statsData.totalCount ?? statsData.total_count) === 'number') {
-        totalItems.value = statsData.totalCount ?? statsData.total_count
-      }
+        // 复用统计返回的总数作为分页总数，减少额外计数请求
+        if (typeof statsData.total_count === 'number') {
+          totalItems.value = statsData.total_count
+        }
       } catch (error) {
         if (error.name === 'AbortError') return
         console.error('加载统计数据失败:', error)
@@ -1042,19 +1093,13 @@ export default {
     }
 
     const fetchRentalDataFiltered = async ({ min, max, keywordOverride = null, storeInSearch = false }) => {
-      const response = await fetch(apiUrls.rentalDataFiltered(), {
-        method: 'POST',
+      const response = await fetch(`/api/webRentalV1/selectRentalWeaponName/${encodeURIComponent(keywordOverride || searchText.value.trim())}`, {
+        method: 'GET',
         mode: 'cors',
         signal: createAbortSignal(dataController),
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          filters: buildDataFilters(keywordOverride),
-          min,
-          max
-        })
+        }
       })
 
       if (!response.ok) {
@@ -1085,7 +1130,11 @@ export default {
           lean_end_time: item[12] || '',
           total_Lease_Days: item[13] || 0,
           max_Lease_Days: item[14] || 0,
-          steam_hash_name: item[15] || ''
+          steam_hash_name: item[15] || '',
+          sticker: item[16] || null,
+          pendant: item[17] || null,
+          rename: item[18] || '',
+          data_user: item[19] || ''
         }
       }).filter(Boolean)
 
@@ -1126,11 +1175,11 @@ export default {
         console.log(`正在请求数据... 页码: ${currentPage.value}, 每页: ${pageSize.value}, min: ${min}, max: ${max}`)
         
         // 根据状态/子状态筛选选择不同的API（子状态优先）
-        let apiUrl = apiUrls.rentalData(min, max)
+        let apiUrl = `/api/webRentalV1/getRentalData/${min}/${max}`
         if (statusSubFilter.value && statusSubFilter.value !== 'all') {
-          apiUrl = apiUrls.rentalDataByStatusSub(statusSubFilter.value, min, max)
+          apiUrl = `/api/webRentalV1/getRentalDataByStatusSub/${encodeURIComponent(statusSubFilter.value)}/${min}/${max}`
         } else if (statusFilter.value && statusFilter.value !== 'all') {
-          apiUrl = apiUrls.rentalDataByStatus(statusFilter.value, min, max)
+          apiUrl = `/api/webRentalV1/getRentalDataByStatus/${statusFilter.value}/${min}/${max}`
         }
         
         const response = await fetch(apiUrl, {
@@ -1182,6 +1231,9 @@ export default {
             total_Lease_Days: item[13] || 0,
             max_Lease_Days: item[14] || 0,
             steam_hash_name: item[15] || '',
+            sticker: item[16] || null,
+            pendant: item[17] || null,
+            rename: item[18] || '',
             data_user: item[19] || ''
           }
         }).filter(item => item !== null)
@@ -1376,7 +1428,7 @@ export default {
         const [startDate, endDate] = dateRange.value
         console.log('按时间搜索:', startDate, '至', endDate)
         
-        const response = await fetch(apiUrls.rentalSearchByTime(startDate, endDate), {
+        const response = await fetch(`/api/webRentalV1/searchRentalByTimeRange/${startDate}/${endDate}`, {
           method: 'GET',
           mode: 'cors',
           signal: createAbortSignal(dataController),
@@ -1406,7 +1458,7 @@ export default {
           weapon_float: item[4] || 0,
           float_range: item[5] || '',
           price: item[6] || 0,
-          lenter_name: item[7] || '',
+          lessor_name: item[7] || '',
           status: item[8] || '',
           status_sub: item[9] || '',
           from: item[10] || '',
@@ -1415,6 +1467,9 @@ export default {
           total_Lease_Days: item[13] || 0,
           max_Lease_Days: item[14] || 0,
           steam_hash_name: item[15] || '',
+          sticker: item[16] || null,
+          pendant: item[17] || null,
+          rename: item[18] || '',
           data_user: item[19] || ''
         }))
         
@@ -1453,7 +1508,7 @@ export default {
       try {
         console.log('正在获取时间范围统计...', { startDate, endDate })
         
-        const response = await fetch(apiUrls.rentalStatsByTime(startDate, endDate), {
+        const response = await fetch(`/api/webRentalV1/getRentalStatsByTimeRange/${startDate}/${endDate}`, {
           method: 'GET',
           mode: 'cors',
           signal: createAbortSignal(statsController),
@@ -1503,14 +1558,14 @@ export default {
     // 加载武器类型数据（带缓存）
     const loadWeaponTypes = async () => {
       try {
-        const cacheKey = 'weaponTypes'
+        const cacheKey = 'rentalWeaponTypes'
         const cached = getCachedData(cacheKey)
         if (cached) {
           weaponTypes.value = cached
           return
         }
 
-        const response = await fetch(apiUrls.lentWeaponTypes())
+        const response = await fetch('/api/webRentalV1/getRentalWeaponTypes')
         const result = await response.json()
         if (result.success) {
           weaponTypes.value = result.data
@@ -1524,14 +1579,14 @@ export default {
     // 加载磨损等级数据（带缓存）
     const loadFloatRanges = async () => {
       try {
-        const cacheKey = 'floatRanges'
+        const cacheKey = 'rentalFloatRanges'
         const cached = getCachedData(cacheKey)
         if (cached) {
           floatRanges.value = cached
           return
         }
 
-        const response = await fetch(apiUrls.lentFloatRanges())
+        const response = await fetch('/api/webRentalV1/getRentalFloatRanges')
         const result = await response.json()
         if (result.success) {
           floatRanges.value = result.data
@@ -1545,31 +1600,19 @@ export default {
     // 加载状态列表数据（status）- 带缓存
     const loadStatusList = async () => {
       try {
-        const cacheKey = 'statusList'
+        const cacheKey = 'rentalStatusList'
         const cached = getCachedData(cacheKey)
         if (cached) {
           statusList.value = cached
           return
         }
 
-        const response = await fetch(apiUrls.lentStatusList())
+        const response = await fetch('/api/webRentalV1/getRentalStatusList')
         const result = await response.json()
-        console.log('租赁 status 列表原始返回:', result)
+        console.log('借入 status 列表原始返回:', result)
         if (result && result.success && Array.isArray(result.data)) {
-          // 仅取 status 字段（若为字符串直接使用）
-          const list = result.data
-            .map(item => {
-              if (typeof item === 'string') return item
-              return item.status || ''
-            })
-            .filter(Boolean)
-          const uniqueList = Array.from(new Set(list))
-          statusList.value = uniqueList
-          setCachedData(cacheKey, uniqueList)
-        } else if (Array.isArray(result)) {
-          const uniqueList = Array.from(new Set(result.filter(Boolean)))
-          statusList.value = uniqueList
-          setCachedData(cacheKey, uniqueList)
+          statusList.value = result.data
+          setCachedData(cacheKey, result.data)
         } else {
           statusList.value = []
         }
@@ -1582,19 +1625,11 @@ export default {
     const loadStatusSubList = async () => {
       try {
         const statusParam = statusFilter.value || 'all'
-        const response = await fetch(apiUrls.lentStatusSubList(statusParam))
+        const response = await fetch(`/api/webRentalV1/getRentalStatusSubList/${statusParam}`)
         const result = await response.json()
-        console.log('租赁 status_sub 列表原始返回:', statusParam, result)
+        console.log('借入 status_sub 列表原始返回:', statusParam, result)
         if (result && result.success && Array.isArray(result.data)) {
-          const list = result.data
-            .map(item => {
-              if (typeof item === 'string') return item
-              return item.status_sub || ''
-            })
-            .filter(Boolean)
-          statusSubList.value = Array.from(new Set(list))
-        } else if (Array.isArray(result)) {
-          statusSubList.value = Array.from(new Set(result.filter(Boolean)))
+          statusSubList.value = result.data
         } else {
           statusSubList.value = []
         }
@@ -1606,14 +1641,14 @@ export default {
 
     const loadPlatformList = async () => {
       try {
-        const cacheKey = 'platformList'
+        const cacheKey = 'rentalPlatformList'
         const cached = getCachedData(cacheKey)
         if (cached) {
           platformList.value = cached
           return
         }
 
-        const response = await fetch(apiUrls.lentPlatformList())
+        const response = await fetch('/api/webRentalV1/getRentalPlatformList')
         const result = await response.json()
         if (result.success && Array.isArray(result.data)) {
           platformList.value = result.data
@@ -1629,19 +1664,20 @@ export default {
 
     const loadLenterList = async () => {
       try {
-        const cacheKey = 'lenterList'
+        const cacheKey = 'rentalUserList'
         const cached = getCachedData(cacheKey)
         if (cached) {
           lenterList.value = cached
-          lessorList.value = cached // 同时更新 lessorList
+          lessorList.value = cached
           return
         }
 
-        const response = await fetch(apiUrls.lentLenterList())
+        // 使用 getRentalUserList 接口读取 data_user 列
+        const response = await fetch('/api/webRentalV1/getRentalUserList')
         const result = await response.json()
         if (result.success && Array.isArray(result.data)) {
           lenterList.value = result.data
-          lessorList.value = result.data // 同时更新 lessorList
+          lessorList.value = result.data
           setCachedData(cacheKey, result.data)
         } else {
           lenterList.value = []
@@ -1692,112 +1728,15 @@ export default {
       }
     }
 
-    // 按类型和磨损等级搜索
+    // 按类型和磨损等级搜索 - rental暂不支持，保留空实现
     const searchByTypeAndWear = async () => {
-      if ((!weaponTypeFilter.value || weaponTypeFilter.value.length === 0) && 
-          (!floatRangeFilter.value || floatRangeFilter.value.length === 0)) {
-        return
-      }
-
-      loading.value = true
-      currentPage.value = 1
-      try {
-        const requestData = {
-          weapon_type: weaponTypeFilter.value || [],
-          float_range: floatRangeFilter.value || [],
-          page: currentPage.value,
-          page_size: pageSize.value
-        }
-
-        const response = await fetch(apiUrls.lentSearchByTypeWear(), {
-          method: 'POST',
-          signal: createAbortSignal(dataController),
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(requestData)
-        })
-        
-        const result = await response.json()
-        
-        if (result.success) {
-          // 格式化数据
-          const formattedData = result.data.map((item, index) => {
-            return {
-              id: index + 1,
-              ID: item[0] || '',
-              weapon_name: item[1] || '',
-              weapon_type: item[2] || '',
-              item_name: item[3] || '',
-              weapon_float: item[4] || 0,
-              float_range: item[5] || '',
-              price: item[6] || 0,
-              lessor_name: item[7] || '',
-              status: item[8] || '',
-              status_sub: item[9] || '',
-              from: item[10] || '',
-              lean_start_time: item[11] || '',
-              lean_end_time: item[12] || '',
-              total_Lease_Days: item[13] || 0,
-              max_Lease_Days: item[14] || 0,
-              steam_hash_name: item[15] || '',
-              data_user: item[19] || ''
-            }
-          })
-
-          rentalData.value = formattedData
-          totalItems.value = result.total
-          
-          // 获取筛选后的统计数据
-          await loadStatsByTypeAndWear()
-        } else {
-          ElMessage.error(result.message || '搜索失败')
-        }
-      } catch (error) {
-        console.error('按类型和磨损搜索失败:', error)
-        ElMessage.error('搜索失败')
-      } finally {
-        loading.value = false
-      }
+      ElMessage.warning('借入数据暂不支持按类型和磨损筛选')
+      await loadRentalData()
     }
 
-    // 获取按类型和磨损筛选的统计数据
+    // 获取按类型和磨损筛选的统计数据 - rental暂不支持，保留空实现
     const loadStatsByTypeAndWear = async () => {
-      try {
-        const requestData = {
-          weapon_type: weaponTypeFilter.value,
-          float_range: floatRangeFilter.value
-        }
-
-        const response = await fetch(apiUrls.lentStatsByTypeWear(), {
-          method: 'POST',
-          signal: createAbortSignal(statsController),
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(requestData)
-        })
-        
-        const result = await response.json()
-        
-        if (result.success) {
-          allDataStats.value = {
-            totalCount: result.data.totalCount,
-            totalAmount: result.data.totalAmount.toFixed(2),
-            avgPrice: result.data.avgPrice.toFixed(2),
-            totalLeaseDays: result.data.totalLeaseDays,
-            avgLeaseDays: result.data.avgLeaseDays.toFixed(2),
-            rentingCount: result.data.rentingCount,
-            completedCount: result.data.completedCount ?? 0,
-            cancelledCount: result.data.cancelledCount ?? 0
-          }
-          if (typeof result.data.totalCount === 'number') {
-            totalItems.value = result.data.totalCount
-          }
-        }
-      } catch (error) {
-        console.error('获取筛选统计数据失败:', error)
-      }
+      // rental暂不支持
     }
 
     const openPreview = (item) => {
@@ -2445,6 +2384,26 @@ export default {
   font-size: 0.9rem;
 }
 
+.preview-order-id {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.preview-order-icon {
+  font-size: 1.2rem;
+}
+
+.preview-order-text {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
 .preview-rename {
   display: flex;
   align-items: center;
@@ -2453,6 +2412,7 @@ export default {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-color);
   border-radius: 6px;
+  margin-top: 1rem;
 }
 
 .preview-rename-icon {
@@ -2463,6 +2423,172 @@ export default {
   color: #fff;
   font-size: 1rem;
   font-weight: 500;
+}
+
+.preview-order-id {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  margin-top: 1rem;
+}
+
+.preview-order-icon {
+  font-size: 1.2rem;
+}
+
+.preview-order-text {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+/* 预览弹窗中的贴纸列表 */
+.preview-sticker-list-section {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.preview-sticker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.preview-sticker-list-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.preview-sticker-list-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(76, 175, 80, 0.5);
+}
+
+.preview-sticker-list-img-wrapper {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.preview-sticker-list-img-wrapper:hover {
+  transform: scale(1.2);
+  border-color: rgba(76, 175, 80, 0.8);
+  z-index: 10;
+}
+
+.preview-sticker-list-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.preview-sticker-list-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.preview-sticker-list-name {
+  color: #fff;
+  font-size: 0.9rem;
+  flex: 1;
+  word-break: break-word;
+}
+
+/* 预览弹窗中的挂件 */
+.preview-pendant-section {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.preview-pendant-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.preview-pendant-list-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.preview-pendant-list-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 215, 0, 0.5);
+}
+
+.preview-pendant-list-img-wrapper {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.preview-pendant-list-img-wrapper:hover {
+  transform: scale(1.2);
+  border-color: rgba(255, 215, 0, 0.8);
+  z-index: 10;
+}
+
+.preview-pendant-list-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.preview-pendant-list-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 1.5rem;
+}
+
+.preview-pendant-list-name {
+  color: #fff;
+  font-size: 0.9rem;
+  flex: 1;
+  word-break: break-word;
 }
 
 :deep(.el-table) {
@@ -2723,6 +2849,10 @@ export default {
 
   .preview-image-section {
     height: 200px;
+  }
+
+  .preview-sticker-list {
+    height: auto;
   }
 }
 </style>
