@@ -1,6 +1,6 @@
 {
   "name": "cs-weapon-manager",
-  "version": "2.1.2",
+  "version": "2.2.0",
   "description": "CS导购管理器",
   "scripts": {
     "dev": "vite",
