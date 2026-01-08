@@ -1061,15 +1061,26 @@ export default {
       inventoryStats,
       priceChartRef,
       countChartRef,
+      componentPriceChartRef,
+      componentCountChartRef,
       itemListVisible,
       selectedRange,
-      filteredItems
+      filteredItems,
+      dataSource,
+      handleDataSourceChange
     }
   }
 }
 </script>
 
 <style scoped>
+.data-source-switch {
+  width: 100%;
+  padding: clamp(1rem, 2vw, 1.5rem) 0;
+  display: flex;
+  justify-content: center;
+}
+
 .stats-container {
   width: 100%;
   margin-top: clamp(1.5rem, 3vw, 2rem);
