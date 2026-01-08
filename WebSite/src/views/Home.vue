@@ -1,13 +1,5 @@
 <template>
   <div>
-    <!-- 数据源切换 -->
-    <div class="data-source-switch">
-      <el-radio-group v-model="dataSource" @change="handleDataSourceChange">
-        <el-radio-button label="inventory">库存数据</el-radio-button>
-        <el-radio-button label="components">库存组件</el-radio-button>
-      </el-radio-group>
-    </div>
-
     <!-- 统计数据卡片 -->
     <div class="stats-container">
       <div class="grid grid-7">
@@ -58,44 +50,81 @@
     </div>
 
     <!-- 价格区间分析图表 -->
-    <div class="chart-container">
-      <div class="card chart-card">
-        <div class="chart-header">
-          <h3>库存饰品价格区间分析</h3>
-          <el-radio-group v-model="inventoryChartMode" size="small">
-            <el-radio-button label="value">按总价值</el-radio-button>
-            <el-radio-button label="count">按数量</el-radio-button>
-          </el-radio-group>
-        </div>
-        <div ref="inventoryChartRef" class="price-chart"></div>
-        <div class="chart-summary">
-          <div class="summary-item">
-            <span class="summary-label">总数量：</span>
-            <span class="summary-value">{{ inventoryChartStats.totalCount }} 件</span>
+    <div class="chart-section">
+      <!-- 图表容器 -->
+      <div class="chart-container">
+        <div class="card chart-card">
+          <div class="chart-header">
+            <h3>库存饰品价格区间分析</h3>
+            <div class="chart-controls">
+              <el-select 
+                v-model="selectedInventorySteamId" 
+                placeholder="选择steam账号"
+                @change="handleInventorySteamIdChange"
+                style="width: 200px;"
+                size="small"
+              >
+                <el-option label="全部账号" value="all" />
+                <el-option
+                  v-for="item in steamIdList"
+                  :key="item.steamID"
+                  :label="item.steamID"
+                  :value="item.steamID"
+                />
+              </el-select>
+              <el-radio-group v-model="inventoryChartMode" size="small">
+                <el-radio-button label="value">按价值</el-radio-button>
+                <el-radio-button label="count">按数量</el-radio-button>
+              </el-radio-group>
+            </div>
           </div>
-          <div class="summary-item">
-            <span class="summary-label">总价值：</span>
-            <span class="summary-value">¥{{ inventoryChartStats.totalValue }}</span>
+          <div ref="inventoryChartRef" class="price-chart"></div>
+          <div class="chart-summary">
+            <div class="summary-item">
+              <span class="summary-label">总数量：</span>
+              <span class="summary-value">{{ inventoryChartStats.totalCount }} 件</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">总价值：</span>
+              <span class="summary-value">¥{{ inventoryChartStats.totalValue }}</span>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="card chart-card">
-        <div class="chart-header">
-          <h3>库存组件价格区间分析</h3>
-          <el-radio-group v-model="componentChartMode" size="small">
-            <el-radio-button label="value">按总价值</el-radio-button>
-            <el-radio-button label="count">按数量</el-radio-button>
-          </el-radio-group>
-        </div>
-        <div ref="componentChartRef" class="price-chart"></div>
-        <div class="chart-summary">
-          <div class="summary-item">
-            <span class="summary-label">总数量：</span>
-            <span class="summary-value">{{ componentChartStats.totalCount }} 件</span>
+        <div class="card chart-card">
+          <div class="chart-header">
+            <h3>库存组件价格区间分析</h3>
+            <div class="chart-controls">
+              <el-select 
+                v-model="selectedComponentSteamId" 
+                placeholder="选择steam账号"
+                @change="handleComponentSteamIdChange"
+                style="width: 200px;"
+                size="small"
+              >
+                <el-option label="全部账号" value="all" />
+                <el-option
+                  v-for="item in steamIdList"
+                  :key="item.steamID"
+                  :label="item.steamID"
+                  :value="item.steamID"
+                />
+              </el-select>
+              <el-radio-group v-model="componentChartMode" size="small">
+                <el-radio-button label="value">按价值</el-radio-button>
+                <el-radio-button label="count">按数量</el-radio-button>
+              </el-radio-group>
+            </div>
           </div>
-          <div class="summary-item">
-            <span class="summary-label">总价值：</span>
-            <span class="summary-value">¥{{ componentChartStats.totalValue }}</span>
+          <div ref="componentChartRef" class="price-chart"></div>
+          <div class="chart-summary">
+            <div class="summary-item">
+              <span class="summary-label">总数量：</span>
+              <span class="summary-value">{{ componentChartStats.totalCount }} 件</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">总价值：</span>
+              <span class="summary-value">¥{{ componentChartStats.totalValue }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -126,6 +155,20 @@
             element-loading-text="加载中..."
             :row-style="{ cursor: 'pointer' }"
           >
+            <el-table-column label="图片" width="120" align="center">
+              <template #default="scope">
+                <div class="weapon-image-cell">
+                  <img
+                    v-if="getWeaponImage(scope.row.steam_hash_name)"
+                    :src="getWeaponImage(scope.row.steam_hash_name)"
+                    :alt="scope.row.item_name"
+                    class="weapon-img"
+                    @error="(e) => handleImageError(e, scope.row.steam_hash_name)"
+                  />
+                  <span v-else class="no-image">无图</span>
+                </div>
+              </template>
+            </el-table-column>
             <el-table-column label="饰品名称" min-width="350">
               <template #default="scope">
                 <div class="item-name-cell">
@@ -241,7 +284,7 @@
 <script>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import axios from 'axios'
-import { API_CONFIG } from '@/config/api.js'
+import { API_CONFIG, apiUrls } from '@/config/api.js'
 import * as echarts from 'echarts'
 
 export default {
@@ -265,6 +308,8 @@ export default {
     })
     const steamIdList = ref([])
     const selectedSteamId = ref('')
+    const selectedInventorySteamId = ref('all') // 库存图表的Steam ID选择
+    const selectedComponentSteamId = ref('all') // 组件图表的Steam ID选择
     const inventoryChartRef = ref(null)
     const componentChartRef = ref(null)
     let inventoryChart = null
@@ -341,34 +386,42 @@ export default {
     }
 
     // 加载库存统计数据
-    const loadInventoryStats = async () => {
-      if (!selectedSteamId.value) return
-
+    const loadInventoryStats = async (steamId = null) => {
       try {
-        // 获取库存数据
-        const response = await axios.get(
-          `${API_CONFIG.BASE_URL}/webInventoryV1/inventory/${selectedSteamId.value}`,
-          {
-            params: {
-              limit: 9999,
-              offset: 0
-            }
-          }
-        )
+        // 如果没有指定steamId或为'all'，则获取所有Steam ID的数据
+        const steamIds = steamId && steamId !== 'all' ? [steamId] : steamIdList.value.map(item => item.steamID)
         
-        if (response.data.success) {
-          const inventoryData = response.data.data
-          allInventoryData.value = inventoryData // 保存完整数据用于后续筛选
+        let allInventoryData = []
+        
+        // 遍历所有Steam ID获取数据
+        for (const id of steamIds) {
+          const response = await axios.get(
+            `${API_CONFIG.BASE_URL}/webInventoryV1/inventory/${id}`,
+            {
+              params: {
+                limit: 999999,
+                offset: 0
+              }
+            }
+          )
           
-          // 计算统计数据
-          let totalCount = inventoryData.length
+          if (response.data.success) {
+            allInventoryData = [...allInventoryData, ...response.data.data]
+          }
+        }
+        
+        allInventoryData.value = allInventoryData // 保存完整数据用于后续筛选
+        
+        // 计算统计数据（仅在加载全部数据时更新顶部统计卡片）
+        if (!steamId || steamId === 'all') {
+          let totalCount = allInventoryData.length
           let buy_total = 0
           let yyyp_total = 0
           let buff_total = 0
           let buff_total_after_fee = 0
           let steam_total = 0
           
-          inventoryData.forEach(item => {
+          allInventoryData.forEach(item => {
             if (item.buy_price) {
               const price = parseFloat(item.buy_price)
               if (!isNaN(price)) {
@@ -385,7 +438,6 @@ export default {
               const price = parseFloat(item.buff_price)
               if (!isNaN(price)) {
                 buff_total += price
-                // BUFF扣除2.5%手续费
                 buff_total_after_fee += price * 0.975
               }
             }
@@ -407,27 +459,25 @@ export default {
             steam_price: steam_total.toFixed(2),
             steam_diff: (steam_total - buy_total).toFixed(2)
           }
+        }
 
-          // 如果当前是库存数据源，加载价格区间分析图表
-          if (dataSource.value === 'inventory') {
-            await loadInventoryChart(inventoryData)
-            
-            // 计算图表统计数据
-            let totalCount = inventoryData.length
-            let totalValue = 0
-            inventoryData.forEach(item => {
-              if (item.buy_price) {
-                const price = parseFloat(item.buy_price)
-                if (!isNaN(price)) {
-                  totalValue += price
-                }
-              }
-            })
-            inventoryChartStats.value = {
-              totalCount: totalCount,
-              totalValue: totalValue.toFixed(2)
+        // 加载价格区间分析图表
+        await loadInventoryChart(allInventoryData)
+        
+        // 计算图表统计数据
+        let totalCount = allInventoryData.length
+        let totalValue = 0
+        allInventoryData.forEach(item => {
+          if (item.buy_price) {
+            const price = parseFloat(item.buy_price)
+            if (!isNaN(price)) {
+              totalValue += price
             }
           }
+        })
+        inventoryChartStats.value = {
+          totalCount: totalCount,
+          totalValue: totalValue.toFixed(2)
         }
       } catch (error) {
         console.error('加载库存统计失败:', error)
@@ -435,44 +485,50 @@ export default {
     }
 
     // 加载库存组件统计数据
-    const loadComponentsStats = async () => {
-      if (!selectedSteamId.value) return
-
+    const loadComponentsStats = async (steamId = null) => {
       try {
-        // 获取库存组件数据
-        const response = await axios.get(
-          `${API_CONFIG.BASE_URL}/webStockComponentsV1/components/${selectedSteamId.value}`,
-          {
-            params: {
-              search: '',
-              page: 1,
-              page_size: 9999
-            }
-          }
-        )
+        // 如果没有指定steamId或为'all'，则获取所有Steam ID的数据
+        const steamIds = steamId && steamId !== 'all' ? [steamId] : steamIdList.value.map(item => item.steamID)
         
-        if (response.data.success) {
-          const componentsData = response.data.data
-          allComponentsData.value = componentsData // 保存完整数据用于后续筛选
-          
-          // 加载库存组件价格区间分析图表
-          await loadComponentChart(componentsData)
-          
-          // 计算图表统计数据
-          let totalCount = componentsData.length
-          let totalValue = 0
-          componentsData.forEach(item => {
-            if (item.buy_price) {
-              const price = parseFloat(item.buy_price)
-              if (!isNaN(price)) {
-                totalValue += price
+        let allComponentsData = []
+        
+        // 遍历所有Steam ID获取数据
+        for (const id of steamIds) {
+          const response = await axios.get(
+            `${API_CONFIG.BASE_URL}/webStockComponentsV1/components/${id}`,
+            {
+              params: {
+                search: '',
+                page: 1,
+                page_size: 999999
               }
             }
-          })
-          componentChartStats.value = {
-            totalCount: totalCount,
-            totalValue: totalValue.toFixed(2)
+          )
+          
+          if (response.data.success) {
+            allComponentsData = [...allComponentsData, ...response.data.data]
           }
+        }
+        
+        allComponentsData.value = allComponentsData // 保存完整数据用于后续筛选
+        
+        // 加载库存组件价格区间分析图表
+        await loadComponentChart(allComponentsData)
+        
+        // 计算图表统计数据
+        let totalCount = allComponentsData.length
+        let totalValue = 0
+        allComponentsData.forEach(item => {
+          if (item.buy_price) {
+            const price = parseFloat(item.buy_price)
+            if (!isNaN(price)) {
+              totalValue += price
+            }
+          }
+        })
+        componentChartStats.value = {
+          totalCount: totalCount,
+          totalValue: totalValue.toFixed(2)
         }
       } catch (error) {
         console.error('加载库存组件统计失败:', error)
@@ -939,6 +995,18 @@ export default {
       // 数据源切换时不需要重新加载，因为数据已经加载过了
     }
 
+    // 处理库存图表Steam ID切换
+    const handleInventorySteamIdChange = async () => {
+      console.log('库存图表Steam ID切换为:', selectedInventorySteamId.value)
+      await loadInventoryStats(selectedInventorySteamId.value)
+    }
+
+    // 处理组件图表Steam ID切换
+    const handleComponentSteamIdChange = async () => {
+      console.log('组件图表Steam ID切换为:', selectedComponentSteamId.value)
+      await loadComponentsStats(selectedComponentSteamId.value)
+    }
+
     // 计算是否还有更多数据
     const hasMoreItems = computed(() => {
       return displayedItems.value.length < filteredItems.value.length
@@ -1016,10 +1084,49 @@ export default {
       }
     })
 
+    // 图片404缓存
+    const image404Cache = ref(new Set())
+
+    // 获取武器图片路径
+    const getWeaponImage = (steamHashName) => {
+      if (!steamHashName) {
+        return null
+      }
+      // 检查是否已经在404缓存中
+      if (image404Cache.value.has(steamHashName)) {
+        return null
+      }
+      // 将空格和竖线分别替换为下划线，并添加.png扩展名
+      const imageName = steamHashName
+        .replace(/\s*\|\s*/g, '___')
+        .replace(/\s/g, '_')
+        + '.png'
+
+      return apiUrls.weaponImage(imageName)
+    }
+
+    // 处理图片加载错误
+    const handleImageError = (event, steamHashName) => {
+      // 将失败的steam_hash_name添加到404缓存中
+      if (steamHashName) {
+        image404Cache.value.add(steamHashName)
+      }
+      
+      // 移除错误监听器，防止重复触发
+      event.target.onerror = null
+      
+      // 隐藏图片
+      event.target.style.display = 'none'
+    }
+
     return {
       buyStats,
       sellStats,
       inventoryStats,
+      steamIdList,
+      selectedSteamId,
+      selectedInventorySteamId,
+      selectedComponentSteamId,
       inventoryChartRef,
       componentChartRef,
       inventoryChartMode,
@@ -1035,21 +1142,18 @@ export default {
       inventoryChartStats,
       componentChartStats,
       handleDataSourceChange,
+      handleInventorySteamIdChange,
+      handleComponentSteamIdChange,
       handleDialogScroll,
-      getItemTitle
+      getItemTitle,
+      getWeaponImage,
+      handleImageError
     }
   }
 }
 </script>
 
 <style scoped>
-.data-source-switch {
-  width: 100%;
-  padding: clamp(1rem, 2vw, 1.5rem) 0;
-  display: flex;
-  justify-content: center;
-}
-
 .stats-container {
   width: 100%;
   margin-top: clamp(1.5rem, 3vw, 2rem);
@@ -1109,6 +1213,11 @@ export default {
   }
 }
 
+.chart-section {
+  width: 100%;
+  margin-top: clamp(1.5rem, 3vw, 2rem);
+}
+
 .chart-container {
   width: 100%;
   margin-top: clamp(1.5rem, 3vw, 2rem);
@@ -1138,12 +1247,21 @@ export default {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .chart-header h3 {
   margin: 0;
   font-size: clamp(1rem, 2vw, 1.25rem);
   color: #fff;
+}
+
+.chart-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .price-chart {
@@ -1302,5 +1420,25 @@ export default {
 
 :deep(.el-dialog__close:hover) {
   color: #4CAF50;
+}
+
+/* 武器图片样式 */
+.weapon-image-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 4px;
+}
+
+.weapon-img {
+  max-width: 100px;
+  max-height: 75px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.no-image {
+  color: #888;
+  font-size: 0.85rem;
 }
 </style>
