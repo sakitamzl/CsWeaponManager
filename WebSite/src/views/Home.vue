@@ -128,7 +128,7 @@
           </div>
         </div>
         <!-- SteamDT K线图卡片 -->
-        <div class="card chart-card">
+        <div class="card chart-card chart-card-kline">
           <div class="chart-header">
             <h3>SteamDT 市场指数</h3>
             <div class="chart-controls">
@@ -154,10 +154,8 @@
               </el-button-group>
             </div>
           </div>
-          <div ref="klineChartRef" class="price-chart" v-loading="loadingKline"></div>
+          <div ref="klineChartRef" class="kline-chart" v-loading="loadingKline"></div>
         </div>
-        <!-- 强制换行 -->
-        <div class="chart-row-break"></div>
         <div class="card chart-card">
           <div class="chart-header">
             <h3>购入饰品价格</h3>
@@ -435,7 +433,7 @@ export default {
     const sellChartMode = ref('value') // 'value' 或 'count'
     
     // K线图相关
-    const klinePeriod = ref('1d')
+    const klinePeriod = ref('1h')
     const loadingKline = ref(false)
     
     // 数据源选择
@@ -1094,9 +1092,6 @@ export default {
       }
 
       inventoryChart.setOption(option)
-
-      // 监听窗口大小变化
-      window.addEventListener('resize', handleResize)
     }
 
     // 加载库存组件图表
@@ -1252,9 +1247,6 @@ export default {
       }
 
       componentChart.setOption(option)
-
-      // 监听窗口大小变化
-      window.addEventListener('resize', handleResize)
     }
 
     // 加载购入图表
@@ -1901,6 +1893,35 @@ export default {
       }
     }
 
+    // ResizeObserver 用于监听容器大小变化
+    let resizeObserver = null
+
+    // 初始化 ResizeObserver
+    const initResizeObserver = () => {
+      if (typeof ResizeObserver !== 'undefined') {
+        resizeObserver = new ResizeObserver(() => {
+          handleResize()
+        })
+
+        // 监听所有图表容器
+        if (inventoryChartRef.value) {
+          resizeObserver.observe(inventoryChartRef.value)
+        }
+        if (componentChartRef.value) {
+          resizeObserver.observe(componentChartRef.value)
+        }
+        if (buyChartRef.value) {
+          resizeObserver.observe(buyChartRef.value)
+        }
+        if (sellChartRef.value) {
+          resizeObserver.observe(sellChartRef.value)
+        }
+        if (klineChartRef.value) {
+          resizeObserver.observe(klineChartRef.value)
+        }
+      }
+    }
+
     // 加载所有统计数据
     const loadAllStats = async () => {
       await loadSteamIdList()
@@ -1918,6 +1939,10 @@ export default {
       // 初始化并加载K线图
       await initKlineChart()
       await loadKlineData()
+      
+      // 初始化 ResizeObserver
+      await nextTick()
+      initResizeObserver()
     }
 
     // 处理数据源切换
@@ -2000,6 +2025,8 @@ export default {
 
     onMounted(() => {
       loadAllStats()
+      // 监听窗口大小变化
+      window.addEventListener('resize', handleResize)
     })
 
     // 监听图表模式切换
@@ -2028,8 +2055,17 @@ export default {
     })
 
     onUnmounted(() => {
+      // 移除 window resize 监听
+      window.removeEventListener('resize', handleResize)
+      
+      // 断开 ResizeObserver
+      if (resizeObserver) {
+        resizeObserver.disconnect()
+        resizeObserver = null
+      }
+      
+      // 销毁图表实例
       if (inventoryChart) {
-        window.removeEventListener('resize', handleResize)
         inventoryChart.dispose()
         inventoryChart = null
       }
@@ -2204,27 +2240,45 @@ export default {
   margin-top: clamp(1.5rem, 3vw, 2rem);
   display: flex;
   justify-content: flex-start;
-  gap: clamp(1rem, 2vw, 1.5rem);
+  gap: 1rem;
   flex-wrap: wrap;
 }
 
 .chart-card {
   padding: clamp(1.5rem, 3vw, 2rem);
-  width: auto;
-  flex: 1 1 calc(33.333% - 1rem);
-  min-width: 320px;
-  max-width: calc(33.333% - 1rem);
+  width: calc(33.333% - 0.67rem);
+  flex: 0 0 calc(33.333% - 0.67rem);
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.chart-card-kline {
+  padding: clamp(1.5rem, 3vw, 2rem);
+  padding-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  width: calc(33.333% - 0.67rem);
+  flex: 0 0 calc(33.333% - 0.67rem);
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.chart-card-kline .chart-header {
+  flex-shrink: 0;
+}
+
+.chart-card-kline .kline-chart {
+  flex: 1;
+  width: 100%;
+  min-height: 360px;
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
 }
 
 .chart-card-full-row {
   flex-basis: 100%;
   max-width: 100%;
-}
-
-.chart-row-break {
-  flex-basis: 100%;
-  height: 0;
-  width: 100%;
 }
 
 .chart-card h3 {
