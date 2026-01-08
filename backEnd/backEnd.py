@@ -37,6 +37,7 @@ from src.web_side.webSide.lent_page import webLentPageV1
 from src.web_side.webSide.message_box_page import webMessageBoxPageV1
 from src.web_side.webSide.inventory import webInventoryV1
 from src.web_side.webSide.stock_components import webStockComponentsV1
+from src.web_side.webSide.home.home_charts import webHomeChartsV1
 from src.web_side.prefectWorld.prefectworld_config import prefectWorldConfigV1
 from src.web_side.prefectWorld.stock_components_api import prefectWorldStockComponentsV1
 from src.web_side.webSide.adb_tools import adbToolsPage
@@ -98,6 +99,7 @@ def blankEndApi():
     app.register_blueprint(webMessageBoxPageV1, url_prefix = '/webMessageBoxPageV1')
     app.register_blueprint(webInventoryV1, url_prefix = '/webInventoryV1')
     app.register_blueprint(webStockComponentsV1, url_prefix = '/webStockComponentsV1')
+    app.register_blueprint(webHomeChartsV1, url_prefix = '/webHomeChartsV1')
     app.register_blueprint(prefectWorldConfigV1, url_prefix = '/prefectWorldConfigV1')
     app.register_blueprint(prefectWorldStockComponentsV1, url_prefix = '/prefectWorldStockComponentsV1')
     app.register_blueprint(adbToolsPage, url_prefix = '/adbToolsV1')

@@ -353,6 +353,18 @@ export const API_CONFIG = {
 
     
 
+    // Home页面图表数据相关
+
+    HOME_INVENTORY_ALL: '/webHomeChartsV1/inventory/all',  // 获取所有库存数据
+
+    HOME_COMPONENTS_ALL: '/webHomeChartsV1/components/all',  // 获取所有库存组件数据
+
+    HOME_BUY_ALL: '/webHomeChartsV1/buy/all',  // 获取所有购入数据
+
+    HOME_SELL_ALL: '/webHomeChartsV1/sell/all',  // 获取所有出售数据
+
+    
+
     // 登录设置相关
 
     LOGIN_SETTINGS: '/loginSettingsV1/api/login-settings',  // 获取/保存登录设置
@@ -726,6 +738,18 @@ export const apiUrls = {
   weaponImage: (imageName) => getApiUrl(API_CONFIG.ENDPOINTS.WEAPON_IMAGE(imageName)),
 
   weaponImageCheck: (imageName) => getApiUrl(API_CONFIG.ENDPOINTS.WEAPON_IMAGE_CHECK(imageName)),
+
+  
+
+  // Home页面图表数据API
+
+  homeInventoryAll: () => getApiUrl(API_CONFIG.ENDPOINTS.HOME_INVENTORY_ALL),
+
+  homeComponentsAll: () => getApiUrl(API_CONFIG.ENDPOINTS.HOME_COMPONENTS_ALL),
+
+  homeBuyAll: () => getApiUrl(API_CONFIG.ENDPOINTS.HOME_BUY_ALL),
+
+  homeSellAll: () => getApiUrl(API_CONFIG.ENDPOINTS.HOME_SELL_ALL),
 
 }
 
