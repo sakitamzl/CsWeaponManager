@@ -60,8 +60,14 @@
     <!-- 价格区间分析图表 -->
     <div class="chart-container">
       <div class="card chart-card">
-        <h3>库存饰品价格区间分析（按总价值分布）</h3>
-        <div ref="priceChartRef" class="price-chart"></div>
+        <div class="chart-header">
+          <h3>库存饰品价格区间分析</h3>
+          <el-radio-group v-model="inventoryChartMode" size="small">
+            <el-radio-button label="value">按总价值</el-radio-button>
+            <el-radio-button label="count">按数量</el-radio-button>
+          </el-radio-group>
+        </div>
+        <div ref="inventoryChartRef" class="price-chart"></div>
         <div class="chart-summary">
           <div class="summary-item">
             <span class="summary-label">总数量：</span>
@@ -74,40 +80,14 @@
         </div>
       </div>
       <div class="card chart-card">
-        <h3>库存饰品价格区间分析（按数量分布）</h3>
-        <div ref="countChartRef" class="price-chart"></div>
-        <div class="chart-summary">
-          <div class="summary-item">
-            <span class="summary-label">总数量：</span>
-            <span class="summary-value">{{ inventoryChartStats.totalCount }} 件</span>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">总价值：</span>
-            <span class="summary-value">¥{{ inventoryChartStats.totalValue }}</span>
-          </div>
+        <div class="chart-header">
+          <h3>库存组件价格区间分析</h3>
+          <el-radio-group v-model="componentChartMode" size="small">
+            <el-radio-button label="value">按总价值</el-radio-button>
+            <el-radio-button label="count">按数量</el-radio-button>
+          </el-radio-group>
         </div>
-      </div>
-    </div>
-
-    <!-- 库存组件价格区间分析图表 -->
-    <div class="chart-container">
-      <div class="card chart-card">
-        <h3>库存组件价格区间分析（按总价值分布）</h3>
-        <div ref="componentPriceChartRef" class="price-chart"></div>
-        <div class="chart-summary">
-          <div class="summary-item">
-            <span class="summary-label">总数量：</span>
-            <span class="summary-value">{{ componentChartStats.totalCount }} 件</span>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">总价值：</span>
-            <span class="summary-value">¥{{ componentChartStats.totalValue }}</span>
-          </div>
-        </div>
-      </div>
-      <div class="card chart-card">
-        <h3>库存组件价格区间分析（按数量分布）</h3>
-        <div ref="componentCountChartRef" class="price-chart"></div>
+        <div ref="componentChartRef" class="price-chart"></div>
         <div class="chart-summary">
           <div class="summary-item">
             <span class="summary-label">总数量：</span>
@@ -259,7 +239,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import axios from 'axios'
 import { API_CONFIG } from '@/config/api.js'
 import * as echarts from 'echarts'
@@ -285,14 +265,14 @@ export default {
     })
     const steamIdList = ref([])
     const selectedSteamId = ref('')
-    const priceChartRef = ref(null)
-    const countChartRef = ref(null)
-    const componentPriceChartRef = ref(null)
-    const componentCountChartRef = ref(null)
-    let priceChart = null
-    let countChart = null
-    let componentPriceChart = null
-    let componentCountChart = null
+    const inventoryChartRef = ref(null)
+    const componentChartRef = ref(null)
+    let inventoryChart = null
+    let componentChart = null
+    
+    // 图表模式切换
+    const inventoryChartMode = ref('value') // 'value' 或 'count'
+    const componentChartMode = ref('value') // 'value' 或 'count'
     
     // 数据源选择
     const dataSource = ref('inventory') // 'inventory' 或 'components'
@@ -430,8 +410,7 @@ export default {
 
           // 如果当前是库存数据源，加载价格区间分析图表
           if (dataSource.value === 'inventory') {
-            await loadPriceRangeChart(inventoryData)
-            await loadCountRangeChart(inventoryData)
+            await loadInventoryChart(inventoryData)
             
             // 计算图表统计数据
             let totalCount = inventoryData.length
@@ -477,8 +456,7 @@ export default {
           allComponentsData.value = componentsData // 保存完整数据用于后续筛选
           
           // 加载库存组件价格区间分析图表
-          await loadComponentPriceRangeChart(componentsData)
-          await loadComponentCountRangeChart(componentsData)
+          await loadComponentChart(componentsData)
           
           // 计算图表统计数据
           let totalCount = componentsData.length
@@ -620,11 +598,11 @@ export default {
       return title
     }
 
-    // 加载价格区间分析图表
-    const loadPriceRangeChart = async (inventoryData) => {
+    // 加载库存图表
+    const loadInventoryChart = async (inventoryData) => {
       await nextTick()
       
-      if (!priceChartRef.value) return
+      if (!inventoryChartRef.value) return
 
       // 定义价格区间
       const priceRanges = [
@@ -654,22 +632,24 @@ export default {
         }
       })
 
-      // 过滤掉数量为0的区间
+      // 根据模式选择数据
+      const isValueMode = inventoryChartMode.value === 'value'
       const chartData = priceRanges
         .filter(range => range.count > 0)
         .map(range => ({
           name: `¥${range.name}`,
-          value: range.totalValue,
+          value: isValueMode ? range.totalValue : range.count,
           count: range.count,
+          totalValue: range.totalValue,
           avgPrice: range.totalValue / range.count
         }))
 
       // 初始化或更新图表
-      if (!priceChart) {
-        priceChart = echarts.init(priceChartRef.value)
+      if (!inventoryChart) {
+        inventoryChart = echarts.init(inventoryChartRef.value)
         
         // 添加点击事件
-        priceChart.on('click', (params) => {
+        inventoryChart.on('click', (params) => {
           if (params.componentType === 'series') {
             selectedRange.value = params.name
             filteredItems.value = filterItemsByRange(params.name)
@@ -687,158 +667,6 @@ export default {
             return `${params.seriesName}<br/>
                     ${params.name}<br/>
                     件数: ${data.count} 件<br/>
-                    总价值: ¥${data.value.toFixed(2)}<br/>
-                    平均价格: ¥${data.avgPrice.toFixed(2)}<br/>
-                    占比: ${params.percent}%`
-          },
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          borderColor: '#333',
-          textStyle: {
-            color: '#fff'
-          }
-        },
-        legend: {
-          orient: 'vertical',
-          right: '5%',
-          top: 'center',
-          textStyle: {
-            color: '#fff',
-            fontSize: 12
-          },
-          formatter: (name) => {
-            const item = chartData.find(d => d.name === name)
-            if (item) {
-              return `${name}\n${item.count}件 ¥${item.value.toFixed(0)}`
-            }
-            return name
-          }
-        },
-        series: [
-          {
-            name: '价格区间分布',
-            type: 'pie',
-            radius: ['40%', '70%'],
-            center: ['40%', '50%'],
-            avoidLabelOverlap: false,
-            itemStyle: {
-              borderRadius: 10,
-              borderColor: '#1a1a1a',
-              borderWidth: 2
-            },
-            label: {
-              show: true,
-              formatter: (params) => {
-                return `${params.name}\n${params.data.count}件\n¥${params.data.value.toFixed(0)}`
-              },
-              color: '#fff',
-              fontSize: 11
-            },
-            emphasis: {
-              label: {
-                show: true,
-                fontSize: 14,
-                fontWeight: 'bold'
-              },
-              itemStyle: {
-                shadowBlur: 10,
-                shadowOffsetX: 0,
-                shadowColor: 'rgba(0, 0, 0, 0.5)'
-              }
-            },
-            labelLine: {
-              show: true,
-              lineStyle: {
-                color: '#888'
-              }
-            },
-            data: chartData,
-            color: [
-              '#5470c6',
-              '#91cc75',
-              '#fac858',
-              '#ee6666',
-              '#73c0de',
-              '#3ba272',
-              '#fc8452',
-              '#9a60b4'
-            ]
-          }
-        ]
-      }
-
-      priceChart.setOption(option)
-
-      // 监听窗口大小变化
-      window.addEventListener('resize', handleResize)
-    }
-
-    // 加载数量区间分析图表
-    const loadCountRangeChart = async (inventoryData) => {
-      await nextTick()
-      
-      if (!countChartRef.value) return
-
-      // 定义价格区间
-      const priceRanges = [
-        { name: '0-100', min: 0, max: 100, count: 0, totalValue: 0 },
-        { name: '101-500', min: 101, max: 500, count: 0, totalValue: 0 },
-        { name: '501-1000', min: 501, max: 1000, count: 0, totalValue: 0 },
-        { name: '1001-2000', min: 1001, max: 2000, count: 0, totalValue: 0 },
-        { name: '2001-5000', min: 2001, max: 5000, count: 0, totalValue: 0 },
-        { name: '5001-10000', min: 5001, max: 10000, count: 0, totalValue: 0 },
-        { name: '10001-20000', min: 10001, max: 20000, count: 0, totalValue: 0 },
-        { name: '20001+', min: 20001, max: Infinity, count: 0, totalValue: 0 }
-      ]
-
-      // 统计每个价格区间的数量和总价值
-      inventoryData.forEach(item => {
-        if (item.buy_price) {
-          const price = parseFloat(item.buy_price)
-          if (!isNaN(price)) {
-            for (let range of priceRanges) {
-              if (price >= range.min && price <= range.max) {
-                range.count++
-                range.totalValue += price
-                break
-              }
-            }
-          }
-        }
-      })
-
-      // 过滤掉数量为0的区间
-      const chartData = priceRanges
-        .filter(range => range.count > 0)
-        .map(range => ({
-          name: `¥${range.name}`,
-          value: range.count,
-          totalValue: range.totalValue,
-          avgPrice: range.totalValue / range.count
-        }))
-
-      // 初始化或更新图表
-      if (!countChart) {
-        countChart = echarts.init(countChartRef.value)
-        
-        // 添加点击事件
-        countChart.on('click', (params) => {
-          if (params.componentType === 'series') {
-            selectedRange.value = params.name
-            filteredItems.value = filterItemsByRange(params.name)
-            initDisplayedItems()
-            itemListVisible.value = true
-          }
-        })
-      }
-
-      const option = {
-        tooltip: {
-          trigger: 'item',
-          formatter: (params) => {
-            const data = params.data
-            return `${params.seriesName}<br/>
-                    ${params.name}<br/>
-                    件数: ${data.value} 件<br/>
                     总价值: ¥${data.totalValue.toFixed(2)}<br/>
                     平均价格: ¥${data.avgPrice.toFixed(2)}<br/>
                     占比: ${params.percent}%`
@@ -860,14 +688,16 @@ export default {
           formatter: (name) => {
             const item = chartData.find(d => d.name === name)
             if (item) {
-              return `${name}\n${item.value}件`
+              return isValueMode 
+                ? `${name}\n${item.count}件 ¥${item.totalValue.toFixed(0)}`
+                : `${name}\n${item.count}件`
             }
             return name
           }
         },
         series: [
           {
-            name: '数量区间分布',
+            name: isValueMode ? '价格区间分布' : '数量区间分布',
             type: 'pie',
             radius: ['40%', '70%'],
             center: ['40%', '50%'],
@@ -880,7 +710,9 @@ export default {
             label: {
               show: true,
               formatter: (params) => {
-                return `${params.name}\n${params.data.value}件`
+                return isValueMode
+                  ? `${params.name}\n${params.data.count}件\n¥${params.data.totalValue.toFixed(0)}`
+                  : `${params.name}\n${params.data.count}件`
               },
               color: '#fff',
               fontSize: 11
@@ -918,17 +750,17 @@ export default {
         ]
       }
 
-      countChart.setOption(option)
+      inventoryChart.setOption(option)
 
       // 监听窗口大小变化
       window.addEventListener('resize', handleResize)
     }
 
-    // 加载库存组件价格区间分析图表（按总价值）
-    const loadComponentPriceRangeChart = async (componentsData) => {
+    // 加载库存组件图表
+    const loadComponentChart = async (componentsData) => {
       await nextTick()
       
-      if (!componentPriceChartRef.value) return
+      if (!componentChartRef.value) return
 
       // 定义价格区间
       const priceRanges = [
@@ -958,22 +790,24 @@ export default {
         }
       })
 
-      // 过滤掉数量为0的区间
+      // 根据模式选择数据
+      const isValueMode = componentChartMode.value === 'value'
       const chartData = priceRanges
         .filter(range => range.count > 0)
         .map(range => ({
           name: `¥${range.name}`,
-          value: range.totalValue,
+          value: isValueMode ? range.totalValue : range.count,
           count: range.count,
+          totalValue: range.totalValue,
           avgPrice: range.totalValue / range.count
         }))
 
       // 初始化或更新图表
-      if (!componentPriceChart) {
-        componentPriceChart = echarts.init(componentPriceChartRef.value)
+      if (!componentChart) {
+        componentChart = echarts.init(componentChartRef.value)
         
         // 添加点击事件
-        componentPriceChart.on('click', (params) => {
+        componentChart.on('click', (params) => {
           if (params.componentType === 'series') {
             selectedRange.value = params.name
             filteredItems.value = filterComponentsByRange(params.name)
@@ -991,158 +825,6 @@ export default {
             return `${params.seriesName}<br/>
                     ${params.name}<br/>
                     件数: ${data.count} 件<br/>
-                    总价值: ¥${data.value.toFixed(2)}<br/>
-                    平均价格: ¥${data.avgPrice.toFixed(2)}<br/>
-                    占比: ${params.percent}%`
-          },
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          borderColor: '#333',
-          textStyle: {
-            color: '#fff'
-          }
-        },
-        legend: {
-          orient: 'vertical',
-          right: '5%',
-          top: 'center',
-          textStyle: {
-            color: '#fff',
-            fontSize: 12
-          },
-          formatter: (name) => {
-            const item = chartData.find(d => d.name === name)
-            if (item) {
-              return `${name}\n${item.count}件 ¥${item.value.toFixed(0)}`
-            }
-            return name
-          }
-        },
-        series: [
-          {
-            name: '价格区间分布',
-            type: 'pie',
-            radius: ['40%', '70%'],
-            center: ['40%', '50%'],
-            avoidLabelOverlap: false,
-            itemStyle: {
-              borderRadius: 10,
-              borderColor: '#1a1a1a',
-              borderWidth: 2
-            },
-            label: {
-              show: true,
-              formatter: (params) => {
-                return `${params.name}\n${params.data.count}件\n¥${params.data.value.toFixed(0)}`
-              },
-              color: '#fff',
-              fontSize: 11
-            },
-            emphasis: {
-              label: {
-                show: true,
-                fontSize: 14,
-                fontWeight: 'bold'
-              },
-              itemStyle: {
-                shadowBlur: 10,
-                shadowOffsetX: 0,
-                shadowColor: 'rgba(0, 0, 0, 0.5)'
-              }
-            },
-            labelLine: {
-              show: true,
-              lineStyle: {
-                color: '#888'
-              }
-            },
-            data: chartData,
-            color: [
-              '#5470c6',
-              '#91cc75',
-              '#fac858',
-              '#ee6666',
-              '#73c0de',
-              '#3ba272',
-              '#fc8452',
-              '#9a60b4'
-            ]
-          }
-        ]
-      }
-
-      componentPriceChart.setOption(option)
-
-      // 监听窗口大小变化
-      window.addEventListener('resize', handleResize)
-    }
-
-    // 加载库存组件数量区间分析图表
-    const loadComponentCountRangeChart = async (componentsData) => {
-      await nextTick()
-      
-      if (!componentCountChartRef.value) return
-
-      // 定义价格区间
-      const priceRanges = [
-        { name: '0-100', min: 0, max: 100, count: 0, totalValue: 0 },
-        { name: '101-500', min: 101, max: 500, count: 0, totalValue: 0 },
-        { name: '501-1000', min: 501, max: 1000, count: 0, totalValue: 0 },
-        { name: '1001-2000', min: 1001, max: 2000, count: 0, totalValue: 0 },
-        { name: '2001-5000', min: 2001, max: 5000, count: 0, totalValue: 0 },
-        { name: '5001-10000', min: 5001, max: 10000, count: 0, totalValue: 0 },
-        { name: '10001-20000', min: 10001, max: 20000, count: 0, totalValue: 0 },
-        { name: '20001+', min: 20001, max: Infinity, count: 0, totalValue: 0 }
-      ]
-
-      // 统计每个价格区间的数量和总价值
-      componentsData.forEach(item => {
-        if (item.buy_price) {
-          const price = parseFloat(item.buy_price)
-          if (!isNaN(price)) {
-            for (let range of priceRanges) {
-              if (price >= range.min && price <= range.max) {
-                range.count++
-                range.totalValue += price
-                break
-              }
-            }
-          }
-        }
-      })
-
-      // 过滤掉数量为0的区间
-      const chartData = priceRanges
-        .filter(range => range.count > 0)
-        .map(range => ({
-          name: `¥${range.name}`,
-          value: range.count,
-          totalValue: range.totalValue,
-          avgPrice: range.totalValue / range.count
-        }))
-
-      // 初始化或更新图表
-      if (!componentCountChart) {
-        componentCountChart = echarts.init(componentCountChartRef.value)
-        
-        // 添加点击事件
-        componentCountChart.on('click', (params) => {
-          if (params.componentType === 'series') {
-            selectedRange.value = params.name
-            filteredItems.value = filterComponentsByRange(params.name)
-            initDisplayedItems()
-            itemListVisible.value = true
-          }
-        })
-      }
-
-      const option = {
-        tooltip: {
-          trigger: 'item',
-          formatter: (params) => {
-            const data = params.data
-            return `${params.seriesName}<br/>
-                    ${params.name}<br/>
-                    件数: ${data.value} 件<br/>
                     总价值: ¥${data.totalValue.toFixed(2)}<br/>
                     平均价格: ¥${data.avgPrice.toFixed(2)}<br/>
                     占比: ${params.percent}%`
@@ -1164,14 +846,16 @@ export default {
           formatter: (name) => {
             const item = chartData.find(d => d.name === name)
             if (item) {
-              return `${name}\n${item.value}件`
+              return isValueMode 
+                ? `${name}\n${item.count}件 ¥${item.totalValue.toFixed(0)}`
+                : `${name}\n${item.count}件`
             }
             return name
           }
         },
         series: [
           {
-            name: '数量区间分布',
+            name: isValueMode ? '价格区间分布' : '数量区间分布',
             type: 'pie',
             radius: ['40%', '70%'],
             center: ['40%', '50%'],
@@ -1184,7 +868,9 @@ export default {
             label: {
               show: true,
               formatter: (params) => {
-                return `${params.name}\n${params.data.value}件`
+                return isValueMode
+                  ? `${params.name}\n${params.data.count}件\n¥${params.data.totalValue.toFixed(0)}`
+                  : `${params.name}\n${params.data.count}件`
               },
               color: '#fff',
               fontSize: 11
@@ -1222,7 +908,7 @@ export default {
         ]
       }
 
-      componentCountChart.setOption(option)
+      componentChart.setOption(option)
 
       // 监听窗口大小变化
       window.addEventListener('resize', handleResize)
@@ -1230,17 +916,11 @@ export default {
 
     // 处理窗口大小变化
     const handleResize = () => {
-      if (priceChart) {
-        priceChart.resize()
+      if (inventoryChart) {
+        inventoryChart.resize()
       }
-      if (countChart) {
-        countChart.resize()
-      }
-      if (componentPriceChart) {
-        componentPriceChart.resize()
-      }
-      if (componentCountChart) {
-        componentCountChart.resize()
+      if (componentChart) {
+        componentChart.resize()
       }
     }
 
@@ -1311,23 +991,28 @@ export default {
       loadAllStats()
     })
 
+    // 监听图表模式切换
+    watch(inventoryChartMode, () => {
+      if (allInventoryData.value.length > 0) {
+        loadInventoryChart(allInventoryData.value)
+      }
+    })
+
+    watch(componentChartMode, () => {
+      if (allComponentsData.value.length > 0) {
+        loadComponentChart(allComponentsData.value)
+      }
+    })
+
     onUnmounted(() => {
-      if (priceChart) {
+      if (inventoryChart) {
         window.removeEventListener('resize', handleResize)
-        priceChart.dispose()
-        priceChart = null
+        inventoryChart.dispose()
+        inventoryChart = null
       }
-      if (countChart) {
-        countChart.dispose()
-        countChart = null
-      }
-      if (componentPriceChart) {
-        componentPriceChart.dispose()
-        componentPriceChart = null
-      }
-      if (componentCountChart) {
-        componentCountChart.dispose()
-        componentCountChart = null
+      if (componentChart) {
+        componentChart.dispose()
+        componentChart = null
       }
     })
 
@@ -1335,10 +1020,10 @@ export default {
       buyStats,
       sellStats,
       inventoryStats,
-      priceChartRef,
-      countChartRef,
-      componentPriceChartRef,
-      componentCountChartRef,
+      inventoryChartRef,
+      componentChartRef,
+      inventoryChartMode,
+      componentChartMode,
       itemListVisible,
       selectedRange,
       filteredItems,
@@ -1435,10 +1120,10 @@ export default {
 
 .chart-card {
   padding: clamp(1.5rem, 3vw, 2rem);
-  max-width: 800px;
+  max-width: 640px;
   width: 100%;
   flex: 1;
-  min-width: 400px;
+  min-width: 320px;
 }
 
 .chart-card h3 {
@@ -1448,10 +1133,23 @@ export default {
   text-align: center;
 }
 
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.chart-header h3 {
+  margin: 0;
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  color: #fff;
+}
+
 .price-chart {
   width: 100%;
-  height: 450px;
-  min-height: 300px;
+  height: 360px;
+  min-height: 240px;
   cursor: pointer;
 }
 
