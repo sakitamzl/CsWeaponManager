@@ -289,3 +289,75 @@ def delete_recent_days(user_id, days):
         print(f"删除最近 {days} 天购买数据失败: {exc}")
         return jsonify({"success": False, "error": str(exc)}), 500
 
+
+@csfloatBuyV1.route("/getEarliestNotEnd/<user_id>", methods=["GET"])
+def get_earliest_not_end(user_id):
+    """
+    获取指定用户最早的一条未完成订单的时间（状态不等于"已完成"和"已取消"）
+    
+    Args:
+        user_id: 用户ID
+    
+    Returns:
+        earliest_time: 最早未完成订单的创建时间，如果没有则返回None
+    """
+    try:
+        # 查询状态不等于"已完成"和"已取消"的订单，按创建时间升序排序，取第一条
+        records = CsFloatBuyModel.find_all(
+            "data_user = ? AND state != '已完成' AND state != '已取消' ORDER BY created_at ASC LIMIT 1",
+            (user_id,)
+        )
+        
+        if records:
+            earliest_time = records[0].created_at
+            return jsonify({
+                "success": True,
+                "earliest_time": earliest_time
+            }), 200
+        else:
+            return jsonify({
+                "success": True,
+                "earliest_time": None
+            }), 200
+    except Exception as exc:
+        print(f"获取最早未完成订单失败: {exc}")
+        return jsonify({"success": False, "error": str(exc)}), 500
+
+
+@csfloatBuyV1.route("/deleteFromTime/<user_id>", methods=["POST"])
+def delete_from_time(user_id):
+    """
+    删除指定用户从某个时间点之后的所有购买数据（包括 buy 和 csfloat_buy 表）
+    
+    Args:
+        user_id: 用户ID
+        from_time: 起始时间（从请求体JSON中获取）
+    """
+    try:
+        data = request.get_json(force=True) or {}
+        from_time = data.get("from_time")
+        
+        if not from_time:
+            return jsonify({"success": False, "error": "缺少 from_time 参数"}), 400
+        
+        # 删除 csfloat_buy 表中该时间之后的数据
+        deleted_csfloat = CsFloatBuyModel.delete_all(
+            "data_user = ? AND created_at >= ?", (user_id, from_time)
+        )
+        
+        # 删除 buy 表中该时间之后的数据（只删除来源为 csfloat 的）
+        deleted_buy = BuyModel.delete_all(
+            "data_user = ? AND order_time >= ? AND `from` = 'csfloat'", 
+            (user_id, from_time)
+        )
+        
+        return jsonify({
+            "success": True, 
+            "message": f"删除成功",
+            "deleted_csfloat_count": deleted_csfloat,
+            "deleted_buy_count": deleted_buy
+        }), 200
+    except Exception as exc:
+        print(f"删除指定时间之后的购买数据失败: {exc}")
+        return jsonify({"success": False, "error": str(exc)}), 500
+
