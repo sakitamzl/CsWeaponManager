@@ -62,10 +62,30 @@
       <div class="card chart-card">
         <h3>库存饰品价格区间分析（按总价值分布）</h3>
         <div ref="priceChartRef" class="price-chart"></div>
+        <div class="chart-summary">
+          <div class="summary-item">
+            <span class="summary-label">总数量：</span>
+            <span class="summary-value">{{ inventoryChartStats.totalCount }} 件</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">总价值：</span>
+            <span class="summary-value">¥{{ inventoryChartStats.totalValue }}</span>
+          </div>
+        </div>
       </div>
       <div class="card chart-card">
         <h3>库存饰品价格区间分析（按数量分布）</h3>
         <div ref="countChartRef" class="price-chart"></div>
+        <div class="chart-summary">
+          <div class="summary-item">
+            <span class="summary-label">总数量：</span>
+            <span class="summary-value">{{ inventoryChartStats.totalCount }} 件</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">总价值：</span>
+            <span class="summary-value">¥{{ inventoryChartStats.totalValue }}</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -74,10 +94,30 @@
       <div class="card chart-card">
         <h3>库存组件价格区间分析（按总价值分布）</h3>
         <div ref="componentPriceChartRef" class="price-chart"></div>
+        <div class="chart-summary">
+          <div class="summary-item">
+            <span class="summary-label">总数量：</span>
+            <span class="summary-value">{{ componentChartStats.totalCount }} 件</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">总价值：</span>
+            <span class="summary-value">¥{{ componentChartStats.totalValue }}</span>
+          </div>
+        </div>
       </div>
       <div class="card chart-card">
         <h3>库存组件价格区间分析（按数量分布）</h3>
         <div ref="componentCountChartRef" class="price-chart"></div>
+        <div class="chart-summary">
+          <div class="summary-item">
+            <span class="summary-label">总数量：</span>
+            <span class="summary-value">{{ componentChartStats.totalCount }} 件</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">总价值：</span>
+            <span class="summary-value">¥{{ componentChartStats.totalValue }}</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -85,73 +125,141 @@
     <el-dialog
       v-model="itemListVisible"
       :title="`价格区间 ${selectedRange} 的饰品列表`"
-      width="80%"
+      width="90%"
       :close-on-click-modal="true"
       class="item-list-dialog"
     >
       <div class="item-list-container">
         <div class="item-list-header">
-          <span>共 {{ filteredItems.length }} 件饰品</span>
+          <span>共 {{ filteredItems.length }} 件饰品，已加载 {{ displayedItems.length }} 件</span>
         </div>
-        <el-table
-          :data="filteredItems"
-          style="width: 100%"
-          max-height="500"
-          :header-row-style="{ backgroundColor: 'var(--bg-tertiary)' }"
+        <div 
+          class="table-scroll-container" 
+          @scroll="handleDialogScroll"
+          ref="dialogScrollRef"
         >
-          <el-table-column label="饰品名称" min-width="300">
-            <template #default="scope">
-              <div class="item-name-cell">
-                {{ scope.row.item_name }}
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column prop="weapon_type" label="类型" width="120" />
-          <el-table-column label="磨损值" width="150">
-            <template #default="scope">
-              <span v-if="scope.row.weapon_float">{{ scope.row.weapon_float }}</span>
-              <span v-else style="color: #888;">N/A</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="购入价格" width="120" align="right">
-            <template #default="scope">
-              <span style="color: #4CAF50; font-weight: bold;">
-                ¥{{ parseFloat(scope.row.buy_price).toFixed(2) }}
-              </span>
-            </template>
-          </el-table-column>
-          <el-table-column label="悠悠有品" width="120" align="right">
-            <template #default="scope">
-              <span v-if="scope.row.yyyp_price" style="color: #fff;">
-                ¥{{ parseFloat(scope.row.yyyp_price).toFixed(2) }}
-              </span>
-              <span v-else style="color: #888;">-</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="BUFF" width="120" align="right">
-            <template #default="scope">
-              <span v-if="scope.row.buff_price" style="color: #fff;">
-                ¥{{ parseFloat(scope.row.buff_price).toFixed(2) }}
-              </span>
-              <span v-else style="color: #888;">-</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="Steam" width="120" align="right">
-            <template #default="scope">
-              <span v-if="scope.row.steam_price" style="color: #fff;">
-                ¥{{ parseFloat(scope.row.steam_price).toFixed(2) }}
-              </span>
-              <span v-else style="color: #888;">-</span>
-            </template>
-          </el-table-column>
-        </el-table>
+          <el-table
+            :data="displayedItems"
+            style="width: 100%"
+            :header-row-style="{ backgroundColor: 'var(--bg-tertiary)' }"
+            v-loading="loadingMore"
+            element-loading-text="加载中..."
+            :row-style="{ cursor: 'pointer' }"
+          >
+            <el-table-column label="饰品名称" min-width="350">
+              <template #default="scope">
+                <div class="item-name-cell">
+                  <div class="item-title">{{ getItemTitle(scope.row) }}</div>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="weapon_type" label="类型" width="120" />
+            <el-table-column label="数量" width="100" align="center">
+              <template #default="scope">
+                <span>{{ scope.row.count || 1 }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="磨损值" width="200">
+              <template #default="scope">
+                <div v-if="scope.row.count > 1" style="color: #888;">
+                  多个磨损值
+                </div>
+                <div v-else-if="scope.row.weapon_float">
+                  <div style="font-family: monospace; font-size: 0.85rem; margin-bottom: 4px;">
+                    {{ scope.row.weapon_float }}
+                  </div>
+                  <!-- 磨损值显示条 -->
+                  <div class="float-bar">
+                    <div class="float-segment fn"></div>
+                    <div class="float-segment mw"></div>
+                    <div class="float-segment ft"></div>
+                    <div class="float-segment ww"></div>
+                    <div class="float-segment bs"></div>
+                    <div
+                      class="float-pointer"
+                      :style="{ left: `${parseFloat(scope.row.weapon_float) * 100}%` }"
+                    ></div>
+                  </div>
+                </div>
+                <span v-else style="color: #888;">N/A</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="购入价格" width="150" align="right">
+              <template #default="scope">
+                <span style="color: #4CAF50; font-weight: bold;">
+                  ¥{{ parseFloat(scope.row.buy_price || 0).toFixed(2) }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column label="悠悠有品" width="150" align="right">
+              <template #default="scope">
+                <div v-if="scope.row.yyyp_price && scope.row.buy_price" style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+                  <span style="color: #fff; font-weight: bold;">
+                    ¥{{ parseFloat(scope.row.yyyp_price).toFixed(2) }}
+                  </span>
+                  <span 
+                    :style="{
+                      color: parseFloat(scope.row.yyyp_price) < parseFloat(scope.row.buy_price) ? '#4CAF50' : '#f56c6c',
+                      fontSize: '12px',
+                      fontWeight: 'bold'
+                    }"
+                  >
+                    {{ parseFloat(scope.row.yyyp_price) < parseFloat(scope.row.buy_price) ? '-' : '+' }}
+                    ¥{{ Math.abs(parseFloat(scope.row.yyyp_price) - parseFloat(scope.row.buy_price)).toFixed(2) }}
+                  </span>
+                </div>
+                <span v-else-if="scope.row.yyyp_price" style="color: #fff; font-weight: bold;">
+                  ¥{{ parseFloat(scope.row.yyyp_price).toFixed(2) }}
+                </span>
+                <span v-else style="color: #888;">-</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="BUFF" width="150" align="right">
+              <template #default="scope">
+                <div v-if="scope.row.buff_price && scope.row.buy_price" style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+                  <span style="color: #fff; font-weight: bold;">
+                    ¥{{ parseFloat(scope.row.buff_price).toFixed(2) }}
+                  </span>
+                  <span 
+                    :style="{
+                      color: parseFloat(scope.row.buff_price) < parseFloat(scope.row.buy_price) ? '#4CAF50' : '#f56c6c',
+                      fontSize: '12px',
+                      fontWeight: 'bold'
+                    }"
+                  >
+                    {{ parseFloat(scope.row.buff_price) < parseFloat(scope.row.buy_price) ? '-' : '+' }}
+                    ¥{{ Math.abs(parseFloat(scope.row.buff_price) - parseFloat(scope.row.buy_price)).toFixed(2) }}
+                  </span>
+                </div>
+                <span v-else-if="scope.row.buff_price" style="color: #fff; font-weight: bold;">
+                  ¥{{ parseFloat(scope.row.buff_price).toFixed(2) }}
+                </span>
+                <span v-else style="color: #888;">-</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="Steam" width="120" align="right">
+              <template #default="scope">
+                <span v-if="scope.row.steam_price" style="color: #fff; font-weight: bold;">
+                  ¥{{ parseFloat(scope.row.steam_price).toFixed(2) }}
+                </span>
+                <span v-else style="color: #888;">-</span>
+              </template>
+            </el-table-column>
+          </el-table>
+          <div v-if="hasMoreItems" class="load-more-indicator">
+            <span v-if="!loadingMore">向下滚动加载更多...</span>
+          </div>
+          <div v-else-if="displayedItems.length > 0" class="load-more-indicator">
+            <span>已加载全部数据</span>
+          </div>
+        </div>
       </div>
     </el-dialog>
   </div>
 </template>
 
 <script>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import axios from 'axios'
 import { API_CONFIG } from '@/config/api.js'
 import * as echarts from 'echarts'
@@ -193,8 +301,23 @@ export default {
     const itemListVisible = ref(false)
     const selectedRange = ref('')
     const filteredItems = ref([])
+    const displayedItems = ref([])
     const allInventoryData = ref([])
     const allComponentsData = ref([])
+    const dialogScrollRef = ref(null)
+    const loadingMore = ref(false)
+    const pageSize = 50
+    const currentDisplayPage = ref(1)
+
+    // 图表统计数据
+    const inventoryChartStats = ref({
+      totalCount: 0,
+      totalValue: '0.00'
+    })
+    const componentChartStats = ref({
+      totalCount: 0,
+      totalValue: '0.00'
+    })
 
     // 加载购买统计数据
     const loadBuyStats = async () => {
@@ -309,6 +432,22 @@ export default {
           if (dataSource.value === 'inventory') {
             await loadPriceRangeChart(inventoryData)
             await loadCountRangeChart(inventoryData)
+            
+            // 计算图表统计数据
+            let totalCount = inventoryData.length
+            let totalValue = 0
+            inventoryData.forEach(item => {
+              if (item.buy_price) {
+                const price = parseFloat(item.buy_price)
+                if (!isNaN(price)) {
+                  totalValue += price
+                }
+              }
+            })
+            inventoryChartStats.value = {
+              totalCount: totalCount,
+              totalValue: totalValue.toFixed(2)
+            }
           }
         }
       } catch (error) {
@@ -340,13 +479,29 @@ export default {
           // 加载库存组件价格区间分析图表
           await loadComponentPriceRangeChart(componentsData)
           await loadComponentCountRangeChart(componentsData)
+          
+          // 计算图表统计数据
+          let totalCount = componentsData.length
+          let totalValue = 0
+          componentsData.forEach(item => {
+            if (item.buy_price) {
+              const price = parseFloat(item.buy_price)
+              if (!isNaN(price)) {
+                totalValue += price
+              }
+            }
+          })
+          componentChartStats.value = {
+            totalCount: totalCount,
+            totalValue: totalValue.toFixed(2)
+          }
         }
       } catch (error) {
         console.error('加载库存组件统计失败:', error)
       }
     }
 
-    // 根据价格区间筛选饰品
+    // 根据价格区间筛选饰品（组合相同的饰品）
     const filterItemsByRange = (rangeName) => {
       const priceRanges = {
         '¥0-100': { min: 0, max: 100 },
@@ -362,16 +517,19 @@ export default {
       const range = priceRanges[rangeName]
       if (!range) return []
 
-      return allInventoryData.value.filter(item => {
+      const filtered = allInventoryData.value.filter(item => {
         if (item.buy_price) {
           const price = parseFloat(item.buy_price)
           return !isNaN(price) && price >= range.min && price <= range.max
         }
         return false
       })
+
+      // 组合相同的饰品
+      return groupItems(filtered)
     }
 
-    // 根据价格区间筛选库存组件
+    // 根据价格区间筛选库存组件（组合相同的组件）
     const filterComponentsByRange = (rangeName) => {
       const priceRanges = {
         '¥0-100': { min: 0, max: 100 },
@@ -387,13 +545,79 @@ export default {
       const range = priceRanges[rangeName]
       if (!range) return []
 
-      return allComponentsData.value.filter(item => {
+      const filtered = allComponentsData.value.filter(item => {
         if (item.buy_price) {
           const price = parseFloat(item.buy_price)
           return !isNaN(price) && price >= range.min && price <= range.max
         }
         return false
       })
+
+      // 组合相同的组件
+      return groupItems(filtered)
+    }
+
+    // 组合相同的饰品/组件
+    const groupItems = (items) => {
+      const grouped = {}
+      
+      items.forEach(item => {
+        // 使用 steam_hash_name 作为分组键
+        const key = item.steam_hash_name || item.item_name
+        
+        if (!grouped[key]) {
+          grouped[key] = {
+            ...item,
+            count: 1,
+            items: [item]
+          }
+        } else {
+          grouped[key].count++
+          grouped[key].items.push(item)
+          
+          // 累加价格
+          if (item.buy_price) {
+            grouped[key].buy_price = (parseFloat(grouped[key].buy_price || 0) + parseFloat(item.buy_price)).toFixed(2)
+          }
+          if (item.yyyp_price) {
+            grouped[key].yyyp_price = (parseFloat(grouped[key].yyyp_price || 0) + parseFloat(item.yyyp_price)).toFixed(2)
+          }
+          if (item.buff_price) {
+            grouped[key].buff_price = (parseFloat(grouped[key].buff_price || 0) + parseFloat(item.buff_price)).toFixed(2)
+          }
+          if (item.steam_price) {
+            grouped[key].steam_price = (parseFloat(grouped[key].steam_price || 0) + parseFloat(item.steam_price)).toFixed(2)
+          }
+        }
+      })
+      
+      return Object.values(grouped)
+    }
+
+    // 获取组合后的商品标题
+    const getItemTitle = (item) => {
+      const weaponName = (item.weapon_name || '').trim()
+      const itemName = (item.item_name || '').trim()
+      const parts = []
+
+      if (weaponName && itemName) {
+        if (weaponName === itemName) {
+          parts.push(itemName)
+        } else {
+          parts.push(weaponName)
+          parts.push(itemName)
+        }
+      } else if (weaponName) {
+        parts.push(weaponName)
+      } else if (itemName) {
+        parts.push(itemName)
+      }
+
+      let title = parts.join(' | ')
+      if (item.float_range) {
+        title += ` （${item.float_range}）`
+      }
+      return title
     }
 
     // 加载价格区间分析图表
@@ -449,6 +673,7 @@ export default {
           if (params.componentType === 'series') {
             selectedRange.value = params.name
             filteredItems.value = filterItemsByRange(params.name)
+            initDisplayedItems()
             itemListVisible.value = true
           }
         })
@@ -600,6 +825,7 @@ export default {
           if (params.componentType === 'series') {
             selectedRange.value = params.name
             filteredItems.value = filterItemsByRange(params.name)
+            initDisplayedItems()
             itemListVisible.value = true
           }
         })
@@ -751,6 +977,7 @@ export default {
           if (params.componentType === 'series') {
             selectedRange.value = params.name
             filteredItems.value = filterComponentsByRange(params.name)
+            initDisplayedItems()
             itemListVisible.value = true
           }
         })
@@ -902,6 +1129,7 @@ export default {
           if (params.componentType === 'series') {
             selectedRange.value = params.name
             filteredItems.value = filterComponentsByRange(params.name)
+            initDisplayedItems()
             itemListVisible.value = true
           }
         })
@@ -1031,6 +1259,54 @@ export default {
       // 数据源切换时不需要重新加载，因为数据已经加载过了
     }
 
+    // 计算是否还有更多数据
+    const hasMoreItems = computed(() => {
+      return displayedItems.value.length < filteredItems.value.length
+    })
+
+    // 加载更多数据
+    const loadMoreItems = () => {
+      if (loadingMore.value || !hasMoreItems.value) {
+        return
+      }
+
+      loadingMore.value = true
+      
+      setTimeout(() => {
+        const start = currentDisplayPage.value * pageSize
+        const end = start + pageSize
+        const moreItems = filteredItems.value.slice(start, end)
+        
+        displayedItems.value = [...displayedItems.value, ...moreItems]
+        currentDisplayPage.value++
+        loadingMore.value = false
+      }, 300) // 模拟加载延迟
+    }
+
+    // 处理弹窗滚动事件
+    const handleDialogScroll = (event) => {
+      const target = event.target
+      const scrollTop = target.scrollTop
+      const scrollHeight = target.scrollHeight
+      const clientHeight = target.clientHeight
+      
+      // 当滚动到距离底部100px时触发加载
+      if (scrollHeight - scrollTop - clientHeight < 100) {
+        loadMoreItems()
+      }
+    }
+
+    // 初始化显示的数据
+    const initDisplayedItems = () => {
+      currentDisplayPage.value = 1
+      displayedItems.value = filteredItems.value.slice(0, pageSize)
+      
+      // 重置滚动位置
+      if (dialogScrollRef.value) {
+        dialogScrollRef.value.scrollTop = 0
+      }
+    }
+
     onMounted(() => {
       loadAllStats()
     })
@@ -1066,8 +1342,16 @@ export default {
       itemListVisible,
       selectedRange,
       filteredItems,
+      displayedItems,
+      dialogScrollRef,
+      loadingMore,
+      hasMoreItems,
       dataSource,
-      handleDataSourceChange
+      inventoryChartStats,
+      componentChartStats,
+      handleDataSourceChange,
+      handleDialogScroll,
+      getItemTitle
     }
   }
 }
@@ -1171,6 +1455,32 @@ export default {
   cursor: pointer;
 }
 
+.chart-summary {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #333;
+  display: flex;
+  justify-content: space-around;
+  gap: 2rem;
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.summary-label {
+  color: #888;
+  font-size: 0.95rem;
+}
+
+.summary-value {
+  color: #4CAF50;
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
 /* 饰品列表弹窗样式 */
 .item-list-dialog {
   --el-dialog-bg-color: #1a1a1a;
@@ -1188,9 +1498,75 @@ export default {
   margin-bottom: 1rem;
 }
 
+.table-scroll-container {
+  max-height: 500px;
+  overflow-y: auto;
+  position: relative;
+}
+
+.load-more-indicator {
+  text-align: center;
+  padding: 1rem;
+  color: #888;
+  font-size: 0.9rem;
+}
+
 .item-name-cell {
   color: #fff;
   word-break: break-word;
+}
+
+.item-title {
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: #fff;
+}
+
+/* 磨损值显示条样式 */
+.float-bar {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  display: flex;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #2a2a2a;
+}
+
+.float-segment {
+  flex: 1;
+  height: 100%;
+}
+
+.float-segment.fn {
+  background: linear-gradient(90deg, #4CAF50, #66BB6A);
+}
+
+.float-segment.mw {
+  background: linear-gradient(90deg, #66BB6A, #9CCC65);
+}
+
+.float-segment.ft {
+  background: linear-gradient(90deg, #9CCC65, #FDD835);
+}
+
+.float-segment.ww {
+  background: linear-gradient(90deg, #FDD835, #FF9800);
+}
+
+.float-segment.bs {
+  background: linear-gradient(90deg, #FF9800, #F44336);
+}
+
+.float-pointer {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  background: #fff;
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+  transform: translateX(-50%);
+  z-index: 1;
 }
 
 /* Element Plus 表格深色主题 */
