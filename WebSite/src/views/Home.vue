@@ -230,6 +230,35 @@
             </div>
           </div>
         </div>
+        <!-- CSQAQ K线图卡片 -->
+        <div class="card chart-card chart-card-kline">
+          <div class="chart-header">
+            <h3>CSQAQ 市场指数</h3>
+            <div class="chart-controls">
+              <el-button-group size="small">
+                <el-button 
+                  :type="csqaqPeriod === '1h' ? 'primary' : ''"
+                  @click="changeCSQAQPeriod('1h')"
+                >
+                  1小时
+                </el-button>
+                <el-button 
+                  :type="csqaqPeriod === '1d' ? 'primary' : ''"
+                  @click="changeCSQAQPeriod('1d')"
+                >
+                  日线
+                </el-button>
+                <el-button 
+                  :type="csqaqPeriod === '1w' ? 'primary' : ''"
+                  @click="changeCSQAQPeriod('1w')"
+                >
+                  周线
+                </el-button>
+              </el-button-group>
+            </div>
+          </div>
+          <div ref="csqaqChartRef" class="kline-chart" v-loading="loadingCSQAQ"></div>
+        </div>
       </div>
     </div>
 
@@ -420,11 +449,13 @@ export default {
     const buyChartRef = ref(null)
     const sellChartRef = ref(null)
     const klineChartRef = ref(null)
+    const csqaqChartRef = ref(null)
     let inventoryChart = null
     let componentChart = null
     let buyChart = null
     let sellChart = null
     let klineChart = null
+    let csqaqChart = null
     
     // 图表模式切换
     const inventoryChartMode = ref('value') // 'value' 或 'count'
@@ -435,6 +466,8 @@ export default {
     // K线图相关
     const klinePeriod = ref('1h')
     const loadingKline = ref(false)
+    const csqaqPeriod = ref('1h')
+    const loadingCSQAQ = ref(false)
     
     // 数据源选择
     const dataSource = ref('inventory') // 'inventory' 或 'components'
@@ -1874,6 +1907,304 @@ export default {
       loadKlineData()
     }
 
+    // 初始化CSQAQ K线图
+    const initCSQAQChart = async () => {
+      await nextTick()
+      
+      if (!csqaqChartRef.value) return
+
+      csqaqChart = echarts.init(csqaqChartRef.value)
+      
+      const option = {
+        backgroundColor: 'transparent',
+        animation: true,
+        animationDuration: 300,
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            type: 'cross',
+            link: [{ xAxisIndex: 'all' }]
+          },
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          borderColor: '#333',
+          textStyle: {
+            color: '#fff'
+          }
+        },
+        legend: {
+          data: ['K线', 'MA5', 'MA10', 'MA20'],
+          textStyle: {
+            color: '#fff'
+          },
+          top: '0%'
+        },
+        axisPointer: {
+          link: [{ xAxisIndex: 'all' }]
+        },
+        grid: [
+          {
+            left: '3%',
+            right: '3%',
+            top: '12%',
+            height: '60%',
+            containLabel: true
+          },
+          {
+            left: '3%',
+            right: '3%',
+            top: '77%',
+            height: '16%',
+            containLabel: true
+          }
+        ],
+        xAxis: [
+          {
+            type: 'category',
+            data: [],
+            boundaryGap: true,
+            axisLine: {
+              lineStyle: {
+                color: '#3a3a3a'
+              }
+            },
+            axisLabel: {
+              show: false
+            },
+            gridIndex: 0
+          },
+          {
+            type: 'category',
+            data: [],
+            boundaryGap: true,
+            axisLine: {
+              lineStyle: {
+                color: '#3a3a3a'
+              }
+            },
+            axisLabel: {
+              color: '#fff',
+              fontSize: 10
+            },
+            gridIndex: 1
+          }
+        ],
+        yAxis: [
+          {
+            scale: true,
+            splitLine: {
+              lineStyle: {
+                color: '#3a3a3a'
+              }
+            },
+            axisLabel: {
+              color: '#fff'
+            },
+            gridIndex: 0
+          },
+          {
+            scale: true,
+            splitLine: {
+              show: false
+            },
+            axisLabel: {
+              color: '#fff',
+              fontSize: 10
+            },
+            gridIndex: 1,
+            splitNumber: 2
+          }
+        ],
+        dataZoom: [
+          {
+            type: 'inside',
+            xAxisIndex: [0, 1],
+            start: 0,
+            end: 100,
+            zoomOnMouseWheel: true,
+            moveOnMouseMove: true,
+            moveOnMouseWheel: false
+          }
+        ],
+        series: [
+          {
+            name: 'K线',
+            type: 'candlestick',
+            data: [],
+            itemStyle: {
+              color: '#ef5350',
+              color0: '#00c853',
+              borderColor: '#ef5350',
+              borderColor0: '#00c853'
+            },
+            xAxisIndex: 0,
+            yAxisIndex: 0
+          },
+          {
+            name: 'MA5',
+            type: 'line',
+            data: [],
+            smooth: true,
+            lineStyle: {
+              width: 1,
+              color: '#409eff'
+            },
+            showSymbol: false,
+            xAxisIndex: 0,
+            yAxisIndex: 0
+          },
+          {
+            name: 'MA10',
+            type: 'line',
+            data: [],
+            smooth: true,
+            lineStyle: {
+              width: 1,
+              color: '#e6a23c'
+            },
+            showSymbol: false,
+            xAxisIndex: 0,
+            yAxisIndex: 0
+          },
+          {
+            name: 'MA20',
+            type: 'line',
+            data: [],
+            smooth: true,
+            lineStyle: {
+              width: 1,
+              color: '#909399'
+            },
+            showSymbol: false,
+            xAxisIndex: 0,
+            yAxisIndex: 0
+          },
+          {
+            name: '成交量',
+            type: 'bar',
+            data: [],
+            itemStyle: {
+              color: function(params) {
+                return params.data.isUp ? '#ef5350' : '#00c853'
+              }
+            },
+            xAxisIndex: 1,
+            yAxisIndex: 1
+          }
+        ]
+      }
+      
+      csqaqChart.setOption(option)
+    }
+
+    // 加载CSQAQ K线图数据
+    const loadCSQAQData = async () => {
+      loadingCSQAQ.value = true
+      try {
+        const response = await axios.get('/spider/csqaqSpiderV1/getKline', {
+          params: {
+            period: csqaqPeriod.value
+          }
+        })
+        
+        if (response.data && response.data.code === 200) {
+          const data = response.data.data
+          updateCSQAQChart(data)
+        }
+      } catch (error) {
+        console.error('获取CSQAQ K线数据失败:', error)
+      } finally {
+        loadingCSQAQ.value = false
+      }
+    }
+
+    // 更新CSQAQ K线图
+    const updateCSQAQChart = (data) => {
+      if (!csqaqChart || !data || data.length === 0) return
+      
+      const times = data.map(item => item.time)
+      const klineData = data.map(item => [
+        parseFloat(item.open),
+        parseFloat(item.close),
+        parseFloat(item.low),
+        parseFloat(item.high)
+      ])
+      
+      // 计算成交量数据（根据涨跌设置颜色）
+      const volumeData = data.map((item, index) => {
+        const open = parseFloat(item.open)
+        const close = parseFloat(item.close)
+        const high = parseFloat(item.high)
+        const low = parseFloat(item.low)
+        let volume = parseFloat(item.volume || 0)
+        
+        // 如果成交量为0，使用价格波动幅度作为替代
+        if (volume === 0) {
+          volume = Math.abs(high - low) * 100
+        }
+        
+        return {
+          value: volume,
+          isUp: close >= open
+        }
+      })
+      
+      const ma5 = calculateMA(klineData, 5)
+      const ma10 = calculateMA(klineData, 10)
+      const ma20 = calculateMA(klineData, 20)
+      
+      // 默认显示最后36条数据
+      const defaultDisplayCount = 36
+      
+      const totalCount = data.length
+      const startPercent = Math.max(0, ((totalCount - defaultDisplayCount) / totalCount) * 100)
+      const endPercent = 100
+      
+      csqaqChart.setOption({
+        xAxis: [
+          {
+            data: times
+          },
+          {
+            data: times
+          }
+        ],
+        dataZoom: [
+          {
+            type: 'inside',
+            xAxisIndex: [0, 1],
+            start: startPercent,
+            end: endPercent,
+            zoomOnMouseWheel: true,
+            moveOnMouseMove: true,
+            moveOnMouseWheel: false
+          }
+        ],
+        series: [
+          {
+            data: klineData
+          },
+          {
+            data: ma5
+          },
+          {
+            data: ma10
+          },
+          {
+            data: ma20
+          },
+          {
+            data: volumeData
+          }
+        ]
+      })
+    }
+
+    // 切换CSQAQ K线周期
+    const changeCSQAQPeriod = (period) => {
+      csqaqPeriod.value = period
+      loadCSQAQData()
+    }
+
     // 处理窗口大小变化
     const handleResize = () => {
       if (inventoryChart) {
@@ -1890,6 +2221,9 @@ export default {
       }
       if (klineChart) {
         klineChart.resize()
+      }
+      if (csqaqChart) {
+        csqaqChart.resize()
       }
     }
 
@@ -1919,6 +2253,9 @@ export default {
         if (klineChartRef.value) {
           resizeObserver.observe(klineChartRef.value)
         }
+        if (csqaqChartRef.value) {
+          resizeObserver.observe(csqaqChartRef.value)
+        }
       }
     }
 
@@ -1939,6 +2276,10 @@ export default {
       // 初始化并加载K线图
       await initKlineChart()
       await loadKlineData()
+      
+      // 初始化并加载CSQAQ K线图
+      await initCSQAQChart()
+      await loadCSQAQData()
       
       // 初始化 ResizeObserver
       await nextTick()
@@ -2085,6 +2426,10 @@ export default {
         klineChart.dispose()
         klineChart = null
       }
+      if (csqaqChart) {
+        csqaqChart.dispose()
+        csqaqChart = null
+      }
     })
 
     // 图片404缓存
@@ -2137,12 +2482,15 @@ export default {
       buyChartRef,
       sellChartRef,
       klineChartRef,
+      csqaqChartRef,
       inventoryChartMode,
       componentChartMode,
       buyChartMode,
       sellChartMode,
       klinePeriod,
       loadingKline,
+      csqaqPeriod,
+      loadingCSQAQ,
       itemListVisible,
       selectedRange,
       filteredItems,
@@ -2164,7 +2512,8 @@ export default {
       getItemTitle,
       getWeaponImage,
       handleImageError,
-      changeKlinePeriod
+      changeKlinePeriod,
+      changeCSQAQPeriod
     }
   }
 }
