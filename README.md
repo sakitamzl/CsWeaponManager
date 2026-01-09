@@ -140,3 +140,9 @@ sometime = 14        # 日志保留天数
 ### 数据统计
 ![数据统计页面](Documents/imges/README/3.png)
 
+### 数据统计
+![数据统计页面](Documents/imges/README/4.png)
+
+### 数据统计
+![数据统计页面](Documents/imges/README/5.png)
+
