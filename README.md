@@ -4,8 +4,8 @@
 
 ## 📝 用前必看
 - 需要下载图包：[点击下载](https://drive.google.com/file/d/1Jz50N_op51l2xjMPzFX5SKO9rQMNr4nP/view?usp=drive_link)
-- 使用前必须在
-
+- 查看详细的版本更新记录：[更新日志](Documents/updateLog.md)
+- 使用指南 : [使用指南](Documents\首次使用指南.md)
 ## 📁 项目完整根目录结构
 
 ```
@@ -21,13 +21,6 @@ CsWeaponManager/
 ├── start_all.bat        # 一键启动脚本
 └── WebServer.exe        # 网页服务可执行文件
 ``` 
-
-
-## 📝 文档
-
-查看详细的版本更新记录：[更新日志](Documents/updateLog.md)
-
-使用指南 : [使用指南](Documents\首次使用指南.md)
 
 ## 📋 项目简介
 
