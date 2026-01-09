@@ -134,15 +134,15 @@ sometime = 14        # 日志保留天数
 ### 主界面
 ![系统主界面](Documents/imges/README/1.png)
 
-### 功能模块
+## 购入页面
 ![功能模块展示](Documents/imges/README/2.png)
 
-### 数据统计
+### 账号库存
 ![数据统计页面](Documents/imges/README/3.png)
 
-### 数据统计
+### 库存组件内容
 ![数据统计页面](Documents/imges/README/4.png)
 
-### 数据统计
+### 数据源
 ![数据统计页面](Documents/imges/README/5.png)
 
