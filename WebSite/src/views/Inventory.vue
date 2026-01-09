@@ -759,6 +759,14 @@
               <div class="preview-tags">
                 <el-tag v-if="previewItem.remark" type="warning" size="default">交易限制</el-tag>
               </div>
+
+              <!-- 操作按钮 -->
+              <div class="preview-action-buttons">
+                <el-button type="primary" @click="handleYYYPSell">悠悠出售</el-button>
+                <el-button type="primary" @click="handleYYYPRent">悠悠出租</el-button>
+                <el-button type="primary" @click="handleBuffSell">BUFF出售</el-button>
+                <el-button type="primary" @click="handleBuffRent">BUFF出租</el-button>
+              </div>
             </div>
           </div>
 
@@ -816,6 +824,11 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- 移入组件按钮 - 右下角 -->
+        <div class="preview-bottom-right-button">
+          <el-button type="success" @click="handleMoveToComponent">移入组件</el-button>
         </div>
       </div>
     </el-dialog>
@@ -1687,6 +1700,36 @@ export default {
       previewVisible.value = true
     }
 
+    // 悠悠出售按钮处理
+    const handleYYYPSell = () => {
+      ElMessage.info('悠悠出售功能待开发')
+      // TODO: 实现悠悠出售功能
+    }
+
+    // 悠悠出租按钮处理
+    const handleYYYPRent = () => {
+      ElMessage.info('悠悠出租功能待开发')
+      // TODO: 实现悠悠出租功能
+    }
+
+    // BUFF出售按钮处理
+    const handleBuffSell = () => {
+      ElMessage.info('BUFF出售功能待开发')
+      // TODO: 实现BUFF出售功能
+    }
+
+    // BUFF出租按钮处理
+    const handleBuffRent = () => {
+      ElMessage.info('BUFF出租功能待开发')
+      // TODO: 实现BUFF出租功能
+    }
+
+    // 移入组件按钮处理
+    const handleMoveToComponent = () => {
+      ElMessage.info('移入组件功能待开发')
+      // TODO: 实现移入组件功能
+    }
+
     // 解析贴纸JSON数据
     const parseStickers = (stickerJson) => {
       if (!stickerJson) return []
@@ -1967,6 +2010,11 @@ export default {
       previewVisible,
       previewItem,
       openPreview,
+      handleYYYPSell,
+      handleYYYPRent,
+      handleBuffSell,
+      handleBuffRent,
+      handleMoveToComponent,
       parsePendant,
       getExpandedItems,
       getExpandedTotal,
@@ -3170,11 +3218,45 @@ export default {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  min-height: 0;
 }
 
 .preview-tags .el-tag {
   font-size: 0.9rem;
   padding: 0.5rem 1rem;
+}
+
+/* 操作按钮样式 */
+.preview-action-buttons {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+  padding: 0;
+  border-top: none;
+}
+
+.preview-action-buttons .el-button {
+  flex: 1;
+  font-weight: 400;
+  font-size: 0.8rem;
+  padding: 0.4rem 0.5rem;
+  height: 32px;
+  min-height: 32px;
+}
+
+/* 右下角移入组件按钮 */
+.preview-bottom-right-button {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.preview-bottom-right-button .el-button {
+  font-weight: 400;
+  font-size: 0.85rem;
+  padding: 0.5rem 1.5rem;
 }
 
 /* 武器图片单元格样式 */

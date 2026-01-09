@@ -162,13 +162,14 @@ def get_all_buy():
     try:
         db = DatabaseManager()
         
-        # 查询所有购入数据
+        # 查询所有购入数据，只查询已完成的订单
         sql = """
         SELECT
             id, weapon_name, item_name, weapon_type, float_range,
             weapon_float, price, order_time, [from], data_user,
             status, status_sub, steam_hash_name
         FROM buy
+        WHERE status = '已完成'
         ORDER BY order_time DESC
         """
         
@@ -226,13 +227,14 @@ def get_all_sell():
     try:
         db = DatabaseManager()
         
-        # 查询所有出售数据
+        # 查询所有出售数据，只查询已完成的订单
         sql = """
         SELECT
             id, weapon_name, item_name, weapon_type, float_range,
             weapon_float, price, order_time, [from], data_user,
             status, status_sub, steam_hash_name
         FROM sell
+        WHERE status = '已完成'
         ORDER BY order_time DESC
         """
         
