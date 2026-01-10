@@ -3298,14 +3298,14 @@ export default {
 }
 
 .items-scroll {
-  flex: 1;
+  height: 80vh;
+  max-height: 80vh;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
   padding: 0.5rem;
   padding-right: 1rem;
-  min-height: 0;
 }
 
 .items-scroll::-webkit-scrollbar {
