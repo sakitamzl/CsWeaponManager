@@ -914,7 +914,7 @@
               :key="group.classid"
               class="grouped-section"
             >
-              <div class="group-card">
+              <div class="group-card" @click="toggleGroupExpand(group.classid)">
                 <div class="group-left">
                   <img
                     v-if="getWeaponImage(group.steamHashName)"
@@ -924,15 +924,27 @@
                   <div class="group-info">
                     <div class="group-name">{{ group.itemName }}</div>
                     <div class="group-meta">
-                      <span class="group-count">数量: {{ group.items.length }} 件</span>
+                      <span class="group-count">{{ group.items.length }} 件</span>
+                      <span v-if="group.weaponType" class="group-type">{{ group.weaponType }}</span>
                       <span v-if="getGroupAveragePrice(group)" class="group-avg-price">
                         均价: ¥{{ getGroupAveragePrice(group) }}
                       </span>
+                      <span v-if="getGroupPriceRange(group)" class="group-price-range">
+                        {{ getGroupPriceRange(group) }}
+                      </span>
                     </div>
+                    <div v-if="getGroupFloatRange(group)" class="group-float-range">
+                      磨损: {{ getGroupFloatRange(group) }}
+                    </div>
+                  </div>
+                  <div class="group-expand-icon">
+                    <el-icon :class="{ 'is-expanded': expandedGroups[group.classid] }">
+                      <ArrowDown />
+                    </el-icon>
                   </div>
                 </div>
                 
-                <div class="group-right">
+                <div class="group-right" @click.stop>
                   <el-form :model="groupForms[group.classid]" :rules="itemFormRules" :ref="el => groupFormRefs[group.classid] = el" class="inline-form">
                     <el-form-item prop="price">
                       <el-input 
@@ -950,6 +962,30 @@
                       {{ groupForms[group.classid].remark ? '已备注' : '备注' }}
                     </el-button>
                   </el-form>
+                </div>
+              </div>
+              
+              <!-- 展开的物品列表 -->
+              <div v-if="expandedGroups[group.classid]" class="group-items-list">
+                <div 
+                  v-for="item in group.items" 
+                  :key="item.assetid"
+                  class="group-item-detail"
+                >
+                  <div class="item-detail-row">
+                    <span v-if="item.buy_price" class="detail-label">
+                      购入: ¥{{ parseFloat(item.buy_price).toFixed(2) }}
+                    </span>
+                    <span v-if="item.weapon_float && item.weapon_float !== '0' && item.weapon_float !== '0.0'" class="detail-label">
+                      磨损: {{ item.weapon_float }}
+                    </span>
+                    <span v-if="item.rename" class="detail-label rename" :title="item.rename">
+                      🏷️ {{ item.rename }}
+                    </span>
+                    <span v-if="item.remark" class="detail-label remark" :title="item.remark">
+                      ⚠️ {{ item.remark }}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1131,6 +1167,7 @@
 <script>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { ArrowDown } from '@element-plus/icons-vue'
 import axios from 'axios'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
 
@@ -1217,6 +1254,7 @@ export default {
     const sellRentDialogType = ref('') // 'sell' 或 'rent'
     const submitting = ref(false)
     const isGroupedView = ref(false) // 是否组合显示
+    const expandedGroups = ref({}) // 记录哪些组是展开的
     
     // 每个物品的表单数据
     const itemForms = ref([])
@@ -1244,7 +1282,17 @@ export default {
       if (isGroupedView.value) {
         // 切换到组合模式时，初始化组合表单
         initGroupForms()
+        // 清空展开状态
+        expandedGroups.value = {}
+      } else {
+        // 切换回非组合模式时，重新初始化物品表单
+        initItemForms()
       }
+    }
+    
+    // 切换组的展开/折叠状态
+    const toggleGroupExpand = (classid) => {
+      expandedGroups.value[classid] = !expandedGroups.value[classid]
     }
     
     // 初始化组合表单
@@ -1253,19 +1301,39 @@ export default {
       groupFormRefs.value = {}
       
       // 按classid分组并初始化表单
+      const groupMap = new Map()
+      
       selectedItems.value.forEach(item => {
-        const classid = item.classid || 'unknown'
-        if (!groupForms.value[classid]) {
-          groupForms.value[classid] = {
-            price: '',
+        const classid = item.classid || `unknown_${item.assetid}`
+        
+        if (!groupMap.has(classid)) {
+          // 计算该组的平均购入价格作为默认值
+          const groupItems = selectedItems.value.filter(i => 
+            (i.classid || `unknown_${i.assetid}`) === classid
+          )
+          
+          const validPrices = groupItems
+            .map(i => parseFloat(i.buy_price))
+            .filter(p => !isNaN(p) && p > 0)
+          
+          const avgPrice = validPrices.length > 0
+            ? (validPrices.reduce((sum, p) => sum + p, 0) / validPrices.length).toFixed(2)
+            : ''
+          
+          groupMap.set(classid, {
+            price: avgPrice,
             remark: ''
-          }
+          })
         }
       })
+      
+      groupForms.value = Object.fromEntries(groupMap)
     }
     
     // 验证组合表单的价格输入
     const validateGroupPrice = (classid) => {
+      if (!groupForms.value[classid]) return
+      
       const value = groupForms.value[classid].price
       let newValue = value.replace(/[^\d.]/g, '')
       
@@ -1284,7 +1352,7 @@ export default {
     // 打开组合备注弹窗
     const openGroupRemarkDialog = (classid) => {
       currentRemarkIndex.value = classid
-      currentRemark.value = groupForms.value[classid].remark || ''
+      currentRemark.value = groupForms.value[classid]?.remark || ''
       remarkDialogVisible.value = true
     }
     
@@ -1299,31 +1367,40 @@ export default {
     // 按 classid 分组物品
     const groupedItems = computed(() => {
       if (!isGroupedView.value) {
-        return null
+        return []
       }
       
-      const groups = {}
+      const groupMap = new Map()
+      
       selectedItems.value.forEach((item, index) => {
-        const classid = item.classid || 'unknown'
-        if (!groups[classid]) {
-          groups[classid] = {
+        const classid = item.classid || `unknown_${item.assetid}`
+        
+        if (!groupMap.has(classid)) {
+          groupMap.set(classid, {
             classid: classid,
             items: [],
             itemName: item.item_name,
-            steamHashName: item.steam_hash_name
-          }
+            steamHashName: item.steam_hash_name,
+            weaponType: item.weapon_type
+          })
         }
-        groups[classid].items.push({
+        
+        groupMap.get(classid).items.push({
           ...item,
           originalIndex: index
         })
       })
       
-      return Object.values(groups)
+      // 转换为数组并按物品数量降序排序
+      return Array.from(groupMap.values()).sort((a, b) => b.items.length - a.items.length)
     })
 
     // 计算组的平均购入价格
     const getGroupAveragePrice = (group) => {
+      if (!group || !group.items || group.items.length === 0) {
+        return null
+      }
+      
       const validPrices = group.items
         .map(item => parseFloat(item.buy_price))
         .filter(price => !isNaN(price) && price > 0)
@@ -1335,6 +1412,54 @@ export default {
       const sum = validPrices.reduce((acc, price) => acc + price, 0)
       const avg = sum / validPrices.length
       return avg.toFixed(2)
+    }
+    
+    // 获取组的价格范围
+    const getGroupPriceRange = (group) => {
+      if (!group || !group.items || group.items.length === 0) {
+        return null
+      }
+      
+      const validPrices = group.items
+        .map(item => parseFloat(item.buy_price))
+        .filter(price => !isNaN(price) && price > 0)
+      
+      if (validPrices.length === 0) {
+        return null
+      }
+      
+      const min = Math.min(...validPrices)
+      const max = Math.max(...validPrices)
+      
+      if (min === max) {
+        return `¥${min.toFixed(2)}`
+      }
+      
+      return `¥${min.toFixed(2)} - ¥${max.toFixed(2)}`
+    }
+    
+    // 获取组的磨损范围
+    const getGroupFloatRange = (group) => {
+      if (!group || !group.items || group.items.length === 0) {
+        return null
+      }
+      
+      const validFloats = group.items
+        .map(item => parseFloat(item.weapon_float))
+        .filter(f => !isNaN(f) && f > 0)
+      
+      if (validFloats.length === 0) {
+        return null
+      }
+      
+      const min = Math.min(...validFloats)
+      const max = Math.max(...validFloats)
+      
+      if (min === max) {
+        return min.toFixed(8)
+      }
+      
+      return `${min.toFixed(8)} - ${max.toFixed(8)}`
     }
 
     // 懒加载图片观察器
@@ -2243,29 +2368,43 @@ export default {
         
         if (isGroupedView.value) {
           // 组合模式：验证所有组的表单
-          const groupValidations = Object.keys(groupForms.value).map(classid => {
+          const groupValidations = []
+          
+          for (const classid of Object.keys(groupForms.value)) {
             const formRef = groupFormRefs.value[classid]
-            return formRef ? formRef.validate() : Promise.resolve()
-          })
+            if (formRef) {
+              groupValidations.push(formRef.validate().catch(() => {
+                throw new Error(`组 ${classid} 的价格验证失败`)
+              }))
+            }
+          }
           
           await Promise.all(groupValidations)
           
           // 将组合数据展开为每个物品的数据
           selectedItems.value.forEach(item => {
-            const classid = item.classid || 'unknown'
+            const classid = item.classid || `unknown_${item.assetid}`
             const groupForm = groupForms.value[classid]
+            
+            if (!groupForm) {
+              console.warn(`物品 ${item.assetid} 没有对应的组表单数据`)
+              return
+            }
+            
             itemsData.push({
               assetid: item.assetid,
               name: getCardTitle(item),
               price: groupForm.price,
-              remark: groupForm.remark
+              remark: groupForm.remark || ''
             })
           })
         } else {
           // 非组合模式：验证所有物品的表单
           const validationPromises = itemFormRefs.value
             .filter(ref => ref)
-            .map(ref => ref.validate())
+            .map((ref, index) => ref.validate().catch(() => {
+              throw new Error(`第 ${index + 1} 件物品的价格验证失败`)
+            }))
           
           await Promise.all(validationPromises)
           
@@ -2274,8 +2413,14 @@ export default {
             assetid: item.assetid,
             name: getCardTitle(item),
             price: itemForms.value[index].price,
-            remark: itemForms.value[index].remark
+            remark: itemForms.value[index].remark || ''
           }))
+        }
+        
+        // 验证是否有数据
+        if (itemsData.length === 0) {
+          ElMessage.warning('没有可提交的物品数据')
+          return
         }
         
         submitting.value = true
@@ -2295,11 +2440,12 @@ export default {
         sellRentDialogVisible.value = false
         selectedItems.value = []
         isMultiSelectMode.value = false
+        isGroupedView.value = false
         
       } catch (error) {
         if (error !== false) {
           console.error('操作失败:', error)
-          ElMessage.error('请检查所有物品的价格是否填写正确')
+          ElMessage.error(error.message || '请检查所有物品的价格是否填写正确')
         }
       } finally {
         submitting.value = false
@@ -2663,6 +2809,10 @@ export default {
       toggleGroupedView,
       groupedItems,
       getGroupAveragePrice,
+      getGroupPriceRange,
+      getGroupFloatRange,
+      expandedGroups,
+      toggleGroupExpand,
       groupForms,
       groupFormRefs,
       validateGroupPrice,
@@ -2672,10 +2822,6 @@ export default {
       currentRemark,
       openRemarkDialog,
       saveRemark,
-      // 备注弹窗
-      remarkDialogVisible,
-      currentRemark,
-      openRemarkDialog,
       saveRemark,
       // 备注弹窗
       remarkDialogVisible,
@@ -2687,7 +2833,9 @@ export default {
       currentRemarkIndex,
       currentRemark,
       openRemarkDialog,
-      saveRemark
+      saveRemark,
+      // 图标组件
+      ArrowDown
     }
   }
 }
@@ -2820,11 +2968,12 @@ export default {
 
 /* 组合显示样式 - 重新设计 */
 .grouped-section {
-  margin-bottom: 1rem;
+  margin-bottom: 0;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.02);
+  flex-shrink: 0;
 }
 
 .group-card {
@@ -2832,8 +2981,14 @@ export default {
   align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
-  padding: 1rem;
+  padding: 1.25rem 1.5rem;
   background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.group-card:hover {
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .group-left {
@@ -2870,21 +3025,101 @@ export default {
   display: flex;
   align-items: center;
   gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .group-count {
   color: #4CAF50;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.group-type {
+  color: #2196F3;
+  font-size: 0.85rem;
+  padding: 2px 8px;
+  background: rgba(33, 150, 243, 0.1);
+  border-radius: 4px;
+}
+
+.group-avg-price {
+  color: #FFC107;
   font-size: 0.85rem;
   font-weight: 500;
 }
 
-.group-avg-price {
+.group-price-range {
   color: #999;
   font-size: 0.85rem;
 }
 
+.group-float-range {
+  color: #999;
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+  font-family: monospace;
+}
+
+.group-expand-icon {
+  margin-left: auto;
+  color: #999;
+  transition: transform 0.3s ease;
+}
+
+.group-expand-icon .is-expanded {
+  transform: rotate(180deg);
+}
+
 .group-right {
   flex-shrink: 0;
+}
+
+.group-items-list {
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.group-item-detail {
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-left: 2px solid rgba(76, 175, 80, 0.3);
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+}
+
+.group-item-detail:last-child {
+  margin-bottom: 0;
+}
+
+.item-detail-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.detail-label {
+  color: #999;
+  font-size: 0.85rem;
+}
+
+.detail-label.rename {
+  color: #67C23A;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 300px;
+}
+
+.detail-label.remark {
+  color: #E6A23C;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 300px;
 }
 
 .grouped-item-info {
@@ -2922,8 +3157,27 @@ export default {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding-right: 0.5rem;
+  gap: 1.25rem;
+  padding: 0.5rem;
+  padding-right: 1rem;
+}
+
+.items-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.items-scroll::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.items-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.items-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .selected-item-card {
@@ -2935,6 +3189,7 @@ export default {
   border-radius: 8px;
   padding: 1rem;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .selected-item-card:hover {
@@ -3085,7 +3340,8 @@ export default {
   border-radius: 2px;
   overflow: hidden;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  width: 100px;
+  width: 100px !important;
+  max-width: 100px;
   flex-shrink: 0;
 }
 
@@ -4693,7 +4949,8 @@ export default {
   display: flex;
   border-radius: 2px;
   overflow: hidden;
-  width: 100%;
+  width: 100px;
+  max-width: 100px;
   margin-top: 2px;
 }
 
