@@ -795,13 +795,23 @@
         <div class="selected-items-list-with-inputs">
           <div class="list-header">
             <h4>选中的物品 ({{ selectedItems.length }}件)</h4>
-            <el-button 
-              size="small" 
-              @click="toggleGroupedView"
-              :type="isGroupedView ? 'primary' : 'default'"
-            >
-              {{ isGroupedView ? '取消组合' : '组合显示' }}
-            </el-button>
+            <div class="header-actions">
+              <el-button 
+                v-if="isGroupedView"
+                size="small" 
+                type="success"
+                @click="autoFillGroupPrices"
+              >
+                自动填充价格
+              </el-button>
+              <el-button 
+                size="small" 
+                @click="toggleGroupedView"
+                :type="isGroupedView ? 'primary' : 'default'"
+              >
+                {{ isGroupedView ? '取消组合' : '组合显示' }}
+              </el-button>
+            </div>
           </div>
           
           <!-- 非组合显示 -->
@@ -925,16 +935,12 @@
                     <div class="group-name">{{ group.itemName }}</div>
                     <div class="group-meta">
                       <span class="group-count">{{ group.items.length }} 件</span>
-                      <span v-if="group.weaponType" class="group-type">{{ group.weaponType }}</span>
                       <span v-if="getGroupAveragePrice(group)" class="group-avg-price">
                         均价: ¥{{ getGroupAveragePrice(group) }}
                       </span>
                       <span v-if="getGroupPriceRange(group)" class="group-price-range">
                         {{ getGroupPriceRange(group) }}
                       </span>
-                    </div>
-                    <div v-if="getGroupFloatRange(group)" class="group-float-range">
-                      磨损: {{ getGroupFloatRange(group) }}
                     </div>
                   </div>
                   <div class="group-expand-icon">
@@ -1300,14 +1306,32 @@ export default {
       groupForms.value = {}
       groupFormRefs.value = {}
       
-      // 按classid分组并初始化表单
+      // 按classid分组并初始化表单（不自动填充价格）
       const groupMap = new Map()
       
       selectedItems.value.forEach(item => {
         const classid = item.classid || `unknown_${item.assetid}`
         
         if (!groupMap.has(classid)) {
-          // 计算该组的平均购入价格作为默认值
+          groupMap.set(classid, {
+            price: '',
+            remark: ''
+          })
+        }
+      })
+      
+      groupForms.value = Object.fromEntries(groupMap)
+    }
+    
+    // 自动填充组合价格（使用平均购入价）
+    const autoFillGroupPrices = () => {
+      const groupMap = new Map()
+      
+      selectedItems.value.forEach(item => {
+        const classid = item.classid || `unknown_${item.assetid}`
+        
+        if (!groupMap.has(classid)) {
+          // 计算该组的平均购入价格
           const groupItems = selectedItems.value.filter(i => 
             (i.classid || `unknown_${i.assetid}`) === classid
           )
@@ -1320,14 +1344,18 @@ export default {
             ? (validPrices.reduce((sum, p) => sum + p, 0) / validPrices.length).toFixed(2)
             : ''
           
-          groupMap.set(classid, {
-            price: avgPrice,
-            remark: ''
-          })
+          groupMap.set(classid, avgPrice)
         }
       })
       
-      groupForms.value = Object.fromEntries(groupMap)
+      // 填充价格到表单
+      groupMap.forEach((avgPrice, classid) => {
+        if (groupForms.value[classid]) {
+          groupForms.value[classid].price = avgPrice
+        }
+      })
+      
+      ElMessage.success('已自动填充平均购入价格')
     }
     
     // 验证组合表单的价格输入
@@ -2811,6 +2839,7 @@ export default {
       getGroupAveragePrice,
       getGroupPriceRange,
       getGroupFloatRange,
+      autoFillGroupPrices,
       expandedGroups,
       toggleGroupExpand,
       groupForms,
@@ -2964,6 +2993,12 @@ export default {
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--border-color);
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
 }
 
 /* 组合显示样式 - 重新设计 */
