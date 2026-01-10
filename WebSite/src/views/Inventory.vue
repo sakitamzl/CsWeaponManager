@@ -3025,16 +3025,11 @@ export default {
 
 /* 有交易限制的卡片样式 */
 .inventory-card.trade-restricted {
-  opacity: 0.5;
   cursor: not-allowed !important;
-  filter: grayscale(0.3);
-  pointer-events: auto;
 }
 
 .inventory-card.trade-restricted:hover {
-  transform: none !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
 }
 
 /* 出售/出租弹窗样式 */
@@ -3958,7 +3953,15 @@ export default {
 .inventory-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.inventory-card:not(.selected):hover {
   border-color: var(--el-color-primary);
+}
+
+.inventory-card.selected:hover {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 2px var(--el-color-primary);
 }
 
 .card-image {
