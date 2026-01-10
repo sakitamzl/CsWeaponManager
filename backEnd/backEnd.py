@@ -35,7 +35,7 @@ from src.web_side.webSide.buy_page import webBuyPageV1
 from src.web_side.webSide.sell_page import webSellPageV1
 from src.web_side.webSide.lent_page import webLentPageV1
 from src.web_side.webSide.message_box_page import webMessageBoxPageV1
-from src.web_side.webSide.inventory import webInventoryV1
+from src.web_side.webSide.inventory_api import webInventoryV1
 from src.web_side.webSide.stock_components import webStockComponentsV1
 from src.web_side.webSide.home.home_charts import webHomeChartsV1
 from src.web_side.prefectWorld.prefectworld_config import prefectWorldConfigV1
