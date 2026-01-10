@@ -702,58 +702,59 @@
     <el-dialog
       v-model="sellRentDialogVisible"
       :title="sellRentDialogTitle"
-      width="700px"
+      width="800px"
       :close-on-click-modal="false"
       class="sell-rent-dialog"
     >
       <div class="sell-rent-content">
-        <div class="selected-items-list">
+        <div class="selected-items-list-with-inputs">
           <h4>选中的物品 ({{ selectedItems.length }}件)</h4>
           <div class="items-scroll">
             <div 
-              v-for="item in selectedItems" 
+              v-for="(item, index) in selectedItems" 
               :key="item.assetid"
-              class="selected-item-row"
+              class="selected-item-card"
             >
-              <img
-                v-if="getWeaponImage(item.steam_hash_name)"
-                :src="getWeaponImage(item.steam_hash_name)"
-                :alt="item.item_name"
-                class="item-thumb"
-              />
-              <div class="item-info">
-                <div class="item-name">{{ getCardTitle(item) }}</div>
-                <div class="item-price" v-if="item.buy_price">
-                  购入价: ¥{{ parseFloat(item.buy_price).toFixed(2) }}
+              <div class="item-left">
+                <img
+                  v-if="getWeaponImage(item.steam_hash_name)"
+                  :src="getWeaponImage(item.steam_hash_name)"
+                  :alt="item.item_name"
+                  class="item-thumb"
+                />
+                <div class="item-info">
+                  <div class="item-name">{{ getCardTitle(item) }}</div>
+                  <div class="item-buy-price" v-if="item.buy_price">
+                    购入价: ¥{{ parseFloat(item.buy_price).toFixed(2) }}
+                  </div>
                 </div>
+              </div>
+              
+              <div class="item-right">
+                <el-form :model="itemForms[index]" :rules="itemFormRules" :ref="el => itemFormRefs[index] = el" class="inline-form">
+                  <el-form-item prop="price">
+                    <el-input 
+                      v-model="itemForms[index].price" 
+                      placeholder="价格"
+                      @input="validateItemPrice(index)"
+                      size="small"
+                    >
+                      <template #prepend>¥</template>
+                    </el-input>
+                  </el-form-item>
+                  <el-form-item prop="remark">
+                    <el-input 
+                      v-model="itemForms[index].remark" 
+                      placeholder="备注（可选）"
+                      maxlength="200"
+                      size="small"
+                    />
+                  </el-form-item>
+                </el-form>
               </div>
             </div>
           </div>
-        </div>
-        
-        <div class="sell-rent-form">
-          <el-form :model="sellRentForm" :rules="sellRentRules" ref="sellRentFormRef" label-width="100px">
-            <el-form-item label="价格" prop="price">
-              <el-input 
-                v-model="sellRentForm.price" 
-                placeholder="请输入价格"
-                @input="validatePrice"
-              >
-                <template #prepend>¥</template>
-              </el-input>
-              <div class="form-tip">只允许输入数字，最多两位小数</div>
-            </el-form-item>
-            <el-form-item label="备注" prop="remark">
-              <el-input 
-                v-model="sellRentForm.remark" 
-                type="textarea"
-                :rows="3"
-                placeholder="请输入备注信息（可选）"
-                maxlength="200"
-                show-word-limit
-              />
-            </el-form-item>
-          </el-form>
+          <div class="form-tip">每个物品的价格只允许输入数字，最多两位小数</div>
         </div>
       </div>
       
@@ -988,20 +989,19 @@ export default {
     const sellRentDialogVisible = ref(false)
     const sellRentDialogTitle = ref('')
     const sellRentDialogType = ref('') // 'sell' 或 'rent'
-    const sellRentForm = ref({
-      price: '',
-      remark: ''
-    })
-    const sellRentFormRef = ref(null)
     const submitting = ref(false)
     
-    // 表单验证规则
-    const sellRentRules = {
+    // 每个物品的表单数据
+    const itemForms = ref([])
+    const itemFormRefs = ref([])
+    
+    // 单个物品表单验证规则
+    const itemFormRules = {
       price: [
         { required: true, message: '请输入价格', trigger: 'blur' },
         { 
           pattern: /^\d+(\.\d{1,2})?$/, 
-          message: '价格格式不正确，只允许数字和最多两位小数', 
+          message: '价格格式不正确', 
           trigger: 'blur' 
         }
       ]
@@ -1853,6 +1853,15 @@ export default {
       }
     }
     
+    // 初始化物品表单
+    const initItemForms = () => {
+      itemForms.value = selectedItems.value.map(() => ({
+        price: '',
+        remark: ''
+      }))
+      itemFormRefs.value = []
+    }
+    
     // 显示出售弹窗
     const showSellDialog = () => {
       if (selectedItems.value.length === 0) {
@@ -1861,10 +1870,7 @@ export default {
       }
       sellRentDialogType.value = 'sell'
       sellRentDialogTitle.value = '出售物品'
-      sellRentForm.value = {
-        price: '',
-        remark: ''
-      }
+      initItemForms()
       sellRentDialogVisible.value = true
     }
     
@@ -1876,15 +1882,13 @@ export default {
       }
       sellRentDialogType.value = 'rent'
       sellRentDialogTitle.value = '出租物品'
-      sellRentForm.value = {
-        price: '',
-        remark: ''
-      }
+      initItemForms()
       sellRentDialogVisible.value = true
     }
     
-    // 验证价格输入
-    const validatePrice = (value) => {
+    // 验证单个物品的价格输入
+    const validateItemPrice = (index) => {
+      const value = itemForms.value[index].price
       // 只允许数字和小数点
       let newValue = value.replace(/[^\d.]/g, '')
       
@@ -1899,34 +1903,37 @@ export default {
         newValue = parts[0] + '.' + parts[1].substring(0, 2)
       }
       
-      sellRentForm.value.price = newValue
+      itemForms.value[index].price = newValue
     }
     
     // 确认出售/出租
     const confirmSellRent = async () => {
-      if (!sellRentFormRef.value) return
-      
       try {
-        await sellRentFormRef.value.validate()
+        // 验证所有物品的表单
+        const validationPromises = itemFormRefs.value
+          .filter(ref => ref) // 过滤掉 null/undefined
+          .map(ref => ref.validate())
+        
+        await Promise.all(validationPromises)
         
         submitting.value = true
         
         // TODO: 调用后端API进行出售/出租操作
         const action = sellRentDialogType.value === 'sell' ? '出售' : '出租'
         
-        console.log(`${action}物品:`, {
-          items: selectedItems.value.map(item => ({
-            assetid: item.assetid,
-            name: getCardTitle(item)
-          })),
-          price: sellRentForm.value.price,
-          remark: sellRentForm.value.remark
-        })
+        const itemsData = selectedItems.value.map((item, index) => ({
+          assetid: item.assetid,
+          name: getCardTitle(item),
+          price: itemForms.value[index].price,
+          remark: itemForms.value[index].remark
+        }))
+        
+        console.log(`${action}物品:`, itemsData)
         
         // 模拟API调用
         await new Promise(resolve => setTimeout(resolve, 1000))
         
-        ElMessage.success(`${action}操作提交成功`)
+        ElMessage.success(`${action}操作提交成功，共${selectedItems.value.length}件物品`)
         
         // 关闭弹窗并清空选择
         sellRentDialogVisible.value = false
@@ -1936,7 +1943,7 @@ export default {
       } catch (error) {
         if (error !== false) { // 表单验证失败会返回false
           console.error('操作失败:', error)
-          ElMessage.error('操作失败: ' + (error.message || '未知错误'))
+          ElMessage.error('请检查所有物品的价格是否填写正确')
         }
       } finally {
         submitting.value = false
@@ -2287,13 +2294,13 @@ export default {
       sellRentDialogVisible,
       sellRentDialogTitle,
       sellRentDialogType,
-      sellRentForm,
-      sellRentFormRef,
-      sellRentRules,
+      itemForms,
+      itemFormRefs,
+      itemFormRules,
       submitting,
       showSellDialog,
       showRentDialog,
-      validatePrice,
+      validateItemPrice,
       confirmSellRent
     }
   }
@@ -2400,17 +2407,17 @@ export default {
 .sell-rent-content {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
-.selected-items-list {
+.selected-items-list-with-inputs {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 1rem;
 }
 
-.selected-items-list h4 {
+.selected-items-list-with-inputs h4 {
   color: #fff;
   margin: 0 0 1rem 0;
   font-size: 1rem;
@@ -2419,32 +2426,41 @@ export default {
 }
 
 .items-scroll {
-  max-height: 300px;
+  max-height: 500px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
+  padding-right: 0.5rem;
 }
 
-.selected-item-row {
+.selected-item-card {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem;
+  align-items: flex-start;
+  gap: 1.5rem;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
+  border-radius: 8px;
+  padding: 1rem;
   transition: all 0.2s ease;
 }
 
-.selected-item-row:hover {
+.selected-item-card:hover {
   background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(76, 175, 80, 0.5);
+  border-color: rgba(76, 175, 80, 0.3);
+}
+
+.item-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .item-thumb {
-  width: 60px;
-  height: 60px;
+  width: 80px;
+  height: 80px;
   object-fit: contain;
   background: var(--bg-tertiary);
   border-radius: 4px;
@@ -2458,41 +2474,62 @@ export default {
 
 .item-name {
   color: #fff;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 500;
-  margin-bottom: 0.25rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+  word-break: break-word;
 }
 
-.item-price {
+.item-buy-price {
   color: #999;
   font-size: 0.85rem;
 }
 
-.sell-rent-form {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 1rem;
+.item-right {
+  flex: 0 0 auto;
+  padding: 0;
+  display: flex;
+  align-items: center;
 }
 
-.sell-rent-form :deep(.el-form-item__label) {
-  color: #fff;
+.inline-form {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
 }
 
-.sell-rent-form :deep(.el-input__inner),
-.sell-rent-form :deep(.el-textarea__inner) {
+.inline-form :deep(.el-form-item) {
+  margin-bottom: 0;
+}
+
+.inline-form :deep(.el-form-item:first-child) {
+  width: 140px;
+}
+
+.inline-form :deep(.el-form-item:last-child) {
+  width: 180px;
+}
+
+.item-right :deep(.el-input__inner) {
   background-color: #2a2a2a;
   border-color: #333;
   color: #fff;
 }
 
+.item-right :deep(.el-input-group__prepend) {
+  background-color: #1a1a1a;
+  border-color: #333;
+  color: #999;
+}
+
 .form-tip {
   color: #999;
   font-size: 0.75rem;
-  margin-top: 0.25rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+  text-align: center;
 }
 
 /* 懒加载图片样式 */
