@@ -559,13 +559,6 @@
           :data-assetid="item.assetid"
           @click="handleCardClick(item)"
         >
-          <!-- 多选模式下的选中标记 -->
-          <div v-if="isMultiSelectMode" class="select-checkbox">
-            <el-checkbox 
-              :model-value="isItemSelected(item.assetid)" 
-              @click.stop="toggleItemSelection(item)"
-            />
-          </div>
           <div class="card-image">
             <img
               v-if="getWeaponImage(item.steam_hash_name)"
@@ -2945,28 +2938,6 @@ export default {
   border-color: var(--el-color-primary);
   background: rgba(64, 158, 255, 0.1);
   box-shadow: 0 0 0 2px var(--el-color-primary);
-}
-
-.select-checkbox {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  z-index: 10;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
-  border-radius: 4px;
-  padding: 4px;
-}
-
-.select-checkbox :deep(.el-checkbox__inner) {
-  width: 20px;
-  height: 20px;
-}
-
-.select-checkbox :deep(.el-checkbox__inner::after) {
-  width: 6px;
-  height: 10px;
-  left: 6px;
 }
 
 /* 出售/出租弹窗样式 */
