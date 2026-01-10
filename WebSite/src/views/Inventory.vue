@@ -793,8 +793,19 @@
     >
       <div class="sell-rent-content">
         <div class="selected-items-list-with-inputs">
-          <h4>选中的物品 ({{ selectedItems.length }}件)</h4>
-          <div class="items-scroll">
+          <div class="list-header">
+            <h4>选中的物品 ({{ selectedItems.length }}件)</h4>
+            <el-button 
+              size="small" 
+              @click="toggleGroupedView"
+              :type="isGroupedView ? 'primary' : 'default'"
+            >
+              {{ isGroupedView ? '取消组合' : '组合显示' }}
+            </el-button>
+          </div>
+          
+          <!-- 非组合显示 -->
+          <div v-if="!isGroupedView" class="items-scroll">
             <div 
               v-for="(item, index) in selectedItems" 
               :key="item.assetid"
@@ -843,23 +854,21 @@
                 <div class="item-info">
                   <div class="item-name">{{ getCardTitle(item) }}</div>
                   <div class="item-details">
-                    <div class="item-buy-price" v-if="item.buy_price">
-                      购入价: ¥{{ parseFloat(item.buy_price).toFixed(2) }}
-                    </div>
-                    
                     <!-- 磨损进度条 -->
                     <div class="item-float-bar" v-if="item.weapon_float && item.weapon_float !== '0' && item.weapon_float !== '0.0'">
-                      <div class="float-value-text">{{ item.weapon_float }}</div>
-                      <div class="float-bar-mini">
-                        <div class="float-segment fn"></div>
-                        <div class="float-segment mw"></div>
-                        <div class="float-segment ft"></div>
-                        <div class="float-segment ww"></div>
-                        <div class="float-segment bs"></div>
-                        <div
-                          class="float-pointer"
-                          :style="{ left: `${parseFloat(item.weapon_float) * 100}%` }"
-                        ></div>
+                      <div class="float-row">
+                        <div class="float-bar-mini">
+                          <div class="float-segment fn"></div>
+                          <div class="float-segment mw"></div>
+                          <div class="float-segment ft"></div>
+                          <div class="float-segment ww"></div>
+                          <div class="float-segment bs"></div>
+                          <div
+                            class="float-pointer"
+                            :style="{ left: `${parseFloat(item.weapon_float) * 100}%` }"
+                          ></div>
+                        </div>
+                        <div class="float-value-text">{{ item.weapon_float }}</div>
                       </div>
                     </div>
                     
@@ -867,6 +876,10 @@
                     <div class="item-rename" v-if="item.rename">
                       <span class="rename-icon">🏷️</span>
                       <span class="rename-value" :title="item.rename">{{ item.rename }}</span>
+                    </div>
+                    
+                    <div class="item-buy-price" v-if="item.buy_price">
+                      购入价: ¥{{ parseFloat(item.buy_price).toFixed(2) }}
                     </div>
                   </div>
                 </div>
@@ -893,6 +906,72 @@
               </div>
             </div>
           </div>
+          
+          <!-- 组合显示 -->
+          <div v-else class="items-scroll">
+            <div 
+              v-for="group in groupedItems" 
+              :key="group.classid"
+              class="grouped-section"
+            >
+              <div class="group-header">
+                <img
+                  v-if="getWeaponImage(group.steamHashName)"
+                  :src="getWeaponImage(group.steamHashName)"
+                  class="group-thumb"
+                />
+                <div class="group-info">
+                  <div class="group-name">{{ group.itemName }}</div>
+                  <div class="group-count">共 {{ group.items.length }} 件</div>
+                </div>
+              </div>
+              
+              <div class="group-items">
+                <div class="group-form">
+                  <el-form :model="groupForms[group.classid]" :rules="itemFormRules" :ref="el => groupFormRefs[group.classid] = el" class="inline-form">
+                    <el-form-item prop="price">
+                      <el-input 
+                        v-model="groupForms[group.classid].price" 
+                        placeholder="统一价格"
+                        @input="validateGroupPrice(group.classid)"
+                        size="small"
+                      />
+                    </el-form-item>
+                    <el-button 
+                      size="small" 
+                      @click="openGroupRemarkDialog(group.classid)"
+                      :type="groupForms[group.classid].remark ? 'success' : 'default'"
+                    >
+                      {{ groupForms[group.classid].remark ? '已备注' : '备注' }}
+                    </el-button>
+                  </el-form>
+                </div>
+                
+                <div class="group-items-list">
+                  <div 
+                    v-for="item in group.items" 
+                    :key="item.assetid"
+                    class="grouped-item-card"
+                  >
+                    <div class="grouped-item-info">
+                      <div class="grouped-item-details">
+                        <div class="item-buy-price" v-if="item.buy_price">
+                          购入: ¥{{ parseFloat(item.buy_price).toFixed(2) }}
+                        </div>
+                        <div class="item-float-inline" v-if="item.weapon_float && item.weapon_float !== '0' && item.weapon_float !== '0.0'">
+                          磨损: {{ item.weapon_float }}
+                        </div>
+                        <div class="item-rename-inline" v-if="item.rename">
+                          🏷️ {{ item.rename }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
           <div class="form-tip">每个物品的价格只允许输入数字，最多两位小数</div>
         </div>
       </div>
@@ -1121,7 +1200,7 @@ export default {
     const previewItem = ref(null)
 
     // 多选模式相关
-    const isMultiSelectMode = ref(false)
+    const isMultiSelectMode = ref(true) // 默认开启多选模式
     const selectedItems = ref([])
     
     // 备注弹窗相关
@@ -1138,10 +1217,16 @@ export default {
     
     // 保存备注
     const saveRemark = () => {
-      if (currentRemarkIndex.value >= 0) {
-        itemForms.value[currentRemarkIndex.value].remark = currentRemark.value
+      if (isGroupedView.value) {
+        // 组合模式下保存组合备注
+        saveGroupRemark()
+      } else {
+        // 非组合模式下保存单个物品备注
+        if (currentRemarkIndex.value >= 0) {
+          itemForms.value[currentRemarkIndex.value].remark = currentRemark.value
+        }
+        remarkDialogVisible.value = false
       }
-      remarkDialogVisible.value = false
     }
     
     // 出售/出租弹窗相关
@@ -1149,10 +1234,15 @@ export default {
     const sellRentDialogTitle = ref('')
     const sellRentDialogType = ref('') // 'sell' 或 'rent'
     const submitting = ref(false)
+    const isGroupedView = ref(false) // 是否组合显示
     
     // 每个物品的表单数据
     const itemForms = ref([])
     const itemFormRefs = ref([])
+    
+    // 组合模式下的表单数据（按classid）
+    const groupForms = ref({})
+    const groupFormRefs = ref({})
     
     // 单个物品表单验证规则
     const itemFormRules = {
@@ -1165,6 +1255,90 @@ export default {
         }
       ]
     }
+    
+    // 切换组合显示
+    const toggleGroupedView = () => {
+      isGroupedView.value = !isGroupedView.value
+      if (isGroupedView.value) {
+        // 切换到组合模式时，初始化组合表单
+        initGroupForms()
+      }
+    }
+    
+    // 初始化组合表单
+    const initGroupForms = () => {
+      groupForms.value = {}
+      groupFormRefs.value = {}
+      
+      // 按classid分组并初始化表单
+      selectedItems.value.forEach(item => {
+        const classid = item.classid || 'unknown'
+        if (!groupForms.value[classid]) {
+          groupForms.value[classid] = {
+            price: '',
+            remark: ''
+          }
+        }
+      })
+    }
+    
+    // 验证组合表单的价格输入
+    const validateGroupPrice = (classid) => {
+      const value = groupForms.value[classid].price
+      let newValue = value.replace(/[^\d.]/g, '')
+      
+      const parts = newValue.split('.')
+      if (parts.length > 2) {
+        newValue = parts[0] + '.' + parts.slice(1).join('')
+      }
+      
+      if (parts.length === 2 && parts[1].length > 2) {
+        newValue = parts[0] + '.' + parts[1].substring(0, 2)
+      }
+      
+      groupForms.value[classid].price = newValue
+    }
+    
+    // 打开组合备注弹窗
+    const openGroupRemarkDialog = (classid) => {
+      currentRemarkIndex.value = classid
+      currentRemark.value = groupForms.value[classid].remark || ''
+      remarkDialogVisible.value = true
+    }
+    
+    // 保存组合备注
+    const saveGroupRemark = () => {
+      if (currentRemarkIndex.value && groupForms.value[currentRemarkIndex.value]) {
+        groupForms.value[currentRemarkIndex.value].remark = currentRemark.value
+      }
+      remarkDialogVisible.value = false
+    }
+    
+    // 按 classid 分组物品
+    const groupedItems = computed(() => {
+      if (!isGroupedView.value) {
+        return null
+      }
+      
+      const groups = {}
+      selectedItems.value.forEach((item, index) => {
+        const classid = item.classid || 'unknown'
+        if (!groups[classid]) {
+          groups[classid] = {
+            classid: classid,
+            items: [],
+            itemName: item.item_name,
+            steamHashName: item.steam_hash_name
+          }
+        }
+        groups[classid].items.push({
+          ...item,
+          originalIndex: index
+        })
+      })
+      
+      return Object.values(groups)
+    })
 
     // 懒加载图片观察器
     let imageObserver = null
@@ -2068,31 +2242,56 @@ export default {
     // 确认出售/出租
     const confirmSellRent = async () => {
       try {
-        // 验证所有物品的表单
-        const validationPromises = itemFormRefs.value
-          .filter(ref => ref) // 过滤掉 null/undefined
-          .map(ref => ref.validate())
+        let itemsData = []
         
-        await Promise.all(validationPromises)
+        if (isGroupedView.value) {
+          // 组合模式：验证所有组的表单
+          const groupValidations = Object.keys(groupForms.value).map(classid => {
+            const formRef = groupFormRefs.value[classid]
+            return formRef ? formRef.validate() : Promise.resolve()
+          })
+          
+          await Promise.all(groupValidations)
+          
+          // 将组合数据展开为每个物品的数据
+          selectedItems.value.forEach(item => {
+            const classid = item.classid || 'unknown'
+            const groupForm = groupForms.value[classid]
+            itemsData.push({
+              assetid: item.assetid,
+              name: getCardTitle(item),
+              price: groupForm.price,
+              remark: groupForm.remark
+            })
+          })
+        } else {
+          // 非组合模式：验证所有物品的表单
+          const validationPromises = itemFormRefs.value
+            .filter(ref => ref)
+            .map(ref => ref.validate())
+          
+          await Promise.all(validationPromises)
+          
+          // 收集每个物品的数据
+          itemsData = selectedItems.value.map((item, index) => ({
+            assetid: item.assetid,
+            name: getCardTitle(item),
+            price: itemForms.value[index].price,
+            remark: itemForms.value[index].remark
+          }))
+        }
         
         submitting.value = true
         
         // TODO: 调用后端API进行出售/出租操作
         const action = sellRentDialogType.value === 'sell' ? '出售' : '出租'
         
-        const itemsData = selectedItems.value.map((item, index) => ({
-          assetid: item.assetid,
-          name: getCardTitle(item),
-          price: itemForms.value[index].price,
-          remark: itemForms.value[index].remark
-        }))
-        
         console.log(`${action}物品:`, itemsData)
         
         // 模拟API调用
         await new Promise(resolve => setTimeout(resolve, 1000))
         
-        ElMessage.success(`${action}操作提交成功，共${selectedItems.value.length}件物品`)
+        ElMessage.success(`${action}操作提交成功，共${itemsData.length}件物品`)
         
         // 关闭弹窗并清空选择
         sellRentDialogVisible.value = false
@@ -2100,7 +2299,7 @@ export default {
         isMultiSelectMode.value = false
         
       } catch (error) {
-        if (error !== false) { // 表单验证失败会返回false
+        if (error !== false) {
           console.error('操作失败:', error)
           ElMessage.error('请检查所有物品的价格是否填写正确')
         }
@@ -2461,6 +2660,14 @@ export default {
       showRentDialog,
       validateItemPrice,
       confirmSellRent,
+      // 组合显示
+      isGroupedView,
+      toggleGroupedView,
+      groupedItems,
+      groupForms,
+      groupFormRefs,
+      validateGroupPrice,
+      openGroupRemarkDialog,
       // 备注弹窗
       remarkDialogVisible,
       currentRemark,
@@ -2599,10 +2806,123 @@ export default {
 
 .selected-items-list-with-inputs h4 {
   color: #fff;
-  margin: 0 0 1rem 0;
+  margin: 0;
   font-size: 1rem;
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--border-color);
+}
+
+/* 组合显示样式 */
+.grouped-section {
+  margin-bottom: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.group-thumb {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+.group-info {
+  flex: 1;
+}
+
+.group-name {
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.group-count {
+  color: #999;
+  font-size: 0.85rem;
+}
+
+.group-items {
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.group-form {
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+}
+
+.group-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.grouped-item-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-left: 3px solid rgba(76, 175, 80, 0.3);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.grouped-item-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-left-color: rgba(76, 175, 80, 0.6);
+}
+
+.grouped-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.grouped-item-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.item-float-inline {
+  color: #4CAF50;
+  font-family: monospace;
+}
+
+.item-rename-inline {
+  color: #67C23A;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grouped-item-right {
+  flex-shrink: 0;
 }
 
 .items-scroll {
@@ -2752,11 +3072,18 @@ export default {
   gap: 0.25rem;
 }
 
+.float-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .float-value-text {
-  color: #4CAF50;
+  color: #fff;
   font-size: 0.8rem;
   font-family: monospace;
   font-weight: 500;
+  flex-shrink: 0;
 }
 
 .float-bar-mini {
@@ -2766,6 +3093,8 @@ export default {
   border-radius: 3px;
   overflow: hidden;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  width: 80px;
+  flex-shrink: 0;
 }
 
 .float-bar-mini .float-segment {
