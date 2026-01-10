@@ -797,10 +797,9 @@
             <h4>选中的物品 ({{ selectedItems.length }}件)</h4>
             <div class="header-actions">
               <el-button 
-                v-if="isGroupedView"
                 size="small" 
                 type="success"
-                @click="autoFillGroupPrices"
+                @click="isGroupedView ? autoFillGroupPrices() : autoFillItemPrices()"
               >
                 自动填充价格
               </el-button>
@@ -1356,6 +1355,26 @@ export default {
       })
       
       ElMessage.success('已自动填充平均购入价格')
+    }
+    
+    // 自动填充非组合模式的价格（使用购入价）
+    const autoFillItemPrices = () => {
+      let filledCount = 0
+      
+      selectedItems.value.forEach((item, index) => {
+        if (item.buy_price && parseFloat(item.buy_price) > 0) {
+          if (itemForms.value[index]) {
+            itemForms.value[index].price = parseFloat(item.buy_price).toFixed(2)
+            filledCount++
+          }
+        }
+      })
+      
+      if (filledCount > 0) {
+        ElMessage.success(`已自动填充 ${filledCount} 件物品的购入价格`)
+      } else {
+        ElMessage.warning('没有可填充的购入价格')
+      }
     }
     
     // 验证组合表单的价格输入
@@ -2840,6 +2859,7 @@ export default {
       getGroupPriceRange,
       getGroupFloatRange,
       autoFillGroupPrices,
+      autoFillItemPrices,
       expandedGroups,
       toggleGroupExpand,
       groupForms,
