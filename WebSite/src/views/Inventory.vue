@@ -3033,10 +3033,19 @@ export default {
 }
 
 /* 出售/出租弹窗样式 */
+.sell-rent-dialog :deep(.el-dialog) {
+  height: 80vh;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto;
+}
+
 .sell-rent-dialog :deep(.el-dialog__header) {
   background: var(--bg-tertiary);
   border-bottom: 1px solid var(--border-color);
   padding: 1rem 1.5rem;
+  flex-shrink: 0;
 }
 
 .sell-rent-dialog :deep(.el-dialog__title) {
@@ -3048,11 +3057,24 @@ export default {
 .sell-rent-dialog :deep(.el-dialog__body) {
   background: var(--bg-secondary);
   padding: 1.5rem;
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.sell-rent-dialog :deep(.el-dialog__footer) {
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  padding: 1rem 1.5rem;
+  flex-shrink: 0;
 }
 
 .sell-rent-content {
   display: flex;
   flex-direction: column;
+  height: 100%;
+  overflow: hidden;
   gap: 1rem;
 }
 
@@ -3061,6 +3083,11 @@ export default {
   border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 1rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
 }
 
 .selected-items-list-with-inputs h4 {
@@ -3271,13 +3298,14 @@ export default {
 }
 
 .items-scroll {
-  max-height: 500px;
+  flex: 1;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
   padding: 0.5rem;
   padding-right: 1rem;
+  min-height: 0;
 }
 
 .items-scroll::-webkit-scrollbar {
