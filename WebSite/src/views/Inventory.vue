@@ -216,7 +216,14 @@
                         </div>
                       </div>
                       <div v-if="item.remark" class="expand-remark-tag">
-                        <el-tag type="warning" size="small">交易保护</el-tag>
+                        <el-tooltip v-if="parseTradeLockDate(item.remark)" :content="item.remark" placement="top" effect="dark">
+                          <el-tag type="warning" size="small">
+                            {{ parseTradeLockDate(item.remark).expired ? '已解除' : `至${parseTradeLockDate(item.remark).date}` }}
+                          </el-tag>
+                        </el-tooltip>
+                        <el-tooltip v-else :content="item.remark" placement="top" effect="dark">
+                          <el-tag type="warning" size="small">交易保护</el-tag>
+                        </el-tooltip>
                       </div>
                       <!-- 改名标签 - 只显示图标 -->
                       <div v-if="item.rename" class="expand-rename-tag">
@@ -498,15 +505,22 @@
         <el-table-column
           v-if="!groupMode"
           label="备注"
-          width="150"
+          width="220"
           fixed="right"
         >
           <template #default="scope">
-            <el-tooltip v-if="scope.row.remark" :content="scope.row.remark" placement="left" effect="dark">
-              <el-tag type="warning" size="small" style="cursor: help;">
-                交易限制
-              </el-tag>
-            </el-tooltip>
+            <div v-if="scope.row.remark">
+              <el-tooltip v-if="parseTradeLockDate(scope.row.remark)" :content="scope.row.remark" placement="left" effect="dark">
+                <el-tag type="warning" size="small" style="cursor: help;">
+                  {{ parseTradeLockDate(scope.row.remark).expired ? '已解除' : `至${parseTradeLockDate(scope.row.remark).date}` }}
+                </el-tag>
+              </el-tooltip>
+              <el-tooltip v-else :content="scope.row.remark" placement="left" effect="dark">
+                <el-tag type="warning" size="small" style="cursor: help;">
+                  交易限制
+                </el-tag>
+              </el-tooltip>
+            </div>
             <span v-else style="color: #888;">-</span>
           </template>
         </el-table-column>
@@ -555,7 +569,11 @@
           v-for="item in currentDisplayData"
           :key="item.assetid"
           class="inventory-card"
-          :class="{ 'selected': isItemSelected(item.assetid), 'multi-select-mode': isMultiSelectMode }"
+          :class="{ 
+            'selected': isItemSelected(item.assetid), 
+            'multi-select-mode': isMultiSelectMode,
+            'trade-restricted': hasTradeRestriction(item) && isMultiSelectMode
+          }"
           :data-assetid="item.assetid"
           @click="handleCardClick(item)"
         >
@@ -672,7 +690,14 @@
             </div>
             <div class="card-footer">
               <div class="card-tags">
-                <el-tag v-if="item.remark" type="warning" size="small">交易限制</el-tag>
+                <el-tooltip v-if="item.remark && parseTradeLockDate(item.remark)" :content="item.remark" placement="top" effect="dark">
+                  <el-tag type="warning" size="small">
+                    {{ parseTradeLockDate(item.remark).expired ? '已解除' : `至${parseTradeLockDate(item.remark).date}` }}
+                  </el-tag>
+                </el-tooltip>
+                <el-tooltip v-else-if="item.remark" :content="item.remark" placement="top" effect="dark">
+                  <el-tag type="warning" size="small">交易限制</el-tag>
+                </el-tooltip>
                 <el-tag v-if="item.rename" type="info" size="small" class="rename-tag">
                   <span class="tag-icon">🏷️</span>{{ item.rename }}
                 </el-tag>
@@ -1084,7 +1109,14 @@
 
               <!-- 标签信息 -->
               <div class="preview-tags">
-                <el-tag v-if="previewItem.remark" type="warning" size="default">交易限制</el-tag>
+                <el-tooltip v-if="previewItem.remark && parseTradeLockDate(previewItem.remark)" :content="previewItem.remark" placement="top" effect="dark">
+                  <el-tag type="warning" size="default">
+                    交易限制至 {{ parseTradeLockDate(previewItem.remark).date }}
+                  </el-tag>
+                </el-tooltip>
+                <el-tooltip v-else-if="previewItem.remark" :content="previewItem.remark" placement="top" effect="dark">
+                  <el-tag type="warning" size="default">交易限制</el-tag>
+                </el-tooltip>
               </div>
 
               <!-- 操作按钮 -->
@@ -2317,6 +2349,15 @@ export default {
       }
     }
     
+    // 判断物品是否有交易限制
+    const hasTradeRestriction = (item) => {
+      if (!item.remark) return false
+      
+      const lockDate = parseTradeLockDate(item.remark)
+      // 如果有交易限制且未过期，返回true
+      return lockDate && !lockDate.expired
+    }
+    
     // 判断物品是否被选中
     const isItemSelected = (assetid) => {
       return selectedItems.value.some(item => item.assetid === assetid)
@@ -2324,6 +2365,12 @@ export default {
     
     // 切换物品选中状态
     const toggleItemSelection = (item) => {
+      // 检查是否有交易限制
+      if (hasTradeRestriction(item)) {
+        ElMessage.warning('该物品正受交易保护，无法选中')
+        return
+      }
+      
       const index = selectedItems.value.findIndex(i => i.assetid === item.assetid)
       if (index > -1) {
         selectedItems.value.splice(index, 1)
@@ -2526,6 +2573,40 @@ export default {
     const handleMoveToComponent = () => {
       ElMessage.info('移入组件功能待开发')
       // TODO: 实现移入组件功能
+    }
+
+    // 解析交易限制日期
+    const parseTradeLockDate = (remark) => {
+      if (!remark) return null
+      
+      try {
+        // 匹配日期格式：2025 10月 23 (7:00:00) 或 2025年10月23日
+        const dateMatch = remark.match(/(\d{4})\s*年?\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日?\s*\((\d{1,2}):(\d{2}):(\d{2})\)/)
+        
+        if (dateMatch) {
+          const [, year, month, day, hour, minute, second] = dateMatch
+          const date = new Date(year, month - 1, day, hour, minute, second)
+          
+          // 格式化日期（只显示到日期）
+          const formattedDate = `${year}年${month}月${day}日`
+          
+          // 计算剩余天数
+          const now = new Date()
+          const diffTime = date - now
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+          
+          return {
+            date: formattedDate,
+            daysLeft: diffDays > 0 ? diffDays : 0,
+            expired: diffDays <= 0
+          }
+        }
+        
+        return null
+      } catch (e) {
+        console.error('解析交易限制日期失败:', e)
+        return null
+      }
     }
 
     // 解析贴纸JSON数据
@@ -2786,6 +2867,7 @@ export default {
       getWeaponImage,
       handleImageError,
       getPriceDiffClass,
+      parseTradeLockDate,
       parseStickers,
       getStickerCount,
       getStickerTooltip,
@@ -2829,6 +2911,7 @@ export default {
       selectedItems,
       toggleMultiSelectMode,
       isItemSelected,
+      hasTradeRestriction,
       toggleItemSelection,
       clearSelection,
       handleCardClick,
@@ -2938,6 +3021,20 @@ export default {
   border-color: var(--el-color-primary);
   background: rgba(64, 158, 255, 0.1);
   box-shadow: 0 0 0 2px var(--el-color-primary);
+}
+
+/* 有交易限制的卡片样式 */
+.inventory-card.trade-restricted {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  filter: grayscale(0.3);
+  pointer-events: auto;
+}
+
+.inventory-card.trade-restricted:hover {
+  transform: none !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
 }
 
 /* 出售/出租弹窗样式 */
