@@ -698,6 +698,91 @@
       <div id="load-more-trigger-card" style="height: 1px;"></div>
     </div>
 
+    <!-- 备注弹窗 -->
+    <el-dialog
+      v-model="remarkDialogVisible"
+      title="添加备注"
+      width="500px"
+      :close-on-click-modal="false"
+    >
+      <el-input 
+        v-model="currentRemark" 
+        type="textarea"
+        :rows="4"
+        placeholder="请输入备注信息（可选）"
+        maxlength="200"
+        show-word-limit
+      />
+      <template #footer>
+        <el-button @click="remarkDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveRemark">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 备注弹窗 -->
+    <el-dialog
+      v-model="remarkDialogVisible"
+      title="添加备注"
+      width="500px"
+      :close-on-click-modal="false"
+    >
+      <el-input 
+        v-model="currentRemark" 
+        type="textarea"
+        :rows="4"
+        placeholder="请输入备注信息（可选）"
+        maxlength="200"
+        show-word-limit
+      />
+      <template #footer>
+        <el-button @click="remarkDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveRemark">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 备注弹窗 -->
+    <el-dialog
+      v-model="remarkDialogVisible"
+      title="添加备注"
+      width="500px"
+      :close-on-click-modal="false"
+    >
+      <el-input 
+        v-model="currentRemark" 
+        type="textarea"
+        :rows="4"
+        placeholder="请输入备注信息"
+        maxlength="200"
+        show-word-limit
+      />
+      <template #footer>
+        <el-button @click="remarkDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveRemark">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 备注弹窗 -->
+    <el-dialog
+      v-model="remarkDialogVisible"
+      title="添加备注"
+      width="500px"
+      :close-on-click-modal="false"
+    >
+      <el-input 
+        v-model="currentRemark" 
+        type="textarea"
+        :rows="4"
+        placeholder="请输入备注信息（可选）"
+        maxlength="200"
+        show-word-limit
+      />
+      
+      <template #footer>
+        <el-button @click="remarkDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveRemark">确认</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 出售/出租弹窗 -->
     <el-dialog
       v-model="sellRentDialogVisible"
@@ -716,16 +801,73 @@
               class="selected-item-card"
             >
               <div class="item-left">
-                <img
-                  v-if="getWeaponImage(item.steam_hash_name)"
-                  :src="getWeaponImage(item.steam_hash_name)"
-                  :alt="item.item_name"
-                  class="item-thumb"
-                />
+                <div class="item-thumb-wrapper">
+                  <img
+                    v-if="getWeaponImage(item.steam_hash_name)"
+                    :src="getWeaponImage(item.steam_hash_name)"
+                    :alt="item.item_name"
+                    class="item-thumb"
+                  />
+                  
+                  <!-- 印花覆盖层 - 左下角 -->
+                  <div v-if="item.sticker && parseStickers(item.sticker).length > 0" class="item-sticker-overlay">
+                    <div
+                      v-for="(sticker, sIdx) in parseStickers(item.sticker)"
+                      :key="sIdx"
+                      class="item-sticker-mini"
+                      :title="sticker.name || '未知印花'"
+                    >
+                      <img
+                        v-if="sticker.image"
+                        :src="sticker.image"
+                        :alt="sticker.name"
+                      />
+                    </div>
+                  </div>
+                  
+                  <!-- 挂件覆盖层 - 右上角 -->
+                  <div v-if="item.pendant" class="item-pendant-overlay">
+                    <div
+                      class="item-pendant-mini"
+                      :title="parsePendant(item.pendant).name || '挂件'"
+                    >
+                      <img
+                        v-if="parsePendant(item.pendant).image"
+                        :src="parsePendant(item.pendant).image"
+                        :alt="parsePendant(item.pendant).name"
+                      />
+                    </div>
+                  </div>
+                </div>
+                
                 <div class="item-info">
                   <div class="item-name">{{ getCardTitle(item) }}</div>
-                  <div class="item-buy-price" v-if="item.buy_price">
-                    购入价: ¥{{ parseFloat(item.buy_price).toFixed(2) }}
+                  <div class="item-details">
+                    <div class="item-buy-price" v-if="item.buy_price">
+                      购入价: ¥{{ parseFloat(item.buy_price).toFixed(2) }}
+                    </div>
+                    
+                    <!-- 磨损进度条 -->
+                    <div class="item-float-bar" v-if="item.weapon_float && item.weapon_float !== '0' && item.weapon_float !== '0.0'">
+                      <div class="float-value-text">{{ item.weapon_float }}</div>
+                      <div class="float-bar-mini">
+                        <div class="float-segment fn"></div>
+                        <div class="float-segment mw"></div>
+                        <div class="float-segment ft"></div>
+                        <div class="float-segment ww"></div>
+                        <div class="float-segment bs"></div>
+                        <div
+                          class="float-pointer"
+                          :style="{ left: `${parseFloat(item.weapon_float) * 100}%` }"
+                        ></div>
+                      </div>
+                    </div>
+                    
+                    <!-- 改名信息 -->
+                    <div class="item-rename" v-if="item.rename">
+                      <span class="rename-icon">🏷️</span>
+                      <span class="rename-value" :title="item.rename">{{ item.rename }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -738,18 +880,15 @@
                       placeholder="价格"
                       @input="validateItemPrice(index)"
                       size="small"
-                    >
-                      <template #prepend>¥</template>
-                    </el-input>
-                  </el-form-item>
-                  <el-form-item prop="remark">
-                    <el-input 
-                      v-model="itemForms[index].remark" 
-                      placeholder="备注（可选）"
-                      maxlength="200"
-                      size="small"
                     />
                   </el-form-item>
+                  <el-button 
+                    size="small" 
+                    @click="openRemarkDialog(index)"
+                    :type="itemForms[index].remark ? 'success' : 'default'"
+                  >
+                    {{ itemForms[index].remark ? '已备注' : '备注' }}
+                  </el-button>
                 </el-form>
               </div>
             </div>
@@ -984,6 +1123,26 @@ export default {
     // 多选模式相关
     const isMultiSelectMode = ref(false)
     const selectedItems = ref([])
+    
+    // 备注弹窗相关
+    const remarkDialogVisible = ref(false)
+    const currentRemarkIndex = ref(-1)
+    const currentRemark = ref('')
+    
+    // 打开备注弹窗
+    const openRemarkDialog = (index) => {
+      currentRemarkIndex.value = index
+      currentRemark.value = itemForms.value[index].remark || ''
+      remarkDialogVisible.value = true
+    }
+    
+    // 保存备注
+    const saveRemark = () => {
+      if (currentRemarkIndex.value >= 0) {
+        itemForms.value[currentRemarkIndex.value].remark = currentRemark.value
+      }
+      remarkDialogVisible.value = false
+    }
     
     // 出售/出租弹窗相关
     const sellRentDialogVisible = ref(false)
@@ -2301,7 +2460,28 @@ export default {
       showSellDialog,
       showRentDialog,
       validateItemPrice,
-      confirmSellRent
+      confirmSellRent,
+      // 备注弹窗
+      remarkDialogVisible,
+      currentRemark,
+      openRemarkDialog,
+      saveRemark,
+      // 备注弹窗
+      remarkDialogVisible,
+      currentRemark,
+      openRemarkDialog,
+      saveRemark,
+      // 备注弹窗
+      remarkDialogVisible,
+      currentRemark,
+      openRemarkDialog,
+      saveRemark,
+      // 备注弹窗相关
+      remarkDialogVisible,
+      currentRemarkIndex,
+      currentRemark,
+      openRemarkDialog,
+      saveRemark
     }
   }
 }
@@ -2458,13 +2638,87 @@ export default {
   min-width: 0;
 }
 
-.item-thumb {
+.item-thumb-wrapper {
+  position: relative;
   width: 80px;
   height: 80px;
+  flex-shrink: 0;
+}
+
+.item-thumb {
+  width: 100%;
+  height: 100%;
   object-fit: contain;
   background: var(--bg-tertiary);
   border-radius: 4px;
-  flex-shrink: 0;
+}
+
+/* 印花覆盖层 - 左下角 */
+.item-sticker-overlay {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  display: flex;
+  gap: 2px;
+  z-index: 5;
+}
+
+.item-sticker-mini {
+  width: 18px;
+  height: 18px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  border-radius: 2px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.item-sticker-mini:hover {
+  transform: scale(2);
+  z-index: 10;
+  border-color: rgba(76, 175, 80, 0.8);
+}
+
+.item-sticker-mini img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* 挂件覆盖层 - 右上角 */
+.item-pendant-overlay {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  z-index: 5;
+}
+
+.item-pendant-mini {
+  width: 20px;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  border-radius: 2px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.item-pendant-mini:hover {
+  transform: scale(2);
+  z-index: 10;
+  border-color: rgba(255, 215, 0, 0.8);
+}
+
+.item-pendant-mini img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .item-info {
@@ -2481,9 +2735,125 @@ export default {
   word-break: break-word;
 }
 
+.item-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
 .item-buy-price {
   color: #999;
   font-size: 0.85rem;
+}
+
+.item-float-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.float-value-text {
+  color: #4CAF50;
+  font-size: 0.8rem;
+  font-family: monospace;
+  font-weight: 500;
+}
+
+.float-bar-mini {
+  position: relative;
+  height: 6px;
+  display: flex;
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.float-bar-mini .float-segment {
+  height: 100%;
+}
+
+.float-bar-mini .float-segment.fn {
+  flex: 7;
+  background: linear-gradient(to right, #4CAF50, #66BB6A);
+}
+
+.float-bar-mini .float-segment.mw {
+  flex: 8;
+  background: linear-gradient(to right, #8BC34A, #9CCC65);
+}
+
+.float-bar-mini .float-segment.ft {
+  flex: 23;
+  background: linear-gradient(to right, #FFC107, #FFB300);
+}
+
+.float-bar-mini .float-segment.ww {
+  flex: 7;
+  background: linear-gradient(to right, #FF9800, #FB8C00);
+}
+
+.float-bar-mini .float-segment.bs {
+  flex: 55;
+  background: linear-gradient(to right, #F44336, #E53935);
+}
+
+.float-bar-mini .float-pointer {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 10px;
+  background: #fff;
+  border-radius: 1px;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.5), 0 0 6px rgba(255, 255, 255, 0.8);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.float-bar-mini .float-pointer::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-top: 4px solid #fff;
+}
+
+.float-bar-mini .float-pointer::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-bottom: 4px solid #fff;
+}
+
+.item-rename {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.rename-icon {
+  font-size: 0.9rem;
+}
+
+.rename-value {
+  color: #67C23A;
+  font-size: 0.8rem;
+  font-weight: 500;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .item-right {
@@ -2495,20 +2865,17 @@ export default {
 
 .inline-form {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.5rem;
   align-items: flex-start;
 }
 
 .inline-form :deep(.el-form-item) {
   margin-bottom: 0;
+  flex: 1;
 }
 
-.inline-form :deep(.el-form-item:first-child) {
-  width: 140px;
-}
-
-.inline-form :deep(.el-form-item:last-child) {
-  width: 180px;
+.inline-form :deep(.el-button) {
+  flex-shrink: 0;
 }
 
 .item-right :deep(.el-input__inner) {
