@@ -76,6 +76,13 @@
             inactive-text="明细模式"
             @change="handleToggleGroupMode"
           />
+          <el-button 
+            v-if="displayMode === 'card'"
+            :type="isMultiSelectMode ? 'warning' : 'info'" 
+            @click="toggleMultiSelectMode"
+          >
+            {{ isMultiSelectMode ? '取消多选' : '多选' }}
+          </el-button>
           <el-button-group>
             <el-button 
               :type="displayMode === 'list' ? 'primary' : ''" 
@@ -529,6 +536,18 @@
       <div id="load-more-trigger" style="height: 1px;"></div>
     </div>
 
+    <!-- 多选模式下的操作按钮 -->
+    <div v-if="isMultiSelectMode && selectedItems.length > 0" class="multi-select-actions">
+      <div class="selected-count">
+        已选择 {{ selectedItems.length }} 件物品
+      </div>
+      <div class="action-buttons">
+        <el-button type="primary" @click="showSellDialog">出售</el-button>
+        <el-button type="primary" @click="showRentDialog">出租</el-button>
+        <el-button @click="clearSelection">清空选择</el-button>
+      </div>
+    </div>
+
     <!-- 卡片显示 -->
     <div class="card-container" v-if="displayMode === 'card'">
       <div v-loading="loading" class="card-grid">
@@ -536,9 +555,17 @@
           v-for="item in currentDisplayData"
           :key="item.assetid"
           class="inventory-card"
+          :class="{ 'selected': isItemSelected(item.assetid), 'multi-select-mode': isMultiSelectMode }"
           :data-assetid="item.assetid"
-          @click="openPreview(item)"
+          @click="handleCardClick(item)"
         >
+          <!-- 多选模式下的选中标记 -->
+          <div v-if="isMultiSelectMode" class="select-checkbox">
+            <el-checkbox 
+              :model-value="isItemSelected(item.assetid)" 
+              @click.stop="toggleItemSelection(item)"
+            />
+          </div>
           <div class="card-image">
             <img
               v-if="getWeaponImage(item.steam_hash_name)"
@@ -670,6 +697,71 @@
       <!-- 滚动触发元素 -->
       <div id="load-more-trigger-card" style="height: 1px;"></div>
     </div>
+
+    <!-- 出售/出租弹窗 -->
+    <el-dialog
+      v-model="sellRentDialogVisible"
+      :title="sellRentDialogTitle"
+      width="700px"
+      :close-on-click-modal="false"
+      class="sell-rent-dialog"
+    >
+      <div class="sell-rent-content">
+        <div class="selected-items-list">
+          <h4>选中的物品 ({{ selectedItems.length }}件)</h4>
+          <div class="items-scroll">
+            <div 
+              v-for="item in selectedItems" 
+              :key="item.assetid"
+              class="selected-item-row"
+            >
+              <img
+                v-if="getWeaponImage(item.steam_hash_name)"
+                :src="getWeaponImage(item.steam_hash_name)"
+                :alt="item.item_name"
+                class="item-thumb"
+              />
+              <div class="item-info">
+                <div class="item-name">{{ getCardTitle(item) }}</div>
+                <div class="item-price" v-if="item.buy_price">
+                  购入价: ¥{{ parseFloat(item.buy_price).toFixed(2) }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="sell-rent-form">
+          <el-form :model="sellRentForm" :rules="sellRentRules" ref="sellRentFormRef" label-width="100px">
+            <el-form-item label="价格" prop="price">
+              <el-input 
+                v-model="sellRentForm.price" 
+                placeholder="请输入价格"
+                @input="validatePrice"
+              >
+                <template #prepend>¥</template>
+              </el-input>
+              <div class="form-tip">只允许输入数字，最多两位小数</div>
+            </el-form-item>
+            <el-form-item label="备注" prop="remark">
+              <el-input 
+                v-model="sellRentForm.remark" 
+                type="textarea"
+                :rows="3"
+                placeholder="请输入备注信息（可选）"
+                maxlength="200"
+                show-word-limit
+              />
+            </el-form-item>
+          </el-form>
+        </div>
+      </div>
+      
+      <template #footer>
+        <el-button @click="sellRentDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmSellRent" :loading="submitting">确认</el-button>
+      </template>
+    </el-dialog>
 
     <!-- 预览弹窗 -->
     <el-dialog
@@ -887,6 +979,33 @@ export default {
     // 预览弹窗相关
     const previewVisible = ref(false)
     const previewItem = ref(null)
+
+    // 多选模式相关
+    const isMultiSelectMode = ref(false)
+    const selectedItems = ref([])
+    
+    // 出售/出租弹窗相关
+    const sellRentDialogVisible = ref(false)
+    const sellRentDialogTitle = ref('')
+    const sellRentDialogType = ref('') // 'sell' 或 'rent'
+    const sellRentForm = ref({
+      price: '',
+      remark: ''
+    })
+    const sellRentFormRef = ref(null)
+    const submitting = ref(false)
+    
+    // 表单验证规则
+    const sellRentRules = {
+      price: [
+        { required: true, message: '请输入价格', trigger: 'blur' },
+        { 
+          pattern: /^\d+(\.\d{1,2})?$/, 
+          message: '价格格式不正确，只允许数字和最多两位小数', 
+          trigger: 'blur' 
+        }
+      ]
+    }
 
     // 懒加载图片观察器
     let imageObserver = null
@@ -1694,6 +1813,136 @@ export default {
       return diff >= 0 ? 'price-profit' : 'price-loss'
     }
 
+    // 切换多选模式
+    const toggleMultiSelectMode = () => {
+      isMultiSelectMode.value = !isMultiSelectMode.value
+      if (!isMultiSelectMode.value) {
+        // 退出多选模式时清空选择
+        selectedItems.value = []
+      }
+    }
+    
+    // 判断物品是否被选中
+    const isItemSelected = (assetid) => {
+      return selectedItems.value.some(item => item.assetid === assetid)
+    }
+    
+    // 切换物品选中状态
+    const toggleItemSelection = (item) => {
+      const index = selectedItems.value.findIndex(i => i.assetid === item.assetid)
+      if (index > -1) {
+        selectedItems.value.splice(index, 1)
+      } else {
+        selectedItems.value.push(item)
+      }
+    }
+    
+    // 清空选择
+    const clearSelection = () => {
+      selectedItems.value = []
+    }
+    
+    // 处理卡片点击
+    const handleCardClick = (item) => {
+      if (isMultiSelectMode.value) {
+        // 多选模式下切换选中状态
+        toggleItemSelection(item)
+      } else {
+        // 普通模式下打开预览
+        openPreview(item)
+      }
+    }
+    
+    // 显示出售弹窗
+    const showSellDialog = () => {
+      if (selectedItems.value.length === 0) {
+        ElMessage.warning('请先选择要出售的物品')
+        return
+      }
+      sellRentDialogType.value = 'sell'
+      sellRentDialogTitle.value = '出售物品'
+      sellRentForm.value = {
+        price: '',
+        remark: ''
+      }
+      sellRentDialogVisible.value = true
+    }
+    
+    // 显示出租弹窗
+    const showRentDialog = () => {
+      if (selectedItems.value.length === 0) {
+        ElMessage.warning('请先选择要出租的物品')
+        return
+      }
+      sellRentDialogType.value = 'rent'
+      sellRentDialogTitle.value = '出租物品'
+      sellRentForm.value = {
+        price: '',
+        remark: ''
+      }
+      sellRentDialogVisible.value = true
+    }
+    
+    // 验证价格输入
+    const validatePrice = (value) => {
+      // 只允许数字和小数点
+      let newValue = value.replace(/[^\d.]/g, '')
+      
+      // 只允许一个小数点
+      const parts = newValue.split('.')
+      if (parts.length > 2) {
+        newValue = parts[0] + '.' + parts.slice(1).join('')
+      }
+      
+      // 限制小数点后最多两位
+      if (parts.length === 2 && parts[1].length > 2) {
+        newValue = parts[0] + '.' + parts[1].substring(0, 2)
+      }
+      
+      sellRentForm.value.price = newValue
+    }
+    
+    // 确认出售/出租
+    const confirmSellRent = async () => {
+      if (!sellRentFormRef.value) return
+      
+      try {
+        await sellRentFormRef.value.validate()
+        
+        submitting.value = true
+        
+        // TODO: 调用后端API进行出售/出租操作
+        const action = sellRentDialogType.value === 'sell' ? '出售' : '出租'
+        
+        console.log(`${action}物品:`, {
+          items: selectedItems.value.map(item => ({
+            assetid: item.assetid,
+            name: getCardTitle(item)
+          })),
+          price: sellRentForm.value.price,
+          remark: sellRentForm.value.remark
+        })
+        
+        // 模拟API调用
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        
+        ElMessage.success(`${action}操作提交成功`)
+        
+        // 关闭弹窗并清空选择
+        sellRentDialogVisible.value = false
+        selectedItems.value = []
+        isMultiSelectMode.value = false
+        
+      } catch (error) {
+        if (error !== false) { // 表单验证失败会返回false
+          console.error('操作失败:', error)
+          ElMessage.error('操作失败: ' + (error.message || '未知错误'))
+        }
+      } finally {
+        submitting.value = false
+      }
+    }
+    
     // 打开预览弹窗
     const openPreview = (item) => {
       previewItem.value = item
@@ -2025,13 +2274,227 @@ export default {
       getRowStyle,
       tableRef,
       hasExtras,
-      showPriceDiff
+      showPriceDiff,
+      // 多选相关
+      isMultiSelectMode,
+      selectedItems,
+      toggleMultiSelectMode,
+      isItemSelected,
+      toggleItemSelection,
+      clearSelection,
+      handleCardClick,
+      // 出售/出租相关
+      sellRentDialogVisible,
+      sellRentDialogTitle,
+      sellRentDialogType,
+      sellRentForm,
+      sellRentFormRef,
+      sellRentRules,
+      submitting,
+      showSellDialog,
+      showRentDialog,
+      validatePrice,
+      confirmSellRent
     }
   }
 }
 </script>
 
 <style scoped>
+/* 多选模式操作按钮 */
+.multi-select-actions {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-tertiary);
+  border: 2px solid var(--el-color-primary);
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.multi-select-actions .selected-count {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+.multi-select-actions .action-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* 多选模式下的卡片样式 */
+.inventory-card.multi-select-mode {
+  cursor: pointer;
+  user-select: none;
+}
+
+.inventory-card.multi-select-mode:hover {
+  border-color: var(--el-color-primary);
+}
+
+.inventory-card.selected {
+  border-color: var(--el-color-primary);
+  background: rgba(64, 158, 255, 0.1);
+  box-shadow: 0 0 0 2px var(--el-color-primary);
+}
+
+.select-checkbox {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  border-radius: 4px;
+  padding: 4px;
+}
+
+.select-checkbox :deep(.el-checkbox__inner) {
+  width: 20px;
+  height: 20px;
+}
+
+.select-checkbox :deep(.el-checkbox__inner::after) {
+  width: 6px;
+  height: 10px;
+  left: 6px;
+}
+
+/* 出售/出租弹窗样式 */
+.sell-rent-dialog :deep(.el-dialog__header) {
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  padding: 1rem 1.5rem;
+}
+
+.sell-rent-dialog :deep(.el-dialog__title) {
+  color: #fff;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.sell-rent-dialog :deep(.el-dialog__body) {
+  background: var(--bg-secondary);
+  padding: 1.5rem;
+}
+
+.sell-rent-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.selected-items-list {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.selected-items-list h4 {
+  color: #fff;
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.items-scroll {
+  max-height: 300px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.selected-item-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.selected-item-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(76, 175, 80, 0.5);
+}
+
+.item-thumb {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-name {
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item-price {
+  color: #999;
+  font-size: 0.85rem;
+}
+
+.sell-rent-form {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.sell-rent-form :deep(.el-form-item__label) {
+  color: #fff;
+}
+
+.sell-rent-form :deep(.el-input__inner),
+.sell-rent-form :deep(.el-textarea__inner) {
+  background-color: #2a2a2a;
+  border-color: #333;
+  color: #fff;
+}
+
+.form-tip {
+  color: #999;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
 /* 懒加载图片样式 */
 .lazy-image {
   opacity: 0;
