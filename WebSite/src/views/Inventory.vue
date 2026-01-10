@@ -923,7 +923,12 @@
                   />
                   <div class="group-info">
                     <div class="group-name">{{ group.itemName }}</div>
-                    <div class="group-count">数量: {{ group.items.length }} 件</div>
+                    <div class="group-meta">
+                      <span class="group-count">数量: {{ group.items.length }} 件</span>
+                      <span v-if="getGroupAveragePrice(group)" class="group-avg-price">
+                        均价: ¥{{ getGroupAveragePrice(group) }}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 
@@ -945,19 +950,6 @@
                       {{ groupForms[group.classid].remark ? '已备注' : '备注' }}
                     </el-button>
                   </el-form>
-                </div>
-              </div>
-              
-              <!-- 展开显示物品详情 -->
-              <div class="group-details">
-                <div 
-                  v-for="item in group.items" 
-                  :key="item.assetid"
-                  class="group-detail-item"
-                >
-                  <span v-if="item.buy_price" class="detail-buy">购入: ¥{{ parseFloat(item.buy_price).toFixed(2) }}</span>
-                  <span v-if="item.weapon_float && item.weapon_float !== '0' && item.weapon_float !== '0.0'" class="detail-float">磨损: {{ item.weapon_float }}</span>
-                  <span v-if="item.rename" class="detail-rename">🏷️ {{ item.rename }}</span>
                 </div>
               </div>
             </div>
@@ -1329,6 +1321,21 @@ export default {
       
       return Object.values(groups)
     })
+
+    // 计算组的平均购入价格
+    const getGroupAveragePrice = (group) => {
+      const validPrices = group.items
+        .map(item => parseFloat(item.buy_price))
+        .filter(price => !isNaN(price) && price > 0)
+      
+      if (validPrices.length === 0) {
+        return null
+      }
+      
+      const sum = validPrices.reduce((acc, price) => acc + price, 0)
+      const avg = sum / validPrices.length
+      return avg.toFixed(2)
+    }
 
     // 懒加载图片观察器
     let imageObserver = null
@@ -2655,6 +2662,7 @@ export default {
       isGroupedView,
       toggleGroupedView,
       groupedItems,
+      getGroupAveragePrice,
       groupForms,
       groupFormRefs,
       validateGroupPrice,
@@ -2858,53 +2866,25 @@ export default {
   line-height: 1.4;
 }
 
+.group-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .group-count {
   color: #4CAF50;
   font-size: 0.85rem;
   font-weight: 500;
 }
 
+.group-avg-price {
+  color: #999;
+  font-size: 0.85rem;
+}
+
 .group-right {
   flex-shrink: 0;
-}
-
-.group-details {
-  padding: 0.75rem 1rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.group-detail-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.4rem 0.75rem;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 4px;
-  font-size: 0.85rem;
-  border-left: 2px solid rgba(76, 175, 80, 0.3);
-}
-
-.detail-buy {
-  color: #999;
-  min-width: 120px;
-}
-
-.detail-float {
-  color: #4CAF50;
-  font-family: monospace;
-  min-width: 150px;
-}
-
-.detail-rename {
-  color: #67C23A;
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .grouped-item-info {
@@ -3105,7 +3085,7 @@ export default {
   border-radius: 2px;
   overflow: hidden;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  width: 60px;
+  width: 100px;
   flex-shrink: 0;
 }
 
