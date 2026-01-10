@@ -914,20 +914,20 @@
               :key="group.classid"
               class="grouped-section"
             >
-              <div class="group-header">
-                <img
-                  v-if="getWeaponImage(group.steamHashName)"
-                  :src="getWeaponImage(group.steamHashName)"
-                  class="group-thumb"
-                />
-                <div class="group-info">
-                  <div class="group-name">{{ group.itemName }}</div>
-                  <div class="group-count">共 {{ group.items.length }} 件</div>
+              <div class="group-card">
+                <div class="group-left">
+                  <img
+                    v-if="getWeaponImage(group.steamHashName)"
+                    :src="getWeaponImage(group.steamHashName)"
+                    class="group-thumb"
+                  />
+                  <div class="group-info">
+                    <div class="group-name">{{ group.itemName }}</div>
+                    <div class="group-count">数量: {{ group.items.length }} 件</div>
+                  </div>
                 </div>
-              </div>
-              
-              <div class="group-items">
-                <div class="group-form">
+                
+                <div class="group-right">
                   <el-form :model="groupForms[group.classid]" :rules="itemFormRules" :ref="el => groupFormRefs[group.classid] = el" class="inline-form">
                     <el-form-item prop="price">
                       <el-input 
@@ -946,39 +946,29 @@
                     </el-button>
                   </el-form>
                 </div>
-                
-                <div class="group-items-list">
-                  <div 
-                    v-for="item in group.items" 
-                    :key="item.assetid"
-                    class="grouped-item-card"
-                  >
-                    <div class="grouped-item-info">
-                      <div class="grouped-item-details">
-                        <div class="item-buy-price" v-if="item.buy_price">
-                          购入: ¥{{ parseFloat(item.buy_price).toFixed(2) }}
-                        </div>
-                        <div class="item-float-inline" v-if="item.weapon_float && item.weapon_float !== '0' && item.weapon_float !== '0.0'">
-                          磨损: {{ item.weapon_float }}
-                        </div>
-                        <div class="item-rename-inline" v-if="item.rename">
-                          🏷️ {{ item.rename }}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+              </div>
+              
+              <!-- 展开显示物品详情 -->
+              <div class="group-details">
+                <div 
+                  v-for="item in group.items" 
+                  :key="item.assetid"
+                  class="group-detail-item"
+                >
+                  <span v-if="item.buy_price" class="detail-buy">购入: ¥{{ parseFloat(item.buy_price).toFixed(2) }}</span>
+                  <span v-if="item.weapon_float && item.weapon_float !== '0' && item.weapon_float !== '0.0'" class="detail-float">磨损: {{ item.weapon_float }}</span>
+                  <span v-if="item.rename" class="detail-rename">🏷️ {{ item.rename }}</span>
                 </div>
               </div>
             </div>
           </div>
-          
-          <div class="form-tip">每个物品的价格只允许输入数字，最多两位小数</div>
         </div>
       </div>
       
       <template #footer>
-        <el-button @click="sellRentDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmSellRent" :loading="submitting">确认</el-button>
+        <el-button type="success" @click="confirmSellRent('yyyp')" :loading="submitting">上架悠悠</el-button>
+        <el-button type="success" @click="confirmSellRent('buff')" :loading="submitting">上架BUFF</el-button>
+        <el-button type="success" @click="confirmSellRent('csfl')" :loading="submitting">上架CSFL</el-button>
       </template>
     </el-dialog>
 
@@ -2240,7 +2230,7 @@ export default {
     }
     
     // 确认出售/出租
-    const confirmSellRent = async () => {
+    const confirmSellRent = async (platform) => {
       try {
         let itemsData = []
         
@@ -2285,13 +2275,14 @@ export default {
         
         // TODO: 调用后端API进行出售/出租操作
         const action = sellRentDialogType.value === 'sell' ? '出售' : '出租'
+        const platformName = platform === 'yyyp' ? '悠悠有品' : platform === 'buff' ? 'BUFF' : 'CSFL'
         
-        console.log(`${action}物品:`, itemsData)
+        console.log(`${action}物品到${platformName}:`, itemsData)
         
         // 模拟API调用
         await new Promise(resolve => setTimeout(resolve, 1000))
         
-        ElMessage.success(`${action}操作提交成功，共${itemsData.length}件物品`)
+        ElMessage.success(`${action}到${platformName}操作提交成功，共${itemsData.length}件物品`)
         
         // 关闭弹窗并清空选择
         sellRentDialogVisible.value = false
@@ -2819,81 +2810,101 @@ export default {
   border-bottom: 1px solid var(--border-color);
 }
 
-/* 组合显示样式 */
+/* 组合显示样式 - 重新设计 */
 .grouped-section {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   overflow: hidden;
+  background: rgba(255, 255, 255, 0.02);
 }
 
-.group-header {
+.group-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.group-left {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  flex: 1;
+  min-width: 0;
 }
 
 .group-thumb {
-  width: 50px;
-  height: 50px;
+  width: 60px;
+  height: 60px;
   object-fit: contain;
   background: var(--bg-tertiary);
-  border-radius: 4px;
+  border-radius: 6px;
+  flex-shrink: 0;
 }
 
 .group-info {
   flex: 1;
+  min-width: 0;
 }
 
 .group-name {
   color: #fff;
   font-size: 0.95rem;
   font-weight: 500;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.35rem;
+  line-height: 1.4;
 }
 
 .group-count {
-  color: #999;
+  color: #4CAF50;
   font-size: 0.85rem;
+  font-weight: 500;
 }
 
-.group-items {
-  padding: 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+.group-right {
+  flex-shrink: 0;
 }
 
-.group-form {
-  padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-}
-
-.group-items-list {
+.group-details {
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.grouped-item-card {
+.group-detail-item {
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 0.5rem 0.75rem;
+  padding: 0.4rem 0.75rem;
   background: rgba(255, 255, 255, 0.02);
-  border-left: 3px solid rgba(76, 175, 80, 0.3);
   border-radius: 4px;
-  transition: all 0.2s ease;
+  font-size: 0.85rem;
+  border-left: 2px solid rgba(76, 175, 80, 0.3);
 }
 
-.grouped-item-card:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-left-color: rgba(76, 175, 80, 0.6);
+.detail-buy {
+  color: #999;
+  min-width: 120px;
+}
+
+.detail-float {
+  color: #4CAF50;
+  font-family: monospace;
+  min-width: 150px;
+}
+
+.detail-rename {
+  color: #67C23A;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .grouped-item-info {
@@ -2907,6 +2918,7 @@ export default {
   gap: 0.75rem;
   font-size: 0.85rem;
 }
+
 
 .item-float-inline {
   color: #4CAF50;
@@ -3075,7 +3087,7 @@ export default {
 .float-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 
 .float-value-text {
@@ -3088,12 +3100,12 @@ export default {
 
 .float-bar-mini {
   position: relative;
-  height: 6px;
+  height: 4px;
   display: flex;
-  border-radius: 3px;
+  border-radius: 2px;
   overflow: hidden;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  width: 80px;
+  width: 60px;
   flex-shrink: 0;
 }
 
@@ -3131,7 +3143,7 @@ export default {
   top: 50%;
   transform: translate(-50%, -50%);
   width: 2px;
-  height: 10px;
+  height: 8px;
   background: #fff;
   border-radius: 1px;
   box-shadow: 0 0 3px rgba(0, 0, 0, 0.5), 0 0 6px rgba(255, 255, 255, 0.8);
@@ -3142,27 +3154,27 @@ export default {
 .float-bar-mini .float-pointer::before {
   content: '';
   position: absolute;
-  top: -3px;
+  top: -2px;
   left: 50%;
   transform: translateX(-50%);
   width: 0;
   height: 0;
-  border-left: 3px solid transparent;
-  border-right: 3px solid transparent;
-  border-top: 4px solid #fff;
+  border-left: 2px solid transparent;
+  border-right: 2px solid transparent;
+  border-top: 2.5px solid #fff;
 }
 
 .float-bar-mini .float-pointer::after {
   content: '';
   position: absolute;
-  bottom: -3px;
+  bottom: -2px;
   left: 50%;
   transform: translateX(-50%);
   width: 0;
   height: 0;
-  border-left: 3px solid transparent;
-  border-right: 3px solid transparent;
-  border-bottom: 4px solid #fff;
+  border-left: 2px solid transparent;
+  border-right: 2px solid transparent;
+  border-bottom: 2.5px solid #fff;
 }
 
 .item-rename {
