@@ -905,8 +905,35 @@
                       <span class="rename-value" :title="item.rename">{{ item.rename }}</span>
                     </div>
                     
-                    <div class="item-buy-price" v-if="item.buy_price">
-                      购入价: ¥{{ parseFloat(item.buy_price).toFixed(2) }}
+                    <!-- 购入价与悠悠底价在同一行 -->
+                    <div class="item-price-row">
+                      <div class="item-buy-price" v-if="item.buy_price">
+                        购入: ¥{{ parseFloat(item.buy_price).toFixed(2) }}
+                      </div>
+                      
+                      <!-- 悠悠底价 -->
+                      <div class="item-yyyp-price">
+                        <template v-if="yyypRealtimePrices[item.assetid]">
+                          <div v-if="yyypRealtimePrices[item.assetid].loading" class="price-loading">
+                            <el-icon class="is-loading"><Loading /></el-icon>
+                            <span>查询中...</span>
+                          </div>
+                          <div v-else-if="yyypRealtimePrices[item.assetid].error" class="price-error">
+                            悠悠: {{ yyypRealtimePrices[item.assetid].error }}
+                          </div>
+                          <div v-else 
+                            :class="{
+                              'price-higher': item.buy_price && parseFloat(yyypRealtimePrices[item.assetid].lowest_price) > parseFloat(item.buy_price),
+                              'price-lower': item.buy_price && parseFloat(yyypRealtimePrices[item.assetid].lowest_price) < parseFloat(item.buy_price),
+                              'price-equal': item.buy_price && parseFloat(yyypRealtimePrices[item.assetid].lowest_price) === parseFloat(item.buy_price),
+                              'price-no-compare': !item.buy_price
+                            }"
+                          >
+                            悠悠: ¥{{ parseFloat(yyypRealtimePrices[item.assetid].lowest_price).toFixed(2) }}
+                            <span class="price-count">({{ yyypRealtimePrices[item.assetid].total_count }}件)</span>
+                          </div>
+                        </template>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -955,9 +982,28 @@
                       <span v-if="getGroupAveragePrice(group)" class="group-avg-price">
                         均价: ¥{{ getGroupAveragePrice(group) }}
                       </span>
-                      <span v-if="getGroupPriceRange(group)" class="group-price-range">
-                        {{ getGroupPriceRange(group) }}
-                      </span>
+                      <!-- 悠悠底价显示 -->
+                      <template v-if="group.items[0] && yyypRealtimePrices[group.items[0].assetid]">
+                        <span v-if="yyypRealtimePrices[group.items[0].assetid].loading" class="group-yyyp-price price-loading">
+                          <el-icon class="is-loading"><Loading /></el-icon>
+                          <span>查询中...</span>
+                        </span>
+                        <span v-else-if="yyypRealtimePrices[group.items[0].assetid].error" class="group-yyyp-price price-error">
+                          悠悠: {{ yyypRealtimePrices[group.items[0].assetid].error }}
+                        </span>
+                        <span v-else 
+                          class="group-yyyp-price"
+                          :class="{
+                            'price-higher': getGroupAveragePrice(group) && parseFloat(yyypRealtimePrices[group.items[0].assetid].lowest_price) > parseFloat(getGroupAveragePrice(group)),
+                            'price-lower': getGroupAveragePrice(group) && parseFloat(yyypRealtimePrices[group.items[0].assetid].lowest_price) < parseFloat(getGroupAveragePrice(group)),
+                            'price-equal': getGroupAveragePrice(group) && parseFloat(yyypRealtimePrices[group.items[0].assetid].lowest_price) === parseFloat(getGroupAveragePrice(group)),
+                            'price-no-compare': !getGroupAveragePrice(group)
+                          }"
+                        >
+                          悠悠: ¥{{ parseFloat(yyypRealtimePrices[group.items[0].assetid].lowest_price).toFixed(2) }}
+                          <span class="price-count">({{ yyypRealtimePrices[group.items[0].assetid].total_count }}件)</span>
+                        </span>
+                      </template>
                     </div>
                   </div>
                   <div class="group-expand-icon">
@@ -1197,7 +1243,7 @@
 <script>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { ArrowDown } from '@element-plus/icons-vue'
+import { ArrowDown, Loading } from '@element-plus/icons-vue'
 import axios from 'axios'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
 
@@ -2404,8 +2450,120 @@ export default {
       itemFormRefs.value = []
     }
     
+    // 悠悠有品实时底价数据
+    const yyypRealtimePrices = ref({})
+    const loadingYYYPPrices = ref(false)
+    
+    // 查询悠悠有品实时底价
+    const fetchYYYPRealtimePrice = async (item) => {
+      try {
+        // 通过steam_hash_name查询yyyp_id
+        const response = await axios.post(
+          `${API_CONFIG.BASE_URL}/webSelectWeaponV1/getYYYPLowestPrice`,
+          { steamHashName: item.steam_hash_name }
+        )
+        
+        if (response.data.success && response.data.data.yyyp_id) {
+          const yyypId = response.data.data.yyyp_id
+          
+          // 实时查询悠悠在售底价
+          const priceResponse = await axios.post(
+            `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getRealTimeLowestPrice`,
+            {
+              yyypId: yyypId,
+              steamId: selectedSteamId.value,
+              includeList: false
+            }
+          )
+          
+          if (priceResponse.data.success) {
+            return {
+              assetid: item.assetid,
+              lowest_price: priceResponse.data.data.lowest_price,
+              total_count: priceResponse.data.data.total_count,
+              loading: false,
+              error: null
+            }
+          } else {
+            return {
+              assetid: item.assetid,
+              loading: false,
+              error: priceResponse.data.message
+            }
+          }
+        } else {
+          return {
+            assetid: item.assetid,
+            loading: false,
+            error: '未找到悠悠ID'
+          }
+        }
+      } catch (error) {
+        console.error('查询悠悠底价失败:', error)
+        return {
+          assetid: item.assetid,
+          loading: false,
+          error: error.message
+        }
+      }
+    }
+    
+    // 批量查询悠悠底价
+    const fetchAllYYYPRealtimePrices = async () => {
+      loadingYYYPPrices.value = true
+      yyypRealtimePrices.value = {}
+      
+      // 初始化loading状态
+      selectedItems.value.forEach(item => {
+        yyypRealtimePrices.value[item.assetid] = {
+          loading: true,
+          lowest_price: null,
+          total_count: null,
+          error: null
+        }
+      })
+      
+      // 按 steam_hash_name 分组，避免重复查询相同饰品
+      const groupedByHashName = new Map()
+      selectedItems.value.forEach(item => {
+        const hashName = item.steam_hash_name
+        if (!groupedByHashName.has(hashName)) {
+          groupedByHashName.set(hashName, [])
+        }
+        groupedByHashName.get(hashName).push(item)
+      })
+      
+      console.log(`[悠悠底价查询] 共 ${selectedItems.value.length} 件物品，去重后需查询 ${groupedByHashName.size} 个饰品`)
+      
+      // 逐个查询唯一的饰品（避免并发过多）
+      let queryCount = 0
+      for (const [hashName, items] of groupedByHashName.entries()) {
+        queryCount++
+        console.log(`[悠悠底价查询] (${queryCount}/${groupedByHashName.size}) 查询: ${hashName} (${items.length}件)`)
+        
+        // 查询第一个物品（同一个hash_name的物品yyyp_id相同）
+        const result = await fetchYYYPRealtimePrice(items[0])
+        
+        // 将查询结果应用到所有相同hash_name的物品
+        items.forEach(item => {
+          yyypRealtimePrices.value[item.assetid] = {
+            ...result,
+            assetid: item.assetid  // 保持各自的assetid
+          }
+        })
+        
+        // 添加延迟避免请求过快
+        if (queryCount < groupedByHashName.size) {
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        }
+      }
+      
+      console.log(`[悠悠底价查询] 查询完成，共查询 ${groupedByHashName.size} 个饰品`)
+      loadingYYYPPrices.value = false
+    }
+    
     // 显示出售弹窗
-    const showSellDialog = () => {
+    const showSellDialog = async () => {
       if (selectedItems.value.length === 0) {
         ElMessage.warning('请先选择要出售的物品')
         return
@@ -2414,6 +2572,9 @@ export default {
       sellRentDialogTitle.value = '出售物品'
       initItemForms()
       sellRentDialogVisible.value = true
+      
+      // 异步查询悠悠底价
+      fetchAllYYYPRealtimePrices()
     }
     
     // 显示出租弹窗
@@ -2926,6 +3087,8 @@ export default {
       showSellDialog,
       showRentDialog,
       validateItemPrice,
+      yyypRealtimePrices,
+      loadingYYYPPrices,
       confirmSellRent,
       // 组合显示
       isGroupedView,
@@ -3170,6 +3333,15 @@ export default {
   color: #FFC107;
   font-size: 0.85rem;
   font-weight: 500;
+}
+
+.group-yyyp-price {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.group-yyyp-price.price-loading {
+  color: #409EFF;
 }
 
 .group-price-range {
@@ -3433,9 +3605,61 @@ export default {
   gap: 0.35rem;
 }
 
+.item-price-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
 .item-buy-price {
   color: #999;
   font-size: 0.85rem;
+}
+
+.item-yyyp-price {
+  font-size: 0.85rem;
+}
+
+.price-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #409EFF;
+}
+
+.price-loading .el-icon {
+  font-size: 0.9rem;
+}
+
+.price-error {
+  color: #F56C6C;
+}
+
+.price-higher {
+  color: #F56C6C;
+  font-weight: 500;
+}
+
+.price-lower {
+  color: #67C23A;
+  font-weight: 500;
+}
+
+.price-equal {
+  color: #999;
+  font-weight: 500;
+}
+
+.price-no-compare {
+  color: #409EFF;
+  font-weight: 500;
+}
+
+.price-count {
+  color: #999;
+  font-size: 0.8rem;
+  margin-left: 0.25rem;
 }
 
 .item-float-bar {

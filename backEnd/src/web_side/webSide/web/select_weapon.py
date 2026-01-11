@@ -65,6 +65,88 @@ def getPendantPrice():
         }), 500
 
 
+@webSelectWeaponV1.route('/getYYYPLowestPrice', methods=['POST'])
+def getYYYPLowestPrice():
+    """
+    通过 steam_hash_name 获取悠悠有品在售底价
+    
+    请求体: {"steamHashName": "AK-47 | 红线 (久经沙场)"}
+    返回: {
+        "success": true, 
+        "data": {
+            "yyyp_Price": "150.5",  # 在售底价
+            "yyyp_Rent": "10.2",    # 租赁底价
+            "yyyp_OnSaleCount": "123",  # 在售数量
+            "yyyp_OnLeaseCount": "45",  # 出租数量
+            "yyyp_id": "12345",     # 悠悠有品ID
+            "weapon_name": "AK-47",
+            "item_name": "红线"
+        }
+    }
+    
+    逻辑：
+    1. 通过 steam_hash_name 在 weapon_classID 表中查询
+    2. 获取 yyyp_id
+    3. 返回 yyyp_Price (在售底价) 和其他相关信息
+    """
+    try:
+        data = request.get_json() or {}
+        steam_hash_name = data.get('steamHashName', '').strip()
+        
+        if not steam_hash_name:
+            return jsonify({
+                "success": False,
+                "message": "steamHashName 参数不能为空"
+            }), 400
+        
+        # 通过 steam_hash_name 查询
+        records = WeaponClassIDModel.find_by_steam_hash_name(steam_hash_name)
+        
+        if not records:
+            logger.write_log(f"[getYYYPLowestPrice] 未找到数据: {steam_hash_name}", 'WARNING')
+            return jsonify({
+                "success": False,
+                "message": f"未找到数据: {steam_hash_name}"
+            }), 404
+        
+        # 取第一条记录
+        record = records[0]
+        
+        result = {
+            'yyyp_Price': record.yyyp_Price or '0',
+            'yyyp_Rent': record.yyyp_Rent or '0',
+            'yyyp_OnSaleCount': record.yyyp_OnSaleCount or '0',
+            'yyyp_OnLeaseCount': record.yyyp_OnLeaseCount or '0',
+            'yyyp_id': str(record.yyyp_id) if record.yyyp_id else None,
+            'weapon_name': record.weapon_name,
+            'item_name': record.item_name,
+            'weapon_type': record.weapon_type,
+            'float_range': record.float_range
+        }
+        
+        logger.write_log(
+            f"[getYYYPLowestPrice] 查询成功: {steam_hash_name} -> "
+            f"yyyp_id={result['yyyp_id']}, "
+            f"yyyp_Price={result['yyyp_Price']}, "
+            f"在售数量={result['yyyp_OnSaleCount']}", 
+            'INFO'
+        )
+        
+        return jsonify({
+            "success": True,
+            "data": result
+        }), 200
+        
+    except Exception as e:
+        logger.write_log(f"获取悠悠在售底价失败: {e}", 'ERROR')
+        import traceback
+        logger.write_log(f"错误堆栈: {traceback.format_exc()}", 'ERROR')
+        return jsonify({
+            "success": False,
+            "message": f"获取悠悠在售底价失败: {str(e)}"
+        }), 500
+
+
 @webSelectWeaponV1.route('/getAllPendants', methods=['GET'])
 def getAllPendants():
     """

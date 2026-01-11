@@ -249,6 +249,12 @@ export const API_CONFIG = {
 
     CSQAQ_TASK_STATUS: '/csqaqSpiderV1/getTaskStatus',  // CSQAQ获取任务状态
 
+    
+
+    // 悠悠有品实时查询
+
+    YOUPIN_REALTIME_LOWEST_PRICE: '/youping898SpiderV1/getRealTimeLowestPrice',  // 实时查询悠悠在售底价
+
     CSQAQ_TASK_RESULT: '/csqaqSpiderV1/getTaskResult',  // CSQAQ获取任务结果
 
     CSQAQ_EXPORT: '/csqaqSpiderV1/exportGoods',  // CSQAQ导出商品
@@ -630,6 +636,12 @@ export const apiUrls = {
   csqaqExport: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_EXPORT),
 
   autoBuyRenamedWeapon: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.AUTO_BUY_RENAMED_WEAPON),
+
+  
+
+  // 悠悠有品实时查询API
+
+  youpinRealtimeLowestPrice: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YOUPIN_REALTIME_LOWEST_PRICE),
 
   
 
