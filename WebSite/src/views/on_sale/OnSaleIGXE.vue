@@ -529,7 +529,6 @@ export default {
     const updating = ref(false)
     const onSaleData = ref([])
     const searchText = ref('')
-    const platformFilter = ref('')
     const weaponTypeFilter = ref('')
     const floatRangeFilter = ref('')
     const displayMode = ref('card')
@@ -576,10 +575,8 @@ export default {
         )
       }
 
-      // 平台过滤
-      if (platformFilter.value) {
-        filtered = filtered.filter(item => item.platform === platformFilter.value)
-      }
+      // 只显示IGXE平台的数据
+      filtered = filtered.filter(item => item.platform === 'igxe')
 
       // 武器类型过滤
       if (weaponTypeFilter.value) {
@@ -616,7 +613,6 @@ export default {
     // 重置筛选
     const handleReset = () => {
       searchText.value = ''
-      platformFilter.value = ''
       weaponTypeFilter.value = ''
       floatRangeFilter.value = ''
       loadOnSaleData()
@@ -787,7 +783,6 @@ export default {
       updating,
       onSaleData,
       searchText,
-      platformFilter,
       weaponTypeFilter,
       floatRangeFilter,
       displayMode,

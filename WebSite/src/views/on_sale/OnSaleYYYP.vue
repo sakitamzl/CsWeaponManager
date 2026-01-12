@@ -3,6 +3,25 @@
     <!-- 筛选器 -->
     <div class="filters card">
       <div class="flex flex-wrap gap-4 items-center">
+        <el-select 
+          v-model="selectedAccount" 
+          placeholder="选择账号" 
+          class="account-select"
+          @change="handleAccountChange"
+          filterable
+        >
+          <el-option
+            v-for="item in accountList"
+            :key="item.id"
+            :label="`${item.name} - ${item.item_count || 0}件`"
+            :value="item.id"
+          >
+            <span style="float: left">{{ item.name }}</span>
+            <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">
+              {{ item.item_count || 0 }}件
+            </span>
+          </el-option>
+        </el-select>
         <el-input
           v-model="searchText"
           placeholder="搜索饰品名称..."
@@ -528,8 +547,9 @@ export default {
     const loading = ref(false)
     const updating = ref(false)
     const onSaleData = ref([])
+    const accountList = ref([])
+    const selectedAccount = ref('')
     const searchText = ref('')
-    const platformFilter = ref('')
     const weaponTypeFilter = ref('')
     const floatRangeFilter = ref('')
     const displayMode = ref('card')
@@ -576,9 +596,12 @@ export default {
         )
       }
 
-      // 平台过滤
-      if (platformFilter.value) {
-        filtered = filtered.filter(item => item.platform === platformFilter.value)
+      // 只显示悠悠有品平台的数据
+      filtered = filtered.filter(item => item.platform === 'yyyp')
+
+      // 账号过滤
+      if (selectedAccount.value) {
+        filtered = filtered.filter(item => item.account_id === selectedAccount.value)
       }
 
       // 武器类型过滤
@@ -596,9 +619,19 @@ export default {
 
     // 加载在售数据
     const loadOnSaleData = async () => {
+      if (!selectedAccount.value) {
+        ElMessage.warning('请选择账号')
+        return
+      }
+      
       loading.value = true
       try {
-        const response = await axios.get(apiUrls.getOnSaleItems())
+        const response = await axios.get(apiUrls.getOnSaleItems(), {
+          params: {
+            platform: 'yyyp',
+            account_id: selectedAccount.value
+          }
+        })
         if (response.data && response.data.success) {
           onSaleData.value = response.data.data || []
           ElMessage.success('加载成功')
@@ -613,10 +646,33 @@ export default {
       }
     }
 
+    // 加载账号列表
+    const loadAccountList = async () => {
+      try {
+        const response = await axios.get(apiUrls.getYYYPAccounts())
+        if (response.data && response.data.success) {
+          accountList.value = response.data.data || []
+          if (accountList.value.length > 0) {
+            selectedAccount.value = accountList.value[0].id
+            loadOnSaleData()
+          } else {
+            ElMessage.warning('没有找到悠悠有品账号')
+          }
+        }
+      } catch (error) {
+        console.error('加载账号列表失败:', error)
+        ElMessage.error('加载账号列表失败: ' + error.message)
+      }
+    }
+
+    // 处理账号变化
+    const handleAccountChange = () => {
+      loadOnSaleData()
+    }
+
     // 重置筛选
     const handleReset = () => {
       searchText.value = ''
-      platformFilter.value = ''
       weaponTypeFilter.value = ''
       floatRangeFilter.value = ''
       loadOnSaleData()
@@ -779,15 +835,16 @@ export default {
     }
 
     onMounted(() => {
-      loadOnSaleData()
+      loadAccountList()
     })
 
     return {
       loading,
       updating,
       onSaleData,
+      accountList,
+      selectedAccount,
       searchText,
-      platformFilter,
       weaponTypeFilter,
       floatRangeFilter,
       displayMode,
@@ -799,6 +856,8 @@ export default {
       onSaleStats,
       currentDisplayData,
       loadOnSaleData,
+      loadAccountList,
+      handleAccountChange,
       handleReset,
       handleUpdatePrice,
       confirmUpdatePrice,
@@ -828,6 +887,10 @@ export default {
 
 .search-input {
   width: 300px;
+}
+
+.account-select {
+  width: 250px;
 }
 
 .platform-select,

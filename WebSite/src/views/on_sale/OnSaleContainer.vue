@@ -26,6 +26,7 @@
             </el-icon>
             <span>BUFF</span>
           </li>
+          <!-- IGXE 暂时隐藏
           <li 
             :class="{ active: $route.name === 'OnSaleIGXE' }"
             @click="navigateTo('/on-sale/igxe')"
@@ -35,6 +36,7 @@
             </el-icon>
             <span>IGXE</span>
           </li>
+          -->
         </ul>
       </div>
     </aside>

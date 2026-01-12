@@ -4,7 +4,7 @@ import Home from '@/views/Home.vue'
 import ItemSearch from '@/views/ItemSearch.vue'
 import Buy from '@/views/Buy.vue'
 import Sell from '@/views/Sell.vue'
-import OnSale from '@/views/OnSale.vue'
+import OnSaleContainer from '@/views/on_sale/OnSaleContainer.vue'
 import Rental from '@/views/Rental.vue'
 import Lent from '@/views/Lent.vue'
 import Inventory from '@/views/Inventory.vue'
@@ -56,8 +56,29 @@ const routes = [
       {
         path: '/on-sale',
         name: 'OnSale',
-        component: OnSale,
-        meta: { title: '正在出售' }
+        component: OnSaleContainer,
+        meta: { title: '正在出售' },
+        redirect: '/on-sale/yyyp',
+        children: [
+          {
+            path: 'yyyp',
+            name: 'OnSaleYYYP',
+            component: () => import('@/views/on_sale/OnSaleYYYP.vue'),
+            meta: { title: '悠悠有品' }
+          },
+          {
+            path: 'buff',
+            name: 'OnSaleBuff',
+            component: () => import('@/views/on_sale/OnSaleBuff.vue'),
+            meta: { title: 'BUFF' }
+          },
+          {
+            path: 'igxe',
+            name: 'OnSaleIGXE',
+            component: () => import('@/views/on_sale/OnSaleIGXE.vue'),
+            meta: { title: 'IGXE' }
+          }
+        ]
       },
       {
         path: '/rental',
