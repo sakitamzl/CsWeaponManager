@@ -96,7 +96,7 @@
         </div>
         <div class="card">
           <h3>预期收益</h3>
-          <p class="stat-number" :style="{ color: onSaleStats.expectedProfit >= 0 ? '#4CAF50' : '#f56c6c' }">
+          <p class="stat-number" :class="onSaleStats.expectedProfit >= 0 ? 'price-profit' : 'price-loss'">
             {{ onSaleStats.expectedProfit >= 0 ? '+' : '' }}¥{{ onSaleStats.expectedProfit }}
           </p>
         </div>
@@ -222,7 +222,7 @@
                   <span class="price-label">预期收益:</span>
                   <span 
                     class="price-value"
-                    :style="{ color: (parseFloat(item.sale_price) - parseFloat(item.buy_price)) >= 0 ? '#4CAF50' : '#f56c6c' }"
+                    :class="getPriceDiffClass(item.sale_price, item.buy_price)"
                   >
                     {{ (parseFloat(item.sale_price) - parseFloat(item.buy_price)) >= 0 ? '+' : '' }}¥{{ Math.abs(parseFloat(item.sale_price) - parseFloat(item.buy_price)).toFixed(2) }}
                   </span>
@@ -363,10 +363,8 @@
           <template #default="scope">
             <span 
               v-if="scope.row.buy_price"
-              :style="{ 
-                color: (parseFloat(scope.row.sale_price) - parseFloat(scope.row.buy_price)) >= 0 ? '#4CAF50' : '#f56c6c',
-                fontWeight: 'bold'
-              }"
+              :class="getPriceDiffClass(scope.row.sale_price, scope.row.buy_price)"
+              style="font-weight: bold;"
             >
               {{ (parseFloat(scope.row.sale_price) - parseFloat(scope.row.buy_price)) >= 0 ? '+' : '' }}¥{{ Math.abs(parseFloat(scope.row.sale_price) - parseFloat(scope.row.buy_price)).toFixed(2) }}
             </span>
@@ -491,7 +489,7 @@
                     <span class="preview-price-label">预期收益:</span>
                     <span
                       class="preview-price-value"
-                      :style="{ color: (parseFloat(previewItem.sale_price) - parseFloat(previewItem.buy_price)) >= 0 ? '#4CAF50' : '#f56c6c' }"
+                      :class="getPriceDiffClass(previewItem.sale_price, previewItem.buy_price)"
                     >
                       {{ (parseFloat(previewItem.sale_price) - parseFloat(previewItem.buy_price)) >= 0 ? '+' : '' }}¥{{ Math.abs(parseFloat(previewItem.sale_price) - parseFloat(previewItem.buy_price)).toFixed(2) }}
                     </span>
@@ -684,7 +682,8 @@ export default {
           accountList.value = response.data.data || []
           if (accountList.value.length > 0) {
             selectedAccount.value = accountList.value[0].id
-            // 不自动加载数据，等待用户手动触发
+            // 默认查询第一个账号的数据
+            loadOnSaleData()
           } else {
             ElMessage.warning('没有找到悠悠有品账号')
           }
@@ -916,6 +915,13 @@ export default {
       return date.toLocaleDateString('zh-CN')
     }
 
+    // 获取价格差异样式类
+    const getPriceDiffClass = (salePrice, buyPrice) => {
+      if (!salePrice || !buyPrice) return ''
+      const diff = parseFloat(salePrice) - parseFloat(buyPrice)
+      return diff >= 0 ? 'price-profit' : 'price-loss'
+    }
+
     onMounted(() => {
       loadAccountList()
     })
@@ -960,7 +966,8 @@ export default {
       toggleMultiSelectMode,
       isItemSelected,
       toggleItemSelection,
-      handleCardClick
+      handleCardClick,
+      getPriceDiffClass
     }
   }
 }
@@ -1028,7 +1035,7 @@ export default {
 
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 1rem;
   padding: 1rem 0;
 }
@@ -1036,10 +1043,13 @@ export default {
 .inventory-card {
   background: var(--bg-secondary);
   border-radius: 8px;
-  overflow: hidden;
+  overflow: visible;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: all 0.3s ease;
   border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  height: 340px;
 }
 
 .inventory-card:hover {
@@ -1050,7 +1060,7 @@ export default {
 .card-image {
   position: relative;
   width: 100%;
-  height: 180px;
+  height: 150px;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   display: flex;
   align-items: center;
@@ -1139,26 +1149,38 @@ export default {
 
 /* 卡片内容 */
 .card-content {
-  padding: 1rem;
+  padding: 0.75rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .card-title {
-  font-size: 0.95rem;
-  font-weight: 500;
-  color: var(--text-primary);
-  margin-bottom: 0.75rem;
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #fff;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.3;
+  min-height: 2.6em;
 }
 
 .card-info {
-  margin-bottom: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.75rem;
 }
 
 /* 磨损值显示条 */
 .float-bar-container {
-  margin-bottom: 0.5rem;
+  margin-top: 0.3rem;
+  padding: 0;
+  margin-bottom: 0;
 }
 
 .float-bar {
@@ -1211,23 +1233,30 @@ export default {
 }
 
 .float-value {
+  text-align: left;
+  font-size: 0.75rem;
+  color: #ccc;
   font-family: monospace;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  margin-top: 0.25rem;
+  margin-top: 0.2rem;
+  margin-bottom: 0;
+  font-weight: 500;
 }
 
 /* 价格显示 */
 .card-prices {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem;
+  margin-top: 0.3rem;
+  padding-top: 0;
+  border-top: none;
 }
 
 .price-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-size: 0.75rem;
   gap: 0.5rem;
 }
 
@@ -1235,22 +1264,31 @@ export default {
   display: flex;
   align-items: center;
   gap: 0.25rem;
+  flex: 1;
 }
 
 .price-label {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
+  color: #999;
+  font-size: 0.7rem;
+  white-space: nowrap;
 }
 
 .price-value {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-primary);
+  color: #fff;
+  font-weight: bold;
+  font-size: 0.75rem;
+}
+
+.price-profit {
+  color: #f56c6c;
+}
+
+.price-loss {
+  color: #4CAF50;
 }
 
 .sale-price {
   color: #4CAF50;
-  font-size: 1rem;
 }
 
 /* 卡片底部 */
@@ -1597,7 +1635,7 @@ export default {
 /* 响应式设计 */
 @media (max-width: 768px) {
   .card-grid {
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   }
 
   .grid-4 {
@@ -1606,6 +1644,10 @@ export default {
 
   .preview-main-layout {
     grid-template-columns: 1fr;
+  }
+  
+  .inventory-card {
+    height: 320px;
   }
 }
 
