@@ -2746,14 +2746,22 @@ export default {
         
         if (dateMatch) {
           const [, year, month, day, hour, minute, second] = dateMatch
-          const date = new Date(year, month - 1, day, hour, minute, second)
           
-          // 格式化日期（只显示到日期）
-          const formattedDate = `${year}年${month}月${day}日`
+          // 创建UTC时间（格林尼治标准时间）
+          const utcDate = new Date(Date.UTC(year, month - 1, day, hour, minute, second))
+          
+          // 转换为本地时间
+          const localDate = new Date(utcDate)
+          
+          // 格式化本地日期（只显示到日期）
+          const localYear = localDate.getFullYear()
+          const localMonth = localDate.getMonth() + 1
+          const localDay = localDate.getDate()
+          const formattedDate = `${localYear}年${localMonth}月${localDay}日`
           
           // 计算剩余天数
           const now = new Date()
-          const diffTime = date - now
+          const diffTime = localDate - now
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
           
           return {
