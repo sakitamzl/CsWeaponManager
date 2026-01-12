@@ -1425,7 +1425,7 @@ export default {
       groupForms.value = Object.fromEntries(groupMap)
     }
     
-    // 自动填充组合价格（使用悠悠底价）
+    // 自动填充组合价格（使用悠悠底价-0.01）
     const autoFillGroupPrices = () => {
       const groupMap = new Map()
       let filledCount = 0
@@ -1446,7 +1446,10 @@ export default {
           
           let price = ''
           if (yyypPrice && !yyypPrice.loading && !yyypPrice.error && yyypPrice.lowest_price) {
-            price = parseFloat(yyypPrice.lowest_price).toFixed(2)
+            // 底价减0.01
+            const lowestPrice = parseFloat(yyypPrice.lowest_price)
+            const fillPrice = Math.max(0.01, lowestPrice - 0.01)
+            price = fillPrice.toFixed(2)
           }
           
           groupMap.set(classid, price)
@@ -1466,7 +1469,7 @@ export default {
       })
       
       if (filledCount > 0) {
-        ElMessage.success(`已自动填充 ${filledCount} 组的悠悠底价`)
+        ElMessage.success(`已自动填充 ${filledCount} 组的价格（底价-0.01）`)
       } else if (noDataCount > 0) {
         ElMessage.warning('没有可用的悠悠底价数据，请先查询底价')
       } else {
@@ -1474,7 +1477,7 @@ export default {
       }
     }
     
-    // 自动填充非组合模式的价格（使用悠悠底价）
+    // 自动填充非组合模式的价格（使用悠悠底价-0.01）
     const autoFillItemPrices = () => {
       let filledCount = 0
       let noDataCount = 0
@@ -1484,7 +1487,10 @@ export default {
         
         if (yyypPrice && !yyypPrice.loading && !yyypPrice.error && yyypPrice.lowest_price) {
           if (itemForms.value[index]) {
-            itemForms.value[index].price = parseFloat(yyypPrice.lowest_price).toFixed(2)
+            // 底价减0.01
+            const lowestPrice = parseFloat(yyypPrice.lowest_price)
+            const fillPrice = Math.max(0.01, lowestPrice - 0.01)
+            itemForms.value[index].price = fillPrice.toFixed(2)
             filledCount++
           }
         } else {
@@ -1493,7 +1499,7 @@ export default {
       })
       
       if (filledCount > 0) {
-        ElMessage.success(`已自动填充 ${filledCount} 件物品的悠悠底价`)
+        ElMessage.success(`已自动填充 ${filledCount} 件物品的价格（底价-0.01）`)
       } else if (noDataCount > 0) {
         ElMessage.warning('没有可用的悠悠底价数据，请先查询底价')
       } else {
