@@ -216,12 +216,12 @@
                         </div>
                       </div>
                       <div v-if="item.remark" class="expand-remark-tag">
-                        <el-tooltip v-if="parseTradeLockDate(item.remark)" :content="item.remark" placement="top" effect="dark">
+                        <el-tooltip v-if="parseTradeLockDate(item.remark) && !parseTradeLockDate(item.remark).expired" :content="item.remark" placement="top" effect="dark">
                           <el-tag type="warning" size="small">
-                            {{ parseTradeLockDate(item.remark).expired ? '已解除' : `至${parseTradeLockDate(item.remark).date}` }}
+                            至{{ parseTradeLockDate(item.remark).date }}
                           </el-tag>
                         </el-tooltip>
-                        <el-tooltip v-else :content="item.remark" placement="top" effect="dark">
+                        <el-tooltip v-else-if="item.remark && !parseTradeLockDate(item.remark)" :content="item.remark" placement="top" effect="dark">
                           <el-tag type="warning" size="small">交易保护</el-tag>
                         </el-tooltip>
                       </div>
@@ -509,13 +509,15 @@
           fixed="right"
         >
           <template #default="scope">
-            <div v-if="scope.row.remark">
-              <el-tooltip v-if="parseTradeLockDate(scope.row.remark)" :content="scope.row.remark" placement="left" effect="dark">
+            <div v-if="scope.row.remark && parseTradeLockDate(scope.row.remark) && !parseTradeLockDate(scope.row.remark).expired">
+              <el-tooltip :content="scope.row.remark" placement="left" effect="dark">
                 <el-tag type="warning" size="small" style="cursor: help;">
-                  {{ parseTradeLockDate(scope.row.remark).expired ? '已解除' : `至${parseTradeLockDate(scope.row.remark).date}` }}
+                  至{{ parseTradeLockDate(scope.row.remark).date }}
                 </el-tag>
               </el-tooltip>
-              <el-tooltip v-else :content="scope.row.remark" placement="left" effect="dark">
+            </div>
+            <div v-else-if="scope.row.remark && !parseTradeLockDate(scope.row.remark)">
+              <el-tooltip :content="scope.row.remark" placement="left" effect="dark">
                 <el-tag type="warning" size="small" style="cursor: help;">
                   交易限制
                 </el-tag>
@@ -690,12 +692,12 @@
             </div>
             <div class="card-footer">
               <div class="card-tags">
-                <el-tooltip v-if="item.remark && parseTradeLockDate(item.remark)" :content="item.remark" placement="top" effect="dark">
+                <el-tooltip v-if="item.remark && parseTradeLockDate(item.remark) && !parseTradeLockDate(item.remark).expired" :content="item.remark" placement="top" effect="dark">
                   <el-tag type="warning" size="small">
-                    {{ parseTradeLockDate(item.remark).expired ? '已解除' : `至${parseTradeLockDate(item.remark).date}` }}
+                    至{{ parseTradeLockDate(item.remark).date }}
                   </el-tag>
                 </el-tooltip>
-                <el-tooltip v-else-if="item.remark" :content="item.remark" placement="top" effect="dark">
+                <el-tooltip v-else-if="item.remark && !parseTradeLockDate(item.remark)" :content="item.remark" placement="top" effect="dark">
                   <el-tag type="warning" size="small">交易限制</el-tag>
                 </el-tooltip>
                 <el-tag v-if="item.rename" type="info" size="small" class="rename-tag">
@@ -1155,12 +1157,12 @@
 
               <!-- 标签信息 -->
               <div class="preview-tags">
-                <el-tooltip v-if="previewItem.remark && parseTradeLockDate(previewItem.remark)" :content="previewItem.remark" placement="top" effect="dark">
+                <el-tooltip v-if="previewItem.remark && parseTradeLockDate(previewItem.remark) && !parseTradeLockDate(previewItem.remark).expired" :content="previewItem.remark" placement="top" effect="dark">
                   <el-tag type="warning" size="default">
                     交易限制至 {{ parseTradeLockDate(previewItem.remark).date }}
                   </el-tag>
                 </el-tooltip>
-                <el-tooltip v-else-if="previewItem.remark" :content="previewItem.remark" placement="top" effect="dark">
+                <el-tooltip v-else-if="previewItem.remark && !parseTradeLockDate(previewItem.remark)" :content="previewItem.remark" placement="top" effect="dark">
                   <el-tag type="warning" size="default">交易限制</el-tag>
                 </el-tooltip>
               </div>
