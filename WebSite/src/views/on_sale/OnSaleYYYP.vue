@@ -413,12 +413,14 @@
           <el-form-item label="新售价">
             <el-input 
               v-model="updatePriceForm.newPrice" 
-              placeholder="请输入新的售价"
-              type="number"
-              step="0.01"
+              placeholder="请输入新的售价（如：200.11）"
+              @input="validatePriceInput"
             >
               <template #prepend>¥</template>
             </el-input>
+            <div style="color: #909399; font-size: 12px; margin-top: 4px;">
+              请输入正数，最多保留两位小数
+            </div>
           </el-form-item>
         </el-form>
       </div>
@@ -709,10 +711,47 @@ export default {
       previewVisible.value = false
     }
 
+    // 校验价格输入
+    const validatePriceInput = () => {
+      let value = updatePriceForm.value.newPrice
+      
+      // 移除非数字和小数点的字符
+      value = value.replace(/[^\d.]/g, '')
+      
+      // 只保留第一个小数点
+      const parts = value.split('.')
+      if (parts.length > 2) {
+        value = parts[0] + '.' + parts.slice(1).join('')
+      }
+      
+      // 限制小数点后最多两位
+      if (parts.length === 2 && parts[1].length > 2) {
+        value = parts[0] + '.' + parts[1].substring(0, 2)
+      }
+      
+      updatePriceForm.value.newPrice = value
+    }
+
     // 确认改价
     const confirmUpdatePrice = async () => {
-      if (!updatePriceForm.value.newPrice || parseFloat(updatePriceForm.value.newPrice) <= 0) {
-        ElMessage.warning('请输入有效的价格')
+      const price = updatePriceForm.value.newPrice
+      
+      // 验证价格
+      if (!price || price.trim() === '') {
+        ElMessage.warning('请输入售价')
+        return
+      }
+      
+      const priceFloat = parseFloat(price)
+      if (isNaN(priceFloat) || priceFloat <= 0) {
+        ElMessage.warning('请输入有效的价格（大于0）')
+        return
+      }
+      
+      // 验证小数位数
+      const parts = price.split('.')
+      if (parts.length === 2 && parts[1].length > 2) {
+        ElMessage.warning('价格最多保留两位小数')
         return
       }
 
@@ -720,7 +759,8 @@ export default {
       try {
         const response = await axios.post(apiUrls.updateSalePrice(), {
           id: selectedItem.value.id,
-          new_price: updatePriceForm.value.newPrice
+          new_price: price,  // 直接传递原始字符串
+          account_id: selectedAccount.value
         })
 
         if (response.data && response.data.success) {
@@ -945,6 +985,7 @@ export default {
       handleAccountChange,
       handleReset,
       handleUpdatePrice,
+      validatePriceInput,
       confirmUpdatePrice,
       handleRemoveFromSale,
       openPreview,
