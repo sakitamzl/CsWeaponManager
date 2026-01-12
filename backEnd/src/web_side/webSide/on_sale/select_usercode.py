@@ -10,11 +10,11 @@ def get_yyyp_accounts():
     try:
         db = DatabaseManager()
         
-        # 查询 config 表中 key1='yyyp' AND key2='config' 的记录
+        # 查询 config 表中 key1='youpin' AND key2='config' 的记录
         sql = """
         SELECT dataID, dataName, steamID
         FROM config 
-        WHERE key1 = 'yyyp' AND key2 = 'config'
+        WHERE key1 = 'youpin' AND key2 = 'config'
         ORDER BY dataID
         """
         results = db.execute_query(sql)
