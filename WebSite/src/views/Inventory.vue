@@ -2415,7 +2415,7 @@ export default {
     const toggleItemSelection = (item) => {
       // 检查是否有交易限制
       if (hasTradeRestriction(item)) {
-        ElMessage.warning('该物品正受交易保护，无法选中')
+        ElMessage.warning('无法交易')
         return
       }
       
