@@ -150,12 +150,6 @@
                 <div v-else class="pendant-placeholder-overlay">🎗️</div>
               </div>
             </div>
-            <!-- 平台标签 -->
-            <div class="platform-badge">
-              <el-tag :type="getPlatformTagType(item.platform)" size="small">
-                {{ getPlatformLabel(item.platform) }}
-              </el-tag>
-            </div>
           </div>
           <div class="card-content">
             <div class="card-title" :title="getCardTitle(item)">
@@ -732,7 +726,8 @@ export default {
 
         loading.value = true
         const response = await axios.post(apiUrls.removeFromSale(), {
-          id: item.id
+          id: item.id,
+          account_id: selectedAccount.value
         })
 
         if (response.data && response.data.success) {

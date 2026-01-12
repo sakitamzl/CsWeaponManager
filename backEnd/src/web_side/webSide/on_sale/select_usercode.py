@@ -305,7 +305,8 @@ def remove_from_sale():
     """下架商品"""
     try:
         data = request.get_json()
-        item_id = data.get('id')
+        item_id = data.get('id')  # 商品ID（commodity_id）
+        account_id = data.get('account_id')  # 账号ID（可选，用于获取steamId）
         
         if not item_id:
             return jsonify({
@@ -313,14 +314,65 @@ def remove_from_sale():
                 'message': '缺少必要参数: id'
             }), 400
         
-        # TODO: 根据实际的在售商品表结构实现下架
-        # 这里暂时返回成功，等待实际表结构确定后补充
+        # 如果提供了account_id，从config表获取steamId
+        steam_id = None
+        if account_id:
+            db = DatabaseManager()
+            config_sql = """
+            SELECT steamID
+            FROM config 
+            WHERE key1 = 'youpin' AND key2 = 'config' AND dataID = ?
+            """
+            config_result = db.execute_query(config_sql, (account_id,))
+            
+            if config_result and len(config_result) > 0:
+                steam_id = config_result[0][0]
         
-        return jsonify({
-            'success': True,
-            'message': '下架成功'
-        })
+        # 调用Spider服务下架商品
+        try:
+            spider_url = f"{SPIDER_API_ADDRESS}/youping898SpiderV1/offShelfItems"
+            spider_response = requests.post(
+                spider_url,
+                json={
+                    'steamId': steam_id if steam_id else '',
+                    'ids': str(item_id)  # 单个ID
+                },
+                timeout=30
+            )
+            
+            if spider_response.status_code != 200:
+                return jsonify({
+                    'success': False,
+                    'message': f'Spider服务请求失败: HTTP {spider_response.status_code}'
+                }), 500
+            
+            spider_data = spider_response.json()
+            
+            if spider_data.get('success'):
+                return jsonify({
+                    'success': True,
+                    'message': '下架成功'
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': spider_data.get('message', '下架失败')
+                }), 400
+                
+        except requests.exceptions.Timeout:
+            return jsonify({
+                'success': False,
+                'message': 'Spider服务请求超时'
+            }), 500
+        except requests.exceptions.RequestException as e:
+            return jsonify({
+                'success': False,
+                'message': f'Spider服务请求失败: {str(e)}'
+            }), 500
+            
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'message': f'下架失败: {str(e)}'
