@@ -560,6 +560,7 @@
       <div class="action-buttons">
         <el-button type="primary" @click="showSellDialog">出售</el-button>
         <el-button type="primary" @click="showRentDialog">出租</el-button>
+        <el-button type="success" @click="moveToComponent">存入组件</el-button>
         <el-button @click="clearSelection">清空选择</el-button>
       </div>
     </div>
@@ -1096,8 +1097,8 @@
       
       <template #footer>
         <el-button type="success" @click="confirmSellRent('yyyp')" :loading="submitting">上架悠悠</el-button>
-        <el-button type="success" @click="confirmSellRent('buff')" :loading="submitting">上架BUFF</el-button>
-        <el-button type="success" @click="confirmSellRent('csfl')" :loading="submitting">上架CSFL</el-button>
+        <el-button type="success" @click="confirmSellRent('buff')" :loading="submitting" disabled>上架BUFF</el-button>
+        <el-button type="success" @click="confirmSellRent('csfl')" :loading="submitting" disabled>上架CSFL</el-button>
       </template>
     </el-dialog>
 
@@ -2867,10 +2868,21 @@ export default {
       // TODO: 实现BUFF出租功能
     }
 
-    // 移入组件按钮处理
+    // 移入组件按钮处理（单个物品）
     const handleMoveToComponent = () => {
       ElMessage.info('移入组件功能待开发')
       // TODO: 实现移入组件功能
+    }
+    
+    // 批量移入组件
+    const moveToComponent = () => {
+      if (selectedItems.value.length === 0) {
+        ElMessage.warning('请先选择要移入组件的物品')
+        return
+      }
+      
+      ElMessage.info(`批量移入组件功能待开发，已选择 ${selectedItems.value.length} 件物品`)
+      // TODO: 实现批量移入组件功能
     }
 
     // 解析交易限制日期
@@ -3201,6 +3213,7 @@ export default {
       handleBuffSell,
       handleBuffRent,
       handleMoveToComponent,
+      moveToComponent,
       parsePendant,
       getExpandedItems,
       getExpandedTotal,

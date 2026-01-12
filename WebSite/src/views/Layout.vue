@@ -83,6 +83,11 @@ export default {
           icon: '/icons/rent.png'
         },
         {
+          path: '/on-sale',
+          title: '正在出售',
+          icon: '/icons/OnSale.png'
+        },
+        {
           path: '/inventory',
           title: 'Steam库存',
           icon: '/icons/inventory.png'
