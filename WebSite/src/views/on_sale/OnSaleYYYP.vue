@@ -715,8 +715,20 @@ export default {
     const validatePriceInput = () => {
       let value = updatePriceForm.value.newPrice
       
+      if (!value) {
+        return
+      }
+      
+      // 转换为字符串
+      value = String(value)
+      
       // 移除非数字和小数点的字符
       value = value.replace(/[^\d.]/g, '')
+      
+      // 不允许以多个0开头（除非是0.xx）
+      if (value.length > 1 && value[0] === '0' && value[1] !== '.') {
+        value = value.replace(/^0+/, '0')
+      }
       
       // 只保留第一个小数点
       const parts = value.split('.')
