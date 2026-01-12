@@ -943,21 +943,51 @@
               
               <div class="item-right">
                 <el-form :model="itemForms[index]" :rules="itemFormRules" :ref="el => itemFormRefs[index] = el" class="inline-form">
-                  <el-form-item prop="price">
-                    <el-input 
-                      v-model="itemForms[index].price" 
-                      placeholder="价格"
-                      @input="validateItemPrice(index)"
+                  <div>
+                    <el-form-item prop="price">
+                      <el-input 
+                        v-model="itemForms[index].price" 
+                        placeholder="价格"
+                        @input="validateItemPrice(index)"
+                        size="small"
+                        :disabled="itemForms[index].uploadStatus === 'uploading' || itemForms[index].uploadStatus === 'success'"
+                      />
+                    </el-form-item>
+                    <el-button 
+                      size="small" 
+                      @click="openRemarkDialog(index)"
+                      :type="itemForms[index].remark ? 'success' : 'default'"
+                      :disabled="itemForms[index].uploadStatus === 'uploading' || itemForms[index].uploadStatus === 'success'"
+                    >
+                      {{ itemForms[index].remark ? '已备注' : '备注' }}
+                    </el-button>
+                  </div>
+                  <!-- 上架状态显示 -->
+                  <div v-if="itemForms[index].uploadStatus" class="upload-status">
+                    <el-tag 
+                      v-if="itemForms[index].uploadStatus === 'uploading'" 
+                      type="info" 
                       size="small"
-                    />
-                  </el-form-item>
-                  <el-button 
-                    size="small" 
-                    @click="openRemarkDialog(index)"
-                    :type="itemForms[index].remark ? 'success' : 'default'"
-                  >
-                    {{ itemForms[index].remark ? '已备注' : '备注' }}
-                  </el-button>
+                    >
+                      <el-icon class="is-loading"><Loading /></el-icon>
+                      {{ itemForms[index].uploadMessage }}
+                    </el-tag>
+                    <el-tag 
+                      v-else-if="itemForms[index].uploadStatus === 'success'" 
+                      type="success" 
+                      size="small"
+                    >
+                      ✓ {{ itemForms[index].uploadMessage }}
+                    </el-tag>
+                    <el-tag 
+                      v-else-if="itemForms[index].uploadStatus === 'failed'" 
+                      type="danger" 
+                      size="small"
+                      :title="itemForms[index].uploadMessage"
+                    >
+                      ✗ {{ itemForms[index].uploadMessage }}
+                    </el-tag>
+                  </div>
                 </el-form>
               </div>
             </div>
@@ -2447,7 +2477,9 @@ export default {
     const initItemForms = () => {
       itemForms.value = selectedItems.value.map(() => ({
         price: '',
-        remark: ''
+        remark: '',
+        uploadStatus: null,  // 上架状态：null=未上架, 'uploading'=上架中, 'success'=成功, 'failed'=失败
+        uploadMessage: ''     // 上架消息
       }))
       itemFormRefs.value = []
     }
@@ -2684,11 +2716,18 @@ export default {
           
           let successCount = 0
           let failCount = 0
-          const failedItems = []
           
           // 逐个上架
           for (let i = 0; i < itemsData.length; i++) {
             const item = itemsData[i]
+            
+            // 更新状态为上架中
+            if (isGroupedView.value) {
+              // 组合模式暂不支持状态显示
+            } else {
+              itemForms.value[i].uploadStatus = 'uploading'
+              itemForms.value[i].uploadMessage = '上架中...'
+            }
             
             try {
               console.log(`[${i + 1}/${itemsData.length}] 正在上架: ${item.name}`)
@@ -2707,11 +2746,22 @@ export default {
               if (response.data.success) {
                 successCount++
                 console.log(`✓ 上架成功: ${item.name}`)
+                
+                // 更新状态为成功
+                if (!isGroupedView.value) {
+                  itemForms.value[i].uploadStatus = 'success'
+                  itemForms.value[i].uploadMessage = '上架成功'
+                }
               } else {
                 failCount++
                 const errorMsg = response.data.message || '未知错误'
-                failedItems.push(`${item.name}: ${errorMsg}`)
                 console.error(`✗ 上架失败: ${item.name} - ${errorMsg}`)
+                
+                // 更新状态为失败
+                if (!isGroupedView.value) {
+                  itemForms.value[i].uploadStatus = 'failed'
+                  itemForms.value[i].uploadMessage = errorMsg
+                }
               }
               
               // 添加延迟，避免请求过快
@@ -2722,8 +2772,13 @@ export default {
             } catch (error) {
               failCount++
               const errorMsg = error.response?.data?.message || error.message || '网络错误'
-              failedItems.push(`${item.name}: ${errorMsg}`)
               console.error(`✗ 上架异常: ${item.name}`, error)
+              
+              // 更新状态为失败
+              if (!isGroupedView.value) {
+                itemForms.value[i].uploadStatus = 'failed'
+                itemForms.value[i].uploadMessage = errorMsg
+              }
             }
           }
           
@@ -2732,24 +2787,11 @@ export default {
             ElMessage.success(`全部上架成功！共${successCount}件物品`)
           } else if (successCount === 0) {
             ElMessage.error(`全部上架失败！共${failCount}件物品`)
-            // 显示失败详情
-            if (failedItems.length > 0) {
-              console.error('失败详情:', failedItems)
-            }
           } else {
             ElMessage.warning(`上架完成：成功${successCount}件，失败${failCount}件`)
-            // 显示失败详情
-            if (failedItems.length > 0) {
-              console.error('失败详情:', failedItems)
-            }
           }
           
-          // 关闭弹窗并清空选择
-          sellRentDialogVisible.value = false
-          selectedItems.value = []
-          isMultiSelectMode.value = false
-          isGroupedView.value = false
-          
+          // 不关闭弹窗，让用户查看上架结果
           // 刷新库存数据
           await loadInventoryData()
           
@@ -3867,6 +3909,12 @@ export default {
 
 .inline-form {
   display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.inline-form > div:first-child {
+  display: flex;
   gap: 0.5rem;
   align-items: flex-start;
 }
@@ -3878,6 +3926,18 @@ export default {
 
 .inline-form :deep(.el-button) {
   flex-shrink: 0;
+}
+
+.upload-status {
+  width: 100%;
+}
+
+.upload-status .el-tag {
+  width: 100%;
+  justify-content: center;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .item-right :deep(.el-input__inner) {
