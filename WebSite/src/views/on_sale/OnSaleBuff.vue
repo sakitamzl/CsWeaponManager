@@ -554,6 +554,9 @@ export default {
     const floatRangeFilter = ref('')
     const displayMode = ref('card')
     
+    // 图片404缓存
+    const image404Cache = ref(new Set())
+    
     // 弹窗相关
     const updatePriceDialogVisible = ref(false)
     const previewVisible = ref(false)
@@ -758,11 +761,33 @@ export default {
 
     // 工具函数
     const getWeaponImage = (steamHashName) => {
-      if (!steamHashName) return null
-      return `${API_CONFIG.baseURL}/weapon_imgs/${encodeURIComponent(steamHashName)}.png`
+      if (!steamHashName) {
+        return null // 如果没有steam_hash_name，返回null，不显示图片
+      }
+      // 检查是否已经在404缓存中
+      if (image404Cache.value.has(steamHashName)) {
+        return null // 如果之前404过，直接返回null，不显示图片
+      }
+      // 将空格和竖线分别替换为下划线，并添加.png扩展名
+      // 例如: "AK-47 | Neon Revolution (Factory New)" -> "AK-47___Neon_Revolution_(Factory_New).png"
+      const imageName = steamHashName
+        .replace(/\s*\|\s*/g, '___')  // " | " -> "___" (竖线及其两侧空格替换为三个下划线)
+        .replace(/\s/g, '_')          // 剩余所有空格 -> "_"
+        + '.png'
+
+      return apiUrls.weaponImage(imageName)
     }
 
     const handleImageError = (e, steamHashName) => {
+      // 将失败的steam_hash_name添加到404缓存中
+      if (steamHashName) {
+        image404Cache.value.add(steamHashName)
+      }
+      
+      // 移除错误监听器，防止重复触发
+      e.target.onerror = null
+      
+      // 隐藏图片，不设置data URI，避免将图片数据加载到内存
       e.target.style.display = 'none'
     }
 
