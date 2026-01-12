@@ -1425,58 +1425,79 @@ export default {
       groupForms.value = Object.fromEntries(groupMap)
     }
     
-    // 自动填充组合价格（使用平均购入价）
+    // 自动填充组合价格（使用悠悠底价）
     const autoFillGroupPrices = () => {
       const groupMap = new Map()
+      let filledCount = 0
+      let noDataCount = 0
       
       selectedItems.value.forEach(item => {
         const classid = item.classid || `unknown_${item.assetid}`
         
         if (!groupMap.has(classid)) {
-          // 计算该组的平均购入价格
+          // 获取该组第一个物品的悠悠底价
           const groupItems = selectedItems.value.filter(i => 
             (i.classid || `unknown_${i.assetid}`) === classid
           )
           
-          const validPrices = groupItems
-            .map(i => parseFloat(i.buy_price))
-            .filter(p => !isNaN(p) && p > 0)
+          // 使用第一个物品的悠悠底价
+          const firstItem = groupItems[0]
+          const yyypPrice = yyypRealtimePrices.value[firstItem.assetid]
           
-          const avgPrice = validPrices.length > 0
-            ? (validPrices.reduce((sum, p) => sum + p, 0) / validPrices.length).toFixed(2)
-            : ''
+          let price = ''
+          if (yyypPrice && !yyypPrice.loading && !yyypPrice.error && yyypPrice.lowest_price) {
+            price = parseFloat(yyypPrice.lowest_price).toFixed(2)
+          }
           
-          groupMap.set(classid, avgPrice)
+          groupMap.set(classid, price)
         }
       })
       
       // 填充价格到表单
-      groupMap.forEach((avgPrice, classid) => {
+      groupMap.forEach((price, classid) => {
         if (groupForms.value[classid]) {
-          groupForms.value[classid].price = avgPrice
-        }
-      })
-      
-      ElMessage.success('已自动填充平均购入价格')
-    }
-    
-    // 自动填充非组合模式的价格（使用购入价）
-    const autoFillItemPrices = () => {
-      let filledCount = 0
-      
-      selectedItems.value.forEach((item, index) => {
-        if (item.buy_price && parseFloat(item.buy_price) > 0) {
-          if (itemForms.value[index]) {
-            itemForms.value[index].price = parseFloat(item.buy_price).toFixed(2)
+          if (price) {
+            groupForms.value[classid].price = price
             filledCount++
+          } else {
+            noDataCount++
           }
         }
       })
       
       if (filledCount > 0) {
-        ElMessage.success(`已自动填充 ${filledCount} 件物品的购入价格`)
+        ElMessage.success(`已自动填充 ${filledCount} 组的悠悠底价`)
+      } else if (noDataCount > 0) {
+        ElMessage.warning('没有可用的悠悠底价数据，请先查询底价')
       } else {
-        ElMessage.warning('没有可填充的购入价格')
+        ElMessage.warning('没有可填充的价格')
+      }
+    }
+    
+    // 自动填充非组合模式的价格（使用悠悠底价）
+    const autoFillItemPrices = () => {
+      let filledCount = 0
+      let noDataCount = 0
+      
+      selectedItems.value.forEach((item, index) => {
+        const yyypPrice = yyypRealtimePrices.value[item.assetid]
+        
+        if (yyypPrice && !yyypPrice.loading && !yyypPrice.error && yyypPrice.lowest_price) {
+          if (itemForms.value[index]) {
+            itemForms.value[index].price = parseFloat(yyypPrice.lowest_price).toFixed(2)
+            filledCount++
+          }
+        } else {
+          noDataCount++
+        }
+      })
+      
+      if (filledCount > 0) {
+        ElMessage.success(`已自动填充 ${filledCount} 件物品的悠悠底价`)
+      } else if (noDataCount > 0) {
+        ElMessage.warning('没有可用的悠悠底价数据，请先查询底价')
+      } else {
+        ElMessage.warning('没有可填充的价格')
       }
     }
     
