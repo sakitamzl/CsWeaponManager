@@ -2675,22 +2675,88 @@ export default {
         
         submitting.value = true
         
-        // TODO: 调用后端API进行出售/出租操作
         const action = sellRentDialogType.value === 'sell' ? '出售' : '出租'
         const platformName = platform === 'yyyp' ? '悠悠有品' : platform === 'buff' ? 'BUFF' : 'CSFL'
         
-        console.log(`${action}物品到${platformName}:`, itemsData)
-        
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
-        ElMessage.success(`${action}到${platformName}操作提交成功，共${itemsData.length}件物品`)
-        
-        // 关闭弹窗并清空选择
-        sellRentDialogVisible.value = false
-        selectedItems.value = []
-        isMultiSelectMode.value = false
-        isGroupedView.value = false
+        // 只处理悠悠有品上架
+        if (platform === 'yyyp' && action === '出售') {
+          console.log(`开始上架${itemsData.length}件物品到悠悠有品`)
+          
+          let successCount = 0
+          let failCount = 0
+          const failedItems = []
+          
+          // 逐个上架
+          for (let i = 0; i < itemsData.length; i++) {
+            const item = itemsData[i]
+            
+            try {
+              console.log(`[${i + 1}/${itemsData.length}] 正在上架: ${item.name}`)
+              
+              const response = await axios.post(
+                `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/sellInventoryItem`,
+                {
+                  steamId: selectedSteamId.value,
+                  assetId: item.assetid,
+                  price: item.price,
+                  remark: item.remark,
+                  isCanLease: false
+                }
+              )
+              
+              if (response.data.success) {
+                successCount++
+                console.log(`✓ 上架成功: ${item.name}`)
+              } else {
+                failCount++
+                const errorMsg = response.data.message || '未知错误'
+                failedItems.push(`${item.name}: ${errorMsg}`)
+                console.error(`✗ 上架失败: ${item.name} - ${errorMsg}`)
+              }
+              
+              // 添加延迟，避免请求过快
+              if (i < itemsData.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 1000))
+              }
+              
+            } catch (error) {
+              failCount++
+              const errorMsg = error.response?.data?.message || error.message || '网络错误'
+              failedItems.push(`${item.name}: ${errorMsg}`)
+              console.error(`✗ 上架异常: ${item.name}`, error)
+            }
+          }
+          
+          // 显示结果
+          if (failCount === 0) {
+            ElMessage.success(`全部上架成功！共${successCount}件物品`)
+          } else if (successCount === 0) {
+            ElMessage.error(`全部上架失败！共${failCount}件物品`)
+            // 显示失败详情
+            if (failedItems.length > 0) {
+              console.error('失败详情:', failedItems)
+            }
+          } else {
+            ElMessage.warning(`上架完成：成功${successCount}件，失败${failCount}件`)
+            // 显示失败详情
+            if (failedItems.length > 0) {
+              console.error('失败详情:', failedItems)
+            }
+          }
+          
+          // 关闭弹窗并清空选择
+          sellRentDialogVisible.value = false
+          selectedItems.value = []
+          isMultiSelectMode.value = false
+          isGroupedView.value = false
+          
+          // 刷新库存数据
+          await loadInventoryData()
+          
+        } else {
+          // 其他平台暂未实现
+          ElMessage.warning(`${platformName}${action}功能暂未实现`)
+        }
         
       } catch (error) {
         if (error !== false) {

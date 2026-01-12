@@ -254,6 +254,8 @@ export const API_CONFIG = {
     // 悠悠有品实时查询
 
     YOUPIN_REALTIME_LOWEST_PRICE: '/youping898SpiderV1/getRealTimeLowestPrice',  // 实时查询悠悠在售底价
+    
+    YOUPIN_SELL_INVENTORY_ITEM: '/youping898SpiderV1/sellInventoryItem',  // 上架单个库存饰品
 
     CSQAQ_TASK_RESULT: '/csqaqSpiderV1/getTaskResult',  // CSQAQ获取任务结果
 
@@ -642,6 +644,8 @@ export const apiUrls = {
   // 悠悠有品实时查询API
 
   youpinRealtimeLowestPrice: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YOUPIN_REALTIME_LOWEST_PRICE),
+  
+  youpinSellInventoryItem: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YOUPIN_SELL_INVENTORY_ITEM),
 
   
 
