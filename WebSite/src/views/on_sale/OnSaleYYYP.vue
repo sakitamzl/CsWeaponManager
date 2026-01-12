@@ -53,6 +53,13 @@
           搜索
         </el-button>
         <el-button @click="handleReset">重置</el-button>
+        <el-button 
+          v-if="displayMode === 'card'"
+          :type="isMultiSelectMode ? 'warning' : 'info'" 
+          @click="toggleMultiSelectMode"
+        >
+          {{ isMultiSelectMode ? '取消多选' : '多选' }}
+        </el-button>
         <div style="margin-left: auto;">
           <el-button-group>
             <el-button 
@@ -98,12 +105,28 @@
 
     <!-- 卡片显示 -->
     <div class="card-container" v-if="displayMode === 'card'">
+      <!-- 多选模式下的操作按钮 -->
+      <div v-if="isMultiSelectMode && selectedItems.length > 0" class="multi-select-actions">
+        <div class="selected-count">
+          已选择 {{ selectedItems.length }} 件物品
+        </div>
+        <div class="action-buttons">
+          <el-button type="danger" @click="selectedItems = []">清空选择</el-button>
+          <el-button type="primary">批量改价</el-button>
+          <el-button type="warning">批量下架</el-button>
+        </div>
+      </div>
+
       <div v-loading="loading" class="card-grid">
         <div
           v-for="item in currentDisplayData"
           :key="item.id"
           class="inventory-card"
-          @click="openPreview(item)"
+          :class="{ 
+            'selected': isItemSelected(item.id), 
+            'multi-select-mode': isMultiSelectMode
+          }"
+          @click="handleCardClick(item)"
         >
           <div class="card-image">
             <img
@@ -557,6 +580,10 @@ export default {
     // 图片404缓存
     const image404Cache = ref(new Set())
     
+    // 多选模式相关
+    const isMultiSelectMode = ref(false)
+    const selectedItems = ref([])
+    
     // 弹窗相关
     const updatePriceDialogVisible = ref(false)
     const previewVisible = ref(false)
@@ -657,7 +684,7 @@ export default {
           accountList.value = response.data.data || []
           if (accountList.value.length > 0) {
             selectedAccount.value = accountList.value[0].id
-            loadOnSaleData()
+            // 不自动加载数据，等待用户手动触发
           } else {
             ElMessage.warning('没有找到悠悠有品账号')
           }
@@ -846,6 +873,36 @@ export default {
       return types[platform] || 'default'
     }
 
+    // 多选模式相关函数
+    const toggleMultiSelectMode = () => {
+      isMultiSelectMode.value = !isMultiSelectMode.value
+      if (!isMultiSelectMode.value) {
+        // 退出多选模式时清空选择
+        selectedItems.value = []
+      }
+    }
+
+    const isItemSelected = (itemId) => {
+      return selectedItems.value.some(item => item.id === itemId)
+    }
+
+    const toggleItemSelection = (item) => {
+      const index = selectedItems.value.findIndex(i => i.id === item.id)
+      if (index > -1) {
+        selectedItems.value.splice(index, 1)
+      } else {
+        selectedItems.value.push(item)
+      }
+    }
+
+    const handleCardClick = (item) => {
+      if (isMultiSelectMode.value) {
+        toggleItemSelection(item)
+      } else {
+        openPreview(item)
+      }
+    }
+
     const formatOnSaleTime = (time) => {
       if (!time) return ''
       const date = new Date(time)
@@ -873,6 +930,8 @@ export default {
       weaponTypeFilter,
       floatRangeFilter,
       displayMode,
+      isMultiSelectMode,
+      selectedItems,
       updatePriceDialogVisible,
       previewVisible,
       selectedItem,
@@ -897,7 +956,11 @@ export default {
       parsePendant,
       getPlatformLabel,
       getPlatformTagType,
-      formatOnSaleTime
+      formatOnSaleTime,
+      toggleMultiSelectMode,
+      isItemSelected,
+      toggleItemSelection,
+      handleCardClick
     }
   }
 }
@@ -1544,5 +1607,51 @@ export default {
   .preview-main-layout {
     grid-template-columns: 1fr;
   }
+}
+
+/* 多选模式操作按钮 */
+.multi-select-actions {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--el-color-primary);
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  z-index: 1000;
+}
+
+.multi-select-actions .selected-count {
+  color: #fff;
+  font-size: 1rem;
+}
+
+.multi-select-actions .action-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* 多选模式下的卡片样式 */
+.inventory-card.multi-select-mode {
+  cursor: pointer;
+  user-select: none;
+}
+
+.inventory-card.multi-select-mode:hover {
+  border-color: var(--el-color-primary);
+}
+
+.inventory-card.selected {
+  border-color: var(--el-color-primary);
+  background: rgba(64, 158, 255, 0.1);
+}
+
+.inventory-card.selected:hover {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 2px var(--el-color-primary);
 }
 </style>

@@ -657,7 +657,7 @@ export default {
           accountList.value = response.data.data || []
           if (accountList.value.length > 0) {
             selectedAccount.value = accountList.value[0].id
-            loadOnSaleData()
+            // 不自动加载数据，等待用户手动触发
           } else {
             ElMessage.warning('没有找到BUFF账号')
           }
