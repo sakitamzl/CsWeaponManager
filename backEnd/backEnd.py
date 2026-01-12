@@ -49,6 +49,7 @@ from src.web_side.CSQAQ.csqaq_api import csqaqApiV1
 from src.web_side.SteamDT.steamdt_api import steamdtApiV1
 from src.web_side.data_webside.item_search import itemSearchApiV1
 from src.web_side.webSide.read_imges import readImagesV1
+from src.web_side.webSide.on_sale.select_usercode import webOnSaleV1
 from src.db_manager import init_database
 from src.Unites.auto_process.task_scheduler import get_scheduler
 
@@ -111,6 +112,7 @@ def blankEndApi():
     app.register_blueprint(steamdtApiV1, url_prefix='/steamdtApiV1')  # SteamDT API
     app.register_blueprint(itemSearchApiV1, url_prefix='/itemSearchApiV1')  # 饰品搜索API
     app.register_blueprint(readImagesV1, url_prefix='/api/v1/images')  # 图片读取API
+    app.register_blueprint(webOnSaleV1, url_prefix='/webOnSaleV1')  # 正在出售API
     
     # 禁用 werkzeug 的 HTTP 请求日志
     log = logging.getLogger('werkzeug')

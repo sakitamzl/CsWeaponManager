@@ -373,6 +373,20 @@ export const API_CONFIG = {
 
     
 
+    // 正在出售相关
+
+    ON_SALE_YYYP_ACCOUNTS: '/webOnSaleV1/getYYYPAccounts',  // 获取悠悠有品账号列表
+
+    ON_SALE_BUFF_ACCOUNTS: '/webOnSaleV1/getBuffAccounts',  // 获取BUFF账号列表
+
+    ON_SALE_ITEMS: '/webOnSaleV1/getOnSaleItems',  // 获取在售商品列表
+
+    ON_SALE_UPDATE_PRICE: '/webOnSaleV1/updateSalePrice',  // 修改售价
+
+    ON_SALE_REMOVE: '/webOnSaleV1/removeFromSale',  // 下架商品
+
+    
+
     // 登录设置相关
 
     LOGIN_SETTINGS: '/loginSettingsV1/api/login-settings',  // 获取/保存登录设置
@@ -766,6 +780,20 @@ export const apiUrls = {
   homeBuyAll: () => getApiUrl(API_CONFIG.ENDPOINTS.HOME_BUY_ALL),
 
   homeSellAll: () => getApiUrl(API_CONFIG.ENDPOINTS.HOME_SELL_ALL),
+
+  
+
+  // 正在出售API
+
+  getYYYPAccounts: () => getApiUrl(API_CONFIG.ENDPOINTS.ON_SALE_YYYP_ACCOUNTS),
+
+  getBuffAccounts: () => getApiUrl(API_CONFIG.ENDPOINTS.ON_SALE_BUFF_ACCOUNTS),
+
+  getOnSaleItems: () => getApiUrl(API_CONFIG.ENDPOINTS.ON_SALE_ITEMS),
+
+  updateSalePrice: () => getApiUrl(API_CONFIG.ENDPOINTS.ON_SALE_UPDATE_PRICE),
+
+  removeFromSale: () => getApiUrl(API_CONFIG.ENDPOINTS.ON_SALE_REMOVE),
 
 }
 
