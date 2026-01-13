@@ -558,6 +558,7 @@
         已选择 {{ selectedItems.length }} 件物品
       </div>
       <div class="action-buttons">
+        <el-button type="info" @click="selectAllDisplayed">全选</el-button>
         <el-button type="primary" @click="showSellDialog">出售</el-button>
         <el-button type="primary" @click="showRentDialog">出租</el-button>
         <el-button type="success" @click="moveToComponent">存入组件</el-button>
@@ -2535,6 +2536,23 @@ export default {
       selectedItems.value = []
     }
     
+    // 全选当前显示的物品
+    const selectAllDisplayed = () => {
+      // 获取当前显示的数据
+      const displayData = currentDisplayData.value
+      
+      // 遍历当前显示的物品，添加到选中列表（排除已有交易限制的）
+      displayData.forEach(item => {
+        // 检查是否已经在选中列表中
+        const alreadySelected = selectedItems.value.some(i => i.assetid === item.assetid)
+        if (!alreadySelected) {
+          selectedItems.value.push(item)
+        }
+      })
+      
+      ElMessage.success(`已选择 ${selectedItems.value.length} 件物品`)
+    }
+    
     // 处理卡片点击
     const handleCardClick = async (item) => {
       // 如果处于选择组件模式
@@ -3411,6 +3429,7 @@ export default {
       hasTradeRestriction,
       toggleItemSelection,
       clearSelection,
+      selectAllDisplayed,
       handleCardClick,
       // 出售/出租相关
       sellRentDialogVisible,
