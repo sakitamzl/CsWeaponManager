@@ -112,8 +112,8 @@
         </div>
         <div class="action-buttons">
           <el-button type="danger" @click="selectedItems = []">清空选择</el-button>
-          <el-button type="primary">批量改价</el-button>
-          <el-button type="warning">批量下架</el-button>
+          <el-button type="success">批量改价</el-button>
+          <el-button type="primary">批量下架</el-button>
         </div>
       </div>
 
@@ -233,10 +233,10 @@
                 </el-tag>
               </div>
               <div class="card-actions">
-                <el-button size="small" type="warning" @click.stop="handleUpdatePrice(item)">
+                <el-button size="small" type="success" @click.stop="handleUpdatePrice(item)">
                   改价
                 </el-button>
-                <el-button size="small" type="danger" @click.stop="handleRemoveFromSale(item)">
+                <el-button size="small" type="primary" @click.stop="handleRemoveFromSale(item)">
                   下架
                 </el-button>
               </div>
@@ -375,10 +375,10 @@
         </el-table-column>
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="scope">
-            <el-button size="small" type="warning" @click.stop="handleUpdatePrice(scope.row)">
+            <el-button size="small" type="success" @click.stop="handleUpdatePrice(scope.row)">
               改价
             </el-button>
-            <el-button size="small" type="danger" @click.stop="handleRemoveFromSale(scope.row)">
+            <el-button size="small" type="primary" @click.stop="handleRemoveFromSale(scope.row)">
               下架
             </el-button>
           </template>
@@ -493,8 +493,8 @@
                 </div>
               </div>
               <div class="preview-action-buttons">
-                <el-button type="warning" @click="handleUpdatePrice(previewItem)">修改售价</el-button>
-                <el-button type="danger" @click="handleRemoveFromSale(previewItem)">下架商品</el-button>
+                <el-button type="success" @click="handleUpdatePrice(previewItem)">修改售价</el-button>
+                <el-button type="primary" @click="handleRemoveFromSale(previewItem)">下架商品</el-button>
               </div>
             </div>
           </div>
@@ -575,7 +575,7 @@ export default {
     const image404Cache = ref(new Set())
     
     // 多选模式相关
-    const isMultiSelectMode = ref(false)
+    const isMultiSelectMode = ref(true) // 默认开启多选模式
     const selectedItems = ref([])
     
     // 弹窗相关
@@ -1738,10 +1738,6 @@ export default {
 .inventory-card.selected {
   border-color: var(--el-color-primary);
   background: rgba(64, 158, 255, 0.1);
-}
-
-.inventory-card.selected:hover {
-  border-color: var(--el-color-primary);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 2px var(--el-color-primary);
+  box-shadow: 0 0 0 2px var(--el-color-primary);
 }
 </style>

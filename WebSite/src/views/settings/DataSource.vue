@@ -5028,6 +5028,12 @@ export default {
               
               clearInterval(steamQRCheckTimer.value)
               ElMessage.success('Steam扫码登录成功！已填入Cookie与SteamID，可直接保存')
+              
+              // 自动保存并关闭弹窗
+              ElMessage.info('正在自动保存数据源配置...')
+              setTimeout(() => {
+                handleSubmit()
+              }, 1000)
             } else if (response.data.status === 'waiting') {
               // 继续等待
               steamQRStatus.value = 'waiting'
@@ -5110,6 +5116,12 @@ export default {
               
               clearInterval(steamQRCheckTimer.value)
               ElMessage.success('Steam扫码登录成功！基础/库存Cookies 与 SteamID 已更新')
+              
+              // 自动保存并关闭弹窗
+              ElMessage.info('正在自动保存数据源配置...')
+              setTimeout(() => {
+                handleEditSubmit()
+              }, 1000)
             } else if (response.data.status === 'waiting') {
               // 继续等待
               steamQRStatus.value = 'waiting'
