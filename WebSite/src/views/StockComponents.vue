@@ -511,7 +511,7 @@
             v-for="item in componentData"
             :key="item.goods_assetid"
             :class="['inventory-card', { 'selected': isItemSelected(item.goods_assetid) }]"
-            @click="handleCardClick(item)"
+            @click="handleCardClick(item, $event)"
           >
             <!-- 选中标记 -->
             <div v-if="isItemSelected(item.goods_assetid)" class="selected-indicator">
@@ -661,6 +661,19 @@
         <el-button @click="clearSelection">清空选择</el-button>
       </div>
     </div>
+
+    <!-- 跳转到组件的 Popover -->
+    <div 
+      v-if="popoverVisible" 
+      class="component-popover"
+      :style="{ left: popoverPosition.x + 'px', top: popoverPosition.y + 'px' }"
+      @click.stop
+    >
+      <el-button type="primary" @click="jumpToComponent">跳转组件</el-button>
+    </div>
+
+    <!-- 点击遮罩关闭 popover -->
+    <div v-if="popoverVisible" class="popover-overlay" @click="closePopover"></div>
   </div>
 </template>
 
@@ -702,6 +715,11 @@ export default {
     const isMultiSelectMode = ref(true) // 默认开启多选模式
     const selectedItems = ref([])
     const removeLoading = ref(false)
+    
+    // Popover 相关
+    const popoverVisible = ref(false)
+    const popoverItem = ref(null)
+    const popoverPosition = ref({ x: 0, y: 0 })
     
     // 图片观察器
     let imageObserver = null
@@ -1839,16 +1857,34 @@ export default {
     }
 
     // 处理卡片点击事件
-    const handleCardClick = (item) => {
+    const handleCardClick = (item, event) => {
       // 只有选择了具体组件时才允许选中
       if (!selectedComponent.value) {
-        ElMessage.warning('请先选择要操作的库存组件')
+        // 显示 popover，提供跳转到该饰品所属组件的选项
+        popoverItem.value = item
+        popoverPosition.value = { x: event.clientX, y: event.clientY }
+        popoverVisible.value = true
         return
       }
       
       if (isMultiSelectMode.value) {
         toggleItemSelection(item)
       }
+    }
+
+    // 跳转到组件
+    const jumpToComponent = () => {
+      if (popoverItem.value) {
+        selectedComponent.value = popoverItem.value.assetid
+        popoverVisible.value = false
+        handleComponentSelect()
+      }
+    }
+
+    // 关闭 popover
+    const closePopover = () => {
+      popoverVisible.value = false
+      popoverItem.value = null
     }
 
     onMounted(async () => {
@@ -1898,6 +1934,9 @@ export default {
       selectedItems,
       previewVisible,
       previewItem,
+      popoverVisible,
+      popoverItem,
+      popoverPosition,
       hasMore,
       loadingMore,
       formatTime,
@@ -1937,7 +1976,9 @@ export default {
       toggleItemSelection,
       clearSelection,
       selectAllCurrentPage,
-      removeFromComponent
+      removeFromComponent,
+      jumpToComponent,
+      closePopover
     }
   }
 }
@@ -2961,6 +3002,62 @@ export default {
 .multi-select-actions .action-buttons {
   display: flex;
   gap: 0.5rem;
+}
+
+/* 组件跳转 Popover */
+.popover-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1999;
+  background: transparent;
+}
+
+.component-popover {
+  position: fixed;
+  z-index: 2000;
+  animation: popoverFadeIn 0.2s ease-out;
+  transform: translate(-50%, 10px);
+}
+
+@keyframes popoverFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 10px);
+  }
+}
+
+.popover-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.popover-title {
+  color: #999;
+  font-size: 0.85rem;
+}
+
+.popover-component-name {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: bold;
+  padding: 0.5rem;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  text-align: center;
+}
+
+.popover-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
 }
 </style>
 
