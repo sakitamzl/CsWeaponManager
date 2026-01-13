@@ -586,7 +586,8 @@
           :class="{ 
             'selected': isItemSelected(item.assetid), 
             'multi-select-mode': isMultiSelectMode,
-            'trade-restricted': hasTradeRestriction(item) && isMultiSelectMode
+            'trade-restricted': hasTradeRestriction(item) && isMultiSelectMode,
+            'component-full': isSelectingComponent && parseFloat(item.weapon_float || 0) >= 1000
           }"
           :data-assetid="item.assetid"
           @click="handleCardClick(item)"
@@ -642,28 +643,52 @@
               {{ getCardTitle(item) }}
             </div>
             <div class="card-info">
-              <!-- 磨损值显示条 -->
-              <div class="float-bar-container" v-if="item.weapon_float">
-                <div class="float-bar">
-                  <!-- 五个磨损等级的颜色区域 -->
-                  <div class="float-segment fn" title="崭新出厂 (0.00 - 0.07)"></div>
-                  <div class="float-segment mw" title="略有磨损 (0.07 - 0.15)"></div>
-                  <div class="float-segment ft" title="久经沙场 (0.15 - 0.38)"></div>
-                  <div class="float-segment ww" title="破损不堪 (0.38 - 0.45)"></div>
-                  <div class="float-segment bs" title="战痕累累 (0.45 - 1.00)"></div>
-                  <!-- 磨损值指针 -->
-                  <div
-                    class="float-pointer"
-                    :style="{ left: `${parseFloat(item.weapon_float) * 100}%` }"
-                    :title="`磨损值: ${item.weapon_float}`"
-                  ></div>
+              <!-- 组件：显示空位占比 -->
+              <div v-if="item.classid === '3604678661'" class="component-storage-info">
+                <div class="storage-stats">
+                  <span class="storage-label">已存储:</span>
+                  <span class="storage-value">{{ parseFloat(item.weapon_float || 0) }} / 1000</span>
+                </div>
+                <div class="storage-progress">
+                  <el-progress
+                    :percentage="(parseFloat(item.weapon_float || 0) / 1000 * 100)"
+                    :stroke-width="8"
+                    :show-text="false"
+                    :color="getComponentProgressColor(parseFloat(item.weapon_float || 0))"
+                  />
+                </div>
+                <div class="storage-remaining">
+                  <span class="remaining-label">剩余空位:</span>
+                  <span class="remaining-value" :class="getComponentRemainingClass(1000 - parseFloat(item.weapon_float || 0))">
+                    {{ 1000 - parseFloat(item.weapon_float || 0) }}
+                  </span>
                 </div>
               </div>
-              <div class="float-value" v-if="item.weapon_float">
-                {{ item.weapon_float }}
-              </div>
+              
+              <!-- 普通物品：显示磨损值 -->
+              <template v-else>
+                <div class="float-bar-container" v-if="item.weapon_float">
+                  <div class="float-bar">
+                    <!-- 五个磨损等级的颜色区域 -->
+                    <div class="float-segment fn" title="崭新出厂 (0.00 - 0.07)"></div>
+                    <div class="float-segment mw" title="略有磨损 (0.07 - 0.15)"></div>
+                    <div class="float-segment ft" title="久经沙场 (0.15 - 0.38)"></div>
+                    <div class="float-segment ww" title="破损不堪 (0.38 - 0.45)"></div>
+                    <div class="float-segment bs" title="战痕累累 (0.45 - 1.00)"></div>
+                    <!-- 磨损值指针 -->
+                    <div
+                      class="float-pointer"
+                      :style="{ left: `${parseFloat(item.weapon_float) * 100}%` }"
+                      :title="`磨损值: ${item.weapon_float}`"
+                    ></div>
+                  </div>
+                </div>
+                <div class="float-value" v-if="item.weapon_float">
+                  {{ item.weapon_float }}
+                </div>
+              </template>
             </div>
-            <div class="card-prices">
+            <div class="card-prices" v-if="item.classid !== '3604678661'">
               <!-- 第一行：购入和Steam -->
               <div class="price-row" v-if="item.buy_price || item.steam_price">
                 <div class="price-group" v-if="item.buy_price">
@@ -2514,6 +2539,13 @@ export default {
     const handleCardClick = async (item) => {
       // 如果处于选择组件模式
       if (isSelectingComponent.value) {
+        // 检查组件是否已满（weapon_float存储的是已存储数量）
+        const storedCount = parseFloat(item.weapon_float) || 0
+        if (storedCount >= 1000) {
+          ElMessage.warning('该组件已满，无法继续存入物品')
+          return
+        }
+        
         // 确认存入
         try {
           await ElMessageBox.confirm(
@@ -3291,13 +3323,14 @@ export default {
     })
 
     // 组件选择对话框辅助方法
-    const getRemainingClass = (remaining) => {
+    const getComponentRemainingClass = (remaining) => {
       if (remaining > 100) return 'remaining-high'
       if (remaining > 20) return 'remaining-medium'
       return 'remaining-low'
     }
 
-    const getProgressColor = (percentage) => {
+    const getComponentProgressColor = (storedCount) => {
+      const percentage = storedCount / 1000
       if (percentage < 0.7) return '#67C23A'
       if (percentage < 0.9) return '#E6A23C'
       return '#F56C6C'
@@ -3429,7 +3462,9 @@ export default {
       InfoFilled,
       isSelectingComponent,
       itemsToDeposit,
-      cancelComponentSelection
+      cancelComponentSelection,
+      getComponentRemainingClass,
+      getComponentProgressColor
     }
   }
 }
@@ -3545,6 +3580,35 @@ export default {
 
 .inventory-card.trade-restricted:hover {
   border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* 组件已满的卡片样式 */
+.inventory-card.component-full {
+  cursor: not-allowed !important;
+  opacity: 0.5;
+  filter: grayscale(0.5);
+}
+
+.inventory-card.component-full:hover {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.inventory-card.component-full::after {
+  content: '已满';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(245, 108, 108, 0.9);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  z-index: 10;
+  pointer-events: none;
 }
 
 /* 出售/出租弹窗样式 */
@@ -4722,6 +4786,62 @@ export default {
   flex-direction: column;
   gap: 0.3rem;
   font-size: 0.75rem;
+}
+
+/* 组件存储信息样式 */
+.component-storage-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+}
+
+.storage-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+}
+
+.storage-label {
+  color: #999;
+}
+
+.storage-value {
+  color: #fff;
+  font-weight: bold;
+}
+
+.storage-progress {
+  margin: 0.25rem 0;
+}
+
+.storage-remaining {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.remaining-label {
+  color: #999;
+}
+
+.remaining-value {
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.remaining-value.remaining-high {
+  color: #67C23A;
+}
+
+.remaining-value.remaining-medium {
+  color: #E6A23C;
+}
+
+.remaining-value.remaining-low {
+  color: #F56C6C;
 }
 
 .card-info-row {
