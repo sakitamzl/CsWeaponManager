@@ -1806,6 +1806,11 @@ export default {
         return
       }
 
+      if (!selectedComponent.value) {
+        ElMessage.warning('请先选择组件')
+        return
+      }
+
       try {
         await ElMessageBox.confirm(
           `确定要将选中的 ${selectedItems.value.length} 件物品移出组件吗？`,
@@ -1820,11 +1825,13 @@ export default {
         removeLoading.value = true
 
         // 获取所有选中物品的 goods_assetid
-        const assetids = selectedItems.value.map(item => item.goods_assetid)
+        const itemIds = selectedItems.value.map(item => item.goods_assetid)
 
-        const response = await axios.post(`${API_SPIDER}/prefectWorldSpiderV1/removeInventoryComponent`, {
+        const response = await axios.post(`${API_SPIDER}/prefectWorldSpiderV1/depositToComponent`, {
           steamId: selectedSteamId.value,
-          assetid: assetids
+          itemIds: itemIds,
+          storageUnitId: selectedComponent.value,
+          transferType: 2  // 2表示取出
         })
 
         if (response.data.success) {

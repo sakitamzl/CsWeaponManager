@@ -3017,7 +3017,8 @@ export default {
           {
             steamId: selectedSteamId.value,
             itemIds: itemIds,
-            storageUnitId: storageUnitId
+            storageUnitId: storageUnitId,
+            transferType: 1  // 1表示存入
           }
         )
         
