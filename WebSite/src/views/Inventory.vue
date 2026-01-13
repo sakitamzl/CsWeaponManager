@@ -553,7 +553,7 @@
     </div>
 
     <!-- 多选模式下的操作按钮 -->
-    <div v-if="isMultiSelectMode && selectedItems.length > 0" class="multi-select-actions">
+    <div v-if="isMultiSelectMode && selectedItems.length > 0 && !isSelectingComponent" class="multi-select-actions">
       <div class="selected-count">
         已选择 {{ selectedItems.length }} 件物品
       </div>
@@ -563,6 +563,17 @@
         <el-button type="success" @click="moveToComponent">存入组件</el-button>
         <el-button @click="clearSelection">清空选择</el-button>
       </div>
+    </div>
+
+    <!-- 选择组件模式提示 -->
+    <div v-if="isSelectingComponent" class="component-selection-banner">
+      <div class="banner-content">
+        <el-icon class="banner-icon"><InfoFilled /></el-icon>
+        <span class="banner-text">
+          正在选择库存组件，准备存入 <strong>{{ itemsToDeposit.length }}</strong> 件物品，请点击下方组件卡片完成存入
+        </span>
+      </div>
+      <el-button @click="cancelComponentSelection" type="danger" plain>取消存入</el-button>
     </div>
 
     <!-- 卡片显示 -->
@@ -1270,78 +1281,13 @@
         </div>
       </div>
     </el-dialog>
-
-    <!-- 组件选择对话框 -->
-    <el-dialog
-      v-model="componentDialogVisible"
-      title="选择库存组件"
-      width="700px"
-      :close-on-click-modal="true"
-    >
-      <div class="component-select-header">
-        <el-alert
-          :title="`准备存入 ${itemsToDeposit.length} 件物品`"
-          type="info"
-          :closable="false"
-          show-icon
-        >
-          <template #default>
-            <div style="font-size: 13px; color: #666;">请选择一个库存组件进行存储</div>
-          </template>
-        </el-alert>
-      </div>
-
-      <div class="component-list">
-        <div
-          v-for="(comp, index) in availableComponents"
-          :key="comp.assetid"
-          class="component-card"
-          :class="{ 'recommended': index === 0 }"
-          @click="selectComponent(comp)"
-        >
-          <div v-if="index === 0" class="recommended-badge">推荐</div>
-          
-          <div class="component-header">
-            <h3>{{ comp.name || '库存存储组件' }}</h3>
-          </div>
-
-          <div class="component-stats">
-            <div class="stat-item">
-              <div class="stat-label">已存储</div>
-              <div class="stat-value">{{ comp.stored_count }} / {{ comp.max_capacity }}</div>
-            </div>
-            <div class="stat-divider"></div>
-            <div class="stat-item">
-              <div class="stat-label">剩余空位</div>
-              <div class="stat-value" :class="getRemainingClass(comp.remaining_slots)">
-                {{ comp.remaining_slots }}
-              </div>
-            </div>
-          </div>
-
-          <div class="component-progress">
-            <el-progress
-              :percentage="(comp.stored_count / comp.max_capacity * 100)"
-              :stroke-width="8"
-              :show-text="false"
-              :color="getProgressColor(comp.stored_count / comp.max_capacity)"
-            />
-            <div class="progress-text">使用率: {{ (comp.stored_count / comp.max_capacity * 100).toFixed(1) }}%</div>
-          </div>
-        </div>
-      </div>
-
-      <template #footer>
-        <el-button @click="componentDialogVisible = false">取消</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
 <script>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch, h } from 'vue'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
-import { ArrowDown, Loading } from '@element-plus/icons-vue'
+import { ArrowDown, Loading, Close, Star, Box, Upload, InfoFilled } from '@element-plus/icons-vue'
 import axios from 'axios'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
 
@@ -1397,9 +1343,8 @@ export default {
     const selectedItems = ref([])
     
     // 组件选择对话框相关
-    const componentDialogVisible = ref(false)
-    const availableComponents = ref([])
     const itemsToDeposit = ref([])
+    const isSelectingComponent = ref(false) // 是否处于选择组件模式
     
     // 备注弹窗相关
     const remarkDialogVisible = ref(false)
@@ -1855,6 +1800,11 @@ export default {
           float_range: floatRangeFilter.value,
           limit: pageSize.value,
           offset: currentOffset.value
+        }
+        
+        // 如果处于选择组件模式，只显示库存组件
+        if (isSelectingComponent.value) {
+          params.classid = '3604678661'
         }
         
         const url = `${API_BASE}/inventory/${selectedSteamId.value}`
@@ -2561,7 +2511,37 @@ export default {
     }
     
     // 处理卡片点击
-    const handleCardClick = (item) => {
+    const handleCardClick = async (item) => {
+      // 如果处于选择组件模式
+      if (isSelectingComponent.value) {
+        // 确认存入
+        try {
+          await ElMessageBox.confirm(
+            `确认将 ${itemsToDeposit.value.length} 件物品存入此组件吗？`,
+            '确认存入',
+            {
+              confirmButtonText: '确认存入',
+              cancelButtonText: '取消',
+              type: 'warning'
+            }
+          )
+          
+          // 执行存入
+          await executeDeposit(itemsToDeposit.value, item.assetid)
+          
+          // 退出选择组件模式
+          isSelectingComponent.value = false
+          itemsToDeposit.value = []
+          
+          // 重新加载数据
+          await loadInventoryData()
+        } catch {
+          // 用户取消
+        }
+        return
+      }
+      
+      // 原有的卡片点击逻辑
       if (isMultiSelectMode.value) {
         // 多选模式下切换选中状态
         toggleItemSelection(item)
@@ -2962,88 +2942,31 @@ export default {
         return
       }
       
-      // selectedItems存储的是完整的物品对象
-      await moveToComponentWithItems(selectedItems.value)
-    }
-    
-    // 存入组件的核心逻辑
-    const moveToComponentWithItems = async (items) => {
-      if (!items || items.length === 0) {
-        ElMessage.warning('没有可存入的物品')
+      // 检查是否有交易限制的物品
+      const restrictedItems = selectedItems.value.filter(item => hasTradeRestriction(item))
+      if (restrictedItems.length > 0) {
+        ElMessage.warning('所选物品中有交易限制的物品，无法存入组件')
         return
       }
       
-      try {
-        // 获取可用的库存组件列表
-        const response = await axios.post(`${API_BASE}/getAvailableComponents`, {
-          steamId: selectedSteamId.value
-        })
-        
-        if (!response.data.success || !response.data.components || response.data.components.length === 0) {
-          ElMessage.warning('未找到可用的库存组件，请先购买库存组件')
-          return
-        }
-        
-        // 设置数据并打开对话框
-        availableComponents.value = response.data.components
-        itemsToDeposit.value = items
-        componentDialogVisible.value = true
-        
-      } catch (error) {
-        console.error('获取库存组件失败:', error)
-        ElMessage.error(error.response?.data?.message || '获取库存组件失败')
-      }
-    }
-    
-    // 选择组件并执行存入
-    const selectComponent = async (component) => {
-      // 先关闭组件选择对话框
-      componentDialogVisible.value = false
+      // 保存要存入的物品
+      itemsToDeposit.value = selectedItems.value
       
-      // 弹出确认对话框
-      ElMessageBox.confirm(
-        h('div', { style: 'padding: 10px 0;' }, [
-          h('div', { style: 'margin-bottom: 15px; font-size: 15px; color: #303133;' }, [
-            h('span', '确认将 '),
-            h('span', { style: 'color: #409EFF; font-weight: bold;' }, `${itemsToDeposit.value.length} 件物品`),
-            h('span', ' 存入以下组件？')
-          ]),
-          h('div', { style: 'padding: 16px; background: #f5f7fa; border-radius: 8px; border-left: 3px solid #409EFF;' }, [
-            h('div', { style: 'font-weight: bold; font-size: 14px; color: #303133; margin-bottom: 10px;' }, 
-              component.name || '库存存储组件'
-            ),
-            h('div', { style: 'display: flex; gap: 20px; font-size: 13px; color: #606266;' }, [
-              h('div', [
-                h('span', { style: 'color: #909399;' }, '已存储: '),
-                h('span', { style: 'font-weight: bold;' }, `${component.stored_count} / ${component.max_capacity}`)
-              ]),
-              h('div', [
-                h('span', { style: 'color: #909399;' }, '剩余空位: '),
-                h('span', { 
-                  style: `font-weight: bold; color: ${
-                    component.remaining_slots > 100 ? '#67C23A' : 
-                    component.remaining_slots > 20 ? '#E6A23C' : '#F56C6C'
-                  };`
-                }, component.remaining_slots)
-              ])
-            ])
-          ])
-        ]),
-        '确认存入',
-        {
-          confirmButtonText: '确认存入',
-          cancelButtonText: '取消',
-          type: 'warning',
-          center: false,
-          customClass: 'deposit-confirm-dialog'
-        }
-      ).then(async () => {
-        // 用户确认，执行存入
-        await executeDeposit(itemsToDeposit.value, component.assetid)
-      }).catch(() => {
-        // 用户取消，重新打开组件选择对话框
-        componentDialogVisible.value = true
-      })
+      // 进入选择组件模式
+      isSelectingComponent.value = true
+      
+      // 重新加载数据，只显示库存组件
+      await loadInventoryData()
+      
+      ElMessage.info(`请选择一个库存组件来存入 ${itemsToDeposit.value.length} 件物品`)
+    }
+
+    // 取消选择组件
+    const cancelComponentSelection = async () => {
+      isSelectingComponent.value = false
+      itemsToDeposit.value = []
+      // 重新加载数据，显示所有物品
+      await loadInventoryData()
     }
     
     // 执行存入操作
@@ -3386,12 +3309,6 @@ export default {
       fetchingYYYPPrice,
       fetchingBuffPrice,
       inventoryData,
-      componentDialogVisible,
-      availableComponents,
-      itemsToDeposit,
-      selectComponent,
-      getRemainingClass,
-      getProgressColor,
       groupedData,
       groupMode,
       currentDisplayData,
@@ -3508,7 +3425,11 @@ export default {
       openRemarkDialog,
       saveRemark,
       // 图标组件
-      ArrowDown
+      ArrowDown,
+      InfoFilled,
+      isSelectingComponent,
+      itemsToDeposit,
+      cancelComponentSelection
     }
   }
 }
@@ -3531,6 +3452,52 @@ export default {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   z-index: 1000;
   animation: slideUp 0.3s ease-out;
+}
+
+/* 选择组件模式提示横幅 */
+.component-selection-banner {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-tertiary);
+  border: 2px solid var(--el-color-primary);
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  min-width: 600px;
+  animation: slideUp 0.3s ease-out;
+}
+
+.banner-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #fff;
+}
+
+.banner-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  color: var(--el-color-primary);
+}
+
+.banner-text {
+  font-size: 15px;
+  line-height: 1.5;
+  color: #fff;
+}
+
+.banner-text strong {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--el-color-primary);
+  padding: 0 4px;
 }
 
 @keyframes slideUp {
@@ -5769,111 +5736,3 @@ export default {
   }
 }
 </style>
-
-
-/* 组件选择对话框样式 */
-.component-select-header {
-  margin-bottom: 20px;
-}
-
-.component-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  max-height: 500px;
-  overflow-y: auto;
-  padding: 4px;
-}
-
-.component-card {
-  padding: 20px;
-  border: 2px solid #e4e7ed;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.3s;
-  background: white;
-  position: relative;
-}
-
-.component-card:hover {
-  border-color: #409EFF;
-  background: #f0f9ff;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
-}
-
-.component-card.recommended {
-  border-color: #67C23A;
-  background: #f0f9ff;
-}
-
-.recommended-badge {
-  position: absolute;
-  top: -1px;
-  right: 16px;
-  background: #67C23A;
-  color: white;
-  padding: 4px 12px;
-  border-radius: 0 0 8px 8px;
-  font-size: 12px;
-  font-weight: bold;
-}
-
-.component-header h3 {
-  margin: 0 0 16px 0;
-  font-size: 16px;
-  font-weight: bold;
-  color: #303133;
-}
-
-.component-stats {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  margin-bottom: 16px;
-}
-
-.stat-item {
-  flex: 1;
-}
-
-.stat-label {
-  font-size: 12px;
-  color: #909399;
-  margin-bottom: 6px;
-}
-
-.stat-value {
-  font-size: 18px;
-  font-weight: bold;
-  color: #606266;
-}
-
-.stat-value.remaining-high {
-  color: #67C23A;
-}
-
-.stat-value.remaining-medium {
-  color: #E6A23C;
-}
-
-.stat-value.remaining-low {
-  color: #F56C6C;
-}
-
-.stat-divider {
-  width: 1px;
-  height: 40px;
-  background: #e4e7ed;
-}
-
-.component-progress {
-  margin-top: 12px;
-}
-
-.progress-text {
-  font-size: 11px;
-  color: #909399;
-  margin-top: 6px;
-  text-align: right;
-}
