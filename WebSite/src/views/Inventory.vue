@@ -1270,12 +1270,77 @@
         </div>
       </div>
     </el-dialog>
+
+    <!-- 组件选择对话框 -->
+    <el-dialog
+      v-model="componentDialogVisible"
+      title="选择库存组件"
+      width="700px"
+      :close-on-click-modal="true"
+    >
+      <div class="component-select-header">
+        <el-alert
+          :title="`准备存入 ${itemsToDeposit.length} 件物品`"
+          type="info"
+          :closable="false"
+          show-icon
+        >
+          <template #default>
+            <div style="font-size: 13px; color: #666;">请选择一个库存组件进行存储</div>
+          </template>
+        </el-alert>
+      </div>
+
+      <div class="component-list">
+        <div
+          v-for="(comp, index) in availableComponents"
+          :key="comp.assetid"
+          class="component-card"
+          :class="{ 'recommended': index === 0 }"
+          @click="selectComponent(comp)"
+        >
+          <div v-if="index === 0" class="recommended-badge">推荐</div>
+          
+          <div class="component-header">
+            <h3>{{ comp.name || '库存存储组件' }}</h3>
+          </div>
+
+          <div class="component-stats">
+            <div class="stat-item">
+              <div class="stat-label">已存储</div>
+              <div class="stat-value">{{ comp.stored_count }} / {{ comp.max_capacity }}</div>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+              <div class="stat-label">剩余空位</div>
+              <div class="stat-value" :class="getRemainingClass(comp.remaining_slots)">
+                {{ comp.remaining_slots }}
+              </div>
+            </div>
+          </div>
+
+          <div class="component-progress">
+            <el-progress
+              :percentage="(comp.stored_count / comp.max_capacity * 100)"
+              :stroke-width="8"
+              :show-text="false"
+              :color="getProgressColor(comp.stored_count / comp.max_capacity)"
+            />
+            <div class="progress-text">使用率: {{ (comp.stored_count / comp.max_capacity * 100).toFixed(1) }}%</div>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <el-button @click="componentDialogVisible = false">取消</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch, h } from 'vue'
+import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { ArrowDown, Loading } from '@element-plus/icons-vue'
 import axios from 'axios'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
@@ -1330,6 +1395,11 @@ export default {
     // 多选模式相关
     const isMultiSelectMode = ref(true) // 默认开启多选模式
     const selectedItems = ref([])
+    
+    // 组件选择对话框相关
+    const componentDialogVisible = ref(false)
+    const availableComponents = ref([])
+    const itemsToDeposit = ref([])
     
     // 备注弹窗相关
     const remarkDialogVisible = ref(false)
@@ -2869,20 +2939,158 @@ export default {
     }
 
     // 移入组件按钮处理（单个物品）
-    const handleMoveToComponent = () => {
-      ElMessage.info('移入组件功能待开发')
-      // TODO: 实现移入组件功能
+    const handleMoveToComponent = async () => {
+      if (!previewItem.value) {
+        ElMessage.warning('未找到物品信息')
+        return
+      }
+      
+      // 检查是否有交易限制
+      if (hasTradeRestriction(previewItem.value)) {
+        ElMessage.warning('该物品有交易限制，无法存入组件')
+        return
+      }
+      
+      // 调用批量移入组件，传入单个物品
+      await moveToComponentWithItems([previewItem.value])
     }
     
     // 批量移入组件
-    const moveToComponent = () => {
+    const moveToComponent = async () => {
       if (selectedItems.value.length === 0) {
         ElMessage.warning('请先选择要移入组件的物品')
         return
       }
       
-      ElMessage.info(`批量移入组件功能待开发，已选择 ${selectedItems.value.length} 件物品`)
-      // TODO: 实现批量移入组件功能
+      // selectedItems存储的是完整的物品对象
+      await moveToComponentWithItems(selectedItems.value)
+    }
+    
+    // 存入组件的核心逻辑
+    const moveToComponentWithItems = async (items) => {
+      if (!items || items.length === 0) {
+        ElMessage.warning('没有可存入的物品')
+        return
+      }
+      
+      try {
+        // 获取可用的库存组件列表
+        const response = await axios.post(`${API_BASE}/getAvailableComponents`, {
+          steamId: selectedSteamId.value
+        })
+        
+        if (!response.data.success || !response.data.components || response.data.components.length === 0) {
+          ElMessage.warning('未找到可用的库存组件，请先购买库存组件')
+          return
+        }
+        
+        // 设置数据并打开对话框
+        availableComponents.value = response.data.components
+        itemsToDeposit.value = items
+        componentDialogVisible.value = true
+        
+      } catch (error) {
+        console.error('获取库存组件失败:', error)
+        ElMessage.error(error.response?.data?.message || '获取库存组件失败')
+      }
+    }
+    
+    // 选择组件并执行存入
+    const selectComponent = async (component) => {
+      // 先关闭组件选择对话框
+      componentDialogVisible.value = false
+      
+      // 弹出确认对话框
+      ElMessageBox.confirm(
+        h('div', { style: 'padding: 10px 0;' }, [
+          h('div', { style: 'margin-bottom: 15px; font-size: 15px; color: #303133;' }, [
+            h('span', '确认将 '),
+            h('span', { style: 'color: #409EFF; font-weight: bold;' }, `${itemsToDeposit.value.length} 件物品`),
+            h('span', ' 存入以下组件？')
+          ]),
+          h('div', { style: 'padding: 16px; background: #f5f7fa; border-radius: 8px; border-left: 3px solid #409EFF;' }, [
+            h('div', { style: 'font-weight: bold; font-size: 14px; color: #303133; margin-bottom: 10px;' }, 
+              component.name || '库存存储组件'
+            ),
+            h('div', { style: 'display: flex; gap: 20px; font-size: 13px; color: #606266;' }, [
+              h('div', [
+                h('span', { style: 'color: #909399;' }, '已存储: '),
+                h('span', { style: 'font-weight: bold;' }, `${component.stored_count} / ${component.max_capacity}`)
+              ]),
+              h('div', [
+                h('span', { style: 'color: #909399;' }, '剩余空位: '),
+                h('span', { 
+                  style: `font-weight: bold; color: ${
+                    component.remaining_slots > 100 ? '#67C23A' : 
+                    component.remaining_slots > 20 ? '#E6A23C' : '#F56C6C'
+                  };`
+                }, component.remaining_slots)
+              ])
+            ])
+          ])
+        ]),
+        '确认存入',
+        {
+          confirmButtonText: '确认存入',
+          cancelButtonText: '取消',
+          type: 'warning',
+          center: false,
+          customClass: 'deposit-confirm-dialog'
+        }
+      ).then(async () => {
+        // 用户确认，执行存入
+        await executeDeposit(itemsToDeposit.value, component.assetid)
+      }).catch(() => {
+        // 用户取消，重新打开组件选择对话框
+        componentDialogVisible.value = true
+      })
+    }
+    
+    // 执行存入操作
+    const executeDeposit = async (items, storageUnitId) => {
+      const loading = ElLoading.service({
+        lock: true,
+        text: '正在存入物品...',
+        background: 'rgba(0, 0, 0, 0.7)'
+      })
+      
+      try {
+        const itemIds = items.map(item => item.assetid)
+        
+        const response = await axios.post(
+          `${API_CONFIG.SPIDER_BASE_URL}/prefectWorldSpiderV1/depositToComponent`,
+          {
+            steamId: selectedSteamId.value,
+            itemIds: itemIds,
+            storageUnitId: storageUnitId
+          }
+        )
+        
+        if (response.data.success) {
+          ElMessage.success(response.data.message || '物品存入成功')
+          
+          // 清空选择
+          if (selectedItems.value.length > 0) {
+            clearSelection()
+          }
+          
+          // 关闭预览
+          if (showPreview.value) {
+            showPreview.value = false
+          }
+          
+          // 刷新库存数据
+          await loadInventoryData()
+        } else {
+          ElMessage.error(response.data.message || '物品存入失败')
+        }
+        
+      } catch (error) {
+        console.error('存入物品失败:', error)
+        ElMessage.error(error.response?.data?.message || '存入物品失败')
+      } finally {
+        loading.close()
+      }
     }
 
     // 解析交易限制日期
@@ -3159,12 +3367,31 @@ export default {
       }
     })
 
+    // 组件选择对话框辅助方法
+    const getRemainingClass = (remaining) => {
+      if (remaining > 100) return 'remaining-high'
+      if (remaining > 20) return 'remaining-medium'
+      return 'remaining-low'
+    }
+
+    const getProgressColor = (percentage) => {
+      if (percentage < 0.7) return '#67C23A'
+      if (percentage < 0.9) return '#E6A23C'
+      return '#F56C6C'
+    }
+
     return {
       loading,
       fetchingInventory,
       fetchingYYYPPrice,
       fetchingBuffPrice,
       inventoryData,
+      componentDialogVisible,
+      availableComponents,
+      itemsToDeposit,
+      selectComponent,
+      getRemainingClass,
+      getProgressColor,
       groupedData,
       groupMode,
       currentDisplayData,
@@ -5542,3 +5769,111 @@ export default {
   }
 }
 </style>
+
+
+/* 组件选择对话框样式 */
+.component-select-header {
+  margin-bottom: 20px;
+}
+
+.component-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 500px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.component-card {
+  padding: 20px;
+  border: 2px solid #e4e7ed;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+  background: white;
+  position: relative;
+}
+
+.component-card:hover {
+  border-color: #409EFF;
+  background: #f0f9ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
+}
+
+.component-card.recommended {
+  border-color: #67C23A;
+  background: #f0f9ff;
+}
+
+.recommended-badge {
+  position: absolute;
+  top: -1px;
+  right: 16px;
+  background: #67C23A;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 0 0 8px 8px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.component-header h3 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: bold;
+  color: #303133;
+}
+
+.component-stats {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 16px;
+}
+
+.stat-item {
+  flex: 1;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #909399;
+  margin-bottom: 6px;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: bold;
+  color: #606266;
+}
+
+.stat-value.remaining-high {
+  color: #67C23A;
+}
+
+.stat-value.remaining-medium {
+  color: #E6A23C;
+}
+
+.stat-value.remaining-low {
+  color: #F56C6C;
+}
+
+.stat-divider {
+  width: 1px;
+  height: 40px;
+  background: #e4e7ed;
+}
+
+.component-progress {
+  margin-top: 12px;
+}
+
+.progress-text {
+  font-size: 11px;
+  color: #909399;
+  margin-top: 6px;
+  text-align: right;
+}

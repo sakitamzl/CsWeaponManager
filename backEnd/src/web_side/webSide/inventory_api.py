@@ -1039,3 +1039,103 @@ def update_steam_account_name(steam_id):
             'success': False,
             'message': f'更新失败: {str(e)}'
         }), 500
+
+
+@webInventoryV1.route('/getAvailableComponents', methods=['POST'])
+def get_available_components():
+    """
+    获取可用的库存组件列表（classID为3604678661，且有剩余空位）
+    """
+    try:
+        data = request.get_json()
+        steam_id = data.get('steamId')
+        
+        if not steam_id:
+            return jsonify({
+                'success': False,
+                'message': '缺少steamId参数'
+            }), 400
+        
+        print(f"获取可用库存组件 - steamId: {steam_id}")
+        
+        db = DatabaseManager()
+        
+        # 1. 从 steam_inventory 表获取该用户的所有库存组件（classid=3604678661）
+        # weapon_float 字段存储的是组件已存储的数量
+        query_components = """
+            SELECT 
+                assetid,
+                item_name,
+                steam_hash_name,
+                weapon_float
+            FROM steam_inventory
+            WHERE data_user = ? 
+            AND classid = '3604678661'
+            AND if_inventory = '1'
+        """
+        
+        components = db.execute_query(query_components, (steam_id,))
+        
+        if not components:
+            print(f"未找到库存组件 - steamId: {steam_id}")
+            return jsonify({
+                'success': True,
+                'message': '未找到库存组件',
+                'components': [],
+                'total_count': 0
+            }), 200
+        
+        print(f"找到 {len(components)} 个库存组件")
+        
+        # 2. 计算每个组件的剩余空位
+        available_components = []
+        max_capacity = 1000  # 每个组件最多存储1000件物品
+        
+        for component in components:
+            assetid = component[0]  # assetid
+            item_name = component[1] if len(component) > 1 else '库存组件'
+            steam_hash_name = component[2] if len(component) > 2 else ''
+            weapon_float = component[3] if len(component) > 3 else '0'
+            
+            # weapon_float 存储的是已存储的数量
+            try:
+                stored_count = int(float(weapon_float)) if weapon_float else 0
+            except (ValueError, TypeError):
+                stored_count = 0
+            
+            # 计算剩余空位
+            remaining_slots = max_capacity - stored_count
+            
+            # 只返回有剩余空位的组件（剩余空位 > 0）
+            if remaining_slots > 0:
+                available_components.append({
+                    'assetid': assetid,
+                    'name': item_name or '库存组件',
+                    'market_hash_name': steam_hash_name,
+                    'stored_count': stored_count,
+                    'remaining_slots': remaining_slots,
+                    'max_capacity': max_capacity,
+                    'icon_url': ''
+                })
+        
+        # 按剩余空位从大到小排序（剩余空位多的排在前面）
+        available_components.sort(key=lambda x: x['remaining_slots'], reverse=True)
+        
+        print(f"可用组件数量: {len(available_components)}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'找到 {len(available_components)} 个可用组件',
+            'components': available_components,
+            'total_count': len(available_components)
+        }), 200
+        
+    except Exception as e:
+        import traceback
+        error_msg = f'获取可用组件失败: {str(e)}'
+        print(error_msg)
+        print(f"详细错误: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'message': error_msg
+        }), 500
