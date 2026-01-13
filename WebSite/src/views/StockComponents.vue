@@ -132,21 +132,163 @@
     </div>
 
     <div class="table-container">
-      <div class="table-toolbar">
-        <div class="pagination pagination-top">
-          <el-pagination
-            v-model:current-page="currentPage"
-            v-model:page-size="pageSize"
-            :page-sizes="[10, 20, 50, 100]"
-            :total="totalItems"
-            layout="total, sizes, prev, pager, next, jumper"
-            @size-change="handleSizeChange"
-            @current-change="handleCurrentChange"
-          />
+      <!-- 明细模式：卡片视图 -->
+      <div v-if="!groupMode" class="card-container">
+        <div v-loading="loading" class="card-grid">
+          <div
+            v-for="item in componentData"
+            :key="item.goods_assetid"
+            class="inventory-card"
+            @click="handleCardClick(item)"
+          >
+            <div class="card-image">
+              <img
+                v-if="getWeaponImage(item.steam_hash_name)"
+                :data-src="getWeaponImage(item.steam_hash_name)"
+                :alt="item.item_name"
+                class="lazy-image"
+                @error="(e) => e.target.style.display = 'none'"
+              />
+              <div v-else class="image-placeholder">
+                <span>无图片</span>
+              </div>
+              <!-- 贴纸图片覆盖层 - 左下角 -->
+              <div v-if="item.sticker" class="sticker-overlay">
+                <div
+                  v-for="(sticker, index) in parseStickers(item.sticker)"
+                  :key="index"
+                  class="sticker-item-overlay"
+                  :title="sticker.name || '未知贴纸'"
+                >
+                  <img
+                    v-if="sticker.image"
+                    :data-src="sticker.image"
+                    :alt="sticker.name"
+                    class="sticker-img-overlay lazy-image"
+                    @error="(e) => e.target.style.display = 'none'"
+                  />
+                  <div v-else class="sticker-placeholder-overlay">?</div>
+                </div>
+              </div>
+              <!-- 挂件图片覆盖层 - 右上角 -->
+              <div v-if="item.pendant" class="pendant-overlay">
+                <div
+                  class="pendant-item-overlay"
+                  :title="parsePendant(item.pendant).name || '挂件'"
+                >
+                  <img
+                    v-if="parsePendant(item.pendant).image"
+                    :data-src="parsePendant(item.pendant).image"
+                    :alt="parsePendant(item.pendant).name"
+                    class="pendant-img-overlay lazy-image"
+                    @error="(e) => e.target.style.display = 'none'"
+                  />
+                  <div v-else class="pendant-placeholder-overlay">🎗️</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-content">
+              <div class="card-title" :title="getItemTitle(item)">
+                {{ getItemTitle(item) }}
+              </div>
+              <div class="card-info">
+                <div class="float-bar-container" v-if="item.weapon_float && formatWeaponFloat(item.weapon_float)">
+                  <div class="float-bar">
+                    <div class="float-segment fn"></div>
+                    <div class="float-segment mw"></div>
+                    <div class="float-segment ft"></div>
+                    <div class="float-segment ww"></div>
+                    <div class="float-segment bs"></div>
+                    <div
+                      class="float-pointer"
+                      :style="{ left: `${parseFloat(item.weapon_float) * 100}%` }"
+                      :title="`磨损值: ${item.weapon_float}`"
+                    ></div>
+                  </div>
+                </div>
+                <div class="float-value" v-if="item.weapon_float && formatWeaponFloat(item.weapon_float)">
+                  {{ item.weapon_float }}
+                </div>
+              </div>
+              <div class="card-prices">
+                <!-- 第一行：购入和Steam -->
+                <div class="price-row" v-if="item.buy_price || item.steam_price">
+                  <div class="price-group" v-if="item.buy_price">
+                    <span class="price-label">购入:</span>
+                    <span class="price-value buy-price">¥{{ parseFloat(item.buy_price).toFixed(2) }}</span>
+                  </div>
+                  <div class="price-group" v-if="item.steam_price && item.steam_price !== '0'">
+                    <span class="price-label">Steam:</span>
+                    <span 
+                      class="price-value"
+                      :style="item.buy_price ? { color: parseFloat(item.steam_price) >= parseFloat(item.buy_price) ? '#f56c6c' : '#4CAF50' } : {}"
+                    >
+                      ¥{{ showPriceDiff && item.buy_price ? Math.abs(parseFloat(item.steam_price) - parseFloat(item.buy_price)).toFixed(2) : parseFloat(item.steam_price).toFixed(2) }}
+                    </span>
+                  </div>
+                </div>
+                <!-- 第二行：悠悠和BUFF -->
+                <div class="price-row" v-if="item.yyyp_price || item.buff_price">
+                  <div class="price-group" v-if="item.yyyp_price && item.yyyp_price !== '0'">
+                    <span class="price-label">悠悠:</span>
+                    <span
+                      class="price-value"
+                      :style="item.buy_price ? { color: parseFloat(item.yyyp_price) >= parseFloat(item.buy_price) ? '#f56c6c' : '#4CAF50' } : {}"
+                    >
+                      ¥{{ showPriceDiff && item.buy_price ? Math.abs(parseFloat(item.yyyp_price) - parseFloat(item.buy_price)).toFixed(2) : parseFloat(item.yyyp_price).toFixed(2) }}
+                    </span>
+                  </div>
+                  <div class="price-group" v-if="item.buff_price && item.buff_price !== '0'">
+                    <span class="price-label">BUFF:</span>
+                    <span
+                      class="price-value"
+                      :style="item.buy_price ? { color: parseFloat(item.buff_price) >= parseFloat(item.buy_price) ? '#f56c6c' : '#4CAF50' } : {}"
+                    >
+                      ¥{{ showPriceDiff && item.buy_price ? Math.abs(parseFloat(item.buff_price) - parseFloat(item.buy_price)).toFixed(2) : parseFloat(item.buff_price).toFixed(2) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="card-footer">
+                <div class="card-tags">
+                  <el-tag v-if="item.rename" type="info" size="small" class="rename-tag">
+                    <span class="tag-icon">🏷️</span>{{ item.rename }}
+                  </el-tag>
+                  <el-tag type="success" size="small">
+                    {{ item.assetid }}
+                  </el-tag>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+        <div class="table-footer">
+          <span>共 {{ componentData.length }} 条数据</span>
+          <span v-if="hasMore && !loadingMore" style="margin-left: 1rem; color: #999;">滚动加载更多...</span>
+          <span v-if="loadingMore" style="margin-left: 1rem; color: #4CAF50;">正在加载更多...</span>
+          <span v-if="!hasMore && componentData.length > 0" style="margin-left: 1rem; color: #999;">已加载全部数据</span>
+        </div>
+        <!-- 滚动触发元素 -->
+        <div id="load-more-trigger-card" style="height: 1px;"></div>
       </div>
-      
-      <el-table
+
+      <!-- 组合模式：表格视图 -->
+      <div v-else class="table-wrapper">
+        <div class="table-toolbar">
+          <div class="pagination pagination-top">
+            <el-pagination
+              v-model:current-page="currentPage"
+              v-model:page-size="pageSize"
+              :page-sizes="[10, 20, 50, 100]"
+              :total="totalItems"
+              layout="total, sizes, prev, pager, next, jumper"
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+            />
+          </div>
+        </div>
+        
+        <el-table
         ref="tableRef"
         :data="filteredData"
         v-loading="loading"
@@ -471,18 +613,19 @@
             <span v-else style="color: #888;">-</span>
           </template>
         </el-table-column>
-      </el-table>
-      
-      <div class="pagination">
-        <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          :page-sizes="[10, 20, 50, 100]"
-          :total="totalItems"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
+        </el-table>
+        
+        <div class="pagination">
+          <el-pagination
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            :total="totalItems"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -507,7 +650,10 @@ export default {
     const showPriceDiff = ref(false)
     const searchText = ref('')
     const currentPage = ref(1)
-    const pageSize = ref(10)
+    const pageSize = ref(50) // 每次加载数量
+    const currentOffset = ref(0) // 当前偏移量
+    const hasMore = ref(true) // 是否还有更多数据
+    const loadingMore = ref(false) // 是否正在加载更多
     const totalItems = ref(0)
     const steamIdList = ref([])
     const selectedSteamId = ref('')
@@ -517,6 +663,9 @@ export default {
     const expandedRowPages = ref({})
     const previewVisible = ref(false)
     const previewItem = ref(null)
+    
+    // 图片观察器
+    let imageObserver = null
     
     // 编辑价格相关
     const editingGoodsAssetId = ref(null)
@@ -753,7 +902,12 @@ export default {
       
       if (!selectedComponent.value) {
         // 清空选择，重新加载所有组件数据
-        loadComponentData()
+        currentPage.value = 1
+        currentOffset.value = 0
+        groupMode.value ? loadGroupedData() : loadComponentData()
+        if (!groupMode.value) {
+          setupScrollObserver()
+        }
         return
       }
       
@@ -762,93 +916,74 @@ export default {
         return
       }
       
-      // 使用 assetid 和 steamID 查询组件
-      loading.value = true
-      try {
-        console.log('查询组件 - assetid:', selectedComponent.value, 'steamID:', selectedSteamId.value)
-        
-        const response = await axios.get(`${API_COMPONENTS}/components/${selectedSteamId.value}`, {
-          params: {
-            search: '',
-            page: 1,
-            page_size: 9999
-          }
-        })
-        
-        if (response.data.success) {
-          // 从返回的数据中筛选出匹配的组件
-          const allComponents = response.data.data
-          const filtered = allComponents.filter(item => 
-            item.assetid === selectedComponent.value || 
-            item.component_id === selectedComponent.value
-          )
-          
-          if (filtered.length > 0) {
-            componentData.value = filtered
-            totalItems.value = filtered.length
-            currentPage.value = 1
-            
-            // 更新统计数据
-            const buyPrice = parseFloat(filtered[0].buy_price) || 0
-            const yyypPrice = parseFloat(filtered[0].yyyp_price) || 0
-            const buffPrice = parseFloat(filtered[0].buff_price) || 0
-            const steamPrice = parseFloat(filtered[0].steam_price) || 0
-            
-            totalStats.value = {
-              totalCount: filtered.length,
-              totalCost: buyPrice.toFixed(2),
-              totalYYYPPrice: yyypPrice.toFixed(2),
-              totalBuffPrice: buffPrice.toFixed(2),
-              totalSteamPrice: steamPrice.toFixed(2),
-              yyypDiff: (yyypPrice - buyPrice).toFixed(2),
-              buffDiff: (buffPrice - buyPrice).toFixed(2),
-              steamDiff: (steamPrice - buyPrice).toFixed(2)
-            }
-            
-            ElMessage.success(`已找到组件`)
-          } else {
-            componentData.value = []
-            totalItems.value = 0
-            ElMessage.warning('未找到该组件')
-          }
-        } else {
-          ElMessage.error(response.data.error || '查询失败')
-        }
-      } catch (error) {
-        console.error('查询组件失败:', error)
-        ElMessage.error('查询组件失败: ' + (error.response?.data?.error || error.message))
-      } finally {
-        loading.value = false
+      // 重置页码和偏移量
+      currentPage.value = 1
+      currentOffset.value = 0
+      
+      // 根据当前模式加载数据
+      groupMode.value ? loadGroupedData() : loadComponentData()
+      if (!groupMode.value) {
+        setupScrollObserver()
       }
     }
 
-    const loadComponentData = async () => {
+    const loadComponentData = async (reset = true) => {
       if (!selectedSteamId.value) {
         ElMessage.warning('请选择Steam账号')
         return
       }
       
+      // 如果是重置，清空数据
+      if (reset) {
+        componentData.value = []
+        currentOffset.value = 0
+        hasMore.value = true
+      }
+      
       loading.value = true
       try {
-        console.log('正在加载组件数据，Steam ID:', selectedSteamId.value)
+        // 计算当前页码
+        const currentPageNum = Math.floor(currentOffset.value / pageSize.value) + 1
+        
+        console.log('正在加载组件数据，Steam ID:', selectedSteamId.value, 'Page:', currentPageNum, 'PageSize:', pageSize.value)
+        
+        const params = {
+          search: searchText.value,
+          page: currentPageNum,
+          page_size: pageSize.value
+        }
+        
+        // 如果选择了组件，添加 assetid 参数进行筛选
+        if (selectedComponent.value) {
+          params.assetid = selectedComponent.value
+        }
         
         const response = await axios.get(`${API_COMPONENTS}/components/${selectedSteamId.value}`, {
-          params: {
-            search: searchText.value,
-            page: currentPage.value,
-            page_size: pageSize.value
-          }
+          params: params
         })
         
         console.log('组件数据响应:', response.data)
         
         if (response.data.success) {
-          componentData.value = response.data.data
+          const newData = response.data.data || []
+          
+          // 追加新数据
+          componentData.value = [...componentData.value, ...newData]
           totalItems.value = response.data.total
+          
+          // 检查是否还有更多数据
+          hasMore.value = newData.length === pageSize.value && componentData.value.length < totalItems.value
+          
+          // 更新偏移量
+          currentOffset.value += newData.length
           
           await loadComponentStats()
           
-          ElMessage.success(`加载成功，共 ${componentData.value.length} 条记录`)
+          if (reset) {
+            ElMessage.success(`加载成功，共 ${totalItems.value} 条记录`)
+          }
+          
+          console.log('数据已加载，当前:', componentData.value.length, '条，总计:', totalItems.value, '还有更多:', hasMore.value)
         } else {
           ElMessage.error(response.data.error || '加载数据失败')
           componentData.value = []
@@ -872,12 +1007,19 @@ export default {
 
       loading.value = true
       try {
+        const params = {
+          search: searchText.value,
+          page: currentPage.value,
+          page_size: pageSize.value
+        }
+        
+        // 如果选择了组件，添加 assetid 参数进行筛选
+        if (selectedComponent.value) {
+          params.assetid = selectedComponent.value
+        }
+        
         const response = await axios.get(`${API_COMPONENTS_GROUPED}/${selectedSteamId.value}`, {
-          params: {
-            search: searchText.value,
-            page: currentPage.value,
-            page_size: pageSize.value
-          }
+          params: params
         })
 
         if (response.data.success) {
@@ -956,17 +1098,105 @@ export default {
       }
     }
 
+    // 加载更多数据
+    const loadMoreData = async () => {
+      if (loadingMore.value || !hasMore.value) {
+        return
+      }
+      
+      loadingMore.value = true
+      try {
+        await loadComponentData(false)
+      } finally {
+        loadingMore.value = false
+      }
+    }
+
+    // 设置懒加载图片观察器
+    const setupLazyImageObserver = () => {
+      nextTick(() => {
+        // 清理旧的观察器
+        if (imageObserver) {
+          imageObserver.disconnect()
+        }
+
+        // 创建新的观察器
+        imageObserver = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            const img = entry.target
+            
+            if (entry.isIntersecting) {
+              // 图片进入视口，加载图片
+              const src = img.getAttribute('data-src')
+              if (src && !img.src) {
+                img.src = src
+                img.classList.add('loaded')
+              }
+            }
+          })
+        }, {
+          root: null,
+          rootMargin: '200px',
+          threshold: 0.01
+        })
+
+        // 观察所有懒加载图片
+        const lazyImages = document.querySelectorAll('.lazy-image')
+        lazyImages.forEach(img => {
+          imageObserver.observe(img)
+        })
+      })
+    }
+
+    // 设置滚动监听
+    const setupScrollObserver = () => {
+      nextTick(() => {
+        const trigger = document.getElementById('load-more-trigger-card')
+        if (trigger) {
+          // 如果已有观察器，先断开
+          if (trigger._observer) {
+            trigger._observer.disconnect()
+          }
+          
+          const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+              if (entry.isIntersecting && hasMore.value && !loadingMore.value && !loading.value) {
+                loadMoreData()
+              }
+            })
+          }, {
+            root: null,
+            rootMargin: '100px'
+          })
+          
+          observer.observe(trigger)
+          trigger._observer = observer
+        }
+
+        // 设置懒加载图片观察器
+        setupLazyImageObserver()
+      })
+    }
+
     const handleSearch = () => {
       currentPage.value = 1
+      currentOffset.value = 0
       selectedComponent.value = ''
       groupMode.value ? loadGroupedData() : loadComponentData()
+      if (!groupMode.value) {
+        setupScrollObserver()
+      }
     }
 
     const handleClearSearch = () => {
       searchText.value = ''
       selectedComponent.value = ''
       currentPage.value = 1
+      currentOffset.value = 0
       groupMode.value ? loadGroupedData() : loadComponentData()
+      if (!groupMode.value) {
+        setupScrollObserver()
+      }
     }
 
     const calcAvg = (total, count) => {
@@ -984,8 +1214,15 @@ export default {
         groupMode.value = !groupMode.value
       }
       currentPage.value = 1
+      currentOffset.value = 0
       selectedComponent.value = ''
-      groupMode.value ? loadGroupedData() : loadComponentData()
+      
+      if (groupMode.value) {
+        loadGroupedData()
+      } else {
+        loadComponentData()
+        setupScrollObserver()
+      }
     }
 
     const handleUpdateComponent = async () => {
@@ -1413,11 +1650,22 @@ export default {
       previewVisible.value = true
     }
 
+    // 处理卡片点击事件
+    const handleCardClick = (item) => {
+      console.log('点击卡片:', item)
+      // 可以在这里添加卡片点击的逻辑，比如显示详情、选择等
+    }
+
     onMounted(async () => {
       await loadSteamIdList()
       if (selectedSteamId.value) {
         await loadInventoryComponents()
-        groupMode.value ? loadGroupedData() : loadComponentData()
+        if (groupMode.value) {
+          loadGroupedData()
+        } else {
+          loadComponentData()
+          setupScrollObserver()
+        }
       }
     })
 
@@ -1446,6 +1694,8 @@ export default {
       expandedRowPages,
       previewVisible,
       previewItem,
+      hasMore,
+      loadingMore,
       formatTime,
       formatPrice,
       formatWeaponFloat,
@@ -1476,13 +1726,277 @@ export default {
       handleExpandPageChange,
       handleRowClick,
       getRowStyle,
-      openPreview
+      openPreview,
+      handleCardClick,
+      loadMoreData
     }
   }
 }
 </script>
 
 <style scoped>
+/* 卡片视图样式 */
+.card-container {
+  width: 100%;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.inventory-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: visible;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  height: 340px;
+  cursor: pointer;
+}
+
+.inventory-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-color: var(--el-color-primary);
+}
+
+.card-image {
+  width: 100%;
+  height: 150px;
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+}
+
+/* 贴纸覆盖层 - 左下角 */
+.sticker-overlay {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  display: flex;
+  gap: 3px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* 挂件覆盖层 - 右上角 */
+.pendant-overlay {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.sticker-item-overlay {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.sticker-item-overlay:hover {
+  transform: scale(2);
+  z-index: 10;
+  border-color: rgba(76, 175, 80, 0.8);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+}
+
+.pendant-item-overlay {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1.5px solid rgba(255, 215, 0, 0.4);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.pendant-item-overlay:hover {
+  transform: scale(2);
+  z-index: 10;
+  border-color: rgba(255, 215, 0, 0.8);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+}
+
+.sticker-img-overlay,
+.pendant-img-overlay {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
+.sticker-placeholder-overlay,
+.pendant-placeholder-overlay {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+.pendant-placeholder-overlay {
+  color: #ffd700;
+  font-size: 1.2rem;
+}
+
+.image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.card-content {
+  padding: 0.75rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.card-title {
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.3;
+  min-height: 2.6em;
+}
+
+.card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+}
+
+.float-bar-container {
+  width: 100%;
+}
+
+.float-value {
+  color: #fff;
+  font-family: monospace;
+  font-size: 0.75rem;
+  text-align: center;
+  margin-top: 0.25rem;
+}
+
+.card-prices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.3rem;
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  gap: 0.5rem;
+}
+
+.price-group {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.price-label {
+  color: #999;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+.price-value {
+  color: #fff;
+  font-weight: bold;
+  font-size: 0.75rem;
+}
+
+.buy-price {
+  color: #fff;
+}
+
+.card-footer {
+  margin-top: auto;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.rename-tag {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag-icon {
+  margin-right: 0.25rem;
+}
+
+.table-footer {
+  padding: 1rem;
+  text-align: center;
+  color: #999;
+  font-size: 0.875rem;
+}
+
+/* 表格视图样式 */
+.table-wrapper {
+  width: 100%;
+}
+
 .inventory-stats {
   margin-bottom: clamp(1rem, 3vw, 1.25rem);
 }
@@ -1527,6 +2041,11 @@ export default {
   :deep(.el-table th),
   :deep(.el-table td) {
     padding: 0.5rem 0.25rem;
+  }
+
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
   }
 }
 
