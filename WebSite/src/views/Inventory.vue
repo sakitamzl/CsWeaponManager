@@ -1821,16 +1821,18 @@ export default {
         console.log('正在加载库存数据，Steam ID:', selectedSteamId.value)
         // 加载卡片数据 - 使用分页
         const params = {
-          search: searchText.value,
           weapon_type: weaponTypeFilter.value,
           float_range: floatRangeFilter.value,
           limit: pageSize.value,
           offset: currentOffset.value
         }
         
-        // 如果处于选择组件模式，只显示库存组件
+        // 如果处于选择组件模式，只显示库存组件，并忽略搜索过滤
         if (isSelectingComponent.value) {
           params.classid = '3604678661'
+        } else {
+          // 只在非选择组件模式下应用搜索过滤
+          params.search = searchText.value
         }
         
         const url = `${API_BASE}/inventory/${selectedSteamId.value}`
