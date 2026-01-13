@@ -510,11 +510,11 @@
           <div
             v-for="item in componentData"
             :key="item.goods_assetid"
-            :class="['inventory-card', { 'selected': isItemSelected(item.assetid) }]"
+            :class="['inventory-card', { 'selected': isItemSelected(item.goods_assetid) }]"
             @click="handleCardClick(item)"
           >
             <!-- 选中标记 -->
-            <div v-if="isItemSelected(item.assetid)" class="selected-indicator">
+            <div v-if="isItemSelected(item.goods_assetid)" class="selected-indicator">
               <span class="checkmark">✓</span>
             </div>
             <div class="card-image">
@@ -643,6 +643,22 @@
         </div>
         <!-- 滚动触发元素 -->
         <div id="load-more-trigger-card" style="height: 1px;"></div>
+      </div>
+    </div>
+
+    <!-- 多选模式下的操作按钮 -->
+    <div v-if="selectedComponent && selectedItems.length > 0" class="multi-select-actions">
+      <div class="selected-count">
+        已选择 {{ selectedItems.length }} 件物品
+      </div>
+      <div class="action-buttons">
+        <el-button type="primary" @click="selectAllCurrentPage">
+          {{ selectedItems.length === componentData.length ? '取消全选' : '全选' }}
+        </el-button>
+        <el-button type="success" @click="removeFromComponent" :loading="removeLoading">
+          移出组件
+        </el-button>
+        <el-button @click="clearSelection">清空选择</el-button>
       </div>
     </div>
   </div>
@@ -922,6 +938,9 @@ export default {
 
     const handleComponentSelect = async () => {
       console.log('选择的组件 assetid:', selectedComponent.value)
+      
+      // 切换组件时清空之前的选择
+      clearSelection()
       
       if (!selectedComponent.value) {
         // 清空选择，重新加载所有组件数据
@@ -1705,13 +1724,13 @@ export default {
     }
 
     // 判断物品是否被选中
-    const isItemSelected = (assetid) => {
-      return selectedItems.value.some(item => item.assetid === assetid)
+    const isItemSelected = (goods_assetid) => {
+      return selectedItems.value.some(item => item.goods_assetid === goods_assetid)
     }
 
     // 切换物品选择状态
     const toggleItemSelection = (item) => {
-      const index = selectedItems.value.findIndex(i => i.assetid === item.assetid)
+      const index = selectedItems.value.findIndex(i => i.goods_assetid === item.goods_assetid)
       if (index > -1) {
         selectedItems.value.splice(index, 1)
       } else {
@@ -1726,10 +1745,16 @@ export default {
 
     // 全选当前页面
     const selectAllCurrentPage = () => {
+      // 只有选择了具体组件时才允许全选
+      if (!selectedComponent.value) {
+        ElMessage.warning('请先选择要操作的库存组件')
+        return
+      }
+
       if (displayMode.value === 'card') {
         // 卡片模式：选择当前加载的所有数据
         const currentData = componentData.value
-        if (selectedItems.value.length === currentData.length) {
+        if (selectedItems.value.length === currentData.length && currentData.length > 0) {
           // 如果已全选，则取消全选
           clearSelection()
           ElMessage.info('已取消全选')
@@ -1741,7 +1766,7 @@ export default {
       } else {
         // 列表模式：选择当前页的数据
         const currentData = groupMode.value ? groupedData.value : componentData.value
-        if (selectedItems.value.length === currentData.length) {
+        if (selectedItems.value.length === currentData.length && currentData.length > 0) {
           clearSelection()
           ElMessage.info('已取消全选')
         } else {
@@ -1776,8 +1801,8 @@ export default {
 
         removeLoading.value = true
 
-        // 获取所有选中物品的 assetid
-        const assetids = selectedItems.value.map(item => item.assetid)
+        // 获取所有选中物品的 goods_assetid
+        const assetids = selectedItems.value.map(item => item.goods_assetid)
 
         const response = await axios.post(`${API_SPIDER}/prefectWorldSpiderV1/removeInventoryComponent`, {
           steamId: selectedSteamId.value,
@@ -1815,6 +1840,12 @@ export default {
 
     // 处理卡片点击事件
     const handleCardClick = (item) => {
+      // 只有选择了具体组件时才允许选中
+      if (!selectedComponent.value) {
+        ElMessage.warning('请先选择要操作的库存组件')
+        return
+      }
+      
       if (isMultiSelectMode.value) {
         toggleItemSelection(item)
       }
@@ -2890,6 +2921,46 @@ export default {
   min-width: 24px;
   height: 24px;
   line-height: 24px;
+}
+
+/* 多选模式操作按钮 */
+.multi-select-actions {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-tertiary);
+  border: 2px solid var(--el-color-primary);
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.multi-select-actions .selected-count {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+.multi-select-actions .action-buttons {
+  display: flex;
+  gap: 0.5rem;
 }
 </style>
 
