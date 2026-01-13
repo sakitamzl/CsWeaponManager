@@ -54,6 +54,7 @@ def get_components(steam_id):
         search_text = request.args.get('search', '')
         weapon_type = request.args.get('weapon_type', '')  # 武器类型筛选
         weapon_level = request.args.get('weapon_level', '')  # 武器等级筛选
+        assetid = request.args.get('assetid', '')  # 组件assetid筛选
         page = request.args.get('page', 1, type=int)
         page_size = request.args.get('page_size', 20, type=int)
         
@@ -65,6 +66,11 @@ def get_components(steam_id):
         # 构建查询条件
         where_conditions = ["data_user = ?"]
         params = [steam_id]
+        
+        # 组件assetid筛选 - 只返回该组件内的物品
+        if assetid:
+            where_conditions.append("assetid = ?")
+            params.append(assetid)
         
         # 关键词搜索 - 搜索武器名称
         if search_text:
@@ -243,6 +249,7 @@ def get_components_grouped(steam_id):
     """
     try:
         search_text = request.args.get('search', '')
+        assetid = request.args.get('assetid', '')  # 组件assetid筛选
         page = request.args.get('page', 1, type=int)
         page_size = request.args.get('page_size', 20, type=int)
         order_by = (request.args.get('order_by') or 'count').lower()
@@ -253,6 +260,11 @@ def get_components_grouped(steam_id):
 
         where_conditions = ["data_user = ?"]
         params = [steam_id]
+
+        # 组件assetid筛选
+        if assetid:
+            where_conditions.append("assetid = ?")
+            params.append(assetid)
 
         if search_text:
             where_conditions.append("item_name LIKE ?")

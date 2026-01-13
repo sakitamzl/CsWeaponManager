@@ -626,149 +626,6 @@
                   <el-tag v-if="item.rename" type="info" size="small" class="rename-tag">
                     <span class="tag-icon">🏷️</span>{{ item.rename }}
                   </el-tag>
-                  <el-tag type="success" size="small">
-                    {{ item.assetid }}
-                  </el-tag>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="table-footer">
-          <span>共 {{ componentData.length }} 条数据</span>
-          <span v-if="hasMore && !loadingMore" style="margin-left: 1rem; color: #999;">滚动加载更多...</span>
-          <span v-if="loadingMore" style="margin-left: 1rem; color: #4CAF50;">正在加载更多...</span>
-          <span v-if="!hasMore && componentData.length > 0" style="margin-left: 1rem; color: #999;">已加载全部数据</span>
-        </div>
-        <!-- 滚动触发元素 -->
-        <div id="load-more-trigger-card" style="height: 1px;"></div>
-      </div>
-
-      <!-- 卡片显示 -->
-      <div v-if="displayMode === 'card'" class="card-container">
-        <div v-loading="loading" class="card-grid">
-          <div
-            v-for="item in componentData"
-            :key="item.goods_assetid"
-            class="inventory-card"
-            @click="handleCardClick(item)"
-          >
-            <div class="card-image">
-              <img
-                v-if="getWeaponImage(item.steam_hash_name)"
-                :data-src="getWeaponImage(item.steam_hash_name)"
-                :alt="item.item_name"
-                class="lazy-image"
-                @error="(e) => e.target.style.display = 'none'"
-              />
-              <div v-else class="image-placeholder">
-                <span>无图片</span>
-              </div>
-              <!-- 贴纸图片覆盖层 - 左下角 -->
-              <div v-if="item.sticker" class="sticker-overlay">
-                <div
-                  v-for="(sticker, index) in parseStickers(item.sticker)"
-                  :key="index"
-                  class="sticker-item-overlay"
-                  :title="sticker.name || '未知贴纸'"
-                >
-                  <img
-                    v-if="sticker.image"
-                    :data-src="sticker.image"
-                    :alt="sticker.name"
-                    class="sticker-img-overlay lazy-image"
-                    @error="(e) => e.target.style.display = 'none'"
-                  />
-                  <div v-else class="sticker-placeholder-overlay">?</div>
-                </div>
-              </div>
-              <!-- 挂件图片覆盖层 - 右上角 -->
-              <div v-if="item.pendant" class="pendant-overlay">
-                <div
-                  class="pendant-item-overlay"
-                  :title="parsePendant(item.pendant).name || '挂件'"
-                >
-                  <img
-                    v-if="parsePendant(item.pendant).image"
-                    :data-src="parsePendant(item.pendant).image"
-                    :alt="parsePendant(item.pendant).name"
-                    class="pendant-img-overlay lazy-image"
-                    @error="(e) => e.target.style.display = 'none'"
-                  />
-                  <div v-else class="pendant-placeholder-overlay">🎗️</div>
-                </div>
-              </div>
-            </div>
-            <div class="card-content">
-              <div class="card-title" :title="getItemTitle(item)">
-                {{ getItemTitle(item) }}
-              </div>
-              <div class="card-info">
-                <div class="float-bar-container" v-if="item.weapon_float && formatWeaponFloat(item.weapon_float)">
-                  <div class="float-bar">
-                    <div class="float-segment fn"></div>
-                    <div class="float-segment mw"></div>
-                    <div class="float-segment ft"></div>
-                    <div class="float-segment ww"></div>
-                    <div class="float-segment bs"></div>
-                    <div
-                      class="float-pointer"
-                      :style="{ left: `${parseFloat(item.weapon_float) * 100}%` }"
-                      :title="`磨损值: ${item.weapon_float}`"
-                    ></div>
-                  </div>
-                </div>
-                <div class="float-value" v-if="item.weapon_float && formatWeaponFloat(item.weapon_float)">
-                  {{ item.weapon_float }}
-                </div>
-              </div>
-              <div class="card-prices">
-                <!-- 第一行：购入和Steam -->
-                <div class="price-row" v-if="item.buy_price || item.steam_price">
-                  <div class="price-group" v-if="item.buy_price">
-                    <span class="price-label">购入:</span>
-                    <span class="price-value buy-price">¥{{ parseFloat(item.buy_price).toFixed(2) }}</span>
-                  </div>
-                  <div class="price-group" v-if="item.steam_price && item.steam_price !== '0'">
-                    <span class="price-label">Steam:</span>
-                    <span 
-                      class="price-value"
-                      :style="item.buy_price ? { color: parseFloat(item.steam_price) >= parseFloat(item.buy_price) ? '#f56c6c' : '#4CAF50' } : {}"
-                    >
-                      ¥{{ showPriceDiff && item.buy_price ? Math.abs(parseFloat(item.steam_price) - parseFloat(item.buy_price)).toFixed(2) : parseFloat(item.steam_price).toFixed(2) }}
-                    </span>
-                  </div>
-                </div>
-                <!-- 第二行：悠悠和BUFF -->
-                <div class="price-row" v-if="item.yyyp_price || item.buff_price">
-                  <div class="price-group" v-if="item.yyyp_price && item.yyyp_price !== '0'">
-                    <span class="price-label">悠悠:</span>
-                    <span
-                      class="price-value"
-                      :style="item.buy_price ? { color: parseFloat(item.yyyp_price) >= parseFloat(item.buy_price) ? '#f56c6c' : '#4CAF50' } : {}"
-                    >
-                      ¥{{ showPriceDiff && item.buy_price ? Math.abs(parseFloat(item.yyyp_price) - parseFloat(item.buy_price)).toFixed(2) : parseFloat(item.yyyp_price).toFixed(2) }}
-                    </span>
-                  </div>
-                  <div class="price-group" v-if="item.buff_price && item.buff_price !== '0'">
-                    <span class="price-label">BUFF:</span>
-                    <span
-                      class="price-value"
-                      :style="item.buy_price ? { color: parseFloat(item.buff_price) >= parseFloat(item.buy_price) ? '#f56c6c' : '#4CAF50' } : {}"
-                    >
-                      ¥{{ showPriceDiff && item.buy_price ? Math.abs(parseFloat(item.buff_price) - parseFloat(item.buy_price)).toFixed(2) : parseFloat(item.buff_price).toFixed(2) }}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div class="card-footer">
-                <div class="card-tags">
-                  <el-tag v-if="item.rename" type="info" size="small" class="rename-tag">
-                    <span class="tag-icon">🏷️</span>{{ item.rename }}
-                  </el-tag>
-                  <el-tag type="success" size="small">
-                    {{ item.assetid }}
-                  </el-tag>
                 </div>
               </div>
             </div>
@@ -803,7 +660,7 @@ export default {
     const componentData = ref([])
     const groupedData = ref([])
     const groupMode = ref(true)
-    const displayMode = ref('list') // 显示模式：list 或 card
+    const displayMode = ref('card') // 显示模式：list 或 card，默认卡片
     const showPriceDiff = ref(false)
     const searchText = ref('')
     const currentPage = ref(1)
@@ -2107,7 +1964,7 @@ export default {
   color: #fff;
   font-family: monospace;
   font-size: 0.75rem;
-  text-align: center;
+  text-align: left;
   margin-top: 0.25rem;
 }
 
