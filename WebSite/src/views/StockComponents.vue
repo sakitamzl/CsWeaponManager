@@ -510,9 +510,13 @@
           <div
             v-for="item in componentData"
             :key="item.goods_assetid"
-            class="inventory-card"
+            :class="['inventory-card', { 'selected': isItemSelected(item.assetid) }]"
             @click="handleCardClick(item)"
           >
+            <!-- 选中标记 -->
+            <div v-if="isItemSelected(item.assetid)" class="selected-indicator">
+              <span class="checkmark">✓</span>
+            </div>
             <div class="card-image">
               <img
                 v-if="getWeaponImage(item.steam_hash_name)"
@@ -677,6 +681,11 @@ export default {
     const expandedRowPages = ref({})
     const previewVisible = ref(false)
     const previewItem = ref(null)
+    
+    // 多选模式相关
+    const isMultiSelectMode = ref(true) // 默认开启多选模式
+    const selectedItems = ref([])
+    const removeLoading = ref(false)
     
     // 图片观察器
     let imageObserver = null
@@ -918,8 +927,12 @@ export default {
         // 清空选择，重新加载所有组件数据
         currentPage.value = 1
         currentOffset.value = 0
-        groupMode.value ? loadGroupedData() : loadComponentData()
-        // setupScrollObserver 会在 loadComponentData 完成后自动调用
+        // 根据当前显示模式决定加载哪个数据
+        if (displayMode.value === 'card') {
+          loadComponentData()
+        } else {
+          groupMode.value ? loadGroupedData() : loadComponentData()
+        }
         return
       }
       
@@ -932,9 +945,12 @@ export default {
       currentPage.value = 1
       currentOffset.value = 0
       
-      // 根据当前模式加载数据
-      groupMode.value ? loadGroupedData() : loadComponentData()
-      // setupScrollObserver 会在 loadComponentData 完成后自动调用
+      // 根据当前显示模式决定加载哪个数据
+      if (displayMode.value === 'card') {
+        loadComponentData()
+      } else {
+        groupMode.value ? loadGroupedData() : loadComponentData()
+      }
     }
 
     const loadComponentData = async (reset = true) => {
@@ -1688,10 +1704,120 @@ export default {
       previewVisible.value = true
     }
 
+    // 判断物品是否被选中
+    const isItemSelected = (assetid) => {
+      return selectedItems.value.some(item => item.assetid === assetid)
+    }
+
+    // 切换物品选择状态
+    const toggleItemSelection = (item) => {
+      const index = selectedItems.value.findIndex(i => i.assetid === item.assetid)
+      if (index > -1) {
+        selectedItems.value.splice(index, 1)
+      } else {
+        selectedItems.value.push(item)
+      }
+    }
+
+    // 清空选择
+    const clearSelection = () => {
+      selectedItems.value = []
+    }
+
+    // 全选当前页面
+    const selectAllCurrentPage = () => {
+      if (displayMode.value === 'card') {
+        // 卡片模式：选择当前加载的所有数据
+        const currentData = componentData.value
+        if (selectedItems.value.length === currentData.length) {
+          // 如果已全选，则取消全选
+          clearSelection()
+          ElMessage.info('已取消全选')
+        } else {
+          // 全选当前页面
+          selectedItems.value = [...currentData]
+          ElMessage.success(`已选择 ${currentData.length} 件物品`)
+        }
+      } else {
+        // 列表模式：选择当前页的数据
+        const currentData = groupMode.value ? groupedData.value : componentData.value
+        if (selectedItems.value.length === currentData.length) {
+          clearSelection()
+          ElMessage.info('已取消全选')
+        } else {
+          selectedItems.value = [...currentData]
+          ElMessage.success(`已选择 ${currentData.length} 件物品`)
+        }
+      }
+    }
+
+    // 移出组件
+    const removeFromComponent = async () => {
+      if (selectedItems.value.length === 0) {
+        ElMessage.warning('请先选择要移出的物品')
+        return
+      }
+
+      if (!selectedSteamId.value) {
+        ElMessage.warning('请先选择Steam账号')
+        return
+      }
+
+      try {
+        await ElMessageBox.confirm(
+          `确定要将选中的 ${selectedItems.value.length} 件物品移出组件吗？`,
+          '确认移出',
+          {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        )
+
+        removeLoading.value = true
+
+        // 获取所有选中物品的 assetid
+        const assetids = selectedItems.value.map(item => item.assetid)
+
+        const response = await axios.post(`${API_SPIDER}/prefectWorldSpiderV1/removeInventoryComponent`, {
+          steamId: selectedSteamId.value,
+          assetid: assetids
+        })
+
+        if (response.data.success) {
+          ElMessage.success(`成功移出 ${selectedItems.value.length} 件物品`)
+          
+          // 清空选择
+          clearSelection()
+          
+          // 重新加载数据
+          currentOffset.value = 0
+          if (displayMode.value === 'card') {
+            loadComponentData()
+          } else {
+            groupMode.value ? loadGroupedData() : loadComponentData()
+          }
+          
+          // 重新加载组件列表
+          await loadInventoryComponents()
+        } else {
+          ElMessage.error(response.data.message || '移出失败')
+        }
+      } catch (error) {
+        if (error !== 'cancel') {
+          console.error('移出组件失败:', error)
+          ElMessage.error('移出失败：' + (error.response?.data?.message || error.message))
+        }
+      } finally {
+        removeLoading.value = false
+      }
+    }
+
     // 处理卡片点击事件
     const handleCardClick = (item) => {
-      console.log('点击卡片:', item)
-      // 可以在这里添加卡片点击的逻辑，比如显示详情、选择等
+      if (isMultiSelectMode.value) {
+        toggleItemSelection(item)
+      }
     }
 
     onMounted(async () => {
@@ -1720,6 +1846,7 @@ export default {
       updateLoading,
       updateAllLoading,
       platformPriceLoading,
+      removeLoading,
       componentData,
       groupedData,
       filteredData,
@@ -1736,6 +1863,8 @@ export default {
       editingPrice,
       tableRef,
       expandedRowPages,
+      isMultiSelectMode,
+      selectedItems,
       previewVisible,
       previewItem,
       hasMore,
@@ -1772,7 +1901,12 @@ export default {
       getRowStyle,
       openPreview,
       handleCardClick,
-      loadMoreData
+      loadMoreData,
+      isItemSelected,
+      toggleItemSelection,
+      clearSelection,
+      selectAllCurrentPage,
+      removeFromComponent
     }
   }
 }
@@ -1799,14 +1933,41 @@ export default {
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
-  height: 340px;
   cursor: pointer;
+  position: relative;
 }
 
 .inventory-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   border-color: var(--el-color-primary);
+}
+
+.inventory-card.selected {
+  border: 2px solid var(--el-color-primary);
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+  background: rgba(64, 158, 255, 0.05);
+}
+
+.selected-indicator {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  background: var(--el-color-primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.selected-indicator .checkmark {
+  color: #fff;
+  font-size: 14px;
+  font-weight: bold;
 }
 
 .card-image {
