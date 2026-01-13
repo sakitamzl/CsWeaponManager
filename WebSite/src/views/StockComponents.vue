@@ -1062,9 +1062,7 @@ export default {
         currentPage.value = 1
         currentOffset.value = 0
         groupMode.value ? loadGroupedData() : loadComponentData()
-        if (!groupMode.value) {
-          setupScrollObserver()
-        }
+        // setupScrollObserver 会在 loadComponentData 完成后自动调用
         return
       }
       
@@ -1079,9 +1077,7 @@ export default {
       
       // 根据当前模式加载数据
       groupMode.value ? loadGroupedData() : loadComponentData()
-      if (!groupMode.value) {
-        setupScrollObserver()
-      }
+      // setupScrollObserver 会在 loadComponentData 完成后自动调用
     }
 
     const loadComponentData = async (reset = true) => {
@@ -1141,6 +1137,11 @@ export default {
           }
           
           console.log('数据已加载，当前:', componentData.value.length, '条，总计:', totalItems.value, '还有更多:', hasMore.value)
+          
+          // 在卡片模式下，数据加载完成后设置观察器
+          if (displayMode.value === 'card') {
+            setupScrollObserver()
+          }
         } else {
           ElMessage.error(response.data.error || '加载数据失败')
           componentData.value = []
@@ -1340,9 +1341,7 @@ export default {
       currentOffset.value = 0
       selectedComponent.value = ''
       groupMode.value ? loadGroupedData() : loadComponentData()
-      if (!groupMode.value) {
-        setupScrollObserver()
-      }
+      // setupScrollObserver 会在 loadComponentData 完成后自动调用
     }
 
     const handleClearSearch = () => {
@@ -1351,9 +1350,7 @@ export default {
       currentPage.value = 1
       currentOffset.value = 0
       groupMode.value ? loadGroupedData() : loadComponentData()
-      if (!groupMode.value) {
-        setupScrollObserver()
-      }
+      // setupScrollObserver 会在 loadComponentData 完成后自动调用
     }
 
     const calcAvg = (total, count) => {
@@ -1393,12 +1390,19 @@ export default {
         groupMode.value = false
         currentOffset.value = 0
         loadComponentData()
-        setupScrollObserver()
+        // setupScrollObserver 会在 loadComponentData 完成后自动调用
       } else if (newMode === 'list' && oldMode === 'card') {
         // 从卡片模式切换回列表模式，恢复组合模式
         groupMode.value = true
         currentPage.value = 1
         loadGroupedData()
+      }
+    })
+
+    // 监听显示模式变化，重新设置观察器
+    watch(displayMode, () => {
+      if (displayMode.value === 'card') {
+        setupScrollObserver()
       }
     })
 
@@ -1846,7 +1850,7 @@ export default {
         } else {
           // 卡片模式
           loadComponentData()
-          setupScrollObserver()
+          // setupScrollObserver 会在 loadComponentData 完成后自动调用
         }
       }
     })
