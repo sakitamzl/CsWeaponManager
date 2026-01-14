@@ -395,6 +395,7 @@
       title="修改售价"
       width="500px"
       :close-on-click-modal="false"
+      class="update-price-dialog"
     >
       <div v-if="selectedItem" class="update-price-content">
         <div class="item-preview">
@@ -1465,6 +1466,29 @@ export default {
   padding: 1rem 0;
 }
 
+.update-price-dialog :deep(.el-dialog__header) {
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  padding: 1rem 1.5rem;
+}
+
+.update-price-dialog :deep(.el-dialog__title) {
+  color: #fff;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.update-price-dialog :deep(.el-dialog__body) {
+  background: var(--bg-secondary);
+  padding: 1.5rem;
+}
+
+.update-price-dialog :deep(.el-dialog__footer) {
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  padding: 1rem 1.5rem;
+}
+
 .item-preview {
   display: flex;
   align-items: center;
@@ -1498,45 +1522,79 @@ export default {
 }
 
 /* 预览弹窗样式 */
-.preview-dialog {
-  --el-dialog-bg-color: var(--bg-secondary);
+.preview-dialog :deep(.el-dialog__header) {
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  padding: 1rem 1.5rem;
+}
+
+.preview-dialog :deep(.el-dialog__title) {
+  color: #fff;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.preview-dialog :deep(.el-dialog__body) {
+  background: var(--bg-secondary);
+  padding: 1.5rem;
 }
 
 .preview-content {
-  padding: 1rem;
-}
-
-.preview-main-layout {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 2rem;
-}
-
-.preview-left-section {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
+.preview-main-layout {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.preview-left-section {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.preview-right-section {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
 .preview-image-section {
+  position: relative;
   width: 100%;
   height: 300px;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: var(--bg-tertiary);
   border-radius: 8px;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .preview-image {
-  max-width: 90%;
-  max-height: 90%;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
 }
 
 .preview-image-placeholder {
-  color: var(--text-secondary);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
   font-size: 1.2rem;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
 }
 
 .preview-info-section {
@@ -1602,16 +1660,11 @@ export default {
   flex: 1;
 }
 
-.preview-right-section {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
 .preview-rename {
   padding: 1rem;
-  background: var(--bg-tertiary);
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -1623,61 +1676,179 @@ export default {
 
 .preview-rename-text {
   font-size: 1rem;
-  color: var(--text-primary);
+  color: #fff;
   font-weight: 500;
 }
 
-.preview-sticker-list-section,
-.preview-pendant-section {
+/* 预览弹窗中的贴纸列表 */
+.preview-sticker-list-section {
+  margin-top: 1rem;
   padding: 1rem;
-  background: var(--bg-tertiary);
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
 }
 
-.preview-sticker-list,
+.preview-sticker-list-title {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: bold;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.preview-sticker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  height: auto;
+}
+
+.preview-sticker-list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.preview-sticker-list-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(76, 175, 80, 0.5);
+}
+
+.preview-sticker-list-img-wrapper {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: transform 0.2s ease;
+  cursor: pointer;
+}
+
+.preview-sticker-list-img-wrapper:hover {
+  transform: scale(1.2);
+  border-color: rgba(76, 175, 80, 0.8);
+  z-index: 10;
+}
+
+.preview-sticker-list-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.preview-sticker-list-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.preview-sticker-list-name {
+  color: #fff;
+  font-size: 0.9rem;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 预览弹窗中的挂件信息 */
+.preview-pendant-section {
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.preview-pendant-title {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: bold;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
 .preview-pendant-list {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  height: auto;
 }
 
-.preview-sticker-list-item,
 .preview-pendant-list-item {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
 }
 
-.preview-sticker-list-img-wrapper,
+.preview-pendant-list-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 215, 0, 0.5);
+}
+
 .preview-pendant-list-img-wrapper {
-  width: 48px;
-  height: 48px;
-  background: var(--bg-secondary);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: relative;
+  width: 50px;
+  height: 50px;
   flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  transition: transform 0.2s ease;
+  cursor: pointer;
 }
 
-.preview-sticker-list-img,
+.preview-pendant-list-img-wrapper:hover {
+  transform: scale(1.2);
+  border-color: rgba(255, 215, 0, 0.8);
+  z-index: 10;
+}
+
 .preview-pendant-list-img {
-  max-width: 40px;
-  max-height: 40px;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
 }
 
-.preview-sticker-list-placeholder,
 .preview-pendant-list-placeholder {
-  color: var(--text-secondary);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
   font-size: 1.2rem;
+  font-weight: bold;
 }
 
-.preview-sticker-list-name,
 .preview-pendant-list-name {
+  color: #fff;
   font-size: 0.9rem;
-  color: var(--text-primary);
   flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* 响应式设计 */
@@ -1690,8 +1861,12 @@ export default {
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .preview-dialog {
+    width: 95% !important;
+  }
+
   .preview-main-layout {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
   
   .inventory-card {
@@ -1705,19 +1880,33 @@ export default {
   bottom: 2rem;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--el-color-primary);
-  padding: 1rem 2rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  background: var(--bg-tertiary);
+  border: 2px solid var(--el-color-primary);
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
   display: flex;
   align-items: center;
-  gap: 2rem;
+  gap: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   z-index: 1000;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 .multi-select-actions .selected-count {
   color: #fff;
   font-size: 1rem;
+  font-weight: bold;
 }
 
 .multi-select-actions .action-buttons {
