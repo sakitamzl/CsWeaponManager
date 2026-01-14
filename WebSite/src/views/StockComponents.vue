@@ -53,6 +53,15 @@
               @clear="handleClearSearch"
               clearable
             />
+            <el-select 
+              v-model="weaponTypeFilter" 
+              placeholder="武器类型" 
+              class="type-select" 
+              @change="handleWeaponTypeChange"
+              clearable
+            >
+              <el-option v-for="type in weaponTypes" :key="type" :label="type" :value="type" />
+            </el-select>
             <el-button type="primary" @click="handleSearch" :loading="loading">
               搜索
             </el-button>
@@ -424,7 +433,7 @@
                 <div v-if="scope.row.buy_price" style="display: flex; align-items: center; gap: 5px;">
                   <span style="color: #fff; font-weight: bold;">
                     ¥{{ formatPrice(scope.row.buy_price) }}
-                    <span v-if="groupMode && scope.row.item_count > 0" style="color: #67C23A;"> / ¥{{ calcAvg(scope.row.buy_price, scope.row.item_count) }}</span>
+                    <span v-if="groupMode && scope.row.item_count > 0" style="color: #fff;"> / ¥{{ calcAvg(scope.row.buy_price, scope.row.item_count) }}</span>
                   </span>
                 </div>
                 <span v-else style="color: #888;">点击输入</span>
@@ -451,7 +460,12 @@
                 }"
               >
                 {{ showPriceDiff ? (parseFloat(scope.row.yyyp_price) < parseFloat(scope.row.buy_price) ? '-' : '+') : '' }}¥{{ showPriceDiff ? Math.abs(parseFloat(scope.row.yyyp_price) - parseFloat(scope.row.buy_price)).toFixed(2) : formatPrice(scope.row.yyyp_price) }}
-                <span v-if="groupMode && scope.row.item_count > 0" style="color: #67C23A;"> / ¥{{ calcAvg(scope.row.yyyp_price, scope.row.item_count) }}</span>
+                <span 
+                  v-if="groupMode && scope.row.item_count > 0" 
+                  :style="{ 
+                    color: parseFloat(calcAvg(scope.row.yyyp_price, scope.row.item_count)) === parseFloat(calcAvg(scope.row.buy_price, scope.row.item_count)) ? '#fff' : (parseFloat(calcAvg(scope.row.yyyp_price, scope.row.item_count)) < parseFloat(calcAvg(scope.row.buy_price, scope.row.item_count)) ? '#4CAF50' : '#f56c6c')
+                  }"
+                > / ¥{{ calcAvg(scope.row.yyyp_price, scope.row.item_count) }}</span>
               </span>
               <span v-else-if="scope.row.yyyp_price" style="color: #fff; font-weight: bold;">
                 ¥{{ formatPrice(scope.row.yyyp_price) }}
@@ -470,7 +484,12 @@
                 }"
               >
                 {{ showPriceDiff ? (parseFloat(scope.row.buff_price) < parseFloat(scope.row.buy_price) ? '-' : '+') : '' }}¥{{ showPriceDiff ? Math.abs(parseFloat(scope.row.buff_price) - parseFloat(scope.row.buy_price)).toFixed(2) : formatPrice(scope.row.buff_price) }}
-                <span v-if="groupMode && scope.row.item_count > 0" style="color: #67C23A;"> / ¥{{ calcAvg(scope.row.buff_price, scope.row.item_count) }}</span>
+                <span 
+                  v-if="groupMode && scope.row.item_count > 0" 
+                  :style="{ 
+                    color: parseFloat(calcAvg(scope.row.buff_price, scope.row.item_count)) === parseFloat(calcAvg(scope.row.buy_price, scope.row.item_count)) ? '#fff' : (parseFloat(calcAvg(scope.row.buff_price, scope.row.item_count)) < parseFloat(calcAvg(scope.row.buy_price, scope.row.item_count)) ? '#4CAF50' : '#f56c6c')
+                  }"
+                > / ¥{{ calcAvg(scope.row.buff_price, scope.row.item_count) }}</span>
               </span>
               <span v-else-if="scope.row.buff_price" style="color: #fff; font-weight: bold;">
                 ¥{{ formatPrice(scope.row.buff_price) }}
@@ -489,7 +508,12 @@
                 }"
               >
                 {{ showPriceDiff ? (parseFloat(scope.row.steam_price) < parseFloat(scope.row.buy_price) ? '-' : '+') : '' }}¥{{ showPriceDiff ? Math.abs(parseFloat(scope.row.steam_price) - parseFloat(scope.row.buy_price)).toFixed(2) : formatPrice(scope.row.steam_price) }}
-                <span v-if="groupMode && scope.row.item_count > 0" style="color: #67C23A;"> / ¥{{ calcAvg(scope.row.steam_price, scope.row.item_count) }}</span>
+                <span 
+                  v-if="groupMode && scope.row.item_count > 0" 
+                  :style="{ 
+                    color: parseFloat(calcAvg(scope.row.steam_price, scope.row.item_count)) === parseFloat(calcAvg(scope.row.buy_price, scope.row.item_count)) ? '#fff' : (parseFloat(calcAvg(scope.row.steam_price, scope.row.item_count)) < parseFloat(calcAvg(scope.row.buy_price, scope.row.item_count)) ? '#4CAF50' : '#f56c6c')
+                  }"
+                > / ¥{{ calcAvg(scope.row.steam_price, scope.row.item_count) }}</span>
               </span>
               <span v-else-if="scope.row.steam_price" style="color: #fff; font-weight: bold;">
                 ¥{{ formatPrice(scope.row.steam_price) }}
@@ -705,6 +729,8 @@ export default {
     const displayMode = ref('card') // 显示模式：list 或 card，默认卡片
     const showPriceDiff = ref(false)
     const searchText = ref('')
+    const weaponTypeFilter = ref('') // 武器类型筛选
+    const weaponTypes = ref([]) // 武器类型列表
     const currentPage = ref(1)
     const pageSize = ref(50) // 每次加载数量
     const currentOffset = ref(0) // 当前偏移量
@@ -925,8 +951,41 @@ export default {
     const handleSteamIdChange = () => {
       console.log('Steam ID已切换:', selectedSteamId.value)
       selectedComponent.value = ''
+      weaponTypeFilter.value = ''
       loadInventoryComponents()
+      loadWeaponTypes()
       groupMode.value ? loadGroupedData() : loadComponentData()
+    }
+
+    const loadWeaponTypes = async () => {
+      if (!selectedSteamId.value) {
+        weaponTypes.value = []
+        return
+      }
+      
+      try {
+        const response = await axios.get(`${API_COMPONENTS}/weapon_types/${selectedSteamId.value}`)
+        if (response.data.success) {
+          weaponTypes.value = response.data.data || []
+        } else {
+          weaponTypes.value = []
+        }
+      } catch (error) {
+        console.error('加载武器类型失败:', error)
+        weaponTypes.value = []
+      }
+    }
+
+    const handleWeaponTypeChange = () => {
+      currentPage.value = 1
+      currentOffset.value = 0
+      
+      // 根据当前显示模式决定加载哪个数据
+      if (displayMode.value === 'card') {
+        loadComponentData()
+      } else {
+        groupMode.value ? loadGroupedData() : loadComponentData()
+      }
     }
 
     const loadInventoryComponents = async () => {
@@ -1030,6 +1089,11 @@ export default {
           params.assetid = selectedComponent.value
         }
         
+        // 如果选择了武器类型，添加 weapon_type 参数进行筛选
+        if (weaponTypeFilter.value) {
+          params.weapon_type = weaponTypeFilter.value
+        }
+        
         const response = await axios.get(`${API_COMPONENTS}/components/${selectedSteamId.value}`, {
           params: params
         })
@@ -1093,6 +1157,11 @@ export default {
         // 如果选择了组件，添加 assetid 参数进行筛选
         if (selectedComponent.value) {
           params.assetid = selectedComponent.value
+        }
+        
+        // 如果选择了武器类型，添加 weapon_type 参数进行筛选
+        if (weaponTypeFilter.value) {
+          params.weapon_type = weaponTypeFilter.value
         }
         
         const response = await axios.get(`${API_COMPONENTS_GROUPED}/${selectedSteamId.value}`, {
@@ -1272,6 +1341,7 @@ export default {
     const handleClearSearch = () => {
       searchText.value = ''
       selectedComponent.value = ''
+      weaponTypeFilter.value = ''
       currentPage.value = 1
       currentOffset.value = 0
       
@@ -1919,6 +1989,7 @@ export default {
       await loadSteamIdList()
       if (selectedSteamId.value) {
         await loadInventoryComponents()
+        await loadWeaponTypes()
         if (displayMode.value === 'list') {
           if (groupMode.value) {
             loadGroupedData()
@@ -1947,6 +2018,8 @@ export default {
       filteredData,
       totalStats,
       searchText,
+      weaponTypeFilter,
+      weaponTypes,
       currentPage,
       pageSize,
       totalItems,
@@ -1981,6 +2054,7 @@ export default {
       handleCurrentChange,
       handleSearch,
       handleClearSearch,
+      handleWeaponTypeChange,
       handleSteamIdChange,
       handleComponentSelect,
       handleUpdateComponent,
@@ -2582,6 +2656,11 @@ export default {
 .component-select {
   min-width: 300px;
   max-width: 450px;
+}
+
+.type-select {
+  min-width: 150px;
+  max-width: 200px;
 }
 
 .search-input {

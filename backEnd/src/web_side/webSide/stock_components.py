@@ -46,6 +46,56 @@ def get_steam_ids():
         }), 500
 
 
+@webStockComponentsV1.route('/weapon_types/<steam_id>', methods=['GET'])
+def get_weapon_types(steam_id):
+    """获取指定用户的所有武器类型（按优先级排序）"""
+    try:
+        db = DatabaseManager()
+        
+        sql = """
+        SELECT DISTINCT weapon_type 
+        FROM steam_stockComponents 
+        WHERE data_user = ? 
+          AND weapon_type IS NOT NULL 
+          AND weapon_type != '' 
+        ORDER BY 
+            CASE weapon_type
+                WHEN '匕首' THEN 1
+                WHEN '手套' THEN 2
+                WHEN '手枪' THEN 3
+                WHEN '步枪' THEN 4
+                WHEN '狙击步枪' THEN 5
+                WHEN '微型冲锋枪' THEN 6
+                WHEN '霰弹枪' THEN 7
+                WHEN '机枪' THEN 8
+                WHEN '印花' THEN 9
+                ELSE 999
+            END,
+            weapon_type
+        """
+        results = db.execute_query(sql, (steam_id,))
+        
+        weapon_types = []
+        if results:
+            for row in results:
+                if row[0]:  # 确保不是空值
+                    weapon_types.append(row[0])
+        
+        return jsonify({
+            'success': True,
+            'data': weapon_types
+        }), 200
+        
+    except Exception as e:
+        print(f"获取武器类型失败: {e}")
+        import traceback
+        print(f"详细错误信息: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'error': f'查询失败: {str(e)}'
+        }), 500
+
+
 @webStockComponentsV1.route('/components/<steam_id>', methods=['GET'])
 def get_components(steam_id):
     """获取指定用户的库存组件列表 - 从 steam_stockComponents 表读取"""
@@ -250,6 +300,7 @@ def get_components_grouped(steam_id):
     """
     try:
         search_text = request.args.get('search', '')
+        weapon_type = request.args.get('weapon_type', '')  # 武器类型筛选
         assetid = request.args.get('assetid', '')  # 组件assetid筛选
         page = request.args.get('page', 1, type=int)
         page_size = request.args.get('page_size', 20, type=int)
@@ -271,6 +322,11 @@ def get_components_grouped(steam_id):
             where_conditions.append("(item_name LIKE ? OR weapon_name LIKE ?)")
             params.append(f"%{search_text}%")
             params.append(f"%{search_text}%")
+        
+        # 武器类型筛选
+        if weapon_type:
+            where_conditions.append("weapon_type = ?")
+            params.append(weapon_type)
 
         where_clause = " AND ".join(where_conditions)
 
