@@ -46,7 +46,7 @@
             </el-select>
             <el-input
               v-model="searchText"
-              placeholder="搜索武器名称..."
+              placeholder="搜索武器名称或物品名称..."
               prefix-icon="Search"
               class="search-input"
               @keyup.enter="handleSearch"
@@ -384,9 +384,9 @@
               <span style="font-family: monospace;">{{ scope.row.goods_assetid || scope.row.component_id || '-' }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="数量" width="120" align="center">
+          <el-table-column v-if="groupMode" label="数量" width="120" align="center">
             <template #default="scope">
-              <span>{{ groupMode ? (scope.row.item_count || 0) : (scope.row.weapon_float || 0) }}</span>
+              <span>{{ scope.row.item_count || 0 }}</span>
             </template>
           </el-table-column>
           <el-table-column prop="weapon_float" label="磨损值" width="200" align="left">
@@ -416,13 +416,16 @@
             </template>
           </el-table-column>
           <el-table-column prop="float_range" label="磨损范围" min-width="120" />
-          <el-table-column prop="buy_price" label="购入价格" min-width="150" sortable>
+          <el-table-column prop="buy_price" label="购入价格" min-width="180" sortable>
             <template #default="scope">
               <div v-if="editingGoodsAssetId !== scope.row.goods_assetid"
                    @click="startEdit(scope.row)"
                    style="cursor: pointer; padding: 5px;">
                 <div v-if="scope.row.buy_price" style="display: flex; align-items: center; gap: 5px;">
-                  <span style="color: #fff; font-weight: bold;">¥{{ formatPrice(scope.row.buy_price) }}</span>
+                  <span style="color: #fff; font-weight: bold;">
+                    ¥{{ formatPrice(scope.row.buy_price) }}
+                    <span v-if="groupMode && scope.row.item_count > 0" style="color: #67C23A;"> / ¥{{ calcAvg(scope.row.buy_price, scope.row.item_count) }}</span>
+                  </span>
                 </div>
                 <span v-else style="color: #888;">点击输入</span>
               </div>
@@ -438,53 +441,59 @@
               />
             </template>
           </el-table-column>
-          <el-table-column prop="yyyp_price" label="悠悠价格" min-width="150" sortable>
+          <el-table-column prop="yyyp_price" label="悠悠价格" min-width="180" sortable>
             <template #default="scope">
               <span 
                 v-if="scope.row.yyyp_price && scope.row.buy_price"
                 :style="{
-                  color: parseFloat(scope.row.yyyp_price) < parseFloat(scope.row.buy_price) ? '#4CAF50' : '#f56c6c',
+                  color: parseFloat(scope.row.yyyp_price) === parseFloat(scope.row.buy_price) ? '#fff' : (parseFloat(scope.row.yyyp_price) < parseFloat(scope.row.buy_price) ? '#4CAF50' : '#f56c6c'),
                   fontWeight: 'bold'
                 }"
               >
                 {{ showPriceDiff ? (parseFloat(scope.row.yyyp_price) < parseFloat(scope.row.buy_price) ? '-' : '+') : '' }}¥{{ showPriceDiff ? Math.abs(parseFloat(scope.row.yyyp_price) - parseFloat(scope.row.buy_price)).toFixed(2) : formatPrice(scope.row.yyyp_price) }}
+                <span v-if="groupMode && scope.row.item_count > 0" style="color: #67C23A;"> / ¥{{ calcAvg(scope.row.yyyp_price, scope.row.item_count) }}</span>
               </span>
               <span v-else-if="scope.row.yyyp_price" style="color: #fff; font-weight: bold;">
                 ¥{{ formatPrice(scope.row.yyyp_price) }}
+                <span v-if="groupMode && scope.row.item_count > 0" style="color: #67C23A;"> / ¥{{ calcAvg(scope.row.yyyp_price, scope.row.item_count) }}</span>
               </span>
               <span v-else style="color: #888;">-</span>
             </template>
           </el-table-column>
-          <el-table-column prop="buff_price" label="BUFF价格" min-width="150" sortable>
+          <el-table-column prop="buff_price" label="BUFF价格" min-width="180" sortable>
             <template #default="scope">
               <span 
                 v-if="scope.row.buff_price && scope.row.buy_price"
                 :style="{
-                  color: parseFloat(scope.row.buff_price) < parseFloat(scope.row.buy_price) ? '#4CAF50' : '#f56c6c',
+                  color: parseFloat(scope.row.buff_price) === parseFloat(scope.row.buy_price) ? '#fff' : (parseFloat(scope.row.buff_price) < parseFloat(scope.row.buy_price) ? '#4CAF50' : '#f56c6c'),
                   fontWeight: 'bold'
                 }"
               >
                 {{ showPriceDiff ? (parseFloat(scope.row.buff_price) < parseFloat(scope.row.buy_price) ? '-' : '+') : '' }}¥{{ showPriceDiff ? Math.abs(parseFloat(scope.row.buff_price) - parseFloat(scope.row.buy_price)).toFixed(2) : formatPrice(scope.row.buff_price) }}
+                <span v-if="groupMode && scope.row.item_count > 0" style="color: #67C23A;"> / ¥{{ calcAvg(scope.row.buff_price, scope.row.item_count) }}</span>
               </span>
               <span v-else-if="scope.row.buff_price" style="color: #fff; font-weight: bold;">
                 ¥{{ formatPrice(scope.row.buff_price) }}
+                <span v-if="groupMode && scope.row.item_count > 0" style="color: #67C23A;"> / ¥{{ calcAvg(scope.row.buff_price, scope.row.item_count) }}</span>
               </span>
               <span v-else style="color: #888;">-</span>
             </template>
           </el-table-column>
-          <el-table-column prop="steam_price" label="Steam价格" min-width="150" sortable>
+          <el-table-column prop="steam_price" label="Steam价格" min-width="180" sortable>
             <template #default="scope">
               <span 
                 v-if="scope.row.steam_price && scope.row.buy_price"
                 :style="{
-                  color: parseFloat(scope.row.steam_price) < parseFloat(scope.row.buy_price) ? '#4CAF50' : '#f56c6c',
+                  color: parseFloat(scope.row.steam_price) === parseFloat(scope.row.buy_price) ? '#fff' : (parseFloat(scope.row.steam_price) < parseFloat(scope.row.buy_price) ? '#4CAF50' : '#f56c6c'),
                   fontWeight: 'bold'
                 }"
               >
                 {{ showPriceDiff ? (parseFloat(scope.row.steam_price) < parseFloat(scope.row.buy_price) ? '-' : '+') : '' }}¥{{ showPriceDiff ? Math.abs(parseFloat(scope.row.steam_price) - parseFloat(scope.row.buy_price)).toFixed(2) : formatPrice(scope.row.steam_price) }}
+                <span v-if="groupMode && scope.row.item_count > 0" style="color: #67C23A;"> / ¥{{ calcAvg(scope.row.steam_price, scope.row.item_count) }}</span>
               </span>
               <span v-else-if="scope.row.steam_price" style="color: #fff; font-weight: bold;">
                 ¥{{ formatPrice(scope.row.steam_price) }}
+                <span v-if="groupMode && scope.row.item_count > 0" style="color: #67C23A;"> / ¥{{ calcAvg(scope.row.steam_price, scope.row.item_count) }}</span>
               </span>
               <span v-else style="color: #888;">-</span>
             </template>
@@ -1250,7 +1259,13 @@ export default {
       currentPage.value = 1
       currentOffset.value = 0
       selectedComponent.value = ''
-      groupMode.value ? loadGroupedData() : loadComponentData()
+      
+      // 根据当前显示模式决定加载哪个数据
+      if (displayMode.value === 'card') {
+        loadComponentData()
+      } else {
+        groupMode.value ? loadGroupedData() : loadComponentData()
+      }
       // setupScrollObserver 会在 loadComponentData 完成后自动调用
     }
 
@@ -1259,7 +1274,13 @@ export default {
       selectedComponent.value = ''
       currentPage.value = 1
       currentOffset.value = 0
-      groupMode.value ? loadGroupedData() : loadComponentData()
+      
+      // 根据当前显示模式决定加载哪个数据
+      if (displayMode.value === 'card') {
+        loadComponentData()
+      } else {
+        groupMode.value ? loadGroupedData() : loadComponentData()
+      }
       // setupScrollObserver 会在 loadComponentData 完成后自动调用
     }
 

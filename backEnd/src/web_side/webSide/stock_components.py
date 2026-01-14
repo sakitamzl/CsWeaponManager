@@ -72,9 +72,10 @@ def get_components(steam_id):
             where_conditions.append("assetid = ?")
             params.append(assetid)
         
-        # 关键词搜索 - 搜索武器名称
+        # 关键词搜索 - 搜索武器名称和物品名称
         if search_text:
-            where_conditions.append("weapon_name LIKE ?")
+            where_conditions.append("(weapon_name LIKE ? OR item_name LIKE ?)")
+            params.append(f"%{search_text}%")
             params.append(f"%{search_text}%")
         
         # 武器类型筛选
@@ -267,7 +268,8 @@ def get_components_grouped(steam_id):
             params.append(assetid)
 
         if search_text:
-            where_conditions.append("item_name LIKE ?")
+            where_conditions.append("(item_name LIKE ? OR weapon_name LIKE ?)")
+            params.append(f"%{search_text}%")
             params.append(f"%{search_text}%")
 
         where_clause = " AND ".join(where_conditions)
