@@ -601,10 +601,9 @@
           }"
           @click.stop
         >
-          <div class="popover-title">选择平台搜索</div>
           <div class="popover-buttons">
             <el-button 
-              type="warning" 
+              type="success" 
               size="small" 
               @click="selectPlatform(selectedCardItem, 'yyyp'); showCardPopover = false"
               :loading="isSearching && searchSource === 'yyyp'"
@@ -612,9 +611,8 @@
               悠悠有品
             </el-button>
             <el-button 
-              type="info" 
+              type="success" 
               size="small" 
-              class="buff-button"
               @click="selectPlatform(selectedCardItem, 'buff'); showCardPopover = false"
               :loading="isSearching && searchSource === 'buff'"
             >
@@ -623,16 +621,14 @@
             <el-button 
               type="success" 
               size="small" 
-              class="csfloat-button"
               @click="selectPlatform(selectedCardItem, 'csfloat'); showCardPopover = false"
               :loading="isSearching && searchSource === 'csfloat'"
             >
               CsFloat
             </el-button>
             <el-button 
-              type="primary" 
+              type="success" 
               size="small" 
-              class="all-button"
               @click="selectPlatform(selectedCardItem, 'all'); showCardPopover = false"
               :loading="isSearching && searchSource === 'all'"
             >
@@ -1002,6 +998,7 @@ export default {
       
       const rarityColorMap = {
         '违禁': '#e4ae39',      // 金色
+        '非凡': '#e4ae39',      // 金色
         '隐秘': '#eb4b4b',      // 红色
         '保密': '#d32ce6',      // 紫色/粉色
         '受限': '#8847ff',      // 紫色
@@ -3106,29 +3103,25 @@ export default {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  padding: 16px;
+  padding: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   transform: translate(-50%, -50%);
   z-index: 10000;
-  min-width: 200px;
-}
-
-.card-popover-content .popover-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 12px;
-  text-align: center;
+  min-width: 240px;
+  max-width: 280px;
 }
 
 .card-popover-content .popover-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  width: 100%;
 }
 
 .card-popover-content .popover-buttons .el-button {
-  width: 100%;
+  width: 100% !important;
+  margin: 0 !important;
+  flex: none !important;
 }
 </style>
 
