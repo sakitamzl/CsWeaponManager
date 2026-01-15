@@ -409,12 +409,6 @@
                 <span class="info-label">描述:</span>
                 <span class="info-value description-text" :title="item.description">{{ item.description }}</span>
               </div>
-              <div class="info-item">
-                <span class="info-label">议价:</span>
-                <el-tag :type="item.allowBargain ? 'success' : 'info'" size="small">
-                  {{ item.allowBargain ? '可议价' : '不可' }}
-                </el-tag>
-              </div>
             </div>
           </div>
         </div>
@@ -684,14 +678,6 @@
                   <div class="preview-price-item full-width">
                     <span class="preview-price-label">描述:</span>
                     <span class="preview-price-value">{{ commodityPreviewItem.description }}</span>
-                  </div>
-                </div>
-                <div class="preview-price-row">
-                  <div class="preview-price-item">
-                    <span class="preview-price-label">议价:</span>
-                    <el-tag :type="commodityPreviewItem.allowBargain ? 'success' : 'info'" size="small">
-                      {{ commodityPreviewItem.allowBargain ? '可议价' : '不可' }}
-                    </el-tag>
                   </div>
                 </div>
               </template>
