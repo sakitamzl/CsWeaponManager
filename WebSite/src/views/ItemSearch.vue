@@ -338,6 +338,21 @@
           >
             刷新列表
           </el-button>
+          <el-button 
+            :type="isMultiSelectMode ? 'warning' : 'info'" 
+            size="small"
+            @click.stop="toggleMultiSelectMode"
+          >
+            {{ isMultiSelectMode ? '取消多选' : '多选' }}
+          </el-button>
+          <el-button 
+            v-if="isMultiSelectMode"
+            type="info" 
+            size="small"
+            @click.stop="selectAllCommodities('buff')"
+          >
+            全选
+          </el-button>
         </div>
         <div class="buff-weapon-info">
           <span class="weapon-name">{{ buffCurrentWeapon?.market_listing_item_name }}</span>
@@ -355,8 +370,16 @@
           v-for="(item, index) in buffCommodities"
           :key="index"
           class="commodity-card"
+          :class="{ 
+            'selected': isCommoditySelected(item), 
+            'multi-select-mode': isMultiSelectMode 
+          }"
           @click="handleCommodityCardClick(item, 'buff', $event)"
         >
+          <!-- 选中标记 -->
+          <div v-if="isMultiSelectMode && isCommoditySelected(item)" class="selected-check">
+            <el-icon><Check /></el-icon>
+          </div>
           <div class="commodity-card-image">
             <img :src="item.iconUrl" class="commodity-icon" @error="handleImageError" />
             <!-- 模板号覆盖层 - 左上角 -->
@@ -434,6 +457,21 @@
           >
             刷新列表
           </el-button>
+          <el-button 
+            :type="isMultiSelectMode ? 'warning' : 'info'" 
+            size="small"
+            @click.stop="toggleMultiSelectMode"
+          >
+            {{ isMultiSelectMode ? '取消多选' : '多选' }}
+          </el-button>
+          <el-button 
+            v-if="isMultiSelectMode"
+            type="info" 
+            size="small"
+            @click.stop="selectAllCommodities('yyyp')"
+          >
+            全选
+          </el-button>
         </div>
         <div class="yyyp-weapon-info">
           <span class="weapon-name">{{ yyypCurrentWeapon?.market_listing_item_name }}</span>
@@ -449,8 +487,16 @@
           v-for="(item, index) in yyypCommodities"
           :key="index"
           class="commodity-card"
+          :class="{ 
+            'selected': isCommoditySelected(item), 
+            'multi-select-mode': isMultiSelectMode 
+          }"
           @click="handleCommodityCardClick(item, 'yyyp', $event)"
         >
+          <!-- 选中标记 -->
+          <div v-if="isMultiSelectMode && isCommoditySelected(item)" class="selected-check">
+            <el-icon><Check /></el-icon>
+          </div>
           <div class="commodity-card-image">
             <img :src="item.iconUrl" class="commodity-icon" @error="handleImageError" />
             <!-- 模板号覆盖层 - 左上角 -->
@@ -553,6 +599,18 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- 多选模式下的操作栏 -->
+    <div v-if="isMultiSelectMode && selectedCommodities.length > 0" class="multi-select-actions">
+      <div class="selected-count">
+        已选择 {{ selectedCommodities.length }} 件商品
+        <span class="total-price">总价: ¥{{ selectedCommodities.reduce((sum, item) => sum + parseFloat(item.price || 0), 0).toFixed(2) }}</span>
+      </div>
+      <div class="action-buttons">
+        <el-button type="success" @click="handleBatchBuy">批量购买</el-button>
+        <el-button @click="clearCommoditySelection">清空选择</el-button>
       </div>
     </div>
 
@@ -781,7 +839,7 @@
 import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { CaretRight, CaretBottom, Refresh } from '@element-plus/icons-vue'
+import { CaretRight, CaretBottom, Refresh, Check } from '@element-plus/icons-vue'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
 
 export default {
@@ -789,7 +847,8 @@ export default {
   components: {
     CaretRight,
     CaretBottom,
-    Refresh
+    Refresh,
+    Check
   },
   setup() {
     const searchKeyword = ref('')
@@ -836,6 +895,11 @@ export default {
     const showYYYPTable = ref(true)  // 控制悠悠有品表格的展开/折叠
     const yyypCurrentPage = ref(1)  // 悠悠有品分页当前页
     const yyypPageSize = ref(5)  // 悠悠有品每页显示5条
+    
+    // 多选模式相关
+    const isMultiSelectMode = ref(false)  // 是否开启多选模式
+    const selectedCommodities = ref([])   // 选中的商品列表
+    const selectedCommodityType = ref('') // 选中商品的类型 'buff' 或 'yyyp'
     
     // 图片缓存 - 存储已加载的图片URL
     const imageCache = new Set()
@@ -1992,11 +2056,108 @@ export default {
       showCardPopover.value = true
     }
 
-    // 处理商品卡片点击 - 打开详情弹窗
+    // 处理商品卡片点击
     const handleCommodityCardClick = (item, type, event) => {
-      commodityPreviewItem.value = item
-      commodityPreviewType.value = type
-      commodityPreviewVisible.value = true
+      if (isMultiSelectMode.value) {
+        // 多选模式下切换选中状态
+        toggleCommoditySelection(item, type)
+      } else {
+        // 非多选模式打开详情弹窗
+        commodityPreviewItem.value = item
+        commodityPreviewType.value = type
+        commodityPreviewVisible.value = true
+      }
+    }
+
+    // 切换多选模式
+    const toggleMultiSelectMode = () => {
+      isMultiSelectMode.value = !isMultiSelectMode.value
+      if (!isMultiSelectMode.value) {
+        // 退出多选模式时清空选择
+        selectedCommodities.value = []
+        selectedCommodityType.value = ''
+      }
+    }
+
+    // 判断商品是否被选中
+    const isCommoditySelected = (item) => {
+      return selectedCommodities.value.some(c => c.id === item.id)
+    }
+
+    // 切换商品选中状态
+    const toggleCommoditySelection = (item, type) => {
+      // 如果切换了平台类型，清空之前的选择
+      if (selectedCommodityType.value && selectedCommodityType.value !== type) {
+        selectedCommodities.value = []
+      }
+      selectedCommodityType.value = type
+      
+      const index = selectedCommodities.value.findIndex(c => c.id === item.id)
+      if (index > -1) {
+        selectedCommodities.value.splice(index, 1)
+      } else {
+        selectedCommodities.value.push(item)
+      }
+    }
+
+    // 清空选择
+    const clearCommoditySelection = () => {
+      selectedCommodities.value = []
+      selectedCommodityType.value = ''
+    }
+
+    // 全选当前列表
+    const selectAllCommodities = (type) => {
+      selectedCommodityType.value = type
+      if (type === 'buff') {
+        selectedCommodities.value = [...buffCommodities.value]
+      } else if (type === 'yyyp') {
+        selectedCommodities.value = [...yyypCommodities.value]
+      }
+      ElMessage.success(`已选择 ${selectedCommodities.value.length} 件商品`)
+    }
+
+    // 批量购买
+    const handleBatchBuy = async () => {
+      if (selectedCommodities.value.length === 0) {
+        ElMessage.warning('请先选择要购买的商品')
+        return
+      }
+      
+      const totalPrice = selectedCommodities.value.reduce((sum, item) => {
+        return sum + parseFloat(item.price || 0)
+      }, 0)
+      
+      try {
+        await ElMessageBox.confirm(
+          `确定要批量购买 ${selectedCommodities.value.length} 件商品吗？\n总价: ¥${totalPrice.toFixed(2)}`,
+          '批量购买确认',
+          {
+            confirmButtonText: '确定购买',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        )
+        
+        // 执行批量购买
+        if (selectedCommodityType.value === 'buff') {
+          for (const item of selectedCommodities.value) {
+            await handleBuyBuffCommodity(item)
+          }
+        } else if (selectedCommodityType.value === 'yyyp') {
+          for (const item of selectedCommodities.value) {
+            await handleBuyCommodity(item)
+          }
+        }
+        
+        ElMessage.success('批量购买请求已发送')
+        clearCommoditySelection()
+        
+      } catch (e) {
+        if (e !== 'cancel') {
+          console.error('批量购买失败:', e)
+        }
+      }
     }
 
     // 获取商品标题
@@ -2057,6 +2218,16 @@ export default {
       handleCommodityCardClick,
       getCommodityTitle,
       handleBuyCommodityFromPreview,
+      // 多选模式
+      isMultiSelectMode,
+      selectedCommodities,
+      selectedCommodityType,
+      toggleMultiSelectMode,
+      isCommoditySelected,
+      toggleCommoditySelection,
+      clearCommoditySelection,
+      selectAllCommodities,
+      handleBatchBuy,
       // BUFF商品列表
       buffCommodities,
       buffCurrentWeapon,
@@ -3914,6 +4085,68 @@ export default {
   padding: 12px 32px;
   font-size: 1rem;
   font-weight: 600;
+}
+
+/* 多选模式样式 */
+.commodity-card.multi-select-mode {
+  cursor: pointer;
+}
+
+.commodity-card.selected {
+  border-color: var(--el-color-success) !important;
+  box-shadow: 0 0 0 2px rgba(103, 194, 58, 0.3);
+}
+
+.selected-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  background: var(--el-color-success);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  z-index: 15;
+  font-size: 14px;
+}
+
+/* 多选操作栏 */
+.multi-select-actions {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+}
+
+.multi-select-actions .selected-count {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.multi-select-actions .total-price {
+  color: #f56c6c;
+  font-weight: bold;
+}
+
+.multi-select-actions .action-buttons {
+  display: flex;
+  gap: 12px;
 }
 </style>
 
