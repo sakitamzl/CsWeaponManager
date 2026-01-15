@@ -469,16 +469,48 @@
                 v-for="(sticker, sIdx) in item.stickers"
                 :key="sIdx"
                 class="sticker-item-overlay"
-                :title="sticker.name || '印花'"
+                :title="sticker.Name || '印花'"
               >
                 <img
-                  v-if="sticker.img_url"
-                  :src="sticker.img_url"
-                  :alt="sticker.name"
+                  v-if="sticker.TemplateHashName"
+                  :src="getWeaponImage(sticker.TemplateHashName)"
+                  :alt="sticker.Name"
+                  class="sticker-img-overlay"
+                  @error="(e) => e.target.style.display = 'none'"
+                />
+                <img
+                  v-else-if="sticker.ImgUrl"
+                  :src="sticker.ImgUrl"
+                  :alt="sticker.Name"
                   class="sticker-img-overlay"
                   @error="(e) => e.target.style.display = 'none'"
                 />
                 <div v-else class="sticker-placeholder-overlay">?</div>
+              </div>
+            </div>
+            <!-- 挂件覆盖层 - 右上角 -->
+            <div v-if="item.pendants && item.pendants.length > 0" class="pendant-overlay">
+              <div
+                v-for="(pendant, pIdx) in item.pendants"
+                :key="pIdx"
+                class="pendant-item-overlay"
+                :title="pendant.pendantSourceName || pendant.name || '挂件'"
+              >
+                <img
+                  v-if="pendant.steamHashName"
+                  :src="getWeaponImage(pendant.steamHashName)"
+                  :alt="pendant.name"
+                  class="pendant-img-overlay"
+                  @error="(e) => e.target.style.display = 'none'"
+                />
+                <img
+                  v-else-if="pendant.imgUrl"
+                  :src="pendant.imgUrl"
+                  :alt="pendant.name"
+                  class="pendant-img-overlay"
+                  @error="(e) => e.target.style.display = 'none'"
+                />
+                <div v-else class="pendant-placeholder-overlay">🎗️</div>
               </div>
             </div>
           </div>
@@ -592,127 +624,167 @@
     <el-dialog
       v-model="commodityPreviewVisible"
       :title="commodityPreviewItem ? getCommodityTitle(commodityPreviewItem) : ''"
-      width="700px"
+      width="800px"
       :close-on-click-modal="true"
       :close-on-press-escape="true"
       class="commodity-preview-dialog"
     >
       <div v-if="commodityPreviewItem" class="commodity-preview-content">
-        <div class="commodity-preview-main">
-          <!-- 左侧图片区域 -->
-          <div class="commodity-preview-left">
-            <div class="commodity-preview-image">
-              <img :src="commodityPreviewItem.iconUrl" class="preview-img" @error="handleImageError" />
-              <!-- 模板号 -->
-              <div v-if="commodityPreviewItem.paintSeed" class="preview-paint-seed">
-                #{{ commodityPreviewItem.paintSeed }}
-              </div>
-              <!-- 印花覆盖层 -->
-              <div v-if="commodityPreviewItem.stickers && commodityPreviewItem.stickers.length > 0" class="preview-sticker-overlay">
-                <div
-                  v-for="(sticker, sIdx) in commodityPreviewItem.stickers"
-                  :key="sIdx"
-                  class="preview-sticker-item"
-                  :title="sticker.name || '印花'"
-                >
-                  <img
-                    v-if="sticker.img_url"
-                    :src="sticker.img_url"
-                    :alt="sticker.name"
-                    class="preview-sticker-img"
-                    @error="(e) => e.target.style.display = 'none'"
-                  />
-                </div>
-              </div>
+        <div class="preview-main-layout">
+          <!-- 左侧区域 -->
+          <div class="preview-left-section">
+            <!-- 图片区域 -->
+            <div class="preview-image-section">
+              <img :src="commodityPreviewItem.iconUrl" class="preview-image" @error="handleImageError" />
             </div>
-          </div>
-          
-          <!-- 右侧信息区域 -->
-          <div class="commodity-preview-right">
+
             <!-- 磨损进度条 -->
             <div v-if="commodityPreviewItem.abrade" class="preview-float-section">
-              <div class="preview-float-bar">
-                <div class="float-segment fn" title="崭新出厂 (0.00 - 0.07)"></div>
-                <div class="float-segment mw" title="略有磨损 (0.07 - 0.15)"></div>
-                <div class="float-segment ft" title="久经沙场 (0.15 - 0.38)"></div>
-                <div class="float-segment ww" title="破损不堪 (0.38 - 0.45)"></div>
-                <div class="float-segment bs" title="战痕累累 (0.45 - 1.00)"></div>
-                <div
-                  class="float-pointer"
-                  :style="{ left: `${parseFloat(commodityPreviewItem.abrade) * 100}%` }"
-                ></div>
-              </div>
-              <div class="preview-float-value">磨损值: {{ commodityPreviewItem.abrade }}</div>
-            </div>
-            
-            <!-- 价格信息 -->
-            <div class="preview-info-row">
-              <span class="preview-info-label">价格:</span>
-              <span class="preview-info-value price-highlight">¥{{ commodityPreviewItem.price }}</span>
-            </div>
-            
-            <!-- BUFF特有信息 -->
-            <template v-if="commodityPreviewType === 'buff'">
-              <div class="preview-info-row" v-if="commodityPreviewItem.description">
-                <span class="preview-info-label">描述:</span>
-                <span class="preview-info-value">{{ commodityPreviewItem.description }}</span>
-              </div>
-              <div class="preview-info-row">
-                <span class="preview-info-label">议价:</span>
-                <el-tag :type="commodityPreviewItem.allowBargain ? 'success' : 'info'" size="small">
-                  {{ commodityPreviewItem.allowBargain ? '可议价' : '不可议价' }}
-                </el-tag>
-              </div>
-            </template>
-            
-            <!-- 悠悠有品特有信息 -->
-            <template v-if="commodityPreviewType === 'yyyp'">
-              <div class="preview-info-row" v-if="commodityPreviewItem.haveNameTag === 1">
-                <span class="preview-info-label">改名:</span>
-                <span class="preview-info-value nametag-text" v-if="commodityPreviewItem.nameTagText">
-                  {{ commodityPreviewItem.nameTagText }}
-                </span>
-                <span 
-                  v-else
-                  @click="fetchSingleNameTag(commodityPreviewItem)"
-                  class="preview-info-value nametag-parse"
-                >
-                  🏷️ 点击解析
-                </span>
-              </div>
-              <div class="preview-info-row">
-                <span class="preview-info-label">卖家:</span>
-                <span class="preview-info-value">{{ commodityPreviewItem.userNickName || '-' }}</span>
-              </div>
-            </template>
-            
-            <!-- 印花列表 -->
-            <div v-if="commodityPreviewItem.stickers && commodityPreviewItem.stickers.length > 0" class="preview-sticker-list">
-              <div class="preview-info-label" style="margin-bottom: 8px;">印花:</div>
-              <div class="sticker-list-items">
-                <div
-                  v-for="(sticker, idx) in commodityPreviewItem.stickers"
-                  :key="idx"
-                  class="sticker-list-item"
-                >
-                  <img
-                    v-if="sticker.img_url"
-                    :src="sticker.img_url"
-                    :alt="sticker.name"
-                    class="sticker-list-img"
-                  />
-                  <span class="sticker-list-name">{{ sticker.name || '未知' }}</span>
+              <div class="preview-float-bar-container">
+                <div class="float-bar">
+                  <div class="float-segment fn"></div>
+                  <div class="float-segment mw"></div>
+                  <div class="float-segment ft"></div>
+                  <div class="float-segment ww"></div>
+                  <div class="float-segment bs"></div>
+                  <div
+                    class="float-pointer"
+                    :style="{ left: `${parseFloat(commodityPreviewItem.abrade) * 100}%` }"
+                  ></div>
                 </div>
               </div>
+              <div class="preview-float-value">{{ commodityPreviewItem.abrade }}</div>
+              <div class="preview-float-range" v-if="getWearRange(commodityPreviewItem.abrade)">
+                {{ getWearRange(commodityPreviewItem.abrade) }}
+              </div>
+            </div>
+
+            <!-- 价格信息 -->
+            <div class="preview-prices">
+              <div class="preview-price-row">
+                <div class="preview-price-item">
+                  <span class="preview-price-label">价格:</span>
+                  <span class="preview-price-value price-highlight">¥{{ commodityPreviewItem.price }}</span>
+                </div>
+                <div class="preview-price-item" v-if="commodityPreviewItem.paintSeed">
+                  <span class="preview-price-label">模板:</span>
+                  <span class="preview-price-value">#{{ commodityPreviewItem.paintSeed }}</span>
+                </div>
+              </div>
+              <!-- 卖家信息 - 通用显示 -->
+              <div class="preview-price-row">
+                <div class="preview-price-item">
+                  <span class="preview-price-label">卖家:</span>
+                  <span class="preview-price-value">{{ commodityPreviewItem.userNickName || commodityPreviewItem.sellerName || '-' }}</span>
+                </div>
+              </div>
+              <!-- BUFF特有信息 -->
+              <template v-if="commodityPreviewType === 'buff'">
+                <div class="preview-price-row" v-if="commodityPreviewItem.description">
+                  <div class="preview-price-item full-width">
+                    <span class="preview-price-label">描述:</span>
+                    <span class="preview-price-value">{{ commodityPreviewItem.description }}</span>
+                  </div>
+                </div>
+                <div class="preview-price-row">
+                  <div class="preview-price-item">
+                    <span class="preview-price-label">议价:</span>
+                    <el-tag :type="commodityPreviewItem.allowBargain ? 'success' : 'info'" size="small">
+                      {{ commodityPreviewItem.allowBargain ? '可议价' : '不可' }}
+                    </el-tag>
+                  </div>
+                </div>
+              </template>
+              <!-- 悠悠有品特有信息 -->
+              <template v-if="commodityPreviewType === 'yyyp'">
+                <div class="preview-price-row" v-if="commodityPreviewItem.haveNameTag === 1">
+                  <div class="preview-price-item full-width">
+                    <span class="preview-price-label">改名:</span>
+                    <span class="preview-price-value nametag-text" v-if="commodityPreviewItem.nameTagText">
+                      {{ commodityPreviewItem.nameTagText }}
+                    </span>
+                    <span 
+                      v-else
+                      @click="fetchSingleNameTag(commodityPreviewItem)"
+                      class="preview-price-value nametag-parse"
+                    >
+                      🏷️ 点击解析
+                    </span>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <!-- 右侧区域 - 印花和挂件列表 -->
+          <div class="preview-right-section">
+            <!-- 印花列表 -->
+            <div v-if="commodityPreviewItem.stickers && commodityPreviewItem.stickers.length > 0" class="preview-sticker-list-section">
+              <div class="preview-sticker-list">
+                <div
+                  v-for="(sticker, index) in commodityPreviewItem.stickers"
+                  :key="index"
+                  class="preview-sticker-list-item"
+                >
+                  <div class="preview-sticker-list-img-wrapper">
+                    <img
+                      v-if="sticker.TemplateHashName"
+                      :src="getWeaponImage(sticker.TemplateHashName)"
+                      :alt="sticker.Name"
+                      class="preview-sticker-list-img"
+                      @error="(e) => e.target.style.display = 'none'"
+                    />
+                    <img
+                      v-else-if="sticker.ImgUrl || sticker.img_url"
+                      :src="sticker.ImgUrl || sticker.img_url"
+                      :alt="sticker.Name || sticker.name"
+                      class="preview-sticker-list-img"
+                      @error="(e) => e.target.style.display = 'none'"
+                    />
+                    <div v-else class="preview-sticker-list-placeholder">?</div>
+                  </div>
+                  <div class="preview-sticker-list-name">{{ sticker.Name || sticker.name || '未知印花' }}</div>
+                </div>
+              </div>
+            </div>
+            <!-- 挂件列表 -->
+            <div v-if="commodityPreviewItem.pendants && commodityPreviewItem.pendants.length > 0" class="preview-pendant-list-section">
+              <div class="preview-sticker-list">
+                <div
+                  v-for="(pendant, index) in commodityPreviewItem.pendants"
+                  :key="'pendant-' + index"
+                  class="preview-sticker-list-item pendant-item"
+                >
+                  <div class="preview-sticker-list-img-wrapper">
+                    <img
+                      v-if="pendant.steamHashName"
+                      :src="getWeaponImage(pendant.steamHashName)"
+                      :alt="pendant.name"
+                      class="preview-sticker-list-img"
+                      @error="(e) => e.target.style.display = 'none'"
+                    />
+                    <img
+                      v-else-if="pendant.imgUrl"
+                      :src="pendant.imgUrl"
+                      :alt="pendant.name"
+                      class="preview-sticker-list-img"
+                      @error="(e) => e.target.style.display = 'none'"
+                    />
+                    <div v-else class="preview-sticker-list-placeholder">🎗️</div>
+                  </div>
+                  <div class="preview-sticker-list-name">{{ pendant.pendantSourceName || pendant.name || '挂件' }}</div>
+                </div>
+              </div>
+            </div>
+            <div v-if="(!commodityPreviewItem.stickers || commodityPreviewItem.stickers.length === 0) && (!commodityPreviewItem.pendants || commodityPreviewItem.pendants.length === 0)" class="preview-no-stickers">
+              <span>无印花/挂件</span>
             </div>
           </div>
         </div>
         
         <!-- 右下角购买按钮 -->
         <div class="preview-bottom-right-button">
-          <el-button type="success" @click="handleBuyCommodityFromPreview">
-            购买
-          </el-button>
+          <el-button type="success" @click="handleBuyCommodityFromPreview">购买</el-button>
         </div>
       </div>
     </el-dialog>
@@ -1152,6 +1224,17 @@ export default {
       if (wear <= 0.38) return '#ffc107'      // 久经沙场 - 黄色
       if (wear <= 0.45) return '#ff9800'      // 破损不堪 - 橙色
       return '#f44336'                        // 战痕累累 - 红色
+    }
+
+    // 根据磨损值返回磨损等级名称
+    const getWearRange = (abrade) => {
+      if (!abrade) return ''
+      const wear = parseFloat(abrade)
+      if (wear <= 0.07) return '崭新出厂'
+      if (wear <= 0.15) return '略有磨损'
+      if (wear <= 0.38) return '久经沙场'
+      if (wear <= 0.45) return '破损不堪'
+      return '战痕累累'
     }
 
     // 获取外观（磨损）颜色样式
@@ -2034,6 +2117,7 @@ export default {
       getFloatRangeType,
       getFloatRangeColor,
       getWearColor,
+      getWearRange,
       getExteriorColor,
       handleSizeChange,
       handleCurrentChange
@@ -3375,17 +3459,11 @@ export default {
   position: absolute;
   top: 6px;
   left: 6px;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(6px);
-  color: #fff;
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.7rem;
+  font-weight: 600;
   z-index: 10;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  letter-spacing: 0.5px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
 /* 印花覆盖层 - 左下角 */
@@ -3435,6 +3513,57 @@ export default {
   align-items: center;
   justify-content: center;
   color: #999;
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+/* 挂件覆盖层 - 右上角 */
+.pendant-overlay {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  gap: 3px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.pendant-item-overlay {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1.5px solid rgba(255, 215, 0, 0.4);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.pendant-item-overlay:hover {
+  transform: scale(2);
+  z-index: 10;
+  border-color: rgba(255, 215, 0, 0.8);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+}
+
+.pendant-img-overlay {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
+.pendant-placeholder-overlay {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffd700;
   font-size: 1rem;
   font-weight: bold;
 }
@@ -3578,7 +3707,7 @@ export default {
   flex-shrink: 0;
 }
 
-/* 商品详情弹窗样式 */
+/* 商品详情弹窗样式 - 与inventory一致 */
 .commodity-preview-dialog :deep(.el-dialog__header) {
   background: var(--bg-tertiary);
   border-bottom: 1px solid var(--border-color);
@@ -3593,27 +3722,28 @@ export default {
 
 .commodity-preview-dialog :deep(.el-dialog__body) {
   background: var(--bg-secondary);
-  padding: 0;
+  padding: 1.5rem;
 }
 
 .commodity-preview-content {
   position: relative;
-  padding: 1.5rem;
 }
 
-.commodity-preview-main {
+.preview-main-layout {
   display: flex;
   gap: 1.5rem;
 }
 
-.commodity-preview-left {
-  flex: 0 0 300px;
+.preview-left-section {
+  flex: 0 0 55%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.commodity-preview-image {
-  position: relative;
+.preview-image-section {
   width: 100%;
-  height: 220px;
+  height: 280px;
   background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
   border-radius: 8px;
   display: flex;
@@ -3622,154 +3752,170 @@ export default {
   overflow: hidden;
 }
 
-.commodity-preview-image .preview-img {
+.preview-image {
   max-width: 90%;
   max-height: 90%;
   object-fit: contain;
 }
 
-.commodity-preview-image .preview-paint-seed {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(6px);
-  color: #fff;
-  font-size: 0.85rem;
-  font-weight: 700;
-  padding: 6px 12px;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.commodity-preview-image .preview-sticker-overlay {
-  position: absolute;
-  bottom: 8px;
-  left: 8px;
-  display: flex;
-  gap: 4px;
-}
-
-.commodity-preview-image .preview-sticker-item {
-  width: 40px;
-  height: 40px;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
-  border-radius: 4px;
-  overflow: hidden;
-  border: 1.5px solid rgba(255, 255, 255, 0.3);
-}
-
-.commodity-preview-image .preview-sticker-img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.commodity-preview-right {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
 .preview-float-section {
-  background: var(--bg-tertiary);
-  padding: 1rem;
-  border-radius: 8px;
+  padding: 0;
 }
 
-.preview-float-bar {
-  position: relative;
-  height: 10px;
-  display: flex;
-  border-radius: 5px;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+.preview-float-bar-container {
   margin-bottom: 0.5rem;
 }
 
 .preview-float-value {
-  font-size: 0.9rem;
-  color: #ccc;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 0.25rem;
 }
 
-.preview-info-row {
+.preview-float-range {
+  font-size: 0.9rem;
+  color: #999;
+}
+
+.preview-prices {
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.preview-price-row {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.preview-price-row:last-child {
+  margin-bottom: 0;
+}
+
+.preview-price-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid var(--border-color);
+  gap: 0.5rem;
 }
 
-.preview-info-label {
+.preview-price-item.full-width {
+  flex: 1;
+}
+
+.preview-price-label {
   color: #999;
   font-size: 0.9rem;
-  min-width: 60px;
 }
 
-.preview-info-value {
+.preview-price-value {
   color: #fff;
-  font-size: 0.9rem;
-}
-
-.preview-info-value.price-highlight {
-  color: #f56c6c;
-  font-weight: bold;
-  font-size: 1.2rem;
-}
-
-.preview-info-value.nametag-text {
-  color: #e6a23c;
+  font-size: 0.95rem;
   font-weight: 600;
 }
 
-.preview-info-value.nametag-parse {
+.preview-price-value.price-highlight {
+  color: #f56c6c;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.preview-price-value.nametag-text {
+  color: #e6a23c;
+}
+
+.preview-price-value.nametag-parse {
   color: #e6a23c;
   cursor: pointer;
 }
 
-.preview-info-value.nametag-parse:hover {
+.preview-price-value.nametag-parse:hover {
   opacity: 0.8;
 }
 
-.preview-sticker-list {
-  background: var(--bg-tertiary);
-  padding: 1rem;
-  border-radius: 8px;
+.preview-action-buttons {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
-.sticker-list-items {
+.preview-action-buttons .el-button {
+  padding: 10px 24px;
+}
+
+.preview-right-section {
+  flex: 1;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+}
+
+.preview-sticker-list-section {
+  flex: 1;
+}
+
+.preview-sticker-list {
+  display: flex;
+  flex-direction: column;
   gap: 0.75rem;
 }
 
-.sticker-list-item {
+.preview-sticker-list-item {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
-  width: 70px;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  transition: all 0.2s ease;
 }
 
-.sticker-list-img {
+.preview-sticker-list-item:hover {
+  background: var(--bg-hover);
+}
+
+.preview-sticker-list-item.pendant-item {
+  border-left: 3px solid rgba(255, 215, 0, 0.6);
+}
+
+.preview-sticker-list-img-wrapper {
   width: 50px;
   height: 50px;
-  object-fit: contain;
-  background: rgba(0, 0, 0, 0.5);
-  border-radius: 4px;
-  padding: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.sticker-list-name {
-  font-size: 0.7rem;
-  color: #999;
-  text-align: center;
+.preview-sticker-list-img {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+}
+
+.preview-sticker-list-placeholder {
+  color: #666;
+  font-size: 1.2rem;
+}
+
+.preview-sticker-list-name {
+  flex: 1;
+  color: #fff;
+  font-size: 0.9rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  width: 100%;
+}
+
+.preview-no-stickers {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-size: 0.9rem;
 }
 
 .preview-bottom-right-button {
