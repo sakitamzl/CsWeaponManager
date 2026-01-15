@@ -260,9 +260,22 @@
             v-for="item in paginatedResults"
             :key="item.market_listing_item_name"
             class="search-result-card"
-            @click="handleCardClick(item)"
+            @click="handleCardClick(item, $event)"
           >
             <div class="card-image">
+              <!-- 左上角标签 -->
+              <div class="card-badges">
+                <el-tag v-if="item.weapon_type" size="small" type="info" class="badge-item">
+                  {{ item.weapon_type }}
+                </el-tag>
+                <el-tag v-if="item.Rarity" size="small" class="badge-item" :style="{ backgroundColor: getRarityColor(item.Rarity), border: 'none', color: '#fff' }">
+                  {{ item.Rarity }}
+                </el-tag>
+                <el-tag v-if="item.float_range" size="small" class="badge-item" :type="getFloatRangeType(item.float_range)">
+                  {{ item.float_range }}
+                </el-tag>
+              </div>
+              
               <img
                 v-if="getWeaponImage(item.steam_hash_name)"
                 :src="getWeaponImage(item.steam_hash_name)"
@@ -602,6 +615,63 @@
     <div v-if="searchResults.length === 0 && !isSearching && searchKeyword" class="card no-results-card">
       <el-empty description="未找到相关饰品" />
     </div>
+
+    <!-- 卡片模式弹出框 -->
+    <teleport to="body">
+      <div 
+        v-if="showCardPopover" 
+        class="card-popover-overlay"
+        @click="showCardPopover = false"
+      >
+        <div 
+          class="card-popover-content"
+          :style="{ 
+            left: cardPopoverPosition.x + 'px', 
+            top: cardPopoverPosition.y + 'px' 
+          }"
+          @click.stop
+        >
+          <div class="popover-title">选择平台搜索</div>
+          <div class="popover-buttons">
+            <el-button 
+              type="warning" 
+              size="small" 
+              @click="selectPlatform(selectedCardItem, 'yyyp'); showCardPopover = false"
+              :loading="isSearching && searchSource === 'yyyp'"
+            >
+              悠悠有品
+            </el-button>
+            <el-button 
+              type="info" 
+              size="small" 
+              class="buff-button"
+              @click="selectPlatform(selectedCardItem, 'buff'); showCardPopover = false"
+              :loading="isSearching && searchSource === 'buff'"
+            >
+              BUFF
+            </el-button>
+            <el-button 
+              type="success" 
+              size="small" 
+              class="csfloat-button"
+              @click="selectPlatform(selectedCardItem, 'csfloat'); showCardPopover = false"
+              :loading="isSearching && searchSource === 'csfloat'"
+            >
+              CsFloat
+            </el-button>
+            <el-button 
+              type="primary" 
+              size="small" 
+              class="all-button"
+              @click="selectPlatform(selectedCardItem, 'all'); showCardPopover = false"
+              :loading="isSearching && searchSource === 'all'"
+            >
+              全部搜索
+            </el-button>
+          </div>
+        </div>
+      </div>
+    </teleport>
   </div>
 </template>
 
@@ -634,6 +704,11 @@ export default {
     const displayMode = ref('card') // 显示模式：'list' 或 'card'，默认卡片模式
     const image404Cache = ref(new Set()) // 图片404缓存
     const activePopoverRow = ref(null) // 当前激活的 popover 行
+    
+    // 卡片模式弹出框
+    const showCardPopover = ref(false)
+    const cardPopoverPosition = ref({ x: 0, y: 0 })
+    const selectedCardItem = ref(null)
     
     // BUFF商品列表
     const buffCommodities = ref([])
@@ -1722,9 +1797,15 @@ export default {
     }
 
     // 处理卡片点击
-    const handleCardClick = (item) => {
-      // 卡片点击时显示平台选择
-      togglePopover(item)
+    const handleCardClick = (item, event) => {
+      // 获取鼠标点击位置
+      const x = event.clientX
+      const y = event.clientY
+      
+      // 设置弹出框位置和内容
+      cardPopoverPosition.value = { x, y }
+      selectedCardItem.value = item
+      showCardPopover.value = true
     }
 
     // 页面加载时获取Steam ID列表
@@ -1758,6 +1839,10 @@ export default {
       getWeaponImage,
       handleImageError,
       handleCardClick,
+      // 卡片弹出框
+      showCardPopover,
+      cardPopoverPosition,
+      selectedCardItem,
       // BUFF商品列表
       buffCommodities,
       buffCurrentWeapon,
@@ -2780,8 +2865,8 @@ export default {
 
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
 }
 
 .search-result-card {
@@ -2791,6 +2876,9 @@ export default {
   cursor: pointer;
   transition: all 0.3s ease;
   border: 1px solid var(--border-color);
+  width: 300px;
+  height: 300px;
+  position: relative;
 }
 
 .search-result-card:hover {
@@ -2801,7 +2889,7 @@ export default {
 
 .search-result-card .card-image {
   width: 100%;
-  height: 180px;
+  height: 100%;
   background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
   display: flex;
   align-items: center;
@@ -2832,36 +2920,53 @@ export default {
 }
 
 .search-result-card .card-content {
-  padding: 16px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.85) 70%, transparent 100%);
+  transform: translateY(0);
+  transition: all 0.3s ease;
 }
 
 .search-result-card .card-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.3;
 }
 
 .search-result-card .card-info {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 4px;
+  margin-bottom: 8px;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.search-result-card:hover .card-info {
+  max-height: 200px;
+  opacity: 1;
 }
 
 .search-result-card .info-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
+  gap: 6px;
+  font-size: 11px;
 }
 
 .search-result-card .info-label {
   color: #888;
-  min-width: 60px;
+  min-width: 50px;
 }
 
 .search-result-card .rarity-text {
@@ -2870,12 +2975,22 @@ export default {
 
 .search-result-card .card-actions {
   display: flex;
-  gap: 8px;
-  margin-top: 12px;
+  gap: 6px;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.search-result-card:hover .card-actions {
+  max-height: 50px;
+  opacity: 1;
 }
 
 .search-result-card .card-actions .el-button {
   flex: 1;
+  font-size: 11px;
+  padding: 6px 8px;
 }
 
 /* 头部操作按钮样式 */
@@ -2898,6 +3013,48 @@ export default {
 
 .collapse-header:hover {
   background: var(--bg-hover);
+}
+
+/* 卡片弹出框样式 */
+.card-popover-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 9999;
+  backdrop-filter: blur(2px);
+}
+
+.card-popover-content {
+  position: fixed;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  transform: translate(-50%, -50%);
+  z-index: 10000;
+  min-width: 200px;
+}
+
+.card-popover-content .popover-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.card-popover-content .popover-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card-popover-content .popover-buttons .el-button {
+  width: 100%;
 }
 </style>
 
