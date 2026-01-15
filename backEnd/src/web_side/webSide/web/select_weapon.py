@@ -371,10 +371,14 @@ def searchWeaponDetail():
             else:
                 where_clause = extra_clause
         
-        # 查询数据库，返回所有匹配的记录
+        # 根据平台类型确定价格字段用于排序
+        price_field = 'yyyp_Price' if platform_type == 'youpin' else 'buff_Price'
+        
+        # 查询数据库，返回所有匹配的记录，并按价格降序排序（价格高的在前）
         records = WeaponClassIDModel.find_all(
             where=where_clause, 
-            params=tuple(params) if params else None
+            params=tuple(params) if params else None,
+            order_by=f"CAST([{price_field}] AS REAL) DESC"
         )
         
         # 价格筛选、在售数量筛选以及自动过滤
@@ -430,31 +434,15 @@ def searchWeaponDetail():
         
         records = filtered_records
         
-        # 根据平台类型确定价格字段，并按价格正序排序
-        price_field = 'yyyp_Price' if platform_type == 'youpin' else 'buff_Price'
-        
-        # 对结果按价格正序排序
-        sorted_records = []
-        for record in records:
-            price_str = getattr(record, price_field, None)
-            try:
-                price = float(price_str) if price_str else float('inf')
-            except (ValueError, TypeError):
-                price = float('inf')
-            sorted_records.append((record, price))
-        
-        # 按价格排序（正序：从低到高）
-        sorted_records.sort(key=lambda x: x[1])
-        
         # 分页处理
-        total_count = len(sorted_records)
+        total_count = len(records)
         start_index = (page - 1) * limit
         end_index = start_index + limit
-        paginated_records = sorted_records[start_index:end_index]
+        paginated_records = records[start_index:end_index]
         
         # 返回完整的武器信息
         results = []
-        for record, price in paginated_records:
+        for record in paginated_records:
             weapon_data = {
                 'steam_hash_name': record.steam_hash_name,
                 'market_listing_item_name': record.market_listing_item_name,

@@ -256,12 +256,15 @@ class BaseModel(ABC):
             return None
     
     @classmethod
-    def find_all(cls, where: str = "", params: tuple = (), limit: int = None, offset: int = None):
+    def find_all(cls, where: str = "", params: tuple = (), limit: int = None, offset: int = None, order_by: str = None):
         """查找多条记录"""
         sql = f"SELECT * FROM {cls.get_table_name()}"
         
         if where:
             sql += f" WHERE {where}"
+        
+        if order_by:
+            sql += f" ORDER BY {order_by}"
         
         if limit:
             sql += f" LIMIT {limit}"

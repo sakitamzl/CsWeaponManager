@@ -265,14 +265,11 @@
             <div class="card-image">
               <!-- 左上角标签 -->
               <div class="card-badges">
-                <el-tag v-if="item.weapon_type" size="small" type="info" class="badge-item">
-                  {{ item.weapon_type }}
-                </el-tag>
-                <el-tag v-if="item.Rarity" size="small" class="badge-item" :style="{ backgroundColor: getRarityColor(item.Rarity), border: 'none', color: '#fff' }">
-                  {{ item.Rarity }}
-                </el-tag>
-                <el-tag v-if="item.float_range" size="small" class="badge-item" :type="getFloatRangeType(item.float_range)">
+                <el-tag v-if="item.float_range" size="small" class="badge-item" :style="{ color: getFloatRangeColor(item.float_range), backgroundColor: 'rgba(0, 0, 0, 0.7)', borderColor: getFloatRangeColor(item.float_range) }">
                   {{ item.float_range }}
+                </el-tag>
+                <el-tag v-if="item.Rarity" size="small" class="badge-item" :style="{ color: getRarityColor(item.Rarity), backgroundColor: 'rgba(0, 0, 0, 0.7)', borderColor: getRarityColor(item.Rarity) }">
+                  {{ item.Rarity }}
                 </el-tag>
               </div>
               
@@ -292,15 +289,21 @@
                 {{ item.market_listing_item_name }}
               </div>
               <div class="card-info">
-                <div class="info-row">
-                  <span class="info-label">类型:</span>
-                  <el-tag size="small" type="info">{{ item.weapon_type || '-' }}</el-tag>
+                <div class="info-row" v-if="item.float_range">
+                  <span class="info-label">磨损:</span>
+                  <span class="float-range-text" :style="{ color: getFloatRangeColor(item.float_range), fontWeight: '600' }">
+                    {{ item.float_range }}
+                  </span>
                 </div>
                 <div class="info-row" v-if="item.Rarity">
                   <span class="info-label">稀有度:</span>
-                  <span class="rarity-text" :style="{ color: getRarityColor(item.Rarity) }">
+                  <span class="rarity-text" :style="{ color: getRarityColor(item.Rarity), fontWeight: '600' }">
                     {{ item.Rarity }}
                   </span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">类型:</span>
+                  <span>{{ item.weapon_type || '-' }}</span>
                 </div>
                 <div class="info-row">
                   <span class="info-label">悠悠ID:</span>
@@ -1037,6 +1040,32 @@ export default {
         '普通级': '#b0c3d9'     // 灰蓝色
       }
       return rarityColorMap[rarity] || '#fff'
+    }
+
+    // 获取磨损等级的标签类型
+    const getFloatRangeType = (floatRange) => {
+      if (!floatRange) return ''
+      const typeMap = {
+        '崭新出厂': 'success',
+        '略有磨损': 'success',
+        '久经沙场': 'warning',
+        '破损不堪': 'warning',
+        '战痕累累': 'danger'
+      }
+      return typeMap[floatRange] || ''
+    }
+
+    // 获取磨损等级的颜色
+    const getFloatRangeColor = (floatRange) => {
+      if (!floatRange) return '#fff'
+      const colorMap = {
+        '崭新出厂': '#4caf50',      // 绿色 - Factory New
+        '略有磨损': '#8bc34a',      // 浅绿色 - Minimal Wear
+        '久经沙场': '#ffc107',      // 黄色 - Field-Tested
+        '破损不堪': '#ff9800',      // 橙色 - Well-Worn
+        '战痕累累': '#f44336'       // 红色 - Battle-Scarred
+      }
+      return colorMap[floatRange] || '#fff'
     }
 
     // 获取外观（磨损）颜色样式
@@ -1885,6 +1914,8 @@ export default {
       handleViewDetails,
       getRarityType,
       getRarityColor,
+      getFloatRangeType,
+      getFloatRangeColor,
       getExteriorColor,
       handleSizeChange,
       handleCurrentChange
@@ -2865,8 +2896,8 @@ export default {
 
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
 }
 
 .search-result-card {
@@ -2876,8 +2907,8 @@ export default {
   cursor: pointer;
   transition: all 0.3s ease;
   border: 1px solid var(--border-color);
-  width: 300px;
-  height: 300px;
+  width: 220px;
+  height: 220px;
   position: relative;
 }
 
@@ -2896,6 +2927,25 @@ export default {
   justify-content: center;
   position: relative;
   overflow: hidden;
+}
+
+.search-result-card .card-badges {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  z-index: 10;
+  align-items: flex-start;
+}
+
+.search-result-card .card-badges .badge-item {
+  font-size: 10px;
+  padding: 3px 6px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
 }
 
 .search-result-card .weapon-card-img {
@@ -2924,28 +2974,28 @@ export default {
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 12px;
+  padding: 8px;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.85) 70%, transparent 100%);
   transform: translateY(0);
   transition: all 0.3s ease;
 }
 
 .search-result-card .card-title {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  line-height: 1.3;
+  line-height: 1.2;
 }
 
 .search-result-card .card-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 8px;
+  gap: 3px;
+  margin-bottom: 6px;
   max-height: 0;
   overflow: hidden;
   opacity: 0;
@@ -2960,22 +3010,30 @@ export default {
 .search-result-card .info-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
+  gap: 4px;
+  font-size: 10px;
+}
+
+.search-result-card .info-row span {
+  color: inherit;
 }
 
 .search-result-card .info-label {
   color: #888;
-  min-width: 50px;
+  min-width: 40px;
 }
 
 .search-result-card .rarity-text {
-  font-weight: 600;
+  font-weight: 600 !important;
+}
+
+.search-result-card .float-range-text {
+  font-weight: 600 !important;
 }
 
 .search-result-card .card-actions {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   max-height: 0;
   overflow: hidden;
   opacity: 0;
@@ -2989,8 +3047,8 @@ export default {
 
 .search-result-card .card-actions .el-button {
   flex: 1;
-  font-size: 11px;
-  padding: 6px 8px;
+  font-size: 10px;
+  padding: 4px 6px;
 }
 
 /* 头部操作按钮样式 */
