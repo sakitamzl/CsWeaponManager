@@ -476,13 +476,20 @@
         <div class="yyyp-weapon-info">
           <span class="weapon-name">{{ yyypCurrentWeapon?.market_listing_item_name }}</span>
           <span class="weapon-id">模板ID: {{ yyypCurrentWeapon?.yyyp_id }}</span>
-          <span class="commodity-count">在售: {{ yyypCommodities.length }} 件</span>
+          <span class="commodity-count">已加载: {{ yyypCommodities.length }} 件</span>
           <span class="total-count">总数: {{ yyypTotalCount }} 件</span>
         </div>
       </div>
       
       <!-- 悠悠有品卡片模式 -->
-      <div v-show="showYYYPTable" class="commodity-card-grid" v-loading="isSearching && searchSource === 'yyyp'" element-loading-text="加载中..." element-loading-background="rgba(0, 0, 0, 0.8)">
+      <div 
+        v-show="showYYYPTable" 
+        class="commodity-card-grid yyyp-scroll-container" 
+        v-loading="isSearching && searchSource === 'yyyp'" 
+        element-loading-text="加载中..." 
+        element-loading-background="rgba(0, 0, 0, 0.8)"
+        @scroll="handleYYYPScroll"
+      >
         <div
           v-for="(item, index) in yyypCommodities"
           :key="index"
@@ -597,6 +604,19 @@
                 <span class="info-value">{{ item.userNickName || '-' }}</span>
               </div>
             </div>
+          </div>
+        </div>
+        <!-- 加载更多提示 -->
+        <div class="load-more-indicator" v-if="yyypCommodities.length > 0">
+          <div v-if="yyypLoadingMore" class="loading-more">
+            <el-icon class="is-loading"><Loading /></el-icon>
+            <span>加载中...</span>
+          </div>
+          <div v-else-if="!yyypHasMore" class="no-more-data">
+            <span>没有更多数据了</span>
+          </div>
+          <div v-else class="scroll-hint">
+            <span>下拉加载更多</span>
           </div>
         </div>
       </div>
@@ -839,7 +859,7 @@
 import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { CaretRight, CaretBottom, Refresh, Check } from '@element-plus/icons-vue'
+import { CaretRight, CaretBottom, Refresh, Check, Loading } from '@element-plus/icons-vue'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
 
 export default {
@@ -894,7 +914,9 @@ export default {
     const showYYYPList = ref(false)
     const showYYYPTable = ref(true)  // 控制悠悠有品表格的展开/折叠
     const yyypCurrentPage = ref(1)  // 悠悠有品分页当前页
-    const yyypPageSize = ref(5)  // 悠悠有品每页显示5条
+    const yyypPageSize = ref(50)  // 悠悠有品每页显示50条
+    const yyypLoadingMore = ref(false)  // 是否正在加载更多
+    const yyypHasMore = ref(true)  // 是否还有更多数据
     
     // 多选模式相关
     const isMultiSelectMode = ref(false)  // 是否开启多选模式
@@ -1368,6 +1390,7 @@ export default {
           yyypCommodities.value = commodityList
           yyypTotalCount.value = totalCount
           yyypCurrentPage.value = 1  // 重置分页到第一页
+          yyypHasMore.value = commodityList.length < totalCount  // 判断是否还有更多
           showYYYPList.value = true
           showSearchResults.value = false  // 折叠搜索结果
           
@@ -1402,6 +1425,72 @@ export default {
         console.log('请求完成，重置加载状态')
         isSearching.value = false
         searchSource.value = ''
+      }
+    }
+
+    // 悠悠有品加载更多
+    const loadMoreYYYPCommodities = async () => {
+      if (yyypLoadingMore.value || !yyypHasMore.value || !yyypCurrentWeapon.value) {
+        return
+      }
+      
+      yyypLoadingMore.value = true
+      const nextPage = yyypCurrentPage.value + 1
+      
+      try {
+        console.log(`加载悠悠有品第 ${nextPage} 页数据`)
+        
+        const requestData = {
+          steamId: selectedSteamId.value || '',
+          yyypId: yyypCurrentWeapon.value.yyyp_id,
+          pageIndex: nextPage,
+          pageSize: 50
+        }
+        
+        const apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getCommoditiesByTemplateId`
+        const response = await axios.post(apiUrl, requestData)
+        
+        if (response.data.success) {
+          const parsedData = response.data.data
+          const newCommodities = parsedData.commodityList || []
+          
+          if (newCommodities.length > 0) {
+            // 追加到现有列表
+            yyypCommodities.value = [...yyypCommodities.value, ...newCommodities]
+            yyypCurrentPage.value = nextPage
+            
+            // 判断是否还有更多
+            yyypHasMore.value = yyypCommodities.value.length < yyypTotalCount.value
+            
+            console.log(`加载了 ${newCommodities.length} 条数据，当前共 ${yyypCommodities.value.length} 条`)
+            
+            // 预加载新图片
+            preloadImages(newCommodities)
+            
+            // 获取新商品的改名信息
+            fetchAllNameTags(newCommodities)
+          } else {
+            yyypHasMore.value = false
+          }
+        }
+      } catch (error) {
+        console.error('加载更多失败:', error)
+        ElMessage.error('加载更多失败')
+      } finally {
+        yyypLoadingMore.value = false
+      }
+    }
+
+    // 悠悠有品滚动事件处理
+    const handleYYYPScroll = (event) => {
+      const target = event.target
+      const scrollTop = target.scrollTop
+      const scrollHeight = target.scrollHeight
+      const clientHeight = target.clientHeight
+      
+      // 当滚动到底部附近时（距离底部50px）加载更多
+      if (scrollHeight - scrollTop - clientHeight < 50) {
+        loadMoreYYYPCommodities()
       }
     }
 
@@ -2251,6 +2340,8 @@ export default {
       showYYYPTable,
       yyypCurrentPage,
       yyypPageSize,
+      yyypLoadingMore,
+      yyypHasMore,
       paginatedYYYPCommodities,
       toggleYYYPList,
       handleBuyCommodity,
@@ -2260,6 +2351,8 @@ export default {
       handleYYYPPageChange,
       handleRefreshYYYP,
       handleSearchYYYPByRow,
+      loadMoreYYYPCommodities,
+      handleYYYPScroll,
       handleSearchBuffByRow,
       handleSearchCsFloatByRow,
       handleSearchAllPlatforms,
@@ -4147,6 +4240,53 @@ export default {
 .multi-select-actions .action-buttons {
   display: flex;
   gap: 12px;
+}
+
+/* 悠悠有品滚动容器 */
+.yyyp-scroll-container {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+/* 加载更多提示样式 */
+.load-more-indicator {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.loading-more {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--el-color-primary);
+}
+
+.loading-more .is-loading {
+  animation: rotating 2s linear infinite;
+}
+
+@keyframes rotating {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.no-more-data {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.scroll-hint {
+  color: #888;
+  font-size: 0.85rem;
 }
 </style>
 
