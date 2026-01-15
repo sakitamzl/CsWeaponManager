@@ -93,17 +93,29 @@
           武器搜索结果 ({{ searchResults.length }} 件)
         </span>
         <div class="header-actions">
+          <el-pagination
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            :total="filteredResults.length"
+            layout="total, sizes, prev, pager, next"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+            small
+            style="margin-right: 15px;"
+            @click.stop
+          />
           <el-button-group style="margin-right: 10px;">
             <el-button 
               :type="displayMode === 'list' ? 'primary' : ''" 
-              @click="displayMode = 'list'"
+              @click.stop="displayMode = 'list'"
               size="small"
             >
               列表
             </el-button>
             <el-button 
               :type="displayMode === 'card' ? 'primary' : ''" 
-              @click="displayMode = 'card'"
+              @click.stop="displayMode = 'card'"
               size="small"
             >
               卡片
@@ -240,92 +252,66 @@
         </el-table-column>
       </el-table>
 
-      <!-- 分页器 -->
-      <div class="pagination-container" v-show="showSearchResults && displayMode === 'list'">
-        <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          :page-sizes="[10, 20, 50, 100]"
-          :total="filteredResults.length"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
-      </div>
-
       <!-- 卡片模式 -->
-      <div v-show="showSearchResults && displayMode === 'card'" class="card-mode-wrapper">
-        <!-- 卡片模式分页器 - 顶部 -->
-        <div class="pagination-container pagination-top">
-          <el-pagination
-            v-model:current-page="currentPage"
-            v-model:page-size="pageSize"
-            :page-sizes="[10, 20, 50, 100]"
-            :total="filteredResults.length"
-            layout="total, sizes, prev, pager, next, jumper"
-            @size-change="handleSizeChange"
-            @current-change="handleCurrentChange"
-          />
-        </div>
-        
-        <div class="card-grid-container">
-          <div class="card-grid">
-            <div
-              v-for="item in paginatedResults"
-              :key="item.market_listing_item_name"
-              class="search-result-card"
-              @click="handleCardClick(item, $event)"
-            >
-            <div class="card-image">
-              <!-- 左上角标签 -->
-              <div class="card-badges">
-                <el-tag v-if="item.float_range" size="small" class="badge-item" :style="{ color: getFloatRangeColor(item.float_range) + ' !important', backgroundColor: 'rgba(0, 0, 0, 0.7)', borderColor: getFloatRangeColor(item.float_range) }">
-                  {{ item.float_range }}
-                </el-tag>
-                <el-tag v-if="item.Rarity" size="small" class="badge-item" :style="{ color: getRarityColor(item.Rarity) + ' !important', backgroundColor: 'rgba(0, 0, 0, 0.7)', borderColor: getRarityColor(item.Rarity) }">
-                  {{ item.Rarity }}
-                </el-tag>
-              </div>
-              
-              <img
-                v-if="getWeaponImage(item.steam_hash_name)"
-                :src="getWeaponImage(item.steam_hash_name)"
-                :alt="item.item_name"
-                class="weapon-card-img"
-                @error="(e) => handleImageError(e, item.steam_hash_name)"
-              />
-              <div v-else class="image-placeholder">
-                <span>无图片</span>
-              </div>
-            </div>
-            <div class="card-content">
-              <div class="card-title" :title="item.market_listing_item_name">
-                {{ item.market_listing_item_name }}
-              </div>
-              <div class="card-info">
-                <div class="info-row" v-if="item.float_range">
-                  <span class="info-label">磨损:</span>
-                  <span class="float-range-text" :style="`color: ${getFloatRangeColor(item.float_range)} !important; font-weight: 600 !important;`">
+      <div v-show="showSearchResults && displayMode === 'card'" class="card-grid-container">
+        <div class="card-grid">
+          <div
+            v-for="item in paginatedResults"
+            :key="item.market_listing_item_name"
+            class="search-result-card"
+            @click="handleCardClick(item, $event)"
+          >
+              <div class="card-image">
+                <!-- 左上角标签 -->
+                <div class="card-badges">
+                  <el-tag v-if="item.float_range" size="small" class="badge-item" :style="{ color: getFloatRangeColor(item.float_range) + ' !important', backgroundColor: 'rgba(0, 0, 0, 0.7)', borderColor: getFloatRangeColor(item.float_range) }">
                     {{ item.float_range }}
-                  </span>
-                </div>
-                <div class="info-row" v-if="item.Rarity">
-                  <span class="info-label">稀有度:</span>
-                  <span class="rarity-text" :style="`color: ${getRarityColor(item.Rarity)} !important; font-weight: 600 !important;`">
+                  </el-tag>
+                  <el-tag v-if="item.Rarity" size="small" class="badge-item" :style="{ color: getRarityColor(item.Rarity) + ' !important', backgroundColor: 'rgba(0, 0, 0, 0.7)', borderColor: getRarityColor(item.Rarity) }">
                     {{ item.Rarity }}
-                  </span>
+                  </el-tag>
                 </div>
-                <div class="info-row">
-                  <span class="info-label">类型:</span>
-                  <span>{{ item.weapon_type || '-' }}</span>
+                
+                <img
+                  v-if="getWeaponImage(item.steam_hash_name)"
+                  :src="getWeaponImage(item.steam_hash_name)"
+                  :alt="item.item_name"
+                  class="weapon-card-img"
+                  @error="(e) => handleImageError(e, item.steam_hash_name)"
+                />
+                <div v-else class="image-placeholder">
+                  <span>无图片</span>
                 </div>
-                <div class="info-row">
-                  <span class="info-label">悠悠ID:</span>
-                  <span>{{ item.yyyp_id || '-' }}</span>
+              </div>
+              <div class="card-content">
+                <div class="card-title" :title="item.market_listing_item_name">
+                  {{ item.market_listing_item_name }}
                 </div>
-                <div class="info-row">
-                  <span class="info-label">BUFF ID:</span>
-                  <span>{{ item.buff_id || '-' }}</span>
+                <div class="card-info">
+                  <div class="info-row" v-if="item.float_range">
+                    <span class="info-label">磨损:</span>
+                    <span class="float-range-text" :style="`color: ${getFloatRangeColor(item.float_range)} !important; font-weight: 600 !important;`">
+                      {{ item.float_range }}
+                    </span>
+                  </div>
+                  <div class="info-row" v-if="item.Rarity">
+                    <span class="info-label">稀有度:</span>
+                    <span class="rarity-text" :style="`color: ${getRarityColor(item.Rarity)} !important; font-weight: 600 !important;`">
+                      {{ item.Rarity }}
+                    </span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">类型:</span>
+                    <span>{{ item.weapon_type || '-' }}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">悠悠ID:</span>
+                    <span>{{ item.yyyp_id || '-' }}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">BUFF ID:</span>
+                    <span>{{ item.buff_id || '-' }}</span>
+                  </div>
                 </div>
               </div>
             </div>
