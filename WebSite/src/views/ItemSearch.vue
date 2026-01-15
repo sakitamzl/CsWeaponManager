@@ -364,9 +364,8 @@
               {{ buffCurrentWeapon?.market_listing_item_name || '-' }}
             </div>
             <div class="commodity-card-info">
-              <div class="info-item">
-                <span class="info-label">磨损值:</span>
-                <span class="info-value">{{ item.abrade || '-' }}</span>
+              <div class="wear-progress" v-if="item.abrade">
+                <div class="wear-bar" :style="{ width: (parseFloat(item.abrade) * 100) + '%', backgroundColor: getWearColor(item.abrade) }"></div>
               </div>
               <div class="info-item">
                 <span class="info-label">价格:</span>
@@ -461,9 +460,8 @@
               {{ yyypCurrentWeapon?.market_listing_item_name || '-' }}
             </div>
             <div class="commodity-card-info">
-              <div class="info-item">
-                <span class="info-label">磨损值:</span>
-                <span class="info-value">{{ item.abrade || '-' }}</span>
+              <div class="wear-progress" v-if="item.abrade">
+                <div class="wear-bar" :style="{ width: (parseFloat(item.abrade) * 100) + '%', backgroundColor: getWearColor(item.abrade) }"></div>
               </div>
               <div class="info-item">
                 <span class="info-label">价格:</span>
@@ -998,6 +996,17 @@ export default {
         '战痕累累': '#f44336'       // 红色 - Battle-Scarred
       }
       return colorMap[floatRange] || '#fff'
+    }
+
+    // 根据磨损值返回颜色（用于进度条）
+    const getWearColor = (abrade) => {
+      if (!abrade) return '#4caf50'
+      const wear = parseFloat(abrade)
+      if (wear <= 0.07) return '#4caf50'      // 崭新出厂 - 绿色
+      if (wear <= 0.15) return '#8bc34a'      // 略有磨损 - 浅绿色
+      if (wear <= 0.38) return '#ffc107'      // 久经沙场 - 黄色
+      if (wear <= 0.45) return '#ff9800'      // 破损不堪 - 橙色
+      return '#f44336'                        // 战痕累累 - 红色
     }
 
     // 获取外观（磨损）颜色样式
@@ -1849,6 +1858,7 @@ export default {
       getWeaponTypeColor,
       getFloatRangeType,
       getFloatRangeColor,
+      getWearColor,
       getExteriorColor,
       handleSizeChange,
       handleCurrentChange
@@ -3070,7 +3080,7 @@ export default {
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 1rem;
   padding: 1rem;
-  max-height: calc(100vh - 400px);
+  max-height: 380px;
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -3092,6 +3102,24 @@ export default {
 
 .commodity-card-grid::-webkit-scrollbar-thumb:hover {
   background: var(--el-color-primary);
+}
+
+/* 磨损进度条 */
+.wear-progress {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+  position: relative;
+}
+
+.wear-bar {
+  height: 100%;
+  transition: width 0.3s ease, background-color 0.3s ease;
+  border-radius: 3px;
+  box-shadow: 0 0 8px currentColor;
 }
 
 .commodity-card {
