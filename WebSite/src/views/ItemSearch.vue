@@ -631,7 +631,7 @@ export default {
     const selectedExterior = ref('') // 选择的外观筛选
     const selectedStatTrak = ref('normal') // 选择的StatTrak筛选，默认非StatTrak™
     const showSearchResults = ref(false) // 是否展开搜索结果
-    const displayMode = ref('list') // 显示模式：'list' 或 'card'
+    const displayMode = ref('card') // 显示模式：'list' 或 'card'，默认卡片模式
     const image404Cache = ref(new Set()) // 图片404缓存
     const activePopoverRow = ref(null) // 当前激活的 popover 行
     
@@ -1708,7 +1708,7 @@ export default {
         + '.png'
 
       // 直接使用路径，不通过 getApiUrl（因为 WEAPON_IMAGE 已经包含 /api）
-      return `/api/v1/images/weapon_image/${imageName}`
+      return `/api/api/v1/images/weapon_image/${imageName}`
     }
 
     // 处理图片加载错误
