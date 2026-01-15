@@ -254,21 +254,35 @@
       </div>
 
       <!-- 卡片模式 -->
-      <div v-show="showSearchResults && displayMode === 'card'" class="card-grid-container">
-        <div class="card-grid">
-          <div
-            v-for="item in paginatedResults"
-            :key="item.market_listing_item_name"
-            class="search-result-card"
-            @click="handleCardClick(item, $event)"
-          >
+      <div v-show="showSearchResults && displayMode === 'card'" class="card-mode-wrapper">
+        <!-- 卡片模式分页器 - 顶部 -->
+        <div class="pagination-container pagination-top">
+          <el-pagination
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            :total="filteredResults.length"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+          />
+        </div>
+        
+        <div class="card-grid-container">
+          <div class="card-grid">
+            <div
+              v-for="item in paginatedResults"
+              :key="item.market_listing_item_name"
+              class="search-result-card"
+              @click="handleCardClick(item, $event)"
+            >
             <div class="card-image">
               <!-- 左上角标签 -->
               <div class="card-badges">
-                <el-tag v-if="item.float_range" size="small" class="badge-item" :style="{ color: getFloatRangeColor(item.float_range), backgroundColor: 'rgba(0, 0, 0, 0.7)', borderColor: getFloatRangeColor(item.float_range) }">
+                <el-tag v-if="item.float_range" size="small" class="badge-item" :style="{ color: getFloatRangeColor(item.float_range) + ' !important', backgroundColor: 'rgba(0, 0, 0, 0.7)', borderColor: getFloatRangeColor(item.float_range) }">
                   {{ item.float_range }}
                 </el-tag>
-                <el-tag v-if="item.Rarity" size="small" class="badge-item" :style="{ color: getRarityColor(item.Rarity), backgroundColor: 'rgba(0, 0, 0, 0.7)', borderColor: getRarityColor(item.Rarity) }">
+                <el-tag v-if="item.Rarity" size="small" class="badge-item" :style="{ color: getRarityColor(item.Rarity) + ' !important', backgroundColor: 'rgba(0, 0, 0, 0.7)', borderColor: getRarityColor(item.Rarity) }">
                   {{ item.Rarity }}
                 </el-tag>
               </div>
@@ -291,13 +305,13 @@
               <div class="card-info">
                 <div class="info-row" v-if="item.float_range">
                   <span class="info-label">磨损:</span>
-                  <span class="float-range-text" :style="{ color: getFloatRangeColor(item.float_range), fontWeight: '600' }">
+                  <span class="float-range-text" :style="`color: ${getFloatRangeColor(item.float_range)} !important; font-weight: 600 !important;`">
                     {{ item.float_range }}
                   </span>
                 </div>
                 <div class="info-row" v-if="item.Rarity">
                   <span class="info-label">稀有度:</span>
-                  <span class="rarity-text" :style="{ color: getRarityColor(item.Rarity), fontWeight: '600' }">
+                  <span class="rarity-text" :style="`color: ${getRarityColor(item.Rarity)} !important; font-weight: 600 !important;`">
                     {{ item.Rarity }}
                   </span>
                 </div>
@@ -314,41 +328,9 @@
                   <span>{{ item.buff_id || '-' }}</span>
                 </div>
               </div>
-              <div class="card-actions">
-                <el-button 
-                  type="warning" 
-                  size="small" 
-                  @click.stop="selectPlatform(item, 'yyyp')"
-                  :loading="isSearching && searchSource === 'yyyp'"
-                >
-                  悠悠有品
-                </el-button>
-                <el-button 
-                  type="info" 
-                  size="small" 
-                  class="buff-button"
-                  @click.stop="selectPlatform(item, 'buff')"
-                  :loading="isSearching && searchSource === 'buff'"
-                >
-                  BUFF
-                </el-button>
-              </div>
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- 卡片模式分页器 -->
-      <div class="pagination-container" v-show="showSearchResults && displayMode === 'card'">
-        <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          :page-sizes="[10, 20, 50, 100]"
-          :total="filteredResults.length"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
       </div>
     </div>
 
@@ -1029,17 +1011,45 @@ export default {
     // 获取稀有度颜色样式
     const getRarityColor = (rarity) => {
       if (!rarity) return ''
+      
+      // 移除"级"后缀进行匹配
+      const normalizedRarity = rarity.replace(/级$/, '')
+      
       const rarityColorMap = {
         '违禁': '#e4ae39',      // 金色
         '隐秘': '#eb4b4b',      // 红色
         '保密': '#d32ce6',      // 紫色/粉色
         '受限': '#8847ff',      // 紫色
-        '军规级': '#4b69ff',    // 蓝色
-        '工业级': '#5e98d9',    // 浅蓝色
-        '消费级': '#b0c3d9',    // 灰蓝色
-        '普通级': '#b0c3d9'     // 灰蓝色
+        '军规': '#4b69ff',      // 蓝色
+        '工业': '#5e98d9',      // 浅蓝色
+        '消费': '#b0c3d9',      // 灰蓝色
+        '普通': '#b0c3d9'       // 灰蓝色
       }
-      return rarityColorMap[rarity] || '#fff'
+      return rarityColorMap[normalizedRarity] || '#fff'
+    }
+
+    // 获取武器类型颜色样式
+    const getWeaponTypeColor = (weaponType) => {
+      if (!weaponType) return '#909399'
+      const typeColorMap = {
+        '手枪': '#67c23a',        // 绿色
+        '步枪': '#409eff',        // 蓝色
+        '狙击步枪': '#e6a23c',    // 橙色
+        '冲锋枪': '#909399',      // 灰色
+        '霰弹枪': '#f56c6c',      // 红色
+        '机枪': '#c45656',        // 深红色
+        '挂件': '#d4a5ff',        // 浅紫色
+        '挂件（纪念品）': '#ffd700', // 金色
+        '匕首': '#ff4757',        // 亮红色
+        '手套': '#ffa502',        // 橙黄色
+        '探员': '#5f27cd',        // 紫色
+        '印花': '#48dbfb',        // 青色
+        '涂鸦': '#ff6348',        // 珊瑚红
+        '音乐盒': '#1dd1a1',      // 青绿色
+        '收藏品': '#ee5a6f',      // 粉红色
+        '容器': '#c8d6e5'         // 浅灰蓝色
+      }
+      return typeColorMap[weaponType] || '#909399'
     }
 
     // 获取磨损等级的标签类型
@@ -1914,6 +1924,7 @@ export default {
       handleViewDetails,
       getRarityType,
       getRarityColor,
+      getWeaponTypeColor,
       getFloatRangeType,
       getFloatRangeColor,
       getExteriorColor,
@@ -2267,6 +2278,17 @@ export default {
   display: flex;
   justify-content: center;
   padding: clamp(1rem, 2vw, 1.5rem) 0;
+}
+
+.pagination-top {
+  padding-bottom: clamp(0.8rem, 1.5vw, 1.2rem);
+  padding-top: clamp(0.5rem, 1vw, 0.8rem);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: clamp(0.8rem, 1.5vw, 1.2rem);
+}
+
+.card-mode-wrapper {
+  width: 100%;
 }
 
 .no-results-card {
@@ -2941,9 +2963,11 @@ export default {
 }
 
 .search-result-card .card-badges .badge-item {
-  font-size: 10px;
+  font-size: 11px !important;
   padding: 3px 6px;
-  font-weight: 600;
+  font-weight: 600 !important;
+  font-family: inherit !important;
+  line-height: 1.2 !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(4px);
 }
@@ -3015,20 +3039,27 @@ export default {
 }
 
 .search-result-card .info-row span {
-  color: inherit;
+  color: #fff;
 }
 
 .search-result-card .info-label {
-  color: #888;
+  color: #888 !important;
   min-width: 40px;
 }
 
 .search-result-card .rarity-text {
   font-weight: 600 !important;
+  text-shadow: 0 0 4px currentColor;
 }
 
 .search-result-card .float-range-text {
   font-weight: 600 !important;
+  text-shadow: 0 0 4px currentColor;
+}
+
+.search-result-card .info-row:has(.rarity-text) span:not(.info-label),
+.search-result-card .info-row:has(.float-range-text) span:not(.info-label) {
+  color: inherit !important;
 }
 
 .search-result-card .card-actions {
