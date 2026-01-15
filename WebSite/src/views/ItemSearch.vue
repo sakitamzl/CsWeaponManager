@@ -342,103 +342,76 @@
         <div class="buff-weapon-info">
           <span class="weapon-name">{{ buffCurrentWeapon?.market_listing_item_name }}</span>
           <span class="weapon-id">商品ID: {{ buffCurrentWeapon?.buff_id }}</span>
-          <span class="commodity-count">当前页: {{ paginatedBuffCommodities.length }} 件</span>
-          <span class="total-count">在售总数: {{ buffTotalCount }} 件</span>
+          <span class="commodity-count">在售: {{ buffCommodities.length }} 件</span>
+          <span class="total-count">总数: {{ buffTotalCount }} 件</span>
           <span class="buy-count">求购: {{ buffBuyNum }} 件</span>
           <span class="rent-count">租赁: {{ buffRentNum }} 件</span>
         </div>
       </div>
       
-      <el-table 
-        v-show="showBuffTable"
-        :data="paginatedBuffCommodities" 
-        style="width: 100%"
-        :default-sort="{ prop: 'price', order: 'ascending' }"
-        v-loading="isSearching && searchSource === 'buff'"
-        element-loading-text="加载中..."
-        element-loading-background="rgba(0, 0, 0, 0.8)"
-      >
-        <el-table-column label="商品图片" width="100" align="center">
-          <template #default="{ row }">
-            <img :src="row.iconUrl" class="commodity-icon" @error="handleImageError" />
-          </template>
-        </el-table-column>
-        
-        <el-table-column label="数据库名称" min-width="200" align="center" show-overflow-tooltip>
-          <template #default="{ row }">
-            <span>{{ buffCurrentWeapon?.market_listing_item_name || '-' }}</span>
-          </template>
-        </el-table-column>
-        
-        <el-table-column label="磨损值" width="180" align="center" sortable prop="abrade">
-          <template #default="{ row }">
-            <span>{{ row.abrade || '-' }}</span>
-          </template>
-        </el-table-column>
-        
-        <el-table-column label="价格" width="100" align="center" sortable prop="price">
-          <template #default="{ row }">
-            <span class="price-text">{{ row.price }}</span>
-          </template>
-        </el-table-column>
-        
-        <el-table-column label="模板编号" width="100" align="center">
-          <template #default="{ row }">
-            <span>{{ row.paintSeed || '-' }}</span>
-          </template>
-        </el-table-column>
-        
-        <el-table-column label="印花" width="120" align="center">
-          <template #default="{ row }">
-            <el-button 
-              v-if="row.stickers && row.stickers.length > 0"
-              type="info" 
-              size="small"
-              @click="showStickersDialog(row)"
-              style="background-color: #303133; border-color: #303133; color: white;"
-            >
-              查看({{ row.stickers.length }})
-            </el-button>
-            <span v-else style="color: #909399;">无</span>
-          </template>
-        </el-table-column>
-        
-        <el-table-column label="卖家描述" min-width="200" align="center" show-overflow-tooltip>
-          <template #default="{ row }">
-            <span>{{ row.description || '-' }}</span>
-          </template>
-        </el-table-column>
-        
-        <el-table-column label="议价" width="80" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.allowBargain ? 'success' : 'info'" size="small">
-              {{ row.allowBargain ? '可议价' : '不可' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        
-        <el-table-column label="操作" width="100" align="center" fixed="right">
-          <template #default="{ row }">
-            <el-button 
-              type="success" 
-              size="small" 
-              @click="handleBuyBuffCommodity(row)"
-            >
-              购买
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-      
-      <!-- BUFF分页器 -->
-      <div class="pagination-container" v-show="showBuffTable">
-        <el-pagination
-          v-model:current-page="buffCurrentPage"
-          :page-size="buffPageSize"
-          :total="buffCommodities.length"
-          layout="total, prev, pager, next, jumper"
-          @current-change="handleBuffPageChange"
-        />
+      <!-- BUFF卡片模式 -->
+      <div v-show="showBuffTable" class="commodity-card-grid" v-loading="isSearching && searchSource === 'buff'" element-loading-text="加载中..." element-loading-background="rgba(0, 0, 0, 0.8)">
+        <div
+          v-for="(item, index) in buffCommodities"
+          :key="index"
+          class="commodity-card"
+        >
+          <div class="commodity-card-image">
+            <img :src="item.iconUrl" class="commodity-icon" @error="handleImageError" />
+          </div>
+          <div class="commodity-card-content">
+            <div class="commodity-card-title" :title="buffCurrentWeapon?.market_listing_item_name">
+              {{ buffCurrentWeapon?.market_listing_item_name || '-' }}
+            </div>
+            <div class="commodity-card-info">
+              <div class="info-item">
+                <span class="info-label">磨损值:</span>
+                <span class="info-value">{{ item.abrade || '-' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">价格:</span>
+                <span class="info-value price-highlight">¥{{ item.price }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">模板:</span>
+                <span class="info-value">{{ item.paintSeed || '-' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">印花:</span>
+                <el-button 
+                  v-if="item.stickers && item.stickers.length > 0"
+                  type="info" 
+                  size="small"
+                  @click="showStickersDialog(item)"
+                  style="background-color: #303133; border-color: #303133; color: white; padding: 2px 8px; font-size: 12px;"
+                >
+                  查看({{ item.stickers.length }})
+                </el-button>
+                <span v-else class="info-value">无</span>
+              </div>
+              <div class="info-item" v-if="item.description">
+                <span class="info-label">描述:</span>
+                <span class="info-value description-text" :title="item.description">{{ item.description }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">议价:</span>
+                <el-tag :type="item.allowBargain ? 'success' : 'info'" size="small">
+                  {{ item.allowBargain ? '可议价' : '不可' }}
+                </el-tag>
+              </div>
+            </div>
+            <div class="commodity-card-actions">
+              <el-button 
+                type="success" 
+                size="small" 
+                @click="handleBuyBuffCommodity(item)"
+                style="width: 100%;"
+              >
+                购买
+              </el-button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -465,119 +438,86 @@
         <div class="yyyp-weapon-info">
           <span class="weapon-name">{{ yyypCurrentWeapon?.market_listing_item_name }}</span>
           <span class="weapon-id">模板ID: {{ yyypCurrentWeapon?.yyyp_id }}</span>
-          <span class="commodity-count">当前页: {{ paginatedYYYPCommodities.length }} 件</span>
-          <span class="total-count">在售总数: {{ yyypTotalCount }} 件</span>
+          <span class="commodity-count">在售: {{ yyypCommodities.length }} 件</span>
+          <span class="total-count">总数: {{ yyypTotalCount }} 件</span>
         </div>
       </div>
       
-      <el-table 
-        v-show="showYYYPTable"
-        :data="paginatedYYYPCommodities" 
-        style="width: 100%"
-        :default-sort="{ prop: 'price', order: 'ascending' }"
-        v-loading="isSearching && searchSource === 'yyyp'"
-        element-loading-text="加载中..."
-        element-loading-background="rgba(0, 0, 0, 0.8)"
-      >
-        <el-table-column label="商品图片" width="100" align="center">
-          <template #default="{ row }">
-            <img :src="row.iconUrl" class="commodity-icon" @error="handleImageError" />
-          </template>
-        </el-table-column>
-        
-        <el-table-column prop="commodityName" label="商品名称" min-width="200" show-overflow-tooltip />
-        
-        <el-table-column label="数据库名称" min-width="200" align="center" show-overflow-tooltip>
-          <template #default="{ row }">
-            <span>{{ yyypCurrentWeapon?.market_listing_item_name || '-' }}</span>
-          </template>
-        </el-table-column>
-        
-        <el-table-column label="磨损值" width="180" align="center" sortable prop="abrade">
-          <template #default="{ row }">
-            <span>{{ row.abrade || '-' }}</span>
-          </template>
-        </el-table-column>
-        
-        <el-table-column label="价格" width="100" align="center" sortable prop="price">
-          <template #default="{ row }">
-            <span class="price-text">{{ row.price }}</span>
-          </template>
-        </el-table-column>
-        
-        <el-table-column label="模板编号" width="100" align="center">
-          <template #default="{ row }">
-            <span>{{ row.paintSeed || '-' }}</span>
-          </template>
-        </el-table-column>
-        
-        <el-table-column label="印花" width="120" align="center">
-          <template #default="{ row }">
-            <el-button 
-              v-if="row.stickers && row.stickers.length > 0"
-              type="info" 
-              size="small"
-              @click="showStickersDialog(row)"
-              style="background-color: #303133; border-color: #303133; color: white;"
-            >
-              查看({{ row.stickers.length }})
-            </el-button>
-            <span v-else style="color: #909399;">无</span>
-          </template>
-        </el-table-column>
-        
-        <el-table-column label="改名" width="200" align="center">
-          <template #default="{ row }">
-            <div v-if="row.haveNameTag === 1">
-              <!-- 已获取到改名信息，直接显示文本 -->
-              <div v-if="row.nameTagText">
-                <span style="color: #e6a23c; font-weight: 600; font-size: 13px;" :title="row.nameTagText">
-                  {{ row.nameTagText }}
+      <!-- 悠悠有品卡片模式 -->
+      <div v-show="showYYYPTable" class="commodity-card-grid" v-loading="isSearching && searchSource === 'yyyp'" element-loading-text="加载中..." element-loading-background="rgba(0, 0, 0, 0.8)">
+        <div
+          v-for="(item, index) in yyypCommodities"
+          :key="index"
+          class="commodity-card"
+        >
+          <div class="commodity-card-image">
+            <img :src="item.iconUrl" class="commodity-icon" @error="handleImageError" />
+          </div>
+          <div class="commodity-card-content">
+            <div class="commodity-card-title" :title="item.commodityName">
+              {{ item.commodityName }}
+            </div>
+            <div class="commodity-card-subtitle" :title="yyypCurrentWeapon?.market_listing_item_name">
+              {{ yyypCurrentWeapon?.market_listing_item_name || '-' }}
+            </div>
+            <div class="commodity-card-info">
+              <div class="info-item">
+                <span class="info-label">磨损值:</span>
+                <span class="info-value">{{ item.abrade || '-' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">价格:</span>
+                <span class="info-value price-highlight">¥{{ item.price }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">模板:</span>
+                <span class="info-value">{{ item.paintSeed || '-' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">印花:</span>
+                <el-button 
+                  v-if="item.stickers && item.stickers.length > 0"
+                  type="info" 
+                  size="small"
+                  @click="showStickersDialog(item)"
+                  style="background-color: #303133; border-color: #303133; color: white; padding: 2px 8px; font-size: 12px;"
+                >
+                  查看({{ item.stickers.length }})
+                </el-button>
+                <span v-else class="info-value">无</span>
+              </div>
+              <div class="info-item" v-if="item.haveNameTag === 1">
+                <span class="info-label">改名:</span>
+                <div v-if="item.nameTagText" class="info-value nametag-text" :title="item.nameTagText">
+                  {{ item.nameTagText }}
+                </div>
+                <span 
+                  v-else
+                  @click="fetchSingleNameTag(item)"
+                  class="info-value nametag-parse"
+                  :style="{ opacity: item.nameTagLoading ? 0.5 : 1 }"
+                  :title="item.nameTagLoading ? '加载中...' : '点击解析改名'"
+                >
+                  🏷️ 解析名称
                 </span>
               </div>
-              <!-- 未获取改名信息，显示图标 -->
-              <span 
-                v-else
-                @click="fetchSingleNameTag(row)"
-                style="cursor: pointer; font-size: 13px; user-select: none; color: #e6a23c; font-weight: 600;"
-                :style="{ opacity: row.nameTagLoading ? 0.5 : 1 }"
-                :title="row.nameTagLoading ? '加载中...' : '点击解析改名'"
-              >
-                🏷️ 解析名称
-              </span>
+              <div class="info-item">
+                <span class="info-label">卖家:</span>
+                <span class="info-value">{{ item.userNickName || '-' }}</span>
+              </div>
             </div>
-            <span v-else style="color: #909399;">-</span>
-          </template>
-        </el-table-column>
-        
-        <el-table-column label="卖家" min-width="120" align="center">
-          <template #default="{ row }">
-            <span>{{ row.userNickName || '-' }}</span>
-          </template>
-        </el-table-column>
-        
-        <el-table-column label="操作" width="100" align="center" fixed="right">
-          <template #default="{ row }">
-            <el-button 
-              type="success" 
-              size="small" 
-              @click="handleBuyCommodity(row)"
-            >
-              购买
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-      
-      <!-- 悠悠有品分页器 -->
-      <div class="pagination-container" v-show="showYYYPTable">
-        <el-pagination
-          v-model:current-page="yyypCurrentPage"
-          :page-size="yyypPageSize"
-          :total="yyypCommodities.length"
-          layout="total, prev, pager, next, jumper"
-          @current-change="handleYYYPPageChange"
-        />
+            <div class="commodity-card-actions">
+              <el-button 
+                type="success" 
+                size="small" 
+                @click="handleBuyCommodity(item)"
+                style="width: 100%;"
+              >
+                购买
+              </el-button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -3122,6 +3062,173 @@ export default {
   width: 100% !important;
   margin: 0 !important;
   flex: none !important;
+}
+
+/* 商品卡片网格布局 */
+.commodity-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+  max-height: calc(100vh - 400px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* 滚动条样式 */
+.commodity-card-grid::-webkit-scrollbar {
+  width: 8px;
+}
+
+.commodity-card-grid::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+.commodity-card-grid::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+.commodity-card-grid::-webkit-scrollbar-thumb:hover {
+  background: var(--el-color-primary);
+}
+
+.commodity-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  height: 340px;
+}
+
+.commodity-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-color: var(--el-color-primary);
+}
+
+.commodity-card-image {
+  width: 100%;
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.commodity-card-image .commodity-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.commodity-card-content {
+  padding: 0.75rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  overflow: hidden;
+}
+
+.commodity-card-title {
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.3;
+  min-height: 2.6em;
+}
+
+.commodity-card-subtitle {
+  font-size: 0.7rem;
+  color: #999;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.commodity-card-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  overflow-y: auto;
+}
+
+.commodity-card-info .info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 20px;
+}
+
+.commodity-card-info .info-label {
+  color: #999;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.commodity-card-info .info-value {
+  color: #ccc;
+  font-size: 0.7rem;
+  text-align: right;
+  flex: 1;
+  margin-left: 0.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.commodity-card-info .price-highlight {
+  color: #fff;
+  font-weight: bold;
+  font-size: 0.75rem;
+}
+
+.commodity-card-info .description-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: normal;
+  font-size: 0.7rem;
+  line-height: 1.3;
+}
+
+.commodity-card-info .nametag-text {
+  color: #e6a23c;
+  font-weight: 600;
+  font-size: 0.7rem;
+}
+
+.commodity-card-info .nametag-parse {
+  cursor: pointer;
+  user-select: none;
+  color: #e6a23c;
+  font-weight: 600;
+  font-size: 0.7rem;
+}
+
+.commodity-card-info .nametag-parse:hover {
+  opacity: 0.8;
+}
+
+.commodity-card-actions {
+  margin-top: 0.5rem;
+  flex-shrink: 0;
 }
 </style>
 
