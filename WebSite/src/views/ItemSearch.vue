@@ -317,7 +317,6 @@
             </div>
           </div>
         </div>
-      </div>
     </div>
 
     <!-- BUFF商品列表 -->
