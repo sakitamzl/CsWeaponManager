@@ -92,19 +92,38 @@
           <el-icon><CaretRight v-if="!showSearchResults" /><CaretBottom v-if="showSearchResults" /></el-icon>
           武器搜索结果 ({{ searchResults.length }} 件)
         </span>
-        <el-button 
-          type="primary" 
-          size="small" 
-          :icon="Refresh" 
-          @click.stop="handleRefreshSearch"
-          :loading="isSearching && searchSource === 'weapon'"
-        >
-          刷新列表
-        </el-button>
+        <div class="header-actions">
+          <el-button-group style="margin-right: 10px;">
+            <el-button 
+              :type="displayMode === 'list' ? 'primary' : ''" 
+              @click="displayMode = 'list'"
+              size="small"
+            >
+              列表
+            </el-button>
+            <el-button 
+              :type="displayMode === 'card' ? 'primary' : ''" 
+              @click="displayMode = 'card'"
+              size="small"
+            >
+              卡片
+            </el-button>
+          </el-button-group>
+          <el-button 
+            type="primary" 
+            size="small" 
+            :icon="Refresh" 
+            @click.stop="handleRefreshSearch"
+            :loading="isSearching && searchSource === 'weapon'"
+          >
+            刷新列表
+          </el-button>
+        </div>
       </div>
       
+      <!-- 列表模式 -->
       <el-table 
-        v-show="showSearchResults" 
+        v-show="showSearchResults && displayMode === 'list'" 
         :data="paginatedResults" 
         style="width: 100%"
         :default-sort="{ prop: 'name', order: 'ascending' }"
@@ -113,6 +132,21 @@
         element-loading-background="rgba(0, 0, 0, 0.8)"
       >
         <el-table-column type="index" label="#" width="60" align="center" />
+        
+        <el-table-column label="图片" width="120" align="center">
+          <template #default="{ row }">
+            <div class="weapon-image-cell">
+              <img
+                v-if="getWeaponImage(row.steam_hash_name)"
+                :src="getWeaponImage(row.steam_hash_name)"
+                :alt="row.item_name"
+                class="weapon-img"
+                @error="(e) => handleImageError(e, row.steam_hash_name)"
+              />
+              <span v-else class="no-image">无图</span>
+            </div>
+          </template>
+        </el-table-column>
         
         <el-table-column label="饰品名称" min-width="250" show-overflow-tooltip>
           <template #default="{ row }">
@@ -207,7 +241,89 @@
       </el-table>
 
       <!-- 分页器 -->
-      <div class="pagination-container" v-show="showSearchResults">
+      <div class="pagination-container" v-show="showSearchResults && displayMode === 'list'">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="filteredResults.length"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
+
+      <!-- 卡片模式 -->
+      <div v-show="showSearchResults && displayMode === 'card'" class="card-grid-container">
+        <div class="card-grid">
+          <div
+            v-for="item in paginatedResults"
+            :key="item.market_listing_item_name"
+            class="search-result-card"
+            @click="handleCardClick(item)"
+          >
+            <div class="card-image">
+              <img
+                v-if="getWeaponImage(item.steam_hash_name)"
+                :src="getWeaponImage(item.steam_hash_name)"
+                :alt="item.item_name"
+                class="weapon-card-img"
+                @error="(e) => handleImageError(e, item.steam_hash_name)"
+              />
+              <div v-else class="image-placeholder">
+                <span>无图片</span>
+              </div>
+            </div>
+            <div class="card-content">
+              <div class="card-title" :title="item.market_listing_item_name">
+                {{ item.market_listing_item_name }}
+              </div>
+              <div class="card-info">
+                <div class="info-row">
+                  <span class="info-label">类型:</span>
+                  <el-tag size="small" type="info">{{ item.weapon_type || '-' }}</el-tag>
+                </div>
+                <div class="info-row" v-if="item.Rarity">
+                  <span class="info-label">稀有度:</span>
+                  <span class="rarity-text" :style="{ color: getRarityColor(item.Rarity) }">
+                    {{ item.Rarity }}
+                  </span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">悠悠ID:</span>
+                  <span>{{ item.yyyp_id || '-' }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">BUFF ID:</span>
+                  <span>{{ item.buff_id || '-' }}</span>
+                </div>
+              </div>
+              <div class="card-actions">
+                <el-button 
+                  type="warning" 
+                  size="small" 
+                  @click.stop="selectPlatform(item, 'yyyp')"
+                  :loading="isSearching && searchSource === 'yyyp'"
+                >
+                  悠悠有品
+                </el-button>
+                <el-button 
+                  type="info" 
+                  size="small" 
+                  class="buff-button"
+                  @click.stop="selectPlatform(item, 'buff')"
+                  :loading="isSearching && searchSource === 'buff'"
+                >
+                  BUFF
+                </el-button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 卡片模式分页器 -->
+      <div class="pagination-container" v-show="showSearchResults && displayMode === 'card'">
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
@@ -515,6 +631,9 @@ export default {
     const selectedExterior = ref('') // 选择的外观筛选
     const selectedStatTrak = ref('normal') // 选择的StatTrak筛选，默认非StatTrak™
     const showSearchResults = ref(false) // 是否展开搜索结果
+    const displayMode = ref('list') // 显示模式：'list' 或 'card'
+    const image404Cache = ref(new Set()) // 图片404缓存
+    const activePopoverRow = ref(null) // 当前激活的 popover 行
     
     // BUFF商品列表
     const buffCommodities = ref([])
@@ -593,10 +712,6 @@ export default {
       const end = start + yyypPageSize.value
       return yyypCommodities.value.slice(start, end)
     })
-
-    const handleImageError = (event) => {
-      event.target.src = '/icons/default-weapon.png'
-    }
 
     // 预加载图片（相同URL只加载一次）
     const preloadImages = (commodityList) => {
@@ -1331,9 +1446,6 @@ export default {
         width: '900px'
       })
     }
-
-    // 控制popover显示状态
-    const activePopoverRow = ref(null)
     
     // 切换popover显示
     const togglePopover = (row) => {
@@ -1580,6 +1692,41 @@ export default {
       yyypCurrentPage.value = val
     }
 
+    // 获取武器图片路径
+    const getWeaponImage = (steamHashName) => {
+      if (!steamHashName) {
+        return null
+      }
+      // 检查是否已经在404缓存中
+      if (image404Cache.value.has(steamHashName)) {
+        return null
+      }
+      // 将空格和竖线分别替换为下划线，并添加.png扩展名
+      const imageName = steamHashName
+        .replace(/\s*\|\s*/g, '___')  // " | " -> "___"
+        .replace(/\s/g, '_')          // 剩余所有空格 -> "_"
+        + '.png'
+
+      // 直接使用路径，不通过 getApiUrl（因为 WEAPON_IMAGE 已经包含 /api）
+      return `/api/v1/images/weapon_image/${imageName}`
+    }
+
+    // 处理图片加载错误
+    const handleImageError = (event, steamHashName) => {
+      // 将失败的steam_hash_name添加到404缓存中
+      if (steamHashName) {
+        image404Cache.value.add(steamHashName)
+      }
+      // 设置默认图片或隐藏
+      event.target.style.display = 'none'
+    }
+
+    // 处理卡片点击
+    const handleCardClick = (item) => {
+      // 卡片点击时显示平台选择
+      togglePopover(item)
+    }
+
     // 页面加载时获取Steam ID列表
     onMounted(async () => {
       await loadSteamIdList()
@@ -1599,6 +1746,7 @@ export default {
       selectedExterior,
       selectedStatTrak,
       showSearchResults,
+      displayMode,
       toggleSearchResults,
       handleSearchWeapon,
       handleRefreshSearch,
@@ -1607,6 +1755,9 @@ export default {
       handleStatTrakChange,
       querySearchAsync,
       handleSelect,
+      getWeaponImage,
+      handleImageError,
+      handleCardClick,
       // BUFF商品列表
       buffCommodities,
       buffCurrentWeapon,
@@ -1631,8 +1782,6 @@ export default {
       yyypCurrentPage,
       yyypPageSize,
       paginatedYYYPCommodities,
-      showSearchResults,
-      toggleSearchResults,
       toggleYYYPList,
       handleBuyCommodity,
       fetchSingleNameTag,
@@ -1648,11 +1797,12 @@ export default {
       togglePopover,
       selectPlatform,
       handleClearSearch,
-      handleImageError,
       handleViewDetails,
       getRarityType,
       getRarityColor,
-      getExteriorColor
+      getExteriorColor,
+      handleSizeChange,
+      handleCurrentChange
     }
   }
 }
@@ -2602,4 +2752,152 @@ export default {
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
+
+/* 图片显示样式 */
+.weapon-image-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px;
+}
+
+.weapon-img {
+  max-width: 100px;
+  max-height: 60px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.no-image {
+  color: #888;
+  font-size: 12px;
+}
+
+/* 卡片模式样式 */
+.card-grid-container {
+  padding: 20px;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.search-result-card {
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid var(--border-color);
+}
+
+.search-result-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  border-color: var(--primary-color);
+}
+
+.search-result-card .card-image {
+  width: 100%;
+  height: 180px;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.search-result-card .weapon-card-img {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+}
+
+.search-result-card:hover .weapon-card-img {
+  transform: scale(1.05);
+}
+
+.search-result-card .image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-size: 14px;
+}
+
+.search-result-card .card-content {
+  padding: 16px;
+}
+
+.search-result-card .card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-result-card .card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.search-result-card .info-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.search-result-card .info-label {
+  color: #888;
+  min-width: 60px;
+}
+
+.search-result-card .rarity-text {
+  font-weight: 600;
+}
+
+.search-result-card .card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.search-result-card .card-actions .el-button {
+  flex: 1;
+}
+
+/* 头部操作按钮样式 */
+.collapse-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+  user-select: none;
+}
+
+.collapse-header .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.collapse-header:hover {
+  background: var(--bg-hover);
+}
 </style>
+

@@ -106,21 +106,54 @@
       <div v-if="searchResults.length > 0" class="results-section">
         <div class="results-header">
           <span class="results-title">搜索结果 ({{ searchResults.length }} 件)</span>
-          <el-button 
-            type="text" 
-            size="small"
-            @click="handleClear"
-          >
-            清除结果
-          </el-button>
+          <div class="results-actions">
+            <el-button-group>
+              <el-button 
+                :type="displayMode === 'list' ? 'primary' : ''" 
+                @click="displayMode = 'list'"
+              >
+                列表
+              </el-button>
+              <el-button 
+                :type="displayMode === 'card' ? 'primary' : ''" 
+                @click="displayMode = 'card'"
+              >
+                卡片
+              </el-button>
+            </el-button-group>
+            <el-button 
+              type="text" 
+              size="small"
+              @click="handleClear"
+            >
+              清除结果
+            </el-button>
+          </div>
         </div>
         
-        <el-table 
-          :data="searchResults" 
-          style="width: 100%"
-          stripe
-        >
+        <!-- 列表显示 -->
+        <div v-show="displayMode === 'list'">
+          <el-table 
+            :data="searchResults" 
+            style="width: 100%"
+            stripe
+          >
           <el-table-column type="index" label="#" width="60" align="center" />
+          
+          <el-table-column label="图片" width="144" align="center">
+            <template #default="{ row }">
+              <div class="weapon-image-cell">
+                <img
+                  v-if="getWeaponImage(row.steam_hash_name)"
+                  :src="getWeaponImage(row.steam_hash_name)"
+                  :alt="row.market_listing_item_name"
+                  class="weapon-img"
+                  @error="(e) => handleImageError(e, row.steam_hash_name)"
+                />
+                <span v-else class="no-image">无图</span>
+              </div>
+            </template>
+          </el-table-column>
           
           <el-table-column label="饰品名称" min-width="300" show-overflow-tooltip>
             <template #default="{ row }">
@@ -191,6 +224,88 @@
             </template>
           </el-table-column>
         </el-table>
+        </div>
+
+        <!-- 卡片显示 -->
+        <div v-show="displayMode === 'card'" class="card-grid">
+          <div
+            v-for="item in searchResults"
+            :key="item.market_listing_item_name"
+            class="item-card"
+          >
+            <div class="card-image">
+              <img
+                v-if="getWeaponImage(item.steam_hash_name)"
+                :src="getWeaponImage(item.steam_hash_name)"
+                :alt="item.market_listing_item_name"
+                class="weapon-image"
+                @error="(e) => handleImageError(e, item.steam_hash_name)"
+              />
+              <div v-else class="image-placeholder">
+                <span>无图片</span>
+              </div>
+            </div>
+            <div class="card-content">
+              <div class="card-title" :title="item.market_listing_item_name">
+                {{ item.market_listing_item_name }}
+              </div>
+              <div class="card-info">
+                <div class="info-row">
+                  <span class="info-label">类型:</span>
+                  <el-tag size="small" type="info">{{ item.weapon_type || '-' }}</el-tag>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">稀有度:</span>
+                  <span 
+                    v-if="item.rarity"
+                    class="rarity-tag"
+                    :style="{ color: getRarityColor(item.rarity), fontWeight: 600 }"
+                  >
+                    {{ item.rarity }}
+                  </span>
+                  <span v-else>-</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">CSQAQ ID:</span>
+                  <el-tag v-if="item.csqaq_id" type="success" size="small">
+                    {{ item.csqaq_id }}
+                  </el-tag>
+                  <el-tag v-else type="info" size="small">未映射</el-tag>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">悠悠有品:</span>
+                  <span v-if="item.yyyp_Price" class="price">¥{{ item.yyyp_Price }}</span>
+                  <span v-else>-</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">在售:</span>
+                  <span>{{ item.on_sale_count || 0 }} 件</span>
+                </div>
+              </div>
+              <div class="card-actions">
+                <el-button 
+                  type="primary" 
+                  size="small"
+                  @click="handleSearchCSQAQ(item)"
+                  :disabled="!item.csqaq_id"
+                  :loading="searchingItems[item.csqaq_id]"
+                  style="flex: 1;"
+                >
+                  搜索
+                </el-button>
+                <el-button 
+                  type="success" 
+                  size="small"
+                  @click="handleOpenCSQAQ(item)"
+                  :disabled="!item.csqaq_id"
+                  style="flex: 1;"
+                >
+                  跳转QAQ
+                </el-button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- 空状态 -->
@@ -217,12 +332,19 @@
           
           <div v-else class="detail-content">
         <div class="detail-header">
-          <img 
-            v-if="currentItemDetail.goods_info.img" 
-            :src="currentItemDetail.goods_info.img" 
-            class="item-image"
-            alt="饰品图片"
-          />
+          <!-- 使用本地武器图片，与搜索结果一致 -->
+          <div class="item-image-container">
+            <img 
+              v-if="getWeaponImage(currentItemDetail.goods_info.steam_market_hash_name)" 
+              :src="getWeaponImage(currentItemDetail.goods_info.steam_market_hash_name)" 
+              class="item-image"
+              alt="饰品图片"
+              @error="(e) => handleImageError(e, currentItemDetail.goods_info.steam_market_hash_name)"
+            />
+            <div v-else class="item-image-placeholder">
+              <span>无图片</span>
+            </div>
+          </div>
           <div class="item-info">
             <h2 class="item-name">{{ currentItemDetail.goods_info.name }}</h2>
             <div class="item-tags">
@@ -322,7 +444,7 @@ import { ref, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Loading, Close } from '@element-plus/icons-vue'
 import axios from 'axios'
-import { API_CONFIG } from '@/config/api.js'
+import { API_CONFIG, apiUrls } from '@/config/api.js'
 
 const keyword = ref('')
 const isSearching = ref(false)
@@ -333,6 +455,8 @@ const isLoadingWeaponNames = ref(false)
 const searchingItems = ref({})
 const currentItemDetail = ref(null)
 const loadingDetail = ref(false)
+const displayMode = ref('card') // 'list' 或 'card' - 默认卡片模式
+const image404Cache = ref(new Set()) // 图片404缓存
 
 const filters = reactive({
   weaponType: '',
@@ -496,6 +620,32 @@ const handleSearchCSQAQ = async (row) => {
   }
 }
 
+// 获取武器图片路径
+const getWeaponImage = (steamHashName) => {
+  if (!steamHashName) {
+    return null
+  }
+  // 检查是否已经在404缓存中
+  if (image404Cache.value.has(steamHashName)) {
+    return null
+  }
+  // 将空格和竖线分别替换为下划线，并添加.png扩展名
+  const imageName = steamHashName
+    .replace(/\s*\|\s*/g, '___')  // " | " -> "___"
+    .replace(/\s/g, '_')          // 剩余所有空格 -> "_"
+    + '.png'
+
+  return apiUrls.weaponImage(imageName)
+}
+
+// 处理图片加载错误
+const handleImageError = (event, steamHashName) => {
+  if (steamHashName) {
+    image404Cache.value.add(steamHashName)
+  }
+  event.target.style.display = 'none'
+}
+
 // 关闭详细信息
 const closeDetail = () => {
   currentItemDetail.value = null
@@ -568,9 +718,127 @@ const closeDetail = () => {
   color: #ffffff;
 }
 
+.results-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
 .weapon-name {
   color: #ffffff;
   font-weight: 500;
+}
+
+.weapon-image-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 80px;
+}
+
+.weapon-img {
+  max-width: 120px;
+  max-height: 80px;
+  object-fit: contain;
+}
+
+.no-image {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+/* 卡片网格布局 */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.item-card {
+  background: #252525;
+  border: 1px solid #333;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.item-card:hover {
+  border-color: #409eff;
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.card-image {
+  width: 100%;
+  height: 160px;
+  background: #1e1e1e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid #333;
+  position: relative;
+}
+
+.card-image .weapon-image {
+  max-width: 90%;
+  max-height: 140px;
+  object-fit: contain;
+}
+
+.image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.card-content {
+  padding: 1rem;
+}
+
+.card-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  min-height: 2.8em;
+  line-height: 1.4;
+}
+
+.card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.info-label {
+  color: #909399;
+  font-weight: 500;
+}
+
+.card-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #333;
 }
 
 .rarity-tag {
@@ -688,6 +956,28 @@ const closeDetail = () => {
   border-radius: 8px;
   padding: 1rem;
   flex-shrink: 0;
+}
+
+.item-image-container {
+  width: 200px;
+  height: 150px;
+  background: #2a2a2a;
+  border-radius: 8px;
+  padding: 1rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.item-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #666;
+  font-size: 0.9rem;
 }
 
 .item-info {
