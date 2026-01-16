@@ -357,7 +357,7 @@
         <div class="buff-weapon-info">
           <span class="weapon-name">{{ buffCurrentWeapon?.market_listing_item_name }}</span>
           <span class="weapon-id">商品ID: {{ buffCurrentWeapon?.buff_id }}</span>
-          <span class="commodity-count">在售: {{ buffCommodities.length }} 件</span>
+          <span class="commodity-count">已加载: {{ buffCommodities.length }} 件</span>
           <span class="total-count">总数: {{ buffTotalCount }} 件</span>
           <span class="buy-count">求购: {{ buffBuyNum }} 件</span>
           <span class="rent-count">租赁: {{ buffRentNum }} 件</span>
@@ -365,7 +365,14 @@
       </div>
       
       <!-- BUFF卡片模式 -->
-      <div v-show="showBuffTable" class="commodity-card-grid" v-loading="isSearching && searchSource === 'buff'" element-loading-text="加载中..." element-loading-background="rgba(0, 0, 0, 0.8)">
+      <div 
+        v-show="showBuffTable" 
+        class="commodity-card-grid buff-scroll-container" 
+        v-loading="isSearching && searchSource === 'buff'" 
+        element-loading-text="加载中..." 
+        element-loading-background="rgba(0, 0, 0, 0.8)"
+        @scroll="handleBuffScroll"
+      >
         <div
           v-for="(item, index) in buffCommodities"
           :key="index"
@@ -433,6 +440,19 @@
                 <span class="info-value description-text" :title="item.description">{{ item.description }}</span>
               </div>
             </div>
+          </div>
+        </div>
+        <!-- BUFF加载更多提示 -->
+        <div class="load-more-indicator" v-if="buffCommodities.length > 0">
+          <div v-if="buffLoadingMore" class="loading-more">
+            <el-icon class="is-loading"><Loading /></el-icon>
+            <span>加载中...</span>
+          </div>
+          <div v-else-if="!buffHasMore" class="no-more-data">
+            <span>没有更多数据了</span>
+          </div>
+          <div v-else class="scroll-hint">
+            <span>下拉加载更多</span>
           </div>
         </div>
       </div>
@@ -906,6 +926,9 @@ export default {
     const showBuffTable = ref(true)  // 控制BUFF表格的展开/折叠
     const buffCurrentPage = ref(1)  // BUFF分页当前页
     const buffPageSize = ref(5)  // BUFF每页显示5条
+    const buffLoadingMore = ref(false)  // BUFF是否正在加载更多
+    const buffHasMore = ref(true)  // BUFF是否还有更多数据
+    const buffTotalPage = ref(1)  // BUFF总页数
     
     // 悠悠有品商品列表
     const yyypCommodities = ref([])
@@ -1494,6 +1517,68 @@ export default {
       }
     }
 
+    // BUFF加载更多
+    const loadMoreBuffCommodities = async () => {
+      if (buffLoadingMore.value || !buffHasMore.value || !buffCurrentWeapon.value) {
+        return
+      }
+      
+      buffLoadingMore.value = true
+      const nextPage = buffCurrentPage.value + 1
+      
+      try {
+        console.log(`加载BUFF第 ${nextPage} 页数据`)
+        
+        const requestData = {
+          steamId: selectedSteamId.value || '',
+          goodsId: buffCurrentWeapon.value.buff_id,
+          pageIndex: nextPage
+        }
+        
+        const apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/buffSpiderV1/getCommoditiesByGoodsId`
+        const response = await axios.post(apiUrl, requestData)
+        
+        if (response.data.success) {
+          const parsedData = response.data.data
+          const newCommodities = parsedData.commodityList || []
+          
+          if (newCommodities.length > 0) {
+            // 追加到现有列表
+            buffCommodities.value = [...buffCommodities.value, ...newCommodities]
+            buffCurrentPage.value = nextPage
+            
+            // 判断是否还有更多
+            buffHasMore.value = nextPage < buffTotalPage.value
+            
+            console.log(`加载了 ${newCommodities.length} 条数据，当前共 ${buffCommodities.value.length} 条`)
+            
+            // 预加载新图片
+            preloadImages(newCommodities)
+          } else {
+            buffHasMore.value = false
+          }
+        }
+      } catch (error) {
+        console.error('BUFF加载更多失败:', error)
+        ElMessage.error('加载更多失败')
+      } finally {
+        buffLoadingMore.value = false
+      }
+    }
+
+    // BUFF滚动事件处理
+    const handleBuffScroll = (event) => {
+      const target = event.target
+      const scrollTop = target.scrollTop
+      const scrollHeight = target.scrollHeight
+      const clientHeight = target.clientHeight
+      
+      // 当滚动到底部附近时（距离底部50px）加载更多
+      if (scrollHeight - scrollTop - clientHeight < 50) {
+        loadMoreBuffCommodities()
+      }
+    }
+
     // 查看商品详情（暂未对接）
     const handleViewDetail = (commodity) => {
       console.log('查看商品详情:', commodity)
@@ -1987,9 +2072,11 @@ export default {
           const buyNum = parsedData.buy_num || 0
           const sellNum = parsedData.sell_num || 0
           const rentNum = parsedData.rent_num || 0
+          const totalPage = parsedData.totalPage || 1
           
           console.log('商品列表:', commodityList)
           console.log('在售总数:', totalCount)
+          console.log('总页数:', totalPage)
           console.log('求购数:', buyNum, '在售数:', sellNum, '租赁数:', rentNum)
           
           // 更新BUFF状态，显示商品列表
@@ -1999,6 +2086,8 @@ export default {
           buffBuyNum.value = buyNum
           buffRentNum.value = rentNum
           buffCurrentPage.value = 1  // 重置分页到第一页
+          buffTotalPage.value = totalPage  // 设置总页数
+          buffHasMore.value = totalPage > 1  // 判断是否还有更多
           showBuffList.value = true
           // showYYYPList.value = false  // 允许同时显示两个列表
           showSearchResults.value = false  // 折叠搜索结果
@@ -2327,11 +2416,16 @@ export default {
       showBuffTable,
       buffCurrentPage,
       buffPageSize,
+      buffLoadingMore,
+      buffHasMore,
+      buffTotalPage,
       paginatedBuffCommodities,
       toggleBuffList,
       handleRefreshBuff,
       handleBuyBuffCommodity,
       handleBuffPageChange,
+      loadMoreBuffCommodities,
+      handleBuffScroll,
       // 悠悠有品商品列表
       yyypCommodities,
       yyypCurrentWeapon,
@@ -3826,7 +3920,7 @@ export default {
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
-  height: 340px;
+  aspect-ratio: 1 / 1;
   cursor: pointer;
 }
 
@@ -3838,7 +3932,7 @@ export default {
 
 .commodity-card-image {
   width: 100%;
-  height: 150px;
+  height: 70%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3855,11 +3949,11 @@ export default {
 }
 
 .commodity-card-content {
-  padding: 0.75rem;
-  flex: 1;
+  padding: 0.3rem 0.5rem;
+  height: 30%;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.2rem;
   overflow: hidden;
 }
 
@@ -4244,6 +4338,12 @@ export default {
 
 /* 悠悠有品滚动容器 */
 .yyyp-scroll-container {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+/* BUFF滚动容器 */
+.buff-scroll-container {
   max-height: 500px;
   overflow-y: auto;
 }
