@@ -136,6 +136,12 @@ class SteamInventoryModel(BaseModel):
                 'not_null': False,
                 'default': None,
                 'comment': '改名信息'
+            },
+            'weapon_certificate': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None,
+                'comment': '物品证书'
             }
         }
     

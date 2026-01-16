@@ -29,7 +29,7 @@
           @keyup.enter="loadInventoryData"
           clearable
         />
-        <el-select v-model="weaponTypeFilter" placeholder="武器类型" class="type-select" clearable>
+        <el-select v-model="weaponTypeFilter" placeholder="武器类型" class="filter-select" clearable>
           <el-option label="全部" value="" />
           <el-option label="步枪" value="步枪" />
           <el-option label="手枪" value="手枪" />
@@ -40,13 +40,33 @@
           <el-option label="手套" value="手套" />
           <el-option label="匕首" value="匕首" />
         </el-select>
-        <el-select v-model="floatRangeFilter" placeholder="磨损等级" class="wear-select" clearable>
+        <el-select v-model="floatRangeFilter" placeholder="磨损等级" class="filter-select" clearable>
           <el-option label="全部" value="" />
           <el-option label="崭新出厂" value="崭新出厂" />
           <el-option label="略有磨损" value="略有磨损" />
           <el-option label="久经沙场" value="久经沙场" />
           <el-option label="破损不堪" value="破损不堪" />
           <el-option label="战痕累累" value="战痕累累" />
+        </el-select>
+        <el-select v-model="pendantFilter" placeholder="挂件" class="filter-select" clearable>
+          <el-option label="全部" value="" />
+          <el-option label="有挂件" value="has" />
+          <el-option label="无挂件" value="none" />
+        </el-select>
+        <el-select v-model="stickerFilter" placeholder="印花" class="filter-select" clearable>
+          <el-option label="全部" value="" />
+          <el-option label="有印花" value="has" />
+          <el-option label="无印花" value="none" />
+        </el-select>
+        <el-select v-model="renameFilter" placeholder="改名" class="filter-select" clearable>
+          <el-option label="全部" value="" />
+          <el-option label="有改名" value="has" />
+          <el-option label="无改名" value="none" />
+        </el-select>
+        <el-select v-model="tradeRestrictionFilter" placeholder="交易限制" class="filter-select" clearable>
+          <el-option label="全部" value="" />
+          <el-option label="有交易限制" value="has" />
+          <el-option label="无交易限制" value="none" />
         </el-select>
         <el-button type="primary" @click="loadInventoryData" :loading="loading">
           搜索
@@ -83,20 +103,12 @@
           >
             {{ isMultiSelectMode ? '取消多选' : '多选' }}
           </el-button>
-          <el-button-group>
-            <el-button 
-              :type="displayMode === 'list' ? 'primary' : ''" 
-              @click="displayMode = 'list'"
-            >
-              列表
-            </el-button>
-            <el-button 
-              :type="displayMode === 'card' ? 'primary' : ''" 
-              @click="displayMode = 'card'"
-            >
-              卡片
-            </el-button>
-          </el-button-group>
+          <el-button 
+            :type="displayMode === 'list' ? 'primary' : ''" 
+            @click="toggleDisplayMode"
+          >
+            {{ displayMode === 'list' ? '列表' : '卡片' }}
+          </el-button>
         </div>
       </div>
     </div>
@@ -1328,6 +1340,10 @@ export default {
     const searchText = ref('')
     const weaponTypeFilter = ref('')
     const floatRangeFilter = ref('')
+    const pendantFilter = ref('')
+    const stickerFilter = ref('')
+    const renameFilter = ref('')
+    const tradeRestrictionFilter = ref('')
     const displayMode = ref('card') // 默认卡片显示
     const groupMode = ref(true) // 组合模式开关，默认开启
     const groupedData = ref([]) // 组合后的数据
@@ -2089,6 +2105,10 @@ export default {
       searchText.value = ''
       weaponTypeFilter.value = ''
       floatRangeFilter.value = ''
+      pendantFilter.value = ''
+      stickerFilter.value = ''
+      renameFilter.value = ''
+      tradeRestrictionFilter.value = ''
       sortConfig.value = { prop: '', order: '' }
       loadInventoryData(true) // 重置加载
     }
@@ -2494,6 +2514,11 @@ export default {
       return diff >= 0 ? 'price-profit' : 'price-loss'
     }
 
+    // 切换显示模式
+    const toggleDisplayMode = () => {
+      displayMode.value = displayMode.value === 'list' ? 'card' : 'list'
+    }
+    
     // 切换多选模式
     const toggleMultiSelectMode = () => {
       isMultiSelectMode.value = !isMultiSelectMode.value
@@ -2543,16 +2568,30 @@ export default {
       // 获取当前显示的数据
       const displayData = currentDisplayData.value
       
+      let addedCount = 0
+      let skippedCount = 0
+      
       // 遍历当前显示的物品，添加到选中列表（排除已有交易限制的）
       displayData.forEach(item => {
+        // 检查是否有交易限制
+        if (hasTradeRestriction(item)) {
+          skippedCount++
+          return
+        }
+        
         // 检查是否已经在选中列表中
         const alreadySelected = selectedItems.value.some(i => i.assetid === item.assetid)
         if (!alreadySelected) {
           selectedItems.value.push(item)
+          addedCount++
         }
       })
       
-      ElMessage.success(`已选择 ${selectedItems.value.length} 件物品`)
+      let message = `已选择 ${selectedItems.value.length} 件物品`
+      if (skippedCount > 0) {
+        message += `，已跳过 ${skippedCount} 件有交易限制的物品`
+      }
+      ElMessage.success(message)
     }
     
     // 处理卡片点击
@@ -3303,11 +3342,43 @@ export default {
 
     // 计算当前显示的数据
     const currentDisplayData = computed(() => {
+      let data
       // 只在列表模式下才使用组合数据
       if (displayMode.value === 'list' && groupMode.value) {
-        return groupedData.value
+        data = groupedData.value
+      } else {
+        data = inventoryData.value
       }
-      return inventoryData.value
+      
+      // 应用挂件筛选
+      if (pendantFilter.value === 'has') {
+        data = data.filter(item => item.pendant && item.pendant.trim() !== '')
+      } else if (pendantFilter.value === 'none') {
+        data = data.filter(item => !item.pendant || item.pendant.trim() === '')
+      }
+      
+      // 应用印花筛选
+      if (stickerFilter.value === 'has') {
+        data = data.filter(item => item.sticker && item.sticker.trim() !== '')
+      } else if (stickerFilter.value === 'none') {
+        data = data.filter(item => !item.sticker || item.sticker.trim() === '')
+      }
+      
+      // 应用改名筛选
+      if (renameFilter.value === 'has') {
+        data = data.filter(item => item.rename && item.rename.trim() !== '')
+      } else if (renameFilter.value === 'none') {
+        data = data.filter(item => !item.rename || item.rename.trim() === '')
+      }
+      
+      // 应用交易限制筛选
+      if (tradeRestrictionFilter.value === 'has') {
+        data = data.filter(item => hasTradeRestriction(item))
+      } else if (tradeRestrictionFilter.value === 'none') {
+        data = data.filter(item => !hasTradeRestriction(item))
+      }
+      
+      return data
     })
 
     onMounted(async () => {
@@ -3374,6 +3445,10 @@ export default {
       searchText,
       weaponTypeFilter,
       floatRangeFilter,
+      pendantFilter,
+      stickerFilter,
+      renameFilter,
+      tradeRestrictionFilter,
       displayMode,
       steamIdList,
       selectedSteamId,
@@ -3426,6 +3501,7 @@ export default {
       // 多选相关
       isMultiSelectMode,
       selectedItems,
+      toggleDisplayMode,
       toggleMultiSelectMode,
       isItemSelected,
       hasTradeRestriction,
@@ -4306,20 +4382,15 @@ export default {
 }
 
 .steam-id-select {
-  min-width: 250px;
-  max-width: 350px;
+  width: 200px;
 }
 
 .search-input {
-  min-width: 200px;
-  flex: 1;
-  max-width: 300px;
+  width: 200px;
 }
 
-.type-select,
-.wear-select {
-  min-width: 100px;
-  max-width: 120px;
+.filter-select {
+  width: 100px;
 }
 
 .action-button {
@@ -5169,7 +5240,8 @@ export default {
 @media (max-width: 768px) {
   .search-input,
   .type-select,
-  .wear-select {
+  .wear-select,
+  .filter-select {
     min-width: unset;
     width: 100%;
     max-width: none;

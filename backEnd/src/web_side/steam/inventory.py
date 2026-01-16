@@ -397,9 +397,10 @@ def insert_inventory_batch():
                 # 磨损值 - 优先使用前端传来的weapon_float（用于库存存储组件的数量），否则从asset_properties中获取
                 weapon_float = item_data.get('weapon_float')
                 rename_value = item_data.get('rename')  # 从前端传来的名称标签
+                certificate_value = item_data.get('weapon_certificate')  # 从前端传来的物品证书
                 
-                if weapon_float is None or rename_value is None:
-                    # 从asset_properties中获取磨损值和名称标签
+                if weapon_float is None or rename_value is None or certificate_value is None:
+                    # 从asset_properties中获取磨损值、名称标签和物品证书
                     asset_properties = item_data.get('asset_properties', [])
                     for prop in asset_properties:
                         if prop.get('propertyid') == 2:  # propertyid 2 是磨损率
@@ -408,9 +409,13 @@ def insert_inventory_batch():
                         elif prop.get('propertyid') == 5:  # propertyid 5 是名称标签
                             if rename_value is None:
                                 rename_value = prop.get('string_value')
+                        elif prop.get('propertyid') == 6:  # propertyid 6 是物品证书
+                            if certificate_value is None:
+                                certificate_value = prop.get('string_value')
                 
                 inventory_record.weapon_float = weapon_float
                 inventory_record.rename = rename_value if rename_value else None
+                inventory_record.weapon_certificate = certificate_value if certificate_value else None
                 
                 # 交易相关
                 # remark 存储交易保护信息，如果没有则为NULL
