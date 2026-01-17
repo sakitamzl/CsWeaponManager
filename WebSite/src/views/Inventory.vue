@@ -3096,27 +3096,20 @@ export default {
         )
         
         if (response.data.success) {
-          ElMessage.success(response.data.message || '物品存入成功')
+          ElMessage.success(response.data.message)
           
           // 清空选择
-          if (selectedItems.value.length > 0) {
-            clearSelection()
-          }
-          
-          // 关闭预览
-          if (showPreview.value) {
-            showPreview.value = false
-          }
+          clearSelection()
           
           // 刷新库存数据
           await loadInventoryData()
         } else {
-          ElMessage.error(response.data.message || '物品存入失败')
+          ElMessage.error(response.data.message)
         }
         
       } catch (error) {
         console.error('存入物品失败:', error)
-        ElMessage.error('存入失败：' + (error.response?.data?.message || error.message))
+        ElMessage.error(error.response?.data?.message || error.message)
       } finally {
         loading.close()
       }
