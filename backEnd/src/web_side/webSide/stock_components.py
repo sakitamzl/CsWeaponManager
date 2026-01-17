@@ -728,6 +728,11 @@ def auto_fill_prices(steam_id):
     参数:
         steam_id: Steam用户ID (对应data_user字段)
     
+    逻辑:
+        1. 优先通过 goods_assetid 匹配 steam_inventory 表的 assetid 获取 buy_price
+        2. 如果匹配不到，对于有 float 值的组件，使用 item_name + weapon_float 精确匹配 buy 表
+        3. 对于没有 float 值的组件，使用 steam_hash_name 批量查询 buy 表的平均价格
+    
     返回:
     {
         "success": True,
@@ -735,7 +740,8 @@ def auto_fill_prices(steam_id):
             "total_count": 总数,
             "filled_count": 成功填充的数量,
             "already_filled_count": 已有价格的数量,
-            "not_found_count": 未找到价格的数量
+            "not_found_count": 未找到价格的数量,
+            "from_inventory_count": 从库存表匹配的数量
         }
     }
     """
@@ -757,7 +763,8 @@ def auto_fill_prices(steam_id):
                     'total_count': 0,
                     'filled_count': 0,
                     'already_filled_count': 0,
-                    'not_found_count': 0
+                    'not_found_count': 0,
+                    'from_inventory_count': 0
                 },
                 'message': '该用户没有组件记录'
             }), 200
@@ -767,8 +774,35 @@ def auto_fill_prices(steam_id):
         filled_count = 0
         already_filled_count = 0
         not_found_count = 0
+        from_inventory_count = 0  # 从库存表匹配的数量
 
-        # 第一步：处理有 float 值的组件（精确匹配）
+        # 第一步：优先从 steam_inventory 表中获取价格
+        # 批量查询所有 goods_assetid 对应的 buy_price
+        assetids = [comp[0] for comp in components if comp[3] in [None, '', 'None', '0', '0.0', '0.00']]
+        inventory_price_map = {}
+        
+        if assetids:
+            placeholders = ','.join(['?' for _ in assetids])
+            inventory_price_sql = f"""
+            SELECT assetid, buy_price
+            FROM steam_inventory
+            WHERE assetid IN ({placeholders})
+              AND buy_price IS NOT NULL
+              AND buy_price != ''
+              AND buy_price != 'None'
+              AND CAST(buy_price AS REAL) > 0
+            """
+            inventory_results = db.execute_query(inventory_price_sql, tuple(assetids))
+            
+            if inventory_results:
+                for row in inventory_results:
+                    assetid = row[0]
+                    buy_price = row[1]
+                    inventory_price_map[assetid] = buy_price
+                
+                print(f"📦 从库存表查询完成 - 找到 {len(inventory_price_map)} 个 assetid 的价格")
+
+        # 第二步：处理所有组件
         float_components = []
         no_float_components = []
         
@@ -784,13 +818,28 @@ def auto_fill_prices(steam_id):
                 already_filled_count += 1
                 continue
 
-            # 分类：有 float 值的和没有 float 值的
+            # 优先从库存表获取价格
+            if goods_assetid in inventory_price_map:
+                buy_price = inventory_price_map[goods_assetid]
+                update_sql = """
+                UPDATE steam_stockComponents
+                SET buy_price = ?
+                WHERE goods_assetid = ? AND data_user = ?
+                """
+                affected_rows = db.execute_update(update_sql, (str(buy_price), goods_assetid, steam_id))
+                if affected_rows > 0:
+                    filled_count += 1
+                    from_inventory_count += 1
+                    print(f"✅ 从库存表匹配 - goods_assetid: {goods_assetid}, item_name: {item_name}, price: {buy_price}")
+                continue
+
+            # 如果库存表没有，分类到 float 或 no_float 组件
             if weapon_float and weapon_float not in ['', '0', '0.0', 'None']:
                 float_components.append((goods_assetid, item_name, weapon_float, steam_hash_name))
             else:
                 no_float_components.append((goods_assetid, item_name, steam_hash_name))
 
-        # 处理有 float 值的组件（逐个精确匹配）
+        # 第三步：处理有 float 值的组件（逐个精确匹配 buy 表）
         for goods_assetid, item_name, weapon_float, steam_hash_name in float_components:
             buy_price = None
             try:
@@ -828,7 +877,7 @@ def auto_fill_prices(steam_id):
                 not_found_count += 1
                 print(f"⚠️  未找到价格（float匹配） - goods_assetid: {goods_assetid}, item_name: {item_name}, float: {weapon_float}")
 
-        # 第二步：批量处理没有 float 值的组件（使用 steam_hash_name）
+        # 第四步：批量处理没有 float 值的组件（使用 steam_hash_name 查询 buy 表）
         if no_float_components:
             # 收集所有唯一的 steam_hash_name
             hash_names = list(set([comp[2] for comp in no_float_components if comp[2] and comp[2] not in ['', 'None']]))
@@ -882,7 +931,7 @@ def auto_fill_prices(steam_id):
                         else:
                             print(f"⚠️  未找到价格（hash_name） - goods_assetid: {goods_assetid}, hash_name: {steam_hash_name}")
         
-        print(f"📊 自动填充价格完成 - steamId: {steam_id}, 总数: {total_count}, 成功填充: {filled_count}, 已有价格: {already_filled_count}, 未找到: {not_found_count}")
+        print(f"📊 自动填充价格完成 - steamId: {steam_id}, 总数: {total_count}, 成功填充: {filled_count} (库存表: {from_inventory_count}), 已有价格: {already_filled_count}, 未找到: {not_found_count}")
         
         return jsonify({
             'success': True,
@@ -890,14 +939,19 @@ def auto_fill_prices(steam_id):
                 'total_count': total_count,
                 'filled_count': filled_count,
                 'already_filled_count': already_filled_count,
-                'not_found_count': not_found_count
+                'not_found_count': not_found_count,
+                'from_inventory_count': from_inventory_count
             },
-            'message': f'价格自动填充完成！总计: {total_count}, 成功填充: {filled_count}, 已有价格: {already_filled_count}, 未找到: {not_found_count}'
+            'message': f'价格自动填充完成！总计: {total_count}, 成功填充: {filled_count} (库存表: {from_inventory_count}), 已有价格: {already_filled_count}, 未找到: {not_found_count}'
         }), 200
         
     except Exception as e:
         print(f"❌ 自动填充价格失败 - steam_id: {steam_id}")
         print(f"错误详情: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'message': f'自动填充价格失败: {str(e)}'
+        }), 500
         return jsonify({
             'success': False,
             'message': f'自动填充价格失败: {str(e)}'
