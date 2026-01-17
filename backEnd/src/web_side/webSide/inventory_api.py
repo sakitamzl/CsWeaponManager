@@ -215,10 +215,14 @@ def get_price_from_buy_table(item_name, weapon_float=None, order_time=None, stea
                     if avg_result and len(avg_result) > 0 and avg_result[0][0] is not None:
                         print(f"✅ 时间范围平均价匹配成功（item_name，无float）- {item_name}, 时间: {start_time_str} ~ {end_time_str}, price: {round(avg_result[0][0], 2)}")
                         return round(avg_result[0][0], 2)
+                    
+                    # 如果24小时内没有找到记录，返回None（留空）
+                    print(f"⚠️  24小时内无记录（无float）- item_name: {item_name}, steam_hash_name: {steam_hash_name}, 时间: {start_time_str} ~ {end_time_str}")
+                    return None
             except Exception as e:
                 print(f"使用时间范围查询价格失败（无float）: {str(e)}")
         
-        # 第二步：如果没有order_time或时间范围查询失败，查询最新的一条数据
+        # 第二步：如果没有order_time，查询最新的一条数据
         # 优先使用steam_hash_name
         if steam_hash_name:
             latest_sql = """
@@ -246,21 +250,9 @@ def get_price_from_buy_table(item_name, weapon_float=None, order_time=None, stea
             print(f"✅ 最新数据匹配成功（item_name，无float）- {item_name}, price: {latest_result[0][0]}")
             return latest_result[0][0]
         
-        # 第三步：如果以上都失败，才使用全局平均价格（作为最后的备选方案）
-        # 优先使用steam_hash_name
-        if steam_hash_name:
-            avg_price_sql = "SELECT AVG(CAST(price AS REAL)) FROM buy WHERE steam_hash_name = ?"
-            avg_result = db.execute_query(avg_price_sql, (steam_hash_name,))
-            if avg_result and len(avg_result) > 0 and avg_result[0][0] is not None:
-                print(f"⚠️  全局平均价匹配（steam_hash_name，无float）- {steam_hash_name}, price: {round(avg_result[0][0], 2)}")
-                return round(avg_result[0][0], 2)
-        
-        # 使用item_name查询全局平均价格
-        avg_price_sql = "SELECT AVG(CAST(price AS REAL)) FROM buy WHERE item_name = ?"
-        avg_result = db.execute_query(avg_price_sql, (item_name,))
-        if avg_result and len(avg_result) > 0 and avg_result[0][0] is not None:
-            print(f"⚠️  全局平均价匹配（item_name，无float）- {item_name}, price: {round(avg_result[0][0], 2)}")
-            return round(avg_result[0][0], 2)
+        # 第三步：如果以上都失败，返回None（不再使用全局平均价格）
+        print(f"❌ 未找到价格（无float）- item_name: {item_name}, steam_hash_name: {steam_hash_name}")
+        return None
     
     print(f"❌ 未找到价格 - item_name: {item_name}, steam_hash_name: {steam_hash_name}, weapon_float: {weapon_float}")
     return None
