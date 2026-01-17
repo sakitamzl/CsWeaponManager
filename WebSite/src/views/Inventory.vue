@@ -3116,7 +3116,7 @@ export default {
         
       } catch (error) {
         console.error('存入物品失败:', error)
-        ElMessage.error(error.response?.data?.message || '存入物品失败')
+        ElMessage.error('存入失败：' + (error.response?.data?.message || error.message))
       } finally {
         loading.close()
       }

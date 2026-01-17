@@ -756,7 +756,7 @@ def auto_fill_prices(steam_id):
         steam_id: Steam用户ID (对应data_user字段)
     
     逻辑:
-        1. 优先通过 goods_assetid 匹配 steam_inventory 表的 assetid 获取 buy_price
+        1. 优先通过 goods_assetid 匹配 steam_inventory 表的 assetid 获取 buy_price（不管有没有磨损值）
         2. 如果匹配不到，对于有 float 值的组件，使用 item_name + weapon_float 精确匹配 buy 表
         3. 对于没有 float 值的组件，使用 steam_hash_name 批量查询 buy 表的平均价格
     
@@ -803,9 +803,9 @@ def auto_fill_prices(steam_id):
         not_found_count = 0
         from_inventory_count = 0  # 从库存表匹配的数量
 
-        # 第一步：优先从 steam_inventory 表中获取价格
+        # 第一步：优先从 steam_inventory 表中获取价格（不管有没有磨损值，不管是否已有价格）
         # 批量查询所有 goods_assetid 对应的 buy_price
-        assetids = [comp[0] for comp in components if comp[3] in [None, '', 'None', '0', '0.0', '0.00']]
+        assetids = [comp[0] for comp in components]  # 获取所有 goods_assetid
         inventory_price_map = {}
         
         if assetids:
@@ -840,24 +840,36 @@ def auto_fill_prices(steam_id):
             current_buy_price = component[3]
             steam_hash_name = component[4]
 
-            # 如果已有价格，跳过
-            if current_buy_price not in [None, '', 'None', '0', '0.0', '0.00']:
-                already_filled_count += 1
-                continue
-
-            # 优先从库存表获取价格
+            # 优先从库存表获取价格（不管是否已有价格）
             if goods_assetid in inventory_price_map:
                 buy_price = inventory_price_map[goods_assetid]
-                update_sql = """
-                UPDATE steam_stockComponents
-                SET buy_price = ?
-                WHERE goods_assetid = ? AND data_user = ?
-                """
-                affected_rows = db.execute_update(update_sql, (str(buy_price), goods_assetid, steam_id))
-                if affected_rows > 0:
-                    filled_count += 1
+                
+                # 检查是否需要更新（价格不同才更新）
+                current_price_str = '' if current_buy_price is None else str(current_buy_price)
+                new_price_str = str(buy_price)
+                
+                if current_price_str == new_price_str:
+                    # 价格相同，不需要更新
+                    already_filled_count += 1
                     from_inventory_count += 1
-                    print(f"✅ 从库存表匹配 - goods_assetid: {goods_assetid}, item_name: {item_name}, price: {buy_price}")
+                    print(f"ℹ️  价格已是最新 - goods_assetid: {goods_assetid}, item_name: {item_name}, price: {buy_price}")
+                else:
+                    # 价格不同，需要更新
+                    update_sql = """
+                    UPDATE steam_stockComponents
+                    SET buy_price = ?
+                    WHERE goods_assetid = ? AND data_user = ?
+                    """
+                    affected_rows = db.execute_update(update_sql, (str(buy_price), goods_assetid, steam_id))
+                    if affected_rows > 0:
+                        filled_count += 1
+                        from_inventory_count += 1
+                        print(f"✅ 从库存表匹配 - goods_assetid: {goods_assetid}, item_name: {item_name}, old_price: {current_buy_price}, new_price: {buy_price}")
+                continue
+
+            # 如果已有价格且库存表没有匹配到，跳过
+            if current_buy_price not in [None, '', 'None', '0', '0.0', '0.00']:
+                already_filled_count += 1
                 continue
 
             # 如果库存表没有，分类到 float 或 no_float 组件
@@ -975,10 +987,6 @@ def auto_fill_prices(steam_id):
     except Exception as e:
         print(f"❌ 自动填充价格失败 - steam_id: {steam_id}")
         print(f"错误详情: {traceback.format_exc()}")
-        return jsonify({
-            'success': False,
-            'message': f'自动填充价格失败: {str(e)}'
-        }), 500
         return jsonify({
             'success': False,
             'message': f'自动填充价格失败: {str(e)}'
