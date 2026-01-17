@@ -21,6 +21,14 @@
 - 修改 搜素页面布局
 - 修改 /inventory 对于没有磨损的饰品的购入价格匹配逻辑
 - 修改 /stock-components 优先通过assid进行匹配 而不是buy表
+- **修改 /inventory 页面筛选后卡片统计数据随之变化**
+  - 修改了 `get_inventory_stats` 函数，支持筛选参数（search、weapon_type、float_range、classid）
+  - 修改了前端 `Inventory.vue`，在筛选条件变化时传递参数到统计接口
+  - 卡片数据（总库存数量、购入总价值、悠悠有品最低价、BUFF最低价、Steam参考价）会根据筛选条件实时更新
+- **修改 /stock-components 页面筛选后卡片统计数据随之变化**
+  - 修改了 `get_components_stats` 函数，支持筛选参数（search、weapon_type、assetid）
+  - 修改了前端 `StockComponents.vue`，在筛选条件变化时传递参数到统计接口并重新加载统计数据
+  - 卡片数据（总组件数量、购入总价值、悠悠有品最低价、BUFF最低价、Steam参考价）会根据筛选条件实时更新
 
 ## 2026-01-13
 ### v2.3.0

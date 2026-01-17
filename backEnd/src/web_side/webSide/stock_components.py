@@ -236,9 +236,36 @@ def get_components(steam_id):
 
 @webStockComponentsV1.route('/components/stats/<steam_id>', methods=['GET'])
 def get_components_stats(steam_id):
-    """获取库存组件统计信息 - 从 steam_stockComponents 表读取"""
+    """获取库存组件统计信息 - 从 steam_stockComponents 表读取，支持筛选参数"""
     try:
+        # 获取筛选参数
+        search_text = request.args.get('search', '')
+        weapon_type = request.args.get('weapon_type', '')
+        assetid = request.args.get('assetid', '')  # 组件assetid筛选
+        
         db = DatabaseManager()
+        
+        # 构建查询条件
+        where_conditions = ["data_user = ?"]
+        params = [steam_id]
+        
+        # 组件assetid筛选
+        if assetid:
+            where_conditions.append("assetid = ?")
+            params.append(assetid)
+        
+        # 关键词搜索
+        if search_text:
+            where_conditions.append("(weapon_name LIKE ? OR item_name LIKE ?)")
+            params.append(f"%{search_text}%")
+            params.append(f"%{search_text}%")
+        
+        # 武器类型筛选
+        if weapon_type:
+            where_conditions.append("weapon_type = ?")
+            params.append(weapon_type)
+        
+        where_clause = " AND ".join(where_conditions)
         
         # 统计总数和各种价格总和
         stats_sql = f"""
@@ -249,9 +276,9 @@ def get_components_stats(steam_id):
             SUM(CAST(buff_price AS REAL)) as total_buff_price,
             SUM(CAST(steam_price AS REAL)) as total_steam_price
         FROM steam_stockComponents
-        WHERE data_user = ?
+        WHERE {where_clause}
         """
-        stats_result = db.execute_query(stats_sql, (steam_id,))
+        stats_result = db.execute_query(stats_sql, tuple(params))
         
         total_count = 0
         total_cost = 0

@@ -2086,7 +2086,21 @@ export default {
 
     const loadStats = async () => {
       try {
-        const response = await axios.get(`${API_BASE}/inventory/stats/${selectedSteamId.value}`)
+        // 构建查询参数（与loadInventoryData保持一致）
+        const params = {
+          weapon_type: weaponTypeFilter.value,
+          float_range: floatRangeFilter.value
+        }
+        
+        // 如果处于选择组件模式，只统计库存组件
+        if (isSelectingComponent.value) {
+          params.classid = '3604678661'
+        } else {
+          // 只在非选择组件模式下应用搜索过滤
+          params.search = searchText.value
+        }
+        
+        const response = await axios.get(`${API_BASE}/inventory/stats/${selectedSteamId.value}`, { params })
         console.log('统计数据响应:', response.data)
         if (response.data.success) {
           statsData.value = response.data.data
@@ -3227,8 +3241,23 @@ export default {
     // 单独加载统计数据（不重新加载列表）
     const loadInventoryStats = async () => {
       try {
+        // 构建查询参数（与loadInventoryData保持一致）
+        const params = {
+          weapon_type: weaponTypeFilter.value,
+          float_range: floatRangeFilter.value
+        }
+        
+        // 如果处于选择组件模式，只统计库存组件
+        if (isSelectingComponent.value) {
+          params.classid = '3604678661'
+        } else {
+          // 只在非选择组件模式下应用搜索过滤
+          params.search = searchText.value
+        }
+        
         const statsResponse = await axios.get(
-          `${API_CONFIG.BASE_URL}/webInventoryV1/inventory/stats/${selectedSteamId.value}`
+          `${API_CONFIG.BASE_URL}/webInventoryV1/inventory/stats/${selectedSteamId.value}`,
+          { params }
         )
         if (statsResponse.data.success) {
           statsData.value = statsResponse.data.data

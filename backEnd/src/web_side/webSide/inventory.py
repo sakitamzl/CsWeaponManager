@@ -728,55 +728,84 @@ def get_grouped_inventory(steam_id):
 
 @webInventoryV1.route('/inventory/stats/<steam_id>', methods=['GET'])
 def get_inventory_stats(steam_id):
-    """获取库存统计信息"""
+    """获取库存统计信息（支持筛选参数）"""
     try:
         from src.db_manager.database import DatabaseManager
 
         db = DatabaseManager()
+        
+        # 获取查询参数（与get_inventory接口保持一致）
+        search_text = request.args.get('search', '')
+        weapon_type = request.args.get('weapon_type', '')
+        float_range = request.args.get('float_range', '')
+        classid = request.args.get('classid', '')
+        
+        # 构建查询条件
+        where_conditions = ["data_user = ?", "if_inventory = '1'"]
+        params = [steam_id]
+        
+        if search_text:
+            where_conditions.append("(item_name LIKE ? OR weapon_name LIKE ?)")
+            search_pattern = f"%{search_text}%"
+            params.extend([search_pattern, search_pattern])
+        
+        if weapon_type:
+            where_conditions.append("weapon_type = ?")
+            params.append(weapon_type)
+        
+        if float_range:
+            where_conditions.append("float_range = ?")
+            params.append(float_range)
+        
+        if classid:
+            where_conditions.append("classid = ?")
+            params.append(classid)
+        
+        where_clause = " AND ".join(where_conditions)
 
-        # 统计总数（只统计在库存中的物品）
-        total_sql = "SELECT COUNT(*) FROM steam_inventory WHERE data_user = ? AND if_inventory = '1'"
-        total_result = db.execute_query(total_sql, (steam_id,))
+        # 统计总数
+        total_sql = f"SELECT COUNT(*) FROM steam_inventory WHERE {where_clause}"
+        total_result = db.execute_query(total_sql, tuple(params))
         total_count = total_result[0][0] if total_result else 0
 
-        # 按武器类型统计（只统计在库存中的物品）
-        type_sql = """
+        # 按武器类型统计
+        type_sql = f"""
         SELECT weapon_type, COUNT(*) as count 
         FROM steam_inventory 
-        WHERE data_user = ? AND if_inventory = '1' AND weapon_type IS NOT NULL AND weapon_type != ''
+        WHERE {where_clause} AND weapon_type IS NOT NULL AND weapon_type != ''
         GROUP BY weapon_type
         ORDER BY count DESC
         """
-        type_results = db.execute_query(type_sql, (steam_id,))
+        type_results = db.execute_query(type_sql, tuple(params))
         
         type_stats = []
         for row in type_results:
-            weapon_type, count = row
+            weapon_type_val, count = row
             type_stats.append({
-                'weapon_type': weapon_type,
+                'weapon_type': weapon_type_val,
                 'count': count
             })
         
-        # 按磨损等级统计（只统计在库存中的物品）
-        wear_sql = """
+        # 按磨损等级统计
+        wear_sql = f"""
         SELECT float_range, COUNT(*) as count 
         FROM steam_inventory 
-        WHERE data_user = ? AND if_inventory = '1' AND float_range IS NOT NULL AND float_range != ''
+        WHERE {where_clause} AND float_range IS NOT NULL AND float_range != ''
         GROUP BY float_range
         ORDER BY count DESC
         """
-        wear_results = db.execute_query(wear_sql, (steam_id,))
+        wear_results = db.execute_query(wear_sql, tuple(params))
 
         wear_stats = []
         for row in wear_results:
-            float_range, count = row
+            float_range_val, count = row
             wear_stats.append({
-                'float_range': float_range,
+                'float_range': float_range_val,
                 'count': count
             })
 
-        # 统计购入价格总和（只统计在库存中的物品）
-        price_sql = """
+        # 统计购入价格总和
+        price_sql = f"""
         SELECT 
             COUNT(CASE WHEN CAST(buy_price AS REAL) > 0 THEN 1 END) as priced_count,
             SUM(CAST(buy_price AS REAL)) as total_price,
@@ -784,9 +813,9 @@ def get_inventory_stats(steam_id):
             MIN(CAST(buy_price AS REAL)) as min_price,
             MAX(CAST(buy_price AS REAL)) as max_price
         FROM steam_inventory
-        WHERE data_user = ? AND if_inventory = '1'
+        WHERE {where_clause}
         """
-        price_result = db.execute_query(price_sql, (steam_id,))
+        price_result = db.execute_query(price_sql, tuple(params))
 
         price_stats = {
             'priced_count': 0,
@@ -807,15 +836,15 @@ def get_inventory_stats(steam_id):
             }
 
         # 统计悠悠有品价格总和
-        yyyp_price_sql = """
+        yyyp_price_sql = f"""
         SELECT 
             COUNT(CASE WHEN CAST(yyyp_price AS REAL) > 0 THEN 1 END) as priced_count,
             SUM(CAST(yyyp_price AS REAL)) as total_price,
             AVG(CAST(yyyp_price AS REAL)) as avg_price
         FROM steam_inventory
-        WHERE data_user = ? AND if_inventory = '1'
+        WHERE {where_clause}
         """
-        yyyp_price_result = db.execute_query(yyyp_price_sql, (steam_id,))
+        yyyp_price_result = db.execute_query(yyyp_price_sql, tuple(params))
 
         yyyp_price_stats = {
             'priced_count': 0,
@@ -832,15 +861,15 @@ def get_inventory_stats(steam_id):
             }
 
         # 统计BUFF价格总和
-        buff_price_sql = """
+        buff_price_sql = f"""
         SELECT 
             COUNT(CASE WHEN CAST(buff_price AS REAL) > 0 THEN 1 END) as priced_count,
             SUM(CAST(buff_price AS REAL)) as total_price,
             AVG(CAST(buff_price AS REAL)) as avg_price
         FROM steam_inventory
-        WHERE data_user = ? AND if_inventory = '1'
+        WHERE {where_clause}
         """
-        buff_price_result = db.execute_query(buff_price_sql, (steam_id,))
+        buff_price_result = db.execute_query(buff_price_sql, tuple(params))
 
         buff_price_stats = {
             'priced_count': 0,
@@ -857,15 +886,15 @@ def get_inventory_stats(steam_id):
             }
 
         # 统计 Steam 参考价总和
-        steam_price_sql = """
+        steam_price_sql = f"""
         SELECT 
             COUNT(CASE WHEN CAST(steam_price AS REAL) > 0 THEN 1 END) as priced_count,
             SUM(CAST(steam_price AS REAL)) as total_price,
             AVG(CAST(steam_price AS REAL)) as avg_price
         FROM steam_inventory
-        WHERE data_user = ? AND if_inventory = '1'
+        WHERE {where_clause}
         """
-        steam_price_result = db.execute_query(steam_price_sql, (steam_id,))
+        steam_price_result = db.execute_query(steam_price_sql, tuple(params))
 
         steam_price_stats = {
             'priced_count': 0,

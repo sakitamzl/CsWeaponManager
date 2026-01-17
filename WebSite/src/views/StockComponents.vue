@@ -986,6 +986,9 @@ export default {
       } else {
         groupMode.value ? loadGroupedData() : loadComponentData()
       }
+      
+      // 重新加载统计数据
+      loadComponentStats()
     }
 
     const loadInventoryComponents = async () => {
@@ -1038,6 +1041,8 @@ export default {
         } else {
           groupMode.value ? loadGroupedData() : loadComponentData()
         }
+        // 重新加载统计数据
+        loadComponentStats()
         return
       }
       
@@ -1056,6 +1061,9 @@ export default {
       } else {
         groupMode.value ? loadGroupedData() : loadComponentData()
       }
+      
+      // 重新加载统计数据
+      loadComponentStats()
     }
 
     const loadComponentData = async (reset = true) => {
@@ -1202,7 +1210,27 @@ export default {
 
     const loadComponentStats = async () => {
       try {
-        const response = await axios.get(`${API_COMPONENTS}/components/stats/${selectedSteamId.value}`)
+        // 构建查询参数，包含筛选条件
+        const params = {}
+        
+        // 添加搜索关键词
+        if (searchText.value) {
+          params.search = searchText.value
+        }
+        
+        // 添加武器类型筛选
+        if (weaponTypeFilter.value) {
+          params.weapon_type = weaponTypeFilter.value
+        }
+        
+        // 添加组件assetid筛选
+        if (selectedComponent.value) {
+          params.assetid = selectedComponent.value
+        }
+        
+        const response = await axios.get(`${API_COMPONENTS}/components/stats/${selectedSteamId.value}`, {
+          params: params
+        })
         console.log('统计数据响应:', response.data)
         
         if (response.data.success) {
@@ -1335,6 +1363,9 @@ export default {
       } else {
         groupMode.value ? loadGroupedData() : loadComponentData()
       }
+      
+      // 重新加载统计数据
+      loadComponentStats()
       // setupScrollObserver 会在 loadComponentData 完成后自动调用
     }
 
@@ -1351,6 +1382,9 @@ export default {
       } else {
         groupMode.value ? loadGroupedData() : loadComponentData()
       }
+      
+      // 重新加载统计数据
+      loadComponentStats()
       // setupScrollObserver 会在 loadComponentData 完成后自动调用
     }
 
