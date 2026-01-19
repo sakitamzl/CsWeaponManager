@@ -85,6 +85,7 @@
               {{ showPriceDiff ? '显示价格' : '显示差价' }}
             </el-button>
             <div style="margin-left: auto; display: flex; gap: 0.5rem; align-items: center;">
+              <!-- 列表模式：组合开关 -->
               <el-switch
                 v-if="displayMode === 'list'"
                 v-model="groupMode"
@@ -92,6 +93,31 @@
                 inactive-text="明细模式"
                 @change="handleToggleGroupMode"
               />
+
+              <!-- 卡片模式：价格排序（后端排序，影响无限滚动顺序） -->
+              <template v-if="displayMode === 'card'">
+                <el-select
+                  v-model="sortBy"
+                  placeholder="价格排序"
+                  size="small"
+                  style="width: 140px;"
+                  @change="handlePriceSortFieldChange"
+                >
+                  <el-option label="购入单价" value="unit_price" />
+                  <el-option label="悠悠均价" value="yyyp_price" />
+                  <el-option label="BUFF均价" value="buff_price" />
+                  <el-option label="Steam均价" value="steam_price" />
+                </el-select>
+                <el-button 
+                  size="small" 
+                  @click="togglePriceSortDir"
+                  :title="sortDir === 'desc' ? '按价格从高到低' : '按价格从低到高'"
+                >
+                  {{ sortDir === 'desc' ? '↓ 高→低' : '↑ 低→高' }}
+                </el-button>
+              </template>
+
+              <!-- 视图模式切换 -->
               <el-button-group>
                 <el-button 
                   :type="displayMode === 'list' ? 'primary' : ''" 
@@ -1437,14 +1463,24 @@ export default {
       currentPage.value = 1
       currentOffset.value = 0
 
-      if (displayMode.value === 'card') {
-        // 卡片模式仍按后端默认（无限滚动），这里不触发排序
-        loadComponentData(true)
-        return
-      }
-
       // 列表模式：根据组合/明细加载
       groupMode.value ? loadGroupedData() : loadComponentData(true)
+    }
+
+    // 卡片模式下手动切换价格排序字段
+    const handlePriceSortFieldChange = (field) => {
+      sortBy.value = field || 'unit_price'
+      currentPage.value = 1
+      currentOffset.value = 0
+      loadComponentData(true)
+    }
+
+    // 卡片模式下切换升/降序
+    const togglePriceSortDir = () => {
+      sortDir.value = sortDir.value === 'desc' ? 'asc' : 'desc'
+      currentPage.value = 1
+      currentOffset.value = 0
+      loadComponentData(true)
     }
 
     const handleToggleGroupMode = (val = null) => {
@@ -2137,6 +2173,8 @@ export default {
       sortBy,
       sortDir,
       handleSortChange,
+      handlePriceSortFieldChange,
+      togglePriceSortDir,
       parseStickers,
       parsePendant,
       handleSizeChange,

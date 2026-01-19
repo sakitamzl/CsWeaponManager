@@ -389,9 +389,9 @@
           </div>
           <div class="commodity-card-image">
             <img :src="item.iconUrl" class="commodity-icon" @error="handleImageError" />
-            <!-- 模板号覆盖层 - 左上角 -->
-            <div v-if="item.paintSeed" class="paint-seed-overlay" :title="`模板编号: ${item.paintSeed}`">
-              #{{ item.paintSeed }}
+            <!-- 售价覆盖层 - 左上角 -->
+            <div v-if="item.price" class="price-overlay" :title="`售价: ¥${item.price}`">
+              ¥{{ item.price }}
             </div>
             <!-- 印花覆盖层 - 左下角 -->
             <div v-if="item.stickers && item.stickers.length > 0" class="sticker-overlay">
@@ -526,9 +526,9 @@
           </div>
           <div class="commodity-card-image">
             <img :src="item.iconUrl" class="commodity-icon" @error="handleImageError" />
-            <!-- 模板号覆盖层 - 左上角 -->
-            <div v-if="item.paintSeed" class="paint-seed-overlay" :title="`模板编号: ${item.paintSeed}`">
-              #{{ item.paintSeed }}
+            <!-- 售价覆盖层 - 左上角 -->
+            <div v-if="item.price" class="price-overlay" :title="`售价: ¥${item.price}`">
+              ¥{{ item.price }}
             </div>
             <!-- 印花覆盖层 - 左下角 -->
             <div v-if="item.stickers && item.stickers.length > 0" class="sticker-overlay">
@@ -3798,16 +3798,20 @@ export default {
   margin-bottom: 0.3rem;
 }
 
-/* 模板号覆盖层 - 左上角常态化显示 */
-.paint-seed-overlay {
+/* 售价覆盖层 - 左上角常态化显示 */
+.price-overlay {
   position: absolute;
   top: 6px;
   left: 6px;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.7rem;
-  font-weight: 600;
+  color: #ffd700;
+  font-size: 0.8rem;
+  font-weight: 700;
   z-index: 10;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  background: rgba(0, 0, 0, 0.6);
+  padding: 2px 6px;
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
 }
 
 /* 印花覆盖层 - 左下角 */
