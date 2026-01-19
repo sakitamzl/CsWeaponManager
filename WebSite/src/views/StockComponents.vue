@@ -184,6 +184,7 @@
           :flexible="true"
           :scrollbar-always-on="true"
           @row-click="handleRowClick"
+          @sort-change="handleSortChange"
           :row-key="row => row.goods_assetid"
         >
           <el-table-column v-if="groupMode" type="expand" width="1">
@@ -429,8 +430,7 @@
             prop="buy_price" 
             label="购入价格" 
             min-width="180" 
-            sortable
-            :sort-method="sortByAvgBuyPrice"
+            sortable="custom"
           >
             <template #default="scope">
               <div v-if="editingGoodsAssetId !== scope.row.goods_assetid"
@@ -460,8 +460,7 @@
             prop="yyyp_price" 
             label="悠悠价格" 
             min-width="180" 
-            sortable
-            :sort-method="sortByAvgYyypPrice"
+            sortable="custom"
           >
             <template #default="scope">
               <span 
@@ -490,8 +489,7 @@
             prop="buff_price" 
             label="BUFF价格" 
             min-width="180" 
-            sortable
-            :sort-method="sortByAvgBuffPrice"
+            sortable="custom"
           >
             <template #default="scope">
               <span 
@@ -763,6 +761,10 @@ export default {
     const expandedRowPages = ref({})
     const previewVisible = ref(false)
     const previewItem = ref(null)
+
+    // 列表排序（服务端排序）：保存当前排序字段与方向，切页时继续带参
+    const sortBy = ref('unit_price')
+    const sortDir = ref('desc')
     
     // 多选模式相关
     const isMultiSelectMode = ref(true) // 默认开启多选模式
@@ -1108,9 +1110,9 @@ export default {
           search: searchText.value,
           page: currentPageNum,
           page_size: pageSize.value,
-          // 默认按“单价”排序（后端：明细模式 unit_price=buy_price）
-          order_by: 'unit_price',
-          order_dir: 'desc'
+          // 服务端排序：默认按“单价/平均购入价”
+          order_by: sortBy.value,
+          order_dir: sortDir.value
         }
         
         // 如果选择了组件，添加 assetid 参数进行筛选
@@ -1181,9 +1183,9 @@ export default {
           search: searchText.value,
           page: currentPage.value,
           page_size: pageSize.value,
-          // 组合模式：单价 = total_buy_price / item_count
-          order_by: 'unit_price',
-          order_dir: 'desc'
+          // 服务端排序：组合模式价格列按“平均价”排序
+          order_by: sortBy.value,
+          order_dir: sortDir.value
         }
         
         // 如果选择了组件，添加 assetid 参数进行筛选
@@ -1419,36 +1421,30 @@ export default {
       return (t / c).toFixed(2)
     }
 
-    // 列表排序：按“平均价”排序（总价 / 数量），组合/明细共用
-    const getAvgPrice = (total, count) => {
-      const t = parseFloat(total) || 0
-      const c = parseFloat(count) || 0
-      if (!c) return 0
-      return t / c
-    }
 
-    const sortByAvgBuyPrice = (a, b) => {
-      const countA = groupMode.value ? (parseFloat(a.item_count) || 0) : 1
-      const countB = groupMode.value ? (parseFloat(b.item_count) || 0) : 1
-      const avgA = getAvgPrice(a.buy_price, countA)
-      const avgB = getAvgPrice(b.buy_price, countB)
-      return avgA - avgB
-    }
+    // 表格排序变化（Element Plus：prop / order(ascending|descending|null)）
+    const handleSortChange = ({ prop, order }) => {
+      // 取消排序则回到默认
+      if (!prop || !order) {
+        sortBy.value = 'unit_price'
+        sortDir.value = 'desc'
+      } else {
+        sortBy.value = prop
+        sortDir.value = order === 'ascending' ? 'asc' : 'desc'
+      }
 
-    const sortByAvgYyypPrice = (a, b) => {
-      const countA = groupMode.value ? (parseFloat(a.item_count) || 0) : 1
-      const countB = groupMode.value ? (parseFloat(b.item_count) || 0) : 1
-      const avgA = getAvgPrice(a.yyyp_price, countA)
-      const avgB = getAvgPrice(b.yyyp_price, countB)
-      return avgA - avgB
-    }
+      // 切换排序后回到第一页
+      currentPage.value = 1
+      currentOffset.value = 0
 
-    const sortByAvgBuffPrice = (a, b) => {
-      const countA = groupMode.value ? (parseFloat(a.item_count) || 0) : 1
-      const countB = groupMode.value ? (parseFloat(b.item_count) || 0) : 1
-      const avgA = getAvgPrice(a.buff_price, countA)
-      const avgB = getAvgPrice(b.buff_price, countB)
-      return avgA - avgB
+      if (displayMode.value === 'card') {
+        // 卡片模式仍按后端默认（无限滚动），这里不触发排序
+        loadComponentData(true)
+        return
+      }
+
+      // 列表模式：根据组合/明细加载
+      groupMode.value ? loadGroupedData() : loadComponentData(true)
     }
 
     const handleToggleGroupMode = (val = null) => {
@@ -2138,10 +2134,9 @@ export default {
       getItemTitle,
       hasExtras,
       calcAvg,
-      getAvgPrice,
-      sortByAvgBuyPrice,
-      sortByAvgYyypPrice,
-      sortByAvgBuffPrice,
+      sortBy,
+      sortDir,
+      handleSortChange,
       parseStickers,
       parsePendant,
       handleSizeChange,

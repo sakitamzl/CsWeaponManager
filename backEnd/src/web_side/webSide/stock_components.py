@@ -382,18 +382,35 @@ def get_components_grouped(steam_id):
 
         where_clause = " AND ".join(where_conditions)
 
-        # 排序字段映射（组合模式下：单价 = total_buy_price / item_count）
+        # 排序字段映射（组合模式下：价格列按“平均价”排序，而不是总价）
         direction = 'ASC' if order_dir == 'asc' else 'DESC'
+        # 平均价表达式：SUM(price)/COUNT(*)
+        avg_buy_expr = "(CASE WHEN COUNT(*) = 0 THEN 0 ELSE (SUM(CAST(buy_price AS REAL)) / COUNT(*)) END)"
+        avg_yyyp_expr = "(CASE WHEN COUNT(*) = 0 THEN 0 ELSE (SUM(CAST(yyyp_price AS REAL)) / COUNT(*)) END)"
+        avg_buff_expr = "(CASE WHEN COUNT(*) = 0 THEN 0 ELSE (SUM(CAST(buff_price AS REAL)) / COUNT(*)) END)"
+        avg_steam_expr = "(CASE WHEN COUNT(*) = 0 THEN 0 ELSE (SUM(CAST(steam_price AS REAL)) / COUNT(*)) END)"
+
+        # 空/0 均价排最后（不管升降序）
+        null_last_case = f"""
+            CASE
+                WHEN {avg_buy_expr} IS NULL OR {avg_buy_expr} <= 0 THEN 1
+                ELSE 0
+            END ASC,
+        """
+
         order_map = {
             'count': f'item_count {direction}, item_name ASC',
             'name': 'item_name ASC',
-            'buy_price': f'total_buy_price {direction}',
-            'yyyp_price': f'total_yyyp_price {direction}',
-            'buff_price': f'total_buff_price {direction}',
-            'steam_price': f'total_steam_price {direction}',
-            'unit_price': f'(CASE WHEN COUNT(*) = 0 THEN 0 ELSE (SUM(CAST(buy_price AS REAL)) / COUNT(*)) END) {direction}'
+            # 注意：这里的 buy/yyyp/buff/steam 都按“均价”排序
+            'buy_price': f'{avg_buy_expr} {direction}',
+            'yyyp_price': f'{avg_yyyp_expr} {direction}',
+            'buff_price': f'{avg_buff_expr} {direction}',
+            'steam_price': f'{avg_steam_expr} {direction}',
+            # unit_price 兼容：等同于平均购入价
+            'unit_price': f'{avg_buy_expr} {direction}'
         }
-        order_clause = order_map.get(order_by, order_map['unit_price'])
+        base_order = order_map.get(order_by, order_map['unit_price'])
+        order_clause = f"{null_last_case} {base_order}, item_name ASC"
 
         sql = f"""
         SELECT
