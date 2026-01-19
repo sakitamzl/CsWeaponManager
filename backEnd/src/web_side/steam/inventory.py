@@ -33,38 +33,35 @@ def get_price_from_buy_table(item_name, weapon_float=None, order_time=None, stea
     从buy表查询价格
     
     参数:
-        item_name: 物品名称
+        item_name: 物品名称（保留参数但不使用）
         weapon_float: 磨损值
         order_time: 订单时间（用于时间范围查询）
         steam_hash_name: Steam市场hash名称（用于更精确的匹配）
     
     逻辑:
-        1. 优先使用steam_hash_name + weapon_float进行精确匹配
-        2. 如果失败，使用item_name + weapon_float进行精确匹配
-        3. 如果精确匹配失败且有order_time，使用前后24小时时间范围查询平均价（优先使用steam_hash_name）
-        4. 如果没有order_time，查询最新的一条数据（优先使用steam_hash_name）
+        1. 只使用steam_hash_name进行匹配，不再使用item_name
+        2. 如果有weapon_float，使用steam_hash_name + weapon_float进行精确匹配
+        3. 如果精确匹配失败且有order_time，使用前后24小时时间范围查询平均价
+        4. 如果没有order_time，查询最新的一条数据
         5. 如果都失败，返回None
     """
     from src.db_manager.database import DatabaseManager
     db = DatabaseManager()
     
+    # 如果没有steam_hash_name，直接返回None
+    if not steam_hash_name:
+        print(f"❌ 缺少steam_hash_name，无法查询价格")
+        return None
+    
     if weapon_float:
-        # 第一步：优先使用steam_hash_name + weapon_float进行精确匹配
-        if steam_hash_name:
-            price_sql = "SELECT price FROM buy WHERE steam_hash_name = ? AND weapon_float = ? LIMIT 1"
-            price_result = db.execute_query(price_sql, (steam_hash_name, weapon_float))
-            if price_result and len(price_result) > 0:
-                print(f"✅ 精确匹配成功（steam_hash_name + float）- {steam_hash_name}, float: {weapon_float}, price: {price_result[0][0]}")
-                return price_result[0][0]
-        
-        # 第二步：使用item_name + weapon_float进行精确匹配
-        price_sql = "SELECT price FROM buy WHERE item_name = ? AND weapon_float = ? LIMIT 1"
-        price_result = db.execute_query(price_sql, (item_name, weapon_float))
+        # 第一步：使用steam_hash_name + weapon_float进行精确匹配
+        price_sql = "SELECT price FROM buy WHERE steam_hash_name = ? AND weapon_float = ? LIMIT 1"
+        price_result = db.execute_query(price_sql, (steam_hash_name, weapon_float))
         if price_result and len(price_result) > 0:
-            print(f"✅ 精确匹配成功（item_name + float）- {item_name}, float: {weapon_float}, price: {price_result[0][0]}")
+            print(f"✅ 精确匹配成功（steam_hash_name + float）- {steam_hash_name}, float: {weapon_float}, price: {price_result[0][0]}")
             return price_result[0][0]
         
-        # 第三步：精确匹配失败，尝试使用时间范围或最新数据
+        # 第二步：精确匹配失败，尝试使用时间范围或最新数据
         if order_time:
             # 使用order_time前后24小时时间范围查询平均价
             try:
@@ -99,61 +96,32 @@ def get_price_from_buy_table(item_name, weapon_float=None, order_time=None, stea
                     start_time_str = start_time.strftime('%Y-%m-%d %H:%M:%S')
                     end_time_str = end_time.strftime('%Y-%m-%d %H:%M:%S')
                     
-                    # 优先使用steam_hash_name查询时间范围内的平均价格
-                    if steam_hash_name:
-                        time_range_sql = """
-                        SELECT AVG(CAST(price AS REAL)) 
-                        FROM buy 
-                        WHERE steam_hash_name = ? 
-                        AND order_time >= ? 
-                        AND order_time <= ?
-                        """
-                        avg_result = db.execute_query(time_range_sql, (steam_hash_name, start_time_str, end_time_str))
-                        if avg_result and len(avg_result) > 0 and avg_result[0][0] is not None:
-                            print(f"✅ 时间范围匹配成功（steam_hash_name）- {steam_hash_name}, 时间: {start_time_str} ~ {end_time_str}, price: {round(avg_result[0][0], 2)}")
-                            return round(avg_result[0][0], 2)
-                    
-                    # 使用item_name查询时间范围内的平均价格
+                    # 使用steam_hash_name查询时间范围内的平均价格
                     time_range_sql = """
                     SELECT AVG(CAST(price AS REAL)) 
                     FROM buy 
-                    WHERE item_name = ? 
+                    WHERE steam_hash_name = ? 
                     AND order_time >= ? 
                     AND order_time <= ?
                     """
-                    avg_result = db.execute_query(time_range_sql, (item_name, start_time_str, end_time_str))
+                    avg_result = db.execute_query(time_range_sql, (steam_hash_name, start_time_str, end_time_str))
                     if avg_result and len(avg_result) > 0 and avg_result[0][0] is not None:
-                        print(f"✅ 时间范围匹配成功（item_name）- {item_name}, 时间: {start_time_str} ~ {end_time_str}, price: {round(avg_result[0][0], 2)}")
+                        print(f"✅ 时间范围匹配成功（steam_hash_name）- {steam_hash_name}, 时间: {start_time_str} ~ {end_time_str}, price: {round(avg_result[0][0], 2)}")
                         return round(avg_result[0][0], 2)
             except Exception as e:
                 print(f"使用时间范围查询价格失败: {str(e)}")
         
-        # 第四步：如果没有order_time或时间范围查询失败，查询最新的一条数据
-        # 优先使用steam_hash_name
-        if steam_hash_name:
-            latest_sql = """
-            SELECT price 
-            FROM buy 
-            WHERE steam_hash_name = ? 
-            ORDER BY order_time DESC 
-            LIMIT 1
-            """
-            latest_result = db.execute_query(latest_sql, (steam_hash_name,))
-            if latest_result and len(latest_result) > 0:
-                print(f"✅ 最新数据匹配成功（steam_hash_name）- {steam_hash_name}, price: {latest_result[0][0]}")
-                return latest_result[0][0]
-        
-        # 使用item_name查询最新的一条数据
+        # 第三步：如果没有order_time或时间范围查询失败，查询最新的一条数据
         latest_sql = """
         SELECT price 
         FROM buy 
-        WHERE item_name = ? 
+        WHERE steam_hash_name = ? 
         ORDER BY order_time DESC 
         LIMIT 1
         """
-        latest_result = db.execute_query(latest_sql, (item_name,))
+        latest_result = db.execute_query(latest_sql, (steam_hash_name,))
         if latest_result and len(latest_result) > 0:
-            print(f"✅ 最新数据匹配成功（item_name）- {item_name}, price: {latest_result[0][0]}")
+            print(f"✅ 最新数据匹配成功（steam_hash_name）- {steam_hash_name}, price: {latest_result[0][0]}")
             return latest_result[0][0]
     else:
         # 没有磨损值的情况
@@ -191,72 +159,43 @@ def get_price_from_buy_table(item_name, weapon_float=None, order_time=None, stea
                     start_time_str = start_time.strftime('%Y-%m-%d %H:%M:%S')
                     end_time_str = end_time.strftime('%Y-%m-%d %H:%M:%S')
                     
-                    # 优先使用steam_hash_name查询时间范围内的平均价格
-                    if steam_hash_name:
-                        time_range_sql = """
-                        SELECT AVG(CAST(price AS REAL)) 
-                        FROM buy 
-                        WHERE steam_hash_name = ? 
-                        AND order_time >= ? 
-                        AND order_time <= ?
-                        """
-                        avg_result = db.execute_query(time_range_sql, (steam_hash_name, start_time_str, end_time_str))
-                        if avg_result and len(avg_result) > 0 and avg_result[0][0] is not None:
-                            print(f"✅ 时间范围平均价匹配成功（steam_hash_name，无float）- {steam_hash_name}, 时间: {start_time_str} ~ {end_time_str}, price: {round(avg_result[0][0], 2)}")
-                            return round(avg_result[0][0], 2)
-                    
-                    # 使用item_name查询时间范围内的平均价格
+                    # 使用steam_hash_name查询时间范围内的平均价格
                     time_range_sql = """
                     SELECT AVG(CAST(price AS REAL)) 
                     FROM buy 
-                    WHERE item_name = ? 
+                    WHERE steam_hash_name = ? 
                     AND order_time >= ? 
                     AND order_time <= ?
                     """
-                    avg_result = db.execute_query(time_range_sql, (item_name, start_time_str, end_time_str))
+                    avg_result = db.execute_query(time_range_sql, (steam_hash_name, start_time_str, end_time_str))
                     if avg_result and len(avg_result) > 0 and avg_result[0][0] is not None:
-                        print(f"✅ 时间范围平均价匹配成功（item_name，无float）- {item_name}, 时间: {start_time_str} ~ {end_time_str}, price: {round(avg_result[0][0], 2)}")
+                        print(f"✅ 时间范围平均价匹配成功（steam_hash_name，无float）- {steam_hash_name}, 时间: {start_time_str} ~ {end_time_str}, price: {round(avg_result[0][0], 2)}")
                         return round(avg_result[0][0], 2)
                     
                     # 如果24小时内没有找到记录，返回None（留空）
-                    print(f"⚠️  24小时内无记录（无float）- item_name: {item_name}, steam_hash_name: {steam_hash_name}, 时间: {start_time_str} ~ {end_time_str}")
+                    print(f"⚠️  24小时内无记录（无float）- steam_hash_name: {steam_hash_name}, 时间: {start_time_str} ~ {end_time_str}")
                     return None
             except Exception as e:
                 print(f"使用时间范围查询价格失败（无float）: {str(e)}")
         
         # 第二步：如果没有order_time，查询最新的一条数据
-        # 优先使用steam_hash_name
-        if steam_hash_name:
-            latest_sql = """
-            SELECT price 
-            FROM buy 
-            WHERE steam_hash_name = ? 
-            ORDER BY order_time DESC 
-            LIMIT 1
-            """
-            latest_result = db.execute_query(latest_sql, (steam_hash_name,))
-            if latest_result and len(latest_result) > 0:
-                print(f"✅ 最新数据匹配成功（steam_hash_name，无float）- {steam_hash_name}, price: {latest_result[0][0]}")
-                return latest_result[0][0]
-        
-        # 使用item_name查询最新的一条数据
         latest_sql = """
         SELECT price 
         FROM buy 
-        WHERE item_name = ? 
+        WHERE steam_hash_name = ? 
         ORDER BY order_time DESC 
         LIMIT 1
         """
-        latest_result = db.execute_query(latest_sql, (item_name,))
+        latest_result = db.execute_query(latest_sql, (steam_hash_name,))
         if latest_result and len(latest_result) > 0:
-            print(f"✅ 最新数据匹配成功（item_name，无float）- {item_name}, price: {latest_result[0][0]}")
+            print(f"✅ 最新数据匹配成功（steam_hash_name，无float）- {steam_hash_name}, price: {latest_result[0][0]}")
             return latest_result[0][0]
         
-        # 第三步：如果以上都失败，返回None（不再使用全局平均价格）
-        print(f"❌ 未找到价格（无float）- item_name: {item_name}, steam_hash_name: {steam_hash_name}")
+        # 第三步：如果以上都失败，返回None
+        print(f"❌ 未找到价格（无float）- steam_hash_name: {steam_hash_name}")
         return None
     
-    print(f"❌ 未找到价格 - item_name: {item_name}, steam_hash_name: {steam_hash_name}, weapon_float: {weapon_float}")
+    print(f"❌ 未找到价格 - steam_hash_name: {steam_hash_name}, weapon_float: {weapon_float}")
     return None
 
 @steamInventoryV1.route('/inventory', methods=['POST'])

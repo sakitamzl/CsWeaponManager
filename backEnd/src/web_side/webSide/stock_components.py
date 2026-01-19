@@ -105,6 +105,8 @@ def get_components(steam_id):
         weapon_type = request.args.get('weapon_type', '')  # 武器类型筛选
         weapon_level = request.args.get('weapon_level', '')  # 武器等级筛选
         assetid = request.args.get('assetid', '')  # 组件assetid筛选
+        order_by = (request.args.get('order_by') or 'unit_price').lower()
+        order_dir = (request.args.get('order_dir') or 'desc').lower()
         page = request.args.get('page', 1, type=int)
         page_size = request.args.get('page_size', 20, type=int)
         
@@ -140,6 +142,28 @@ def get_components(steam_id):
         
         where_clause = " AND ".join(where_conditions)
         
+        # 排序：默认按“单价”倒序（这里单价=buy_price）
+        is_desc = order_dir != 'asc'
+        direction = 'DESC' if is_desc else 'ASC'
+        order_map = {
+            'order_time': f"order_time {direction}",
+            'buy_price': f"CAST(buy_price AS REAL) {direction}",
+            'unit_price': f"CAST(buy_price AS REAL) {direction}",  # 兼容：单价 = buy_price
+            'yyyp_price': f"CAST(yyyp_price AS REAL) {direction}",
+            'buff_price': f"CAST(buff_price AS REAL) {direction}",
+            'steam_price': f"CAST(steam_price AS REAL) {direction}",
+        }
+        order_expr = order_map.get(order_by, order_map['unit_price'])
+        # 将空值/0 放到最后，避免排在最前面
+        order_clause = f"""
+            CASE 
+                WHEN buy_price IS NULL OR buy_price = '' OR buy_price = 'None' OR CAST(buy_price AS REAL) <= 0 THEN 1 
+                ELSE 0 
+            END ASC,
+            {order_expr},
+            order_time DESC
+        """
+        
         # 查询数据 - 查询所有字段，包含 steam_hash_name, sticker, pendant, rename
         sql = f"""
         SELECT
@@ -149,7 +173,7 @@ def get_components(steam_id):
             steam_hash_name, sticker, pendant, rename
         FROM steam_stockComponents
         WHERE {where_clause}
-        ORDER BY order_time DESC
+        ORDER BY {order_clause}
         LIMIT ? OFFSET ?
         """
         params.extend([page_size, offset])
@@ -331,7 +355,8 @@ def get_components_grouped(steam_id):
         assetid = request.args.get('assetid', '')  # 组件assetid筛选
         page = request.args.get('page', 1, type=int)
         page_size = request.args.get('page_size', 20, type=int)
-        order_by = (request.args.get('order_by') or 'count').lower()
+        order_by = (request.args.get('order_by') or 'unit_price').lower()
+        order_dir = (request.args.get('order_dir') or 'desc').lower()
 
         offset = (page - 1) * page_size
 
@@ -357,16 +382,18 @@ def get_components_grouped(steam_id):
 
         where_clause = " AND ".join(where_conditions)
 
-        # 排序字段映射
+        # 排序字段映射（组合模式下：单价 = total_buy_price / item_count）
+        direction = 'ASC' if order_dir == 'asc' else 'DESC'
         order_map = {
-            'count': 'item_count DESC, item_name ASC',
+            'count': f'item_count {direction}, item_name ASC',
             'name': 'item_name ASC',
-            'buy_price': 'total_buy_price DESC',
-            'yyyp_price': 'total_yyyp_price DESC',
-            'buff_price': 'total_buff_price DESC',
-            'steam_price': 'total_steam_price DESC'
+            'buy_price': f'total_buy_price {direction}',
+            'yyyp_price': f'total_yyyp_price {direction}',
+            'buff_price': f'total_buff_price {direction}',
+            'steam_price': f'total_steam_price {direction}',
+            'unit_price': f'(CASE WHEN COUNT(*) = 0 THEN 0 ELSE (SUM(CAST(buy_price AS REAL)) / COUNT(*)) END) {direction}'
         }
-        order_clause = order_map.get(order_by, order_map['count'])
+        order_clause = order_map.get(order_by, order_map['unit_price'])
 
         sql = f"""
         SELECT

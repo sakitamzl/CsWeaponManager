@@ -425,7 +425,13 @@
             </template>
           </el-table-column>
           <el-table-column prop="float_range" label="磨损范围" min-width="120" />
-          <el-table-column prop="buy_price" label="购入价格" min-width="180" sortable>
+          <el-table-column 
+            prop="buy_price" 
+            label="购入价格" 
+            min-width="180" 
+            sortable
+            :sort-method="sortByAvgBuyPrice"
+          >
             <template #default="scope">
               <div v-if="editingGoodsAssetId !== scope.row.goods_assetid"
                    @click="startEdit(scope.row)"
@@ -450,7 +456,13 @@
               />
             </template>
           </el-table-column>
-          <el-table-column prop="yyyp_price" label="悠悠价格" min-width="180" sortable>
+          <el-table-column 
+            prop="yyyp_price" 
+            label="悠悠价格" 
+            min-width="180" 
+            sortable
+            :sort-method="sortByAvgYyypPrice"
+          >
             <template #default="scope">
               <span 
                 v-if="scope.row.yyyp_price && scope.row.buy_price"
@@ -474,7 +486,13 @@
               <span v-else style="color: #888;">-</span>
             </template>
           </el-table-column>
-          <el-table-column prop="buff_price" label="BUFF价格" min-width="180" sortable>
+          <el-table-column 
+            prop="buff_price" 
+            label="BUFF价格" 
+            min-width="180" 
+            sortable
+            :sort-method="sortByAvgBuffPrice"
+          >
             <template #default="scope">
               <span 
                 v-if="scope.row.buff_price && scope.row.buy_price"
@@ -1089,7 +1107,10 @@ export default {
         const params = {
           search: searchText.value,
           page: currentPageNum,
-          page_size: pageSize.value
+          page_size: pageSize.value,
+          // 默认按“单价”排序（后端：明细模式 unit_price=buy_price）
+          order_by: 'unit_price',
+          order_dir: 'desc'
         }
         
         // 如果选择了组件，添加 assetid 参数进行筛选
@@ -1159,7 +1180,10 @@ export default {
         const params = {
           search: searchText.value,
           page: currentPage.value,
-          page_size: pageSize.value
+          page_size: pageSize.value,
+          // 组合模式：单价 = total_buy_price / item_count
+          order_by: 'unit_price',
+          order_dir: 'desc'
         }
         
         // 如果选择了组件，添加 assetid 参数进行筛选
@@ -1393,6 +1417,38 @@ export default {
       const t = parseFloat(total) || 0
       if (!c) return '0.00'
       return (t / c).toFixed(2)
+    }
+
+    // 列表排序：按“平均价”排序（总价 / 数量），组合/明细共用
+    const getAvgPrice = (total, count) => {
+      const t = parseFloat(total) || 0
+      const c = parseFloat(count) || 0
+      if (!c) return 0
+      return t / c
+    }
+
+    const sortByAvgBuyPrice = (a, b) => {
+      const countA = groupMode.value ? (parseFloat(a.item_count) || 0) : 1
+      const countB = groupMode.value ? (parseFloat(b.item_count) || 0) : 1
+      const avgA = getAvgPrice(a.buy_price, countA)
+      const avgB = getAvgPrice(b.buy_price, countB)
+      return avgA - avgB
+    }
+
+    const sortByAvgYyypPrice = (a, b) => {
+      const countA = groupMode.value ? (parseFloat(a.item_count) || 0) : 1
+      const countB = groupMode.value ? (parseFloat(b.item_count) || 0) : 1
+      const avgA = getAvgPrice(a.yyyp_price, countA)
+      const avgB = getAvgPrice(b.yyyp_price, countB)
+      return avgA - avgB
+    }
+
+    const sortByAvgBuffPrice = (a, b) => {
+      const countA = groupMode.value ? (parseFloat(a.item_count) || 0) : 1
+      const countB = groupMode.value ? (parseFloat(b.item_count) || 0) : 1
+      const avgA = getAvgPrice(a.buff_price, countA)
+      const avgB = getAvgPrice(b.buff_price, countB)
+      return avgA - avgB
     }
 
     const handleToggleGroupMode = (val = null) => {
@@ -2082,6 +2138,10 @@ export default {
       getItemTitle,
       hasExtras,
       calcAvg,
+      getAvgPrice,
+      sortByAvgBuyPrice,
+      sortByAvgYyypPrice,
+      sortByAvgBuffPrice,
       parseStickers,
       parsePendant,
       handleSizeChange,
