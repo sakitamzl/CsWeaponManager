@@ -587,6 +587,20 @@ def get_inventory(steam_id):
                         if affected > 0:
                             print(f"自动填充价格: {item_name} -> ¥{buy_price}")
                 
+                # 如果是库存组件（classid = '3604678661'），查询实际数量
+                actual_count = None
+                if row[2] == '3604678661':  # classid
+                    try:
+                        count_sql = """
+                        SELECT COUNT(*) FROM steam_stockComponents
+                        WHERE assetid = ? AND data_user = ?
+                        """
+                        count_result = db.execute_query(count_sql, (row[0], steam_id))  # row[0] is assetid
+                        actual_count = count_result[0][0] if count_result else 0
+                    except Exception as e:
+                        print(f"查询组件实际数量失败 - assetid: {row[0]}, 错误: {e}")
+                        actual_count = 0
+
                 record = {
                     'assetid': row[0],
                     'instanceid': row[1],
@@ -606,7 +620,8 @@ def get_inventory(steam_id):
                     'steam_hash_name': row[15] if len(row) > 15 else None,
                     'sticker': row[16] if len(row) > 16 else None,
                     'pendant': row[17] if len(row) > 17 else None,
-                    'rename': row[18] if len(row) > 18 else None
+                    'rename': row[18] if len(row) > 18 else None,
+                    'actual_count': actual_count  # 实际数量（仅库存组件有值）
                 }
                 records.append(record)
         

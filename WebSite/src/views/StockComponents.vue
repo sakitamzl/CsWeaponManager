@@ -22,9 +22,9 @@
                 <span>{{ item.dataName }} ({{ item.steamID }})</span>
               </el-option>
             </el-select>
-            <el-select 
-              v-model="selectedComponent" 
-              placeholder="选择库存组件（选中后只显示该组件）" 
+            <el-select
+              v-model="selectedComponent"
+              placeholder="选择库存组件（选中后只显示该组件）"
               class="component-select"
               @change="handleComponentSelect"
               filterable
@@ -33,13 +33,19 @@
               <el-option
                 v-for="item in inventoryComponents"
                 :key="item.assetid"
-                :label="item.weapon_float ? `${item.item_name} (数量:${item.weapon_float})` : item.item_name"
+                :label="getComponentLabel(item)"
                 :value="item.assetid"
               >
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                  <span style="flex: 0 0 auto; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item.item_name }}</span>
+                  <span style="flex: 0 0 auto; max-width: 35%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item.item_name }}</span>
                   <span style="flex: 0 0 auto; color: var(--el-text-color-secondary); font-size: 13px; margin-left: 8px; font-family: monospace;">
-                    数量: <span style="display: inline-block; text-align: right; min-width: 2.5em;">{{ item.weapon_float || 0 }}</span> | assetid: {{ item.assetid }}
+                    <template v-if="hasCountMismatch(item)">
+                      <span style="color: #f56c6c; font-weight: bold; margin-right: 4px;" title="数量不一致">⚠</span>
+                    </template>
+                    显示: <span style="display: inline-block; text-align: right; min-width: 2em;">{{ item.weapon_float || 0 }}</span>
+                    <template v-if="item.actual_count !== null && item.actual_count !== undefined">
+                      | 实际: <span style="display: inline-block; text-align: right; min-width: 2em;">{{ item.actual_count }}</span>
+                    </template>
                   </span>
                 </div>
               </el-option>
@@ -854,6 +860,30 @@ export default {
       return str
     }
 
+    // 判断组件数量是否不匹配
+    const hasCountMismatch = (item) => {
+      if (item.actual_count === null || item.actual_count === undefined) {
+        return false
+      }
+      const displayCount = parseInt(item.weapon_float) || 0
+      const actualCount = parseInt(item.actual_count) || 0
+      return displayCount !== actualCount
+    }
+
+    // 获取组件下拉框的label文本
+    const getComponentLabel = (item) => {
+      const displayCount = item.weapon_float || 0
+      const actualCount = item.actual_count
+
+      if (actualCount !== null && actualCount !== undefined) {
+        const mismatch = hasCountMismatch(item)
+        const prefix = mismatch ? '⚠ ' : ''
+        return `${prefix}${item.item_name} (显示:${displayCount} | 实际:${actualCount})`
+      } else {
+        return item.weapon_float ? `${item.item_name} (数量:${displayCount})` : item.item_name
+      }
+    }
+
     const getQuantityType = (quantity) => {
       if (quantity === 0) return 'danger'
       if (quantity < 5) return 'warning'
@@ -1073,10 +1103,10 @@ export default {
 
     const handleComponentSelect = async () => {
       console.log('选择的组件 assetid:', selectedComponent.value)
-      
+
       // 切换组件时清空之前的选择
       clearSelection()
-      
+
       if (!selectedComponent.value) {
         // 清空选择，重新加载所有组件数据
         currentPage.value = 1
@@ -1091,23 +1121,23 @@ export default {
         loadComponentStats()
         return
       }
-      
+
       if (!selectedSteamId.value) {
         ElMessage.warning('请先选择Steam账号')
         return
       }
-      
+
       // 重置页码和偏移量
       currentPage.value = 1
       currentOffset.value = 0
-      
+
       // 根据当前显示模式决定加载哪个数据
       if (displayMode.value === 'card') {
         loadComponentData()
       } else {
         groupMode.value ? loadGroupedData() : loadComponentData()
       }
-      
+
       // 重新加载统计数据
       loadComponentStats()
     }
@@ -2169,6 +2199,8 @@ export default {
       getWeaponImage,
       getItemTitle,
       hasExtras,
+      hasCountMismatch,
+      getComponentLabel,
       calcAvg,
       sortBy,
       sortDir,

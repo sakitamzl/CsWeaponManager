@@ -1037,6 +1037,87 @@ def auto_fill_prices(steam_id):
         }), 500
 
 
+@webStockComponentsV1.route('/verify_component/<steam_id>/<assetid>', methods=['GET'])
+def verify_component(steam_id, assetid):
+    """
+    验证库存组件的实际数量是否与下拉框显示的数量一致
+
+    Args:
+        steam_id: Steam 用户 ID
+        assetid: 库存组件的 assetid
+
+    返回:
+    {
+        "success": True,
+        "data": {
+            "assetid": "组件assetid",
+            "item_name": "组件名称",
+            "display_count": 显示的数量（来自steam_inventory的weapon_float字段）,
+            "actual_count": 实际的数量（来自steam_stockComponents表的记录数）,
+            "is_match": 是否匹配,
+            "difference": 差值（实际数量 - 显示数量）
+        }
+    }
+    """
+    try:
+        db = DatabaseManager()
+
+        # 1. 从 steam_inventory 表查询组件信息（获取显示的数量）
+        inventory_sql = """
+        SELECT item_name, weapon_float
+        FROM steam_inventory
+        WHERE assetid = ? AND data_user = ?
+        """
+        inventory_result = db.execute_query(inventory_sql, (assetid, steam_id))
+
+        if not inventory_result or len(inventory_result) == 0:
+            return jsonify({
+                'success': False,
+                'message': '未找到该库存组件'
+            }), 404
+
+        item_name = inventory_result[0][0]
+        weapon_float = inventory_result[0][1]
+
+        # 将 weapon_float 转换为数字（作为显示的数量）
+        try:
+            display_count = int(float(weapon_float)) if weapon_float not in [None, '', 'None'] else 0
+        except (ValueError, TypeError):
+            display_count = 0
+
+        # 2. 从 steam_stockComponents 表查询该组件实际的记录数
+        count_sql = """
+        SELECT COUNT(*) FROM steam_stockComponents
+        WHERE assetid = ? AND data_user = ?
+        """
+        count_result = db.execute_query(count_sql, (assetid, steam_id))
+        actual_count = count_result[0][0] if count_result else 0
+
+        # 3. 比对数量
+        is_match = (display_count == actual_count)
+        difference = actual_count - display_count
+
+        return jsonify({
+            'success': True,
+            'data': {
+                'assetid': assetid,
+                'item_name': item_name,
+                'display_count': display_count,
+                'actual_count': actual_count,
+                'is_match': is_match,
+                'difference': difference
+            }
+        }), 200
+
+    except Exception as e:
+        print(f"❌ 验证组件数量失败 - assetid: {assetid}, steam_id: {steam_id}")
+        print(f"错误详情: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'message': f'验证失败: {str(e)}'
+        }), 500
+
+
 @webStockComponentsV1.route('/fill_reference_price/<steam_id>/<source>', methods=['POST'])
 def fill_reference_price(steam_id, source):
     """
