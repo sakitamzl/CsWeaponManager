@@ -96,6 +96,52 @@ def get_weapon_types(steam_id):
         }), 500
 
 
+@webStockComponentsV1.route('/weapon_names/<steam_id>', methods=['GET'])
+def get_weapon_names(steam_id):
+    """获取指定用户的所有磨损等级（weapon_name字段）"""
+    try:
+        db = DatabaseManager()
+
+        sql = """
+        SELECT DISTINCT weapon_name
+        FROM steam_stockComponents
+        WHERE data_user = ?
+          AND weapon_name IS NOT NULL
+          AND weapon_name != ''
+        ORDER BY
+            CASE weapon_name
+                WHEN '崭新出厂' THEN 1
+                WHEN '略有磨损' THEN 2
+                WHEN '久经沙场' THEN 3
+                WHEN '破损不堪' THEN 4
+                WHEN '战痕累累' THEN 5
+                ELSE 999
+            END,
+            weapon_name
+        """
+        results = db.execute_query(sql, (steam_id,))
+
+        weapon_names = []
+        if results:
+            for row in results:
+                if row[0]:  # 确保不是空值
+                    weapon_names.append(row[0])
+
+        return jsonify({
+            'success': True,
+            'data': weapon_names
+        }), 200
+
+    except Exception as e:
+        print(f"获取磨损等级失败: {e}")
+        import traceback
+        print(f"详细错误信息: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'error': f'查询失败: {str(e)}'
+        }), 500
+
+
 @webStockComponentsV1.route('/components/<steam_id>', methods=['GET'])
 def get_components(steam_id):
     """获取指定用户的库存组件列表 - 从 steam_stockComponents 表读取"""
@@ -103,6 +149,7 @@ def get_components(steam_id):
         # 获取查询参数
         search_text = request.args.get('search', '')
         weapon_type = request.args.get('weapon_type', '')  # 武器类型筛选
+        weapon_name = request.args.get('weapon_name', '')  # 磨损等级筛选
         weapon_level = request.args.get('weapon_level', '')  # 武器等级筛选
         assetid = request.args.get('assetid', '')  # 组件assetid筛选
         order_by = (request.args.get('order_by') or 'unit_price').lower()
@@ -134,12 +181,17 @@ def get_components(steam_id):
         if weapon_type:
             where_conditions.append("weapon_type = ?")
             params.append(weapon_type)
-        
+
+        # 磨损等级筛选
+        if weapon_name:
+            where_conditions.append("weapon_name = ?")
+            params.append(weapon_name)
+
         # 武器等级筛选
         if weapon_level:
             where_conditions.append("weapon_level = ?")
             params.append(weapon_level)
-        
+
         where_clause = " AND ".join(where_conditions)
         
         # 排序：默认按“单价”倒序（这里单价=buy_price）
@@ -265,30 +317,36 @@ def get_components_stats(steam_id):
         # 获取筛选参数
         search_text = request.args.get('search', '')
         weapon_type = request.args.get('weapon_type', '')
+        weapon_name = request.args.get('weapon_name', '')  # 磨损等级筛选
         assetid = request.args.get('assetid', '')  # 组件assetid筛选
-        
+
         db = DatabaseManager()
-        
+
         # 构建查询条件
         where_conditions = ["data_user = ?"]
         params = [steam_id]
-        
+
         # 组件assetid筛选
         if assetid:
             where_conditions.append("assetid = ?")
             params.append(assetid)
-        
+
         # 关键词搜索
         if search_text:
             where_conditions.append("(weapon_name LIKE ? OR item_name LIKE ?)")
             params.append(f"%{search_text}%")
             params.append(f"%{search_text}%")
-        
+
         # 武器类型筛选
         if weapon_type:
             where_conditions.append("weapon_type = ?")
             params.append(weapon_type)
-        
+
+        # 磨损等级筛选
+        if weapon_name:
+            where_conditions.append("weapon_name = ?")
+            params.append(weapon_name)
+
         where_clause = " AND ".join(where_conditions)
         
         # 统计总数和各种价格总和
@@ -352,6 +410,7 @@ def get_components_grouped(steam_id):
     try:
         search_text = request.args.get('search', '')
         weapon_type = request.args.get('weapon_type', '')  # 武器类型筛选
+        weapon_name = request.args.get('weapon_name', '')  # 磨损等级筛选
         assetid = request.args.get('assetid', '')  # 组件assetid筛选
         page = request.args.get('page', 1, type=int)
         page_size = request.args.get('page_size', 20, type=int)
@@ -374,11 +433,16 @@ def get_components_grouped(steam_id):
             where_conditions.append("(item_name LIKE ? OR weapon_name LIKE ?)")
             params.append(f"%{search_text}%")
             params.append(f"%{search_text}%")
-        
+
         # 武器类型筛选
         if weapon_type:
             where_conditions.append("weapon_type = ?")
             params.append(weapon_type)
+
+        # 磨损等级筛选
+        if weapon_name:
+            where_conditions.append("weapon_name = ?")
+            params.append(weapon_name)
 
         where_clause = " AND ".join(where_conditions)
 

@@ -59,14 +59,23 @@
               @clear="handleClearSearch"
               clearable
             />
-            <el-select 
-              v-model="weaponTypeFilter" 
-              placeholder="武器类型" 
-              class="type-select" 
+            <el-select
+              v-model="weaponTypeFilter"
+              placeholder="武器类型"
+              class="type-select"
               @change="handleWeaponTypeChange"
               clearable
             >
               <el-option v-for="type in weaponTypes" :key="type" :label="type" :value="type" />
+            </el-select>
+            <el-select
+              v-model="weaponNameFilter"
+              placeholder="磨损等级"
+              class="weapon-name-select"
+              @change="handleWeaponNameChange"
+              clearable
+            >
+              <el-option v-for="name in weaponNames" :key="name" :label="name" :value="name" />
             </el-select>
             <el-button type="primary" @click="handleSearch" :loading="loading">
               搜索
@@ -779,6 +788,8 @@ export default {
     const searchText = ref('')
     const weaponTypeFilter = ref('') // 武器类型筛选
     const weaponTypes = ref([]) // 武器类型列表
+    const weaponNameFilter = ref('') // 磨损等级筛选
+    const weaponNames = ref([]) // 磨损等级列表
     const currentPage = ref(1)
     const pageSize = ref(50) // 每次加载数量
     const currentOffset = ref(0) // 当前偏移量
@@ -1052,17 +1063,51 @@ export default {
       }
     }
 
+    const loadWeaponNames = async () => {
+      if (!selectedSteamId.value) {
+        weaponNames.value = []
+        return
+      }
+
+      try {
+        const response = await axios.get(`${API_COMPONENTS}/weapon_names/${selectedSteamId.value}`)
+        if (response.data.success) {
+          weaponNames.value = response.data.data || []
+        } else {
+          weaponNames.value = []
+        }
+      } catch (error) {
+        console.error('加载磨损等级失败:', error)
+        weaponNames.value = []
+      }
+    }
+
     const handleWeaponTypeChange = () => {
       currentPage.value = 1
       currentOffset.value = 0
-      
+
       // 根据当前显示模式决定加载哪个数据
       if (displayMode.value === 'card') {
         loadComponentData()
       } else {
         groupMode.value ? loadGroupedData() : loadComponentData()
       }
-      
+
+      // 重新加载统计数据
+      loadComponentStats()
+    }
+
+    const handleWeaponNameChange = () => {
+      currentPage.value = 1
+      currentOffset.value = 0
+
+      // 根据当前显示模式决定加载哪个数据
+      if (displayMode.value === 'card') {
+        loadComponentData()
+      } else {
+        groupMode.value ? loadGroupedData() : loadComponentData()
+      }
+
       // 重新加载统计数据
       loadComponentStats()
     }
@@ -1180,7 +1225,12 @@ export default {
         if (weaponTypeFilter.value) {
           params.weapon_type = weaponTypeFilter.value
         }
-        
+
+        // 如果选择了磨损等级，添加 weapon_name 参数进行筛选
+        if (weaponNameFilter.value) {
+          params.weapon_name = weaponNameFilter.value
+        }
+
         const response = await axios.get(`${API_COMPONENTS}/components/${selectedSteamId.value}`, {
           params: params
         })
@@ -1253,7 +1303,12 @@ export default {
         if (weaponTypeFilter.value) {
           params.weapon_type = weaponTypeFilter.value
         }
-        
+
+        // 如果选择了磨损等级，添加 weapon_name 参数进行筛选
+        if (weaponNameFilter.value) {
+          params.weapon_name = weaponNameFilter.value
+        }
+
         const response = await axios.get(`${API_COMPONENTS_GROUPED}/${selectedSteamId.value}`, {
           params: params
         })
@@ -1304,12 +1359,17 @@ export default {
         if (weaponTypeFilter.value) {
           params.weapon_type = weaponTypeFilter.value
         }
-        
+
+        // 添加磨损等级筛选
+        if (weaponNameFilter.value) {
+          params.weapon_name = weaponNameFilter.value
+        }
+
         // 添加组件assetid筛选
         if (selectedComponent.value) {
           params.assetid = selectedComponent.value
         }
-        
+
         const response = await axios.get(`${API_COMPONENTS}/components/stats/${selectedSteamId.value}`, {
           params: params
         })
@@ -1455,16 +1515,17 @@ export default {
       searchText.value = ''
       selectedComponent.value = ''
       weaponTypeFilter.value = ''
+      weaponNameFilter.value = ''
       currentPage.value = 1
       currentOffset.value = 0
-      
+
       // 根据当前显示模式决定加载哪个数据
       if (displayMode.value === 'card') {
         loadComponentData()
       } else {
         groupMode.value ? loadGroupedData() : loadComponentData()
       }
-      
+
       // 重新加载统计数据
       loadComponentStats()
       // setupScrollObserver 会在 loadComponentData 完成后自动调用
@@ -2142,6 +2203,7 @@ export default {
       if (selectedSteamId.value) {
         await loadInventoryComponents()
         await loadWeaponTypes()
+        await loadWeaponNames()
         if (displayMode.value === 'list') {
           if (groupMode.value) {
             loadGroupedData()
@@ -2172,6 +2234,8 @@ export default {
       searchText,
       weaponTypeFilter,
       weaponTypes,
+      weaponNameFilter,
+      weaponNames,
       currentPage,
       pageSize,
       totalItems,
@@ -2214,6 +2278,7 @@ export default {
       handleSearch,
       handleClearSearch,
       handleWeaponTypeChange,
+      handleWeaponNameChange,
       handleSteamIdChange,
       handleComponentSelect,
       handleUpdateComponent,
@@ -2808,18 +2873,19 @@ export default {
 }
 
 .steam-id-select {
-  min-width: 250px;
-  max-width: 350px;
+  width: 200px;
 }
 
 .component-select {
-  min-width: 300px;
-  max-width: 450px;
+  width: 200px;
 }
 
 .type-select {
-  min-width: 150px;
-  max-width: 200px;
+  width: 200px;
+}
+
+.weapon-name-select {
+  width: 200px;
 }
 
 .search-input {
