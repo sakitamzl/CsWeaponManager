@@ -450,7 +450,7 @@
         <!-- Steam特有配置 -->
         <template v-else-if="editForm.type === 'steam'">
           <!-- Cookie获取方式选择 -->
-          <el-form-item label="Cookie获取方式" required>
+          <el-form-item label="获取方式" required>
             <el-radio-group v-model="editForm.steamCookieMethod">
               <el-radio label="qrcode">扫码登录</el-radio>
               <el-radio label="password">账号密码登录</el-radio>
@@ -516,7 +516,7 @@
                 placeholder="请输入Steam密码"
               />
             </el-form-item>
-            <el-form-item label="Steam Guard验证码">
+            <el-form-item label="Steam PIN">
               <el-input 
                 v-model="editForm.steamTwofactorCode" 
                 placeholder="请输入5位Steam Guard验证码（如需要）"
@@ -535,6 +535,10 @@
               >
                 {{ steamLoginLoading ? '登录中...' : '重新登录获取Cookie' }}
               </el-button>
+            </el-form-item>
+            <!-- 自动获取的 SteamID 显示 -->
+            <el-form-item v-if="editForm.steamID" label="当前SteamID">
+              <el-input v-model="editForm.steamID" disabled />
             </el-form-item>
           </template>
 
@@ -592,7 +596,7 @@
         <!-- Steam登录特有配置（兼容旧数据，使用与steam相同的表单） -->
         <template v-else-if="editForm.type === 'steam_login'">
           <!-- Cookie获取方式选择 -->
-          <el-form-item label="Cookie获取方式" required>
+          <el-form-item label="获取方式" required>
             <el-radio-group v-model="editForm.steamCookieMethod">
               <el-radio label="qrcode">扫码登录</el-radio>
               <el-radio label="password">账号密码登录</el-radio>
@@ -658,7 +662,7 @@
                 placeholder="请输入Steam密码"
               />
             </el-form-item>
-            <el-form-item label="Steam Guard验证码">
+            <el-form-item label="Steam PIN">
               <el-input 
                 v-model="editForm.steamTwofactorCode" 
                 placeholder="请输入5位Steam Guard验证码（如需要）"
@@ -1241,7 +1245,7 @@
         <!-- Steam特有配置 -->
         <template v-else-if="inputForm.type === 'steam'">
           <!-- Cookie获取方式选择 -->
-          <el-form-item label="Cookie获取方式" required>
+          <el-form-item label="获取方式" required>
             <el-radio-group v-model="inputForm.steamCookieMethod">
               <el-radio label="qrcode">扫码登录</el-radio>
               <el-radio label="password">账号密码登录</el-radio>
@@ -1307,7 +1311,7 @@
                 placeholder="请输入Steam密码"
               />
             </el-form-item>
-            <el-form-item label="Steam Guard验证码">
+            <el-form-item label="Steam PIN">
               <el-input 
                 v-model="inputForm.steamTwofactorCode" 
                 placeholder="请输入5位Steam Guard验证码（如需要）"
@@ -1326,6 +1330,10 @@
               >
                 {{ steamLoginLoading ? '登录中...' : '立即登录获取Cookie' }}
               </el-button>
+            </el-form-item>
+            <!-- 自动获取的 SteamID 显示 -->
+            <el-form-item v-if="inputForm.steamID" label="当前SteamID">
+              <el-input v-model="inputForm.steamID" disabled />
             </el-form-item>
           </template>
 
@@ -1447,7 +1455,7 @@
                 placeholder="请输入Steam密码"
               />
             </el-form-item>
-            <el-form-item label="Steam Guard验证码">
+            <el-form-item label="Steam PIN">
               <el-input 
                 v-model="inputForm.steamTwofactorCode" 
                 placeholder="请输入5位Steam Guard验证码（如需要）"
@@ -4912,15 +4920,21 @@ export default {
           // 登录成功
           const baseCookies = result.base_cookies || result.baseCookies || result.cookies || ''
           const inventoryCookies = result.inventory_cookies || result.inventoryCookies || result.cookies || ''
+          const steamIdFromResp = result.steam_id || result.steamId
           inputForm.value.steamBaseCookies = baseCookies
           inputForm.value.steamInventoryCookies = inventoryCookies
           inputForm.value.cookies = inventoryCookies
-          inputForm.value.steamLoginMessage = '✅ Steam登录成功！Cookie已获取'
+          if (steamIdFromResp) {
+            inputForm.value.steamID = steamIdFromResp
+          }
+          inputForm.value.steamLoginMessage = steamIdFromResp
+            ? '✅ Steam登录成功！Cookie与SteamID已获取'
+            : '✅ Steam登录成功！Cookie已获取，请填写SteamID'
           inputForm.value.steamLoginSuccess = true
-          ElMessage.success('Steam登录成功！请手动输入SteamID')
+          ElMessage.success(steamIdFromResp ? 'Steam登录成功，已自动填入SteamID' : 'Steam登录成功！请手动输入SteamID')
         } else if (result.requires_twofactor) {
-          // 需要Steam Guard验证码
-          inputForm.value.steamLoginMessage = '⚠️ 需要Steam Guard手机令牌验证码，请输入后重试'
+          // 需要 Steam Guard 验证码
+          inputForm.value.steamLoginMessage = '⚠️ 需要Steam Guard验证码，请输入后重试'
           inputForm.value.steamLoginSuccess = false
           ElMessage.warning('需要Steam Guard验证码')
         } else if (result.requires_emailauth) {
@@ -5165,10 +5179,14 @@ export default {
           // 登录成功
           const baseCookies = result.base_cookies || result.baseCookies || result.cookies || ''
           const inventoryCookies = result.inventory_cookies || result.inventoryCookies || result.cookies || ''
+          const steamIdFromResp = result.steam_id || result.steamId
           editForm.value.steamBaseCookies = baseCookies
           editForm.value.steamInventoryCookies = inventoryCookies
           editForm.value.cookies = inventoryCookies
-          ElMessage.success('Steam重新登录成功！基础/库存Cookies已更新，请手动输入SteamID')
+          if (steamIdFromResp) {
+            editForm.value.steamID = steamIdFromResp
+          }
+          ElMessage.success(steamIdFromResp ? 'Steam重新登录成功，已自动填入SteamID' : 'Steam重新登录成功！请手动输入SteamID')
         } else if (result.requires_twofactor) {
           ElMessage.warning('需要Steam Guard验证码，请输入后重试')
         } else if (result.requires_emailauth) {
