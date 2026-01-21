@@ -29,7 +29,7 @@
           @keyup.enter="loadInventoryData"
           clearable
         />
-        <el-select v-model="weaponTypeFilter" placeholder="武器类型" class="filter-select" clearable>
+        <el-select v-model="weaponTypeFilter" placeholder="武器类型" class="filter-select" clearable @change="handleFilterChange">
           <el-option label="全部" value="" />
           <el-option label="步枪" value="步枪" />
           <el-option label="手枪" value="手枪" />
@@ -40,7 +40,7 @@
           <el-option label="手套" value="手套" />
           <el-option label="匕首" value="匕首" />
         </el-select>
-        <el-select v-model="floatRangeFilter" placeholder="磨损等级" class="filter-select" clearable>
+        <el-select v-model="floatRangeFilter" placeholder="磨损等级" class="filter-select" clearable @change="handleFilterChange">
           <el-option label="全部" value="" />
           <el-option label="崭新出厂" value="崭新出厂" />
           <el-option label="略有磨损" value="略有磨损" />
@@ -48,22 +48,22 @@
           <el-option label="破损不堪" value="破损不堪" />
           <el-option label="战痕累累" value="战痕累累" />
         </el-select>
-        <el-select v-model="pendantFilter" placeholder="挂件" class="filter-select" clearable>
+        <el-select v-model="pendantFilter" placeholder="挂件" class="filter-select" clearable @change="handleFilterChange">
           <el-option label="全部" value="" />
           <el-option label="有挂件" value="has" />
           <el-option label="无挂件" value="none" />
         </el-select>
-        <el-select v-model="stickerFilter" placeholder="印花" class="filter-select" clearable>
+        <el-select v-model="stickerFilter" placeholder="印花" class="filter-select" clearable @change="handleFilterChange">
           <el-option label="全部" value="" />
           <el-option label="有印花" value="has" />
           <el-option label="无印花" value="none" />
         </el-select>
-        <el-select v-model="renameFilter" placeholder="改名" class="filter-select" clearable>
+        <el-select v-model="renameFilter" placeholder="改名" class="filter-select" clearable @change="handleFilterChange">
           <el-option label="全部" value="" />
           <el-option label="有改名" value="has" />
           <el-option label="无改名" value="none" />
         </el-select>
-        <el-select v-model="tradeRestrictionFilter" placeholder="交易限制" class="filter-select" clearable>
+        <el-select v-model="tradeRestrictionFilter" placeholder="交易限制" class="filter-select" clearable @change="handleFilterChange">
           <el-option label="全部" value="" />
           <el-option label="有交易限制" value="has" />
           <el-option label="无交易限制" value="none" />
@@ -1705,95 +1705,6 @@ export default {
     const API_GROUPED = `${API_CONFIG.BASE_URL}/webInventoryV1/inventory/grouped`
     const CONFIG_API = `${API_CONFIG.BASE_URL}/configV1`
 
-    const inventoryStats = computed(() => {
-      // 基于后端返回的整库统计数据计算
-      const totalCount = statsData.value.total_count || 0
-
-      const typeDistribution = statsData.value.by_type.length > 0
-        ? statsData.value.by_type.slice(0, 3).map(t => `${t.weapon_type}(${t.count})`).join(', ')
-        : '暂无数据'
-
-      const wearDistribution = statsData.value.by_wear.length > 0
-        ? statsData.value.by_wear.slice(0, 3).map(w => `${w.float_range}(${w.count})`).join(', ')
-        : '暂无数据'
-
-      return {
-        totalCount: totalCount,
-        typeDistribution,
-        wearDistribution
-      }
-    })
-
-    const priceStats = computed(() => {
-      // 使用后端返回的整库购入价格统计
-      const ps = statsData.value.price_stats || {}
-      const priced_count = ps.priced_count || 0
-      const total_price = typeof ps.total_price === 'number' ? ps.total_price : Number(ps.total_price || 0)
-      const avg_price = typeof ps.avg_price === 'number' ? ps.avg_price : Number(ps.avg_price || 0)
-
-      return {
-        priced_count,
-        total_price: total_price.toFixed(2),
-        avg_price: avg_price.toFixed(2),
-        min_price: ps.min_price !== undefined ? Number(ps.min_price || 0).toFixed(2) : '0.00',
-        max_price: ps.max_price !== undefined ? Number(ps.max_price || 0).toFixed(2) : '0.00'
-      }
-    })
-
-    const yyypPriceStats = computed(() => {
-      // 基于后端整库统计的悠悠有品价格 + 购入总价计算
-      const yy = statsData.value.yyyp_price_stats || {}
-      const ps = statsData.value.price_stats || {}
-      const priced_count = yy.priced_count || 0
-      const yy_total = typeof yy.total_price === 'number' ? yy.total_price : Number(yy.total_price || 0)
-      const buy_total = typeof ps.total_price === 'number' ? ps.total_price : Number(ps.total_price || 0)
-      const avg_price = typeof yy.avg_price === 'number' ? yy.avg_price : Number(yy.avg_price || 0)
-      const diff = (yy_total - buy_total).toFixed(2)
-
-      return {
-        priced_count,
-        total_price: yy_total.toFixed(2),
-        avg_price: avg_price.toFixed(2),
-        diff
-      }
-    })
-
-    const buffPriceStats = computed(() => {
-      // 基于后端整库统计的 BUFF 价格 + 购入总价计算（扣除2.5%手续费）
-      const buff = statsData.value.buff_price_stats || {}
-      const ps = statsData.value.price_stats || {}
-      const priced_count = buff.priced_count || 0
-      const buff_total = typeof buff.total_price === 'number' ? buff.total_price : Number(buff.total_price || 0)
-      const buff_total_after_fee = buff_total * 0.975
-      const buy_total = typeof ps.total_price === 'number' ? ps.total_price : Number(ps.total_price || 0)
-      const diff = (buff_total_after_fee - buy_total).toFixed(2)
-
-      return {
-        priced_count,
-        total_price: buff_total_after_fee.toFixed(2),
-        avg_price: priced_count > 0 ? (buff_total_after_fee / priced_count).toFixed(2) : '0.00',
-        diff
-      }
-    })
-
-    const steamPriceStats = computed(() => {
-      // 基于后端整库统计的 Steam 价格 + 购入总价计算
-      const steam = statsData.value.steam_price_stats || {}
-      const ps = statsData.value.price_stats || {}
-      const priced_count = steam.priced_count || 0
-      const steam_total = typeof steam.total_price === 'number' ? steam.total_price : Number(steam.total_price || 0)
-      const buy_total = typeof ps.total_price === 'number' ? ps.total_price : Number(ps.total_price || 0)
-      const avg_price = typeof steam.avg_price === 'number' ? steam.avg_price : Number(steam.avg_price || 0)
-      const diff = (steam_total - buy_total).toFixed(2)
-
-      return {
-        priced_count,
-        total_price: steam_total.toFixed(2),
-        avg_price: avg_price.toFixed(2),
-        diff
-      }
-    })
-
     const loadSteamIdList = async () => {
       try {
         const response = await axios.get(`${API_BASE}/steam_ids`)
@@ -2113,6 +2024,11 @@ export default {
     const handleSteamIdChange = () => {
       console.log('Steam ID已切换:', selectedSteamId.value)
       loadInventoryData(true) // 重置加载
+    }
+
+    const handleFilterChange = () => {
+      console.log('筛选条件已变更')
+      loadInventoryData(true) // 重置加载数据和统计
     }
 
     const handleReset = () => {
@@ -3403,6 +3319,148 @@ export default {
       return data
     })
 
+    // 统计数据计算（基于过滤后的数据，支持所有筛选条件）
+    const inventoryStats = computed(() => {
+      // 基于前端过滤后的数据计算，以支持所有筛选条件
+      const totalCount = currentDisplayData.value.length
+
+      const typeDistribution = statsData.value.by_type.length > 0
+        ? statsData.value.by_type.slice(0, 3).map(t => `${t.weapon_type}(${t.count})`).join(', ')
+        : '暂无数据'
+
+      const wearDistribution = statsData.value.by_wear.length > 0
+        ? statsData.value.by_wear.slice(0, 3).map(w => `${w.float_range}(${w.count})`).join(', ')
+        : '暂无数据'
+
+      return {
+        totalCount: totalCount,
+        typeDistribution,
+        wearDistribution
+      }
+    })
+
+    const priceStats = computed(() => {
+      // 基于前端过滤后的数据计算购入价格统计
+      const data = currentDisplayData.value
+      let total_price = 0
+      let priced_count = 0
+      let prices = []
+
+      data.forEach(item => {
+        const price = parseFloat(item.buy_price) || 0
+        if (price > 0) {
+          total_price += price
+          priced_count++
+          prices.push(price)
+        }
+      })
+
+      const avg_price = priced_count > 0 ? total_price / priced_count : 0
+      const min_price = prices.length > 0 ? Math.min(...prices) : 0
+      const max_price = prices.length > 0 ? Math.max(...prices) : 0
+
+      return {
+        priced_count,
+        total_price: total_price.toFixed(2),
+        avg_price: avg_price.toFixed(2),
+        min_price: min_price.toFixed(2),
+        max_price: max_price.toFixed(2)
+      }
+    })
+
+    const yyypPriceStats = computed(() => {
+      // 基于前端过滤后的数据计算悠悠有品价格统计
+      const data = currentDisplayData.value
+      let yy_total = 0
+      let buy_total = 0
+      let priced_count = 0
+
+      data.forEach(item => {
+        const yyyp_price = parseFloat(item.yyyp_price) || 0
+        const buy_price = parseFloat(item.buy_price) || 0
+
+        if (yyyp_price > 0) {
+          yy_total += yyyp_price
+          priced_count++
+        }
+        if (buy_price > 0) {
+          buy_total += buy_price
+        }
+      })
+
+      const avg_price = priced_count > 0 ? yy_total / priced_count : 0
+      const diff = (yy_total - buy_total).toFixed(2)
+
+      return {
+        priced_count,
+        total_price: yy_total.toFixed(2),
+        avg_price: avg_price.toFixed(2),
+        diff
+      }
+    })
+
+    const buffPriceStats = computed(() => {
+      // 基于前端过滤后的数据计算BUFF价格统计（扣除2.5%手续费）
+      const data = currentDisplayData.value
+      let buff_total = 0
+      let buy_total = 0
+      let priced_count = 0
+
+      data.forEach(item => {
+        const buff_price = parseFloat(item.buff_price) || 0
+        const buy_price = parseFloat(item.buy_price) || 0
+
+        if (buff_price > 0) {
+          buff_total += buff_price
+          priced_count++
+        }
+        if (buy_price > 0) {
+          buy_total += buy_price
+        }
+      })
+
+      const buff_total_after_fee = buff_total * 0.975
+      const diff = (buff_total_after_fee - buy_total).toFixed(2)
+
+      return {
+        priced_count,
+        total_price: buff_total_after_fee.toFixed(2),
+        avg_price: priced_count > 0 ? (buff_total_after_fee / priced_count).toFixed(2) : '0.00',
+        diff
+      }
+    })
+
+    const steamPriceStats = computed(() => {
+      // 基于前端过滤后的数据计算Steam价格统计
+      const data = currentDisplayData.value
+      let steam_total = 0
+      let buy_total = 0
+      let priced_count = 0
+
+      data.forEach(item => {
+        const steam_price = parseFloat(item.steam_price) || 0
+        const buy_price = parseFloat(item.buy_price) || 0
+
+        if (steam_price > 0) {
+          steam_total += steam_price
+          priced_count++
+        }
+        if (buy_price > 0) {
+          buy_total += buy_price
+        }
+      })
+
+      const avg_price = priced_count > 0 ? steam_total / priced_count : 0
+      const diff = (steam_total - buy_total).toFixed(2)
+
+      return {
+        priced_count,
+        total_price: steam_total.toFixed(2),
+        avg_price: avg_price.toFixed(2),
+        diff
+      }
+    })
+
     onMounted(async () => {
       await loadSteamIdList()
       if (selectedSteamId.value) {
@@ -3488,6 +3546,7 @@ export default {
       loadMoreData,
       handleReset,
       handleSteamIdChange,
+      handleFilterChange,
       handleSortChange,
       handleToggleGroupMode,
       hasMore,
