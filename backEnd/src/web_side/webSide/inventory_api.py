@@ -549,11 +549,11 @@ def get_inventory(steam_id):
             where_conditions.append("(rename IS NULL OR rename = '')")
 
         if trade_restriction_filter == 'has':
-            # 有交易限制：remark字段包含交易限制的日期格式 (年月日)
-            where_conditions.append("(remark IS NOT NULL AND remark LIKE '%年%月%日%')")
+            # 有交易限制：remark字段不为空
+            where_conditions.append("(remark IS NOT NULL AND remark != '')")
         elif trade_restriction_filter == 'none':
-            # 无交易限制：remark字段为空或不包含日期格式
-            where_conditions.append("(remark IS NULL OR remark NOT LIKE '%年%月%日%')")
+            # 无交易限制：remark字段为空
+            where_conditions.append("(remark IS NULL OR remark = '')")
 
         where_clause = " AND ".join(where_conditions)
         
@@ -729,9 +729,11 @@ def get_grouped_inventory(steam_id):
             where_conditions.append("(si.rename IS NULL OR si.rename = '')")
 
         if trade_restriction_filter == 'has':
-            where_conditions.append("(si.tradable_after_date IS NOT NULL AND si.tradable_after_date != '' AND si.tradable_after_date != 'None')")
+            # remark 有值视为存在交易限制
+            where_conditions.append("(si.remark IS NOT NULL AND si.remark != '')")
         elif trade_restriction_filter == 'none':
-            where_conditions.append("(si.tradable_after_date IS NULL OR si.tradable_after_date = '' OR si.tradable_after_date = 'None')")
+            # remark 为空视为无交易限制
+            where_conditions.append("(si.remark IS NULL OR si.remark = '')")
 
         where_clause = " AND ".join(where_conditions)
 
@@ -879,11 +881,11 @@ def get_inventory_stats(steam_id):
             where_conditions.append("(rename IS NULL OR rename = '')")
 
         if trade_restriction_filter == 'has':
-            # 有交易限制：remark字段包含交易限制的日期格式 (年月日)
-            where_conditions.append("(remark IS NOT NULL AND remark LIKE '%年%月%日%')")
+            # 有交易限制：remark字段不为空
+            where_conditions.append("(remark IS NOT NULL AND remark != '')")
         elif trade_restriction_filter == 'none':
-            # 无交易限制：remark字段为空或不包含日期格式
-            where_conditions.append("(remark IS NULL OR remark NOT LIKE '%年%月%日%')")
+            # 无交易限制：remark字段为空
+            where_conditions.append("(remark IS NULL OR remark = '')")
 
         where_clause = " AND ".join(where_conditions)
 
