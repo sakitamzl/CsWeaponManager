@@ -4920,7 +4920,12 @@ export default {
           // 登录成功
           const baseCookies = result.base_cookies || result.baseCookies || result.cookies || ''
           const inventoryCookies = result.inventory_cookies || result.inventoryCookies || result.cookies || ''
-          const steamIdFromResp = result.steam_id || result.steamId
+          // 参考扫码登录逻辑，同时兼容 result.data 内返回 steam_id 的情况
+          const steamIdFromResp =
+            result.steam_id ||
+            result.steamId ||
+            result.data?.steam_id ||
+            result.data?.steamId
           inputForm.value.steamBaseCookies = baseCookies
           inputForm.value.steamInventoryCookies = inventoryCookies
           inputForm.value.cookies = inventoryCookies
@@ -4934,9 +4939,9 @@ export default {
           ElMessage.success(steamIdFromResp ? 'Steam登录成功，已自动填入SteamID' : 'Steam登录成功！请手动输入SteamID')
         } else if (result.requires_twofactor) {
           // 需要 Steam Guard 验证码
-          inputForm.value.steamLoginMessage = '⚠️ 需要Steam Guard验证码，请输入后重试'
+          inputForm.value.steamLoginMessage = ''
           inputForm.value.steamLoginSuccess = false
-          ElMessage.warning('需要Steam Guard验证码')
+          // 不再弹出提示
         } else if (result.requires_emailauth) {
           // 需要邮箱验证码
           inputForm.value.steamLoginMessage = '⚠️ 需要邮箱验证码，请查收邮件后输入'
@@ -5179,7 +5184,12 @@ export default {
           // 登录成功
           const baseCookies = result.base_cookies || result.baseCookies || result.cookies || ''
           const inventoryCookies = result.inventory_cookies || result.inventoryCookies || result.cookies || ''
-          const steamIdFromResp = result.steam_id || result.steamId
+          // 参考扫码登录逻辑，同时兼容 result.data 内返回 steam_id 的情况
+          const steamIdFromResp =
+            result.steam_id ||
+            result.steamId ||
+            result.data?.steam_id ||
+            result.data?.steamId
           editForm.value.steamBaseCookies = baseCookies
           editForm.value.steamInventoryCookies = inventoryCookies
           editForm.value.cookies = inventoryCookies
@@ -5188,7 +5198,7 @@ export default {
           }
           ElMessage.success(steamIdFromResp ? 'Steam重新登录成功，已自动填入SteamID' : 'Steam重新登录成功！请手动输入SteamID')
         } else if (result.requires_twofactor) {
-          ElMessage.warning('需要Steam Guard验证码，请输入后重试')
+          // 不再弹出提示
         } else if (result.requires_emailauth) {
           ElMessage.warning('需要邮箱验证码，请查收邮件后输入')
         } else if (result.requires_captcha) {
