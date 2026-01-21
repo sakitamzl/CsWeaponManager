@@ -502,31 +502,59 @@ def get_inventory(steam_id):
         search_text = request.args.get('search', '')
         weapon_type = request.args.get('weapon_type', '')
         float_range = request.args.get('float_range', '')
-        classid = request.args.get('classid', '')  # 新增：classid筛选参数
+        classid = request.args.get('classid', '')  # classid筛选参数
+        # 新增前端筛选条件
+        pendant_filter = request.args.get('pendant_filter', '')
+        sticker_filter = request.args.get('sticker_filter', '')
+        rename_filter = request.args.get('rename_filter', '')
+        trade_restriction_filter = request.args.get('trade_restriction_filter', '')
         limit = request.args.get('limit', 100, type=int)
         offset = request.args.get('offset', 0, type=int)
-        
+
         # 构建查询条件
         where_conditions = ["data_user = ?", "if_inventory = '1'"]  # 只查询在库存中的物品
         params = [steam_id]
-        
+
         if search_text:
             where_conditions.append("(item_name LIKE ? OR weapon_name LIKE ?)")
             search_pattern = f"%{search_text}%"
             params.extend([search_pattern, search_pattern])
-        
+
         if weapon_type:
             where_conditions.append("weapon_type = ?")
             params.append(weapon_type)
-        
+
         if float_range:
             where_conditions.append("float_range = ?")
             params.append(float_range)
-        
+
         if classid:
             where_conditions.append("classid = ?")
             params.append(classid)
-        
+
+        # 添加前端筛选条件
+        if pendant_filter == 'has':
+            where_conditions.append("(pendant IS NOT NULL AND pendant != '')")
+        elif pendant_filter == 'none':
+            where_conditions.append("(pendant IS NULL OR pendant = '')")
+
+        if sticker_filter == 'has':
+            where_conditions.append("(sticker IS NOT NULL AND sticker != '')")
+        elif sticker_filter == 'none':
+            where_conditions.append("(sticker IS NULL OR sticker = '')")
+
+        if rename_filter == 'has':
+            where_conditions.append("(rename IS NOT NULL AND rename != '')")
+        elif rename_filter == 'none':
+            where_conditions.append("(rename IS NULL OR rename = '')")
+
+        if trade_restriction_filter == 'has':
+            # 有交易限制：remark字段包含交易限制的日期格式 (年月日)
+            where_conditions.append("(remark IS NOT NULL AND remark LIKE '%年%月%日%')")
+        elif trade_restriction_filter == 'none':
+            # 无交易限制：remark字段为空或不包含日期格式
+            where_conditions.append("(remark IS NULL OR remark NOT LIKE '%年%月%日%')")
+
         where_clause = " AND ".join(where_conditions)
         
         # 查询数据，使用自定义排序：未知物品放在最后
@@ -651,15 +679,65 @@ def get_inventory(steam_id):
 
 @webInventoryV1.route('/inventory/grouped/<steam_id>', methods=['GET'])
 def get_grouped_inventory(steam_id):
-    """获取按item_name分组的库存列表"""
+    """获取按item_name分组的库存列表（支持筛选参数）"""
     try:
         from src.db_manager.database import DatabaseManager
-        
+
         db = DatabaseManager()
-        
+
+        # 获取查询参数
+        search_text = request.args.get('search', '')
+        weapon_type = request.args.get('weapon_type', '')
+        float_range = request.args.get('float_range', '')
+        # 新增前端筛选条件
+        pendant_filter = request.args.get('pendant_filter', '')
+        sticker_filter = request.args.get('sticker_filter', '')
+        rename_filter = request.args.get('rename_filter', '')
+        trade_restriction_filter = request.args.get('trade_restriction_filter', '')
+
+        # 构建WHERE条件
+        where_conditions = ["si.data_user = ?", "si.if_inventory = '1'"]
+        params = [steam_id]
+
+        if search_text:
+            where_conditions.append("(si.item_name LIKE ? OR si.weapon_name LIKE ?)")
+            search_pattern = f"%{search_text}%"
+            params.extend([search_pattern, search_pattern])
+
+        if weapon_type:
+            where_conditions.append("si.weapon_type = ?")
+            params.append(weapon_type)
+
+        if float_range:
+            where_conditions.append("si.float_range = ?")
+            params.append(float_range)
+
+        # 添加前端筛选条件
+        if pendant_filter == 'has':
+            where_conditions.append("(si.pendant IS NOT NULL AND si.pendant != '')")
+        elif pendant_filter == 'none':
+            where_conditions.append("(si.pendant IS NULL OR si.pendant = '')")
+
+        if sticker_filter == 'has':
+            where_conditions.append("(si.sticker IS NOT NULL AND si.sticker != '')")
+        elif sticker_filter == 'none':
+            where_conditions.append("(si.sticker IS NULL OR si.sticker = '')")
+
+        if rename_filter == 'has':
+            where_conditions.append("(si.rename IS NOT NULL AND si.rename != '')")
+        elif rename_filter == 'none':
+            where_conditions.append("(si.rename IS NULL OR si.rename = '')")
+
+        if trade_restriction_filter == 'has':
+            where_conditions.append("(si.tradable_after_date IS NOT NULL AND si.tradable_after_date != '' AND si.tradable_after_date != 'None')")
+        elif trade_restriction_filter == 'none':
+            where_conditions.append("(si.tradable_after_date IS NULL OR si.tradable_after_date = '' OR si.tradable_after_date = 'None')")
+
+        where_clause = " AND ".join(where_conditions)
+
         # 查询分组数据，只查询在库存中的物品（if_inventory = '1'）
-        sql = """
-        SELECT 
+        sql = f"""
+        SELECT
             si.item_name,
             si.weapon_name,
             si.weapon_type,
@@ -678,17 +756,17 @@ def get_grouped_inventory(steam_id):
             GROUP_CONCAT(si.pendant, '|||') as pendants,
             GROUP_CONCAT(si.rename, '|||') as renames
         FROM steam_inventory si
-        WHERE si.data_user = ? AND si.if_inventory = '1'
+        WHERE {where_clause}
         GROUP BY si.item_name, si.weapon_name, si.weapon_type, si.float_range, si.steam_hash_name
-        ORDER BY 
-            CASE 
+        ORDER BY
+            CASE
                 WHEN si.weapon_type = '未知物品' THEN 1
                 ELSE 0
             END,
             si.item_name
         """
-        
-        results = db.execute_query(sql, (steam_id,))
+
+        results = db.execute_query(sql, tuple(params))
         
         # 转换为字典列表
         grouped_list = []
@@ -751,34 +829,62 @@ def get_inventory_stats(steam_id):
         from src.db_manager.database import DatabaseManager
 
         db = DatabaseManager()
-        
+
         # 获取查询参数（与get_inventory接口保持一致）
         search_text = request.args.get('search', '')
         weapon_type = request.args.get('weapon_type', '')
         float_range = request.args.get('float_range', '')
         classid = request.args.get('classid', '')
-        
+        # 新增前端筛选条件
+        pendant_filter = request.args.get('pendant_filter', '')
+        sticker_filter = request.args.get('sticker_filter', '')
+        rename_filter = request.args.get('rename_filter', '')
+        trade_restriction_filter = request.args.get('trade_restriction_filter', '')
+
         # 构建查询条件
         where_conditions = ["data_user = ?", "if_inventory = '1'"]
         params = [steam_id]
-        
+
         if search_text:
             where_conditions.append("(item_name LIKE ? OR weapon_name LIKE ?)")
             search_pattern = f"%{search_text}%"
             params.extend([search_pattern, search_pattern])
-        
+
         if weapon_type:
             where_conditions.append("weapon_type = ?")
             params.append(weapon_type)
-        
+
         if float_range:
             where_conditions.append("float_range = ?")
             params.append(float_range)
-        
+
         if classid:
             where_conditions.append("classid = ?")
             params.append(classid)
-        
+
+        # 添加前端筛选条件
+        if pendant_filter == 'has':
+            where_conditions.append("(pendant IS NOT NULL AND pendant != '')")
+        elif pendant_filter == 'none':
+            where_conditions.append("(pendant IS NULL OR pendant = '')")
+
+        if sticker_filter == 'has':
+            where_conditions.append("(sticker IS NOT NULL AND sticker != '')")
+        elif sticker_filter == 'none':
+            where_conditions.append("(sticker IS NULL OR sticker = '')")
+
+        if rename_filter == 'has':
+            where_conditions.append("(rename IS NOT NULL AND rename != '')")
+        elif rename_filter == 'none':
+            where_conditions.append("(rename IS NULL OR rename = '')")
+
+        if trade_restriction_filter == 'has':
+            # 有交易限制：remark字段包含交易限制的日期格式 (年月日)
+            where_conditions.append("(remark IS NOT NULL AND remark LIKE '%年%月%日%')")
+        elif trade_restriction_filter == 'none':
+            # 无交易限制：remark字段为空或不包含日期格式
+            where_conditions.append("(remark IS NULL OR remark NOT LIKE '%年%月%日%')")
+
         where_clause = " AND ".join(where_conditions)
 
         # 统计总数
