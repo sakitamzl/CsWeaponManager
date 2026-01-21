@@ -453,7 +453,7 @@
           <el-form-item label="Cookie获取方式" required>
             <el-radio-group v-model="editForm.steamCookieMethod">
               <el-radio label="qrcode">扫码登录</el-radio>
-              <el-radio label="password" disabled>账号密码登录（暂不可用）</el-radio>
+              <el-radio label="password">账号密码登录</el-radio>
               <el-radio label="manual">手动输入</el-radio>
             </el-radio-group>
           </el-form-item>
@@ -595,7 +595,7 @@
           <el-form-item label="Cookie获取方式" required>
             <el-radio-group v-model="editForm.steamCookieMethod">
               <el-radio label="qrcode">扫码登录</el-radio>
-              <el-radio label="password" disabled>账号密码登录（暂不可用）</el-radio>
+              <el-radio label="password">账号密码登录</el-radio>
               <el-radio label="manual">手动输入</el-radio>
             </el-radio-group>
           </el-form-item>
@@ -1244,7 +1244,7 @@
           <el-form-item label="Cookie获取方式" required>
             <el-radio-group v-model="inputForm.steamCookieMethod">
               <el-radio label="qrcode">扫码登录</el-radio>
-              <el-radio label="password" disabled>账号密码登录（暂不可用）</el-radio>
+              <el-radio label="password">账号密码登录</el-radio>
               <el-radio label="manual">手动输入</el-radio>
             </el-radio-group>
           </el-form-item>
@@ -3766,9 +3766,9 @@ export default {
         editForm.value.steamInventoryCookies = inventoryCookies
         editForm.value.cookies = inventoryCookies
         editForm.value.steamID = config.steamID || ''
-        // 如果是password方式，自动转为manual（因为password已禁用）
+        // 使用配置中记录的 Cookie 获取方式，支持 password
         const cookieMethod = config.steamCookieMethod || 'manual'
-        editForm.value.steamCookieMethod = cookieMethod === 'password' ? 'manual' : cookieMethod
+        editForm.value.steamCookieMethod = cookieMethod
         editForm.value.steamUsername = config.steamUsername || ''
         editForm.value.steamPassword = config.steamPassword || ''
         editForm.value.updateFreq = config.updateFreq || source.updateFreq || '15min'
@@ -3796,8 +3796,8 @@ export default {
         } else {
           cookieMethod = 'manual'
         }
-        // 如果是password方式，自动转为manual（因为password已禁用）
-        editForm.value.steamCookieMethod = cookieMethod === 'password' ? 'manual' : cookieMethod
+        // 直接使用推断出的 cookie 获取方式，允许 password
+        editForm.value.steamCookieMethod = cookieMethod
         editForm.value.steamUsername = config.steamUsername || ''
         editForm.value.steamPassword = config.steamPassword || ''
         editForm.value.updateFreq = config.updateFreq || source.updateFreq || '15min'
