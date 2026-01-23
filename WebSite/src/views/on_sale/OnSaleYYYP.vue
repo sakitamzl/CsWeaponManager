@@ -967,7 +967,8 @@ export default {
     const getPriceDiffClass = (salePrice, buyPrice) => {
       if (!salePrice || !buyPrice) return ''
       const diff = parseFloat(salePrice) - parseFloat(buyPrice)
-      return diff >= 0 ? 'price-profit' : 'price-loss'
+      if (diff === 0) return 'price-equal'
+      return diff > 0 ? 'price-profit' : 'price-loss'
     }
 
     onMounted(() => {
@@ -1334,6 +1335,10 @@ export default {
 
 .price-loss {
   color: #4CAF50;
+}
+
+.price-equal {
+  color: #fff;
 }
 
 .sale-price {

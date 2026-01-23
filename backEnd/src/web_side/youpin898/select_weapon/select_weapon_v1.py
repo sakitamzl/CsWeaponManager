@@ -1,5 +1,7 @@
 from flask import jsonify, request, Blueprint
 from src.db_manager.index.weapon_classID import WeaponClassIDModel
+from src.db_manager.index.weapon_price_history import WeaponPriceHistoryModel
+from datetime import datetime
 
 youpin898SelectWeaponV1 = Blueprint('youpin898SelectWeaponV1', __name__)
 
@@ -357,6 +359,7 @@ def batchInsertOrUpdate():
         # 获取平台参数，默认为yyyp
         platform = request.args.get('platform', 'yyyp')
         
+        # 更新weapon_classID表
         success_count = WeaponClassIDModel.batch_insert_or_update(data, platform=platform)
         
         return jsonify({
@@ -538,3 +541,150 @@ def getWeaponCount():
             'error': f'服务器错误: {str(e)}'
         }), 500
 
+
+
+@youpin898SelectWeaponV1.route('/recordPriceHistory', methods=['POST'])
+def recordPriceHistory():
+    """记录当前所有饰品的价格到历史表（用于完成全量更新后调用）"""
+    try:
+        # 获取当前时间
+        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        # 从weapon_classID表中查询所有有yyyp_price的记录
+        all_weapons = WeaponClassIDModel.find_all()
+        
+        # 构建价格历史记录列表
+        price_records = []
+        for weapon in all_weapons:
+            if weapon.steam_hash_name and weapon.yyyp_Price:
+                price_records.append({
+                    'steam_hash_name': weapon.steam_hash_name,
+                    'yyyp_price': weapon.yyyp_Price,
+                    'record_time': current_time
+                })
+        
+        # 批量插入价格历史记录
+        if price_records:
+            history_count = WeaponPriceHistoryModel.batch_insert_price_records(price_records)
+            print(f"✅ 成功记录 {history_count} 条价格历史数据")
+            
+            return jsonify({
+                'success': True,
+                'message': f'成功记录 {history_count} 条价格历史数据',
+                'count': history_count,
+                'record_time': current_time
+            }), 200
+        else:
+            print("⚠️  没有找到需要记录的价格数据")
+            return jsonify({
+                'success': True,
+                'message': '没有找到需要记录的价格数据',
+                'count': 0
+            }), 200
+            
+    except Exception as e:
+        print(f"记录价格历史失败: {e}")
+        import traceback
+        print(f"详细错误信息: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'error': f'服务器错误: {str(e)}'
+        }), 500
+
+
+@youpin898SelectWeaponV1.route('/getPriceHistory/<steam_hash_name>', methods=['GET'])
+def getPriceHistory(steam_hash_name):
+    """获取指定饰品的价格历史"""
+    try:
+        # 获取查询参数
+        limit = request.args.get('limit', type=int)
+        
+        # 查询价格历史
+        if limit:
+            records = WeaponPriceHistoryModel.find_by_steam_hash_name(steam_hash_name, limit=limit)
+        else:
+            records = WeaponPriceHistoryModel.find_by_steam_hash_name(steam_hash_name)
+        
+        # 转换为字典列表
+        data = [record.to_dict() for record in records]
+        
+        return jsonify({
+            'success': True,
+            'data': data,
+            'count': len(data)
+        }), 200
+    except Exception as e:
+        print(f"获取价格历史失败: {e}")
+        import traceback
+        print(f"详细错误信息: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'error': f'服务器错误: {str(e)}'
+        }), 500
+
+
+@youpin898SelectWeaponV1.route('/getPriceHistoryByTimeRange', methods=['POST'])
+def getPriceHistoryByTimeRange():
+    """根据时间范围获取价格历史"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': '无效的JSON数据'
+            }), 400
+        
+        start_time = data.get('start_time')
+        end_time = data.get('end_time')
+        
+        if not start_time or not end_time:
+            return jsonify({
+                'success': False,
+                'error': '缺少start_time或end_time参数'
+            }), 400
+        
+        # 查询价格历史
+        records = WeaponPriceHistoryModel.find_by_time_range(start_time, end_time)
+        
+        # 转换为字典列表
+        result_data = [record.to_dict() for record in records]
+        
+        return jsonify({
+            'success': True,
+            'data': result_data,
+            'count': len(result_data)
+        }), 200
+    except Exception as e:
+        print(f"根据时间范围获取价格历史失败: {e}")
+        import traceback
+        print(f"详细错误信息: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'error': f'服务器错误: {str(e)}'
+        }), 500
+
+
+@youpin898SelectWeaponV1.route('/getLatestPrice/<steam_hash_name>', methods=['GET'])
+def getLatestPrice(steam_hash_name):
+    """获取指定饰品的最新价格记录"""
+    try:
+        record = WeaponPriceHistoryModel.get_latest_price(steam_hash_name)
+        
+        if record:
+            return jsonify({
+                'success': True,
+                'data': record.to_dict()
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'error': '未找到价格记录'
+            }), 404
+    except Exception as e:
+        print(f"获取最新价格失败: {e}")
+        import traceback
+        print(f"详细错误信息: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'error': f'服务器错误: {str(e)}'
+        }), 500
