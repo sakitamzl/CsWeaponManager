@@ -843,19 +843,27 @@
                       🏷️ 点击解析
                     </span>
                   </div>
+                  <!-- 购买按钮 - 与改名同一行 -->
+                  <el-button type="success" class="preview-price-buy-btn" @click="handleBuyCommodityFromPreview">购买</el-button>
                 </div>
               </template>
+              
+              <!-- 如果没有改名，购买按钮单独一行 -->
+              <div v-if="commodityPreviewType !== 'yyyp' || commodityPreviewItem.haveNameTag !== 1" class="preview-price-row">
+                <el-button type="success" class="preview-price-buy-btn-standalone" @click="handleBuyCommodityFromPreview">购买</el-button>
+              </div>
             </div>
           </div>
 
-          <!-- 右侧区域 - 印花和挂件列表 -->
+          <!-- 右侧区域 - 印花和挂件列表（合并显示） -->
           <div class="preview-right-section">
-            <!-- 印花列表 -->
-            <div v-if="commodityPreviewItem.stickers && commodityPreviewItem.stickers.length > 0" class="preview-sticker-list-section">
+            <!-- 印花和挂件合并列表 -->
+            <div v-if="(commodityPreviewItem.stickers && commodityPreviewItem.stickers.length > 0) || (commodityPreviewItem.pendants && commodityPreviewItem.pendants.length > 0)" class="preview-sticker-list-section">
               <div class="preview-sticker-list">
+                <!-- 印花列表 -->
                 <div
                   v-for="(sticker, index) in commodityPreviewItem.stickers"
-                  :key="index"
+                  :key="'sticker-' + index"
                   class="preview-sticker-list-item"
                 >
                   <div class="preview-sticker-list-img-wrapper" @click="showStickerPreview(sticker)">
@@ -893,11 +901,7 @@
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
-            <!-- 挂件列表 -->
-            <div v-if="commodityPreviewItem.pendants && commodityPreviewItem.pendants.length > 0" class="preview-pendant-list-section">
-              <div class="preview-sticker-list">
+                <!-- 挂件列表 -->
                 <div
                   v-for="(pendant, index) in commodityPreviewItem.pendants"
                   :key="'pendant-' + index"
@@ -940,15 +944,10 @@
                 </div>
               </div>
             </div>
-            <div v-if="(!commodityPreviewItem.stickers || commodityPreviewItem.stickers.length === 0) && (!commodityPreviewItem.pendants || commodityPreviewItem.pendants.length === 0)" class="preview-no-stickers">
+            <div v-else class="preview-no-stickers">
               <span>无印花/挂件</span>
             </div>
           </div>
-        </div>
-        
-        <!-- 右下角购买按钮 -->
-        <div class="preview-bottom-right-button">
-          <el-button type="success" @click="handleBuyCommodityFromPreview">购买</el-button>
         </div>
       </div>
     </el-dialog>
@@ -4464,7 +4463,7 @@ export default {
 }
 
 .preview-left-section {
-  flex: 0 0 55%;
+  flex: 0 0 45%;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -4577,33 +4576,12 @@ export default {
   flex: 1;
   display: flex;
   flex-direction: column;
-  max-height: 500px; /* 限制最大高度 */
-  overflow: hidden; /* 隐藏溢出 */
 }
 
 .preview-sticker-list-section {
   flex: 1;
-  overflow-y: auto; /* 添加垂直滚动 */
-  padding-right: 0.5rem; /* 为滚动条留出空间 */
-}
-
-/* 美化滚动条 */
-.preview-sticker-list-section::-webkit-scrollbar {
-  width: 6px;
-}
-
-.preview-sticker-list-section::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 3px;
-}
-
-.preview-sticker-list-section::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
-}
-
-.preview-sticker-list-section::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  padding-right: 0.5rem;
+  padding-bottom: 1rem; /* 底部额外间距 */
 }
 
 .preview-sticker-list {
@@ -4704,16 +4682,21 @@ export default {
   font-size: 0.9rem;
 }
 
-.preview-bottom-right-button {
-  position: absolute;
-  bottom: 1.5rem;
-  right: 1.5rem;
+/* 购买按钮 - 与改名同一行 */
+.preview-price-buy-btn {
+  padding: 8px 24px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
-.preview-bottom-right-button .el-button {
-  padding: 12px 32px;
+/* 购买按钮 - 单独一行（没有改名时） */
+.preview-price-buy-btn-standalone {
+  padding: 10px 28px;
   font-size: 1rem;
   font-weight: 600;
+  margin-left: auto;
 }
 
 /* 多选模式样式 */
