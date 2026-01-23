@@ -389,10 +389,6 @@
           </div>
           <div class="commodity-card-image">
             <img :src="item.iconUrl" class="commodity-icon" @error="handleImageError" />
-            <!-- 售价覆盖层 - 左上角 -->
-            <div v-if="item.price" class="price-overlay" :title="`售价: ¥${item.price}`">
-              ¥{{ item.price }}
-            </div>
             <!-- 印花覆盖层 - 左下角 -->
             <div v-if="item.stickers && item.stickers.length > 0" class="sticker-overlay">
               <div
@@ -413,31 +409,39 @@
             </div>
           </div>
           <div class="commodity-card-content">
+            <!-- 磨损进度条 - 顶部 -->
+            <div class="float-bar-container" v-if="item.abrade">
+              <div class="float-bar">
+                <div class="float-segment fn" title="崭新出厂 (0.00 - 0.07)"></div>
+                <div class="float-segment mw" title="略有磨损 (0.07 - 0.15)"></div>
+                <div class="float-segment ft" title="久经沙场 (0.15 - 0.38)"></div>
+                <div class="float-segment ww" title="破损不堪 (0.38 - 0.45)"></div>
+                <div class="float-segment bs" title="战痕累累 (0.45 - 1.00)"></div>
+                <div
+                  class="float-pointer"
+                  :style="{ left: `${parseFloat(item.abrade) * 100}%` }"
+                  :title="`磨损值: ${item.abrade}`"
+                ></div>
+              </div>
+              <div class="float-value">{{ item.abrade }}</div>
+            </div>
+            <!-- 商品详情信息 -->
             <div class="commodity-card-info">
-              <div class="float-bar-container" v-if="item.abrade">
-                <div class="float-bar">
-                  <div class="float-segment fn" title="崭新出厂 (0.00 - 0.07)"></div>
-                  <div class="float-segment mw" title="略有磨损 (0.07 - 0.15)"></div>
-                  <div class="float-segment ft" title="久经沙场 (0.15 - 0.38)"></div>
-                  <div class="float-segment ww" title="破损不堪 (0.38 - 0.45)"></div>
-                  <div class="float-segment bs" title="战痕累累 (0.45 - 1.00)"></div>
-                  <div
-                    class="float-pointer"
-                    :style="{ left: `${parseFloat(item.abrade) * 100}%` }"
-                    :title="`磨损值: ${item.abrade}`"
-                  ></div>
-                </div>
-              </div>
-              <div class="float-value" v-if="item.abrade">
-                {{ item.abrade }}
-              </div>
               <div class="info-item">
-                <span class="info-label">价格:</span>
+                <span class="info-label">售价:</span>
                 <span class="info-value price-highlight">¥{{ item.price }}</span>
               </div>
               <div class="info-item" v-if="item.description">
                 <span class="info-label">描述:</span>
                 <span class="info-value description-text" :title="item.description">{{ item.description }}</span>
+              </div>
+              <div class="info-item" v-if="item.user_name">
+                <span class="info-label">卖家:</span>
+                <span class="info-value">{{ item.user_name }}</span>
+              </div>
+              <div class="info-item" v-if="item.paintseed">
+                <span class="info-label">模板:</span>
+                <span class="info-value">{{ item.paintseed }}</span>
               </div>
             </div>
           </div>
@@ -526,10 +530,6 @@
           </div>
           <div class="commodity-card-image">
             <img :src="item.iconUrl" class="commodity-icon" @error="handleImageError" />
-            <!-- 售价覆盖层 - 左上角 -->
-            <div v-if="item.price" class="price-overlay" :title="`售价: ¥${item.price}`">
-              ¥{{ item.price }}
-            </div>
             <!-- 印花覆盖层 - 左下角 -->
             <div v-if="item.stickers && item.stickers.length > 0" class="sticker-overlay">
               <div
@@ -582,27 +582,31 @@
             </div>
           </div>
           <div class="commodity-card-content">
+            <!-- 磨损进度条 - 顶部 -->
+            <div class="float-bar-container" v-if="item.abrade">
+              <div class="float-bar">
+                <div class="float-segment fn" title="崭新出厂 (0.00 - 0.07)"></div>
+                <div class="float-segment mw" title="略有磨损 (0.07 - 0.15)"></div>
+                <div class="float-segment ft" title="久经沙场 (0.15 - 0.38)"></div>
+                <div class="float-segment ww" title="破损不堪 (0.38 - 0.45)"></div>
+                <div class="float-segment bs" title="战痕累累 (0.45 - 1.00)"></div>
+                <div
+                  class="float-pointer"
+                  :style="{ left: `${parseFloat(item.abrade) * 100}%` }"
+                  :title="`磨损值: ${item.abrade}`"
+                ></div>
+              </div>
+              <div class="float-value">{{ item.abrade }}</div>
+            </div>
+            <!-- 商品详情信息 -->
             <div class="commodity-card-info">
-              <div class="float-bar-container" v-if="item.abrade">
-                <div class="float-bar">
-                  <div class="float-segment fn" title="崭新出厂 (0.00 - 0.07)"></div>
-                  <div class="float-segment mw" title="略有磨损 (0.07 - 0.15)"></div>
-                  <div class="float-segment ft" title="久经沙场 (0.15 - 0.38)"></div>
-                  <div class="float-segment ww" title="破损不堪 (0.38 - 0.45)"></div>
-                  <div class="float-segment bs" title="战痕累累 (0.45 - 1.00)"></div>
-                  <div
-                    class="float-pointer"
-                    :style="{ left: `${parseFloat(item.abrade) * 100}%` }"
-                    :title="`磨损值: ${item.abrade}`"
-                  ></div>
-                </div>
-              </div>
-              <div class="float-value" v-if="item.abrade">
-                {{ item.abrade }}
-              </div>
               <div class="info-item">
                 <span class="info-label">价格:</span>
                 <span class="info-value price-highlight">¥{{ item.price }}</span>
+              </div>
+              <div class="info-item" v-if="item.paintSeed">
+                <span class="info-label">模板:</span>
+                <span class="info-value">{{ item.paintSeed }}</span>
               </div>
               <div class="info-item" v-if="item.haveNameTag === 1">
                 <span class="info-label">改名:</span>
@@ -3698,8 +3702,8 @@ export default {
 /* 商品卡片网格布局 */
 .commodity-card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+  gap: 0.8rem;
   padding: 1rem;
   max-height: 380px;
   overflow-y: auto;
@@ -3727,16 +3731,16 @@ export default {
 
 /* 磨损值显示条样式 */
 .float-bar-container {
-  margin-top: 0.3rem;
+  margin-top: 0.5rem;
   padding: 0;
-  margin-bottom: 0.3rem;
+  width: 100%;
 }
 
 .float-bar {
   position: relative;
-  height: 8px;
+  height: 6px;
   display: flex;
-  border-radius: 4px;
+  border-radius: 3px;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
@@ -3792,10 +3796,10 @@ export default {
 
 /* 磨损值数字显示 */
 .float-value {
-  text-align: left;
+  text-align: center;
   font-size: 0.7rem;
   color: #ccc;
-  margin-bottom: 0.3rem;
+  margin-top: 0.2rem;
 }
 
 /* 售价覆盖层 - 左上角常态化显示 */
@@ -3817,18 +3821,18 @@ export default {
 /* 印花覆盖层 - 左下角 */
 .sticker-overlay {
   position: absolute;
-  bottom: 4px;
-  left: 4px;
+  bottom: 6px;
+  left: 6px;
   display: flex;
-  gap: 3px;
+  gap: 4px;
   z-index: 5;
   pointer-events: none;
 }
 
 .sticker-item-overlay {
   position: relative;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(4px);
   border-radius: 4px;
@@ -3841,7 +3845,7 @@ export default {
 }
 
 .sticker-item-overlay:hover {
-  transform: scale(2);
+  transform: scale(1.8);
   z-index: 10;
   border-color: rgba(76, 175, 80, 0.8);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
@@ -3923,25 +3927,27 @@ export default {
   overflow: hidden;
   transition: all 0.3s ease;
   display: flex;
-  flex-direction: column;
-  aspect-ratio: 1 / 1;
+  flex-direction: row;
+  min-height: 120px;
+  max-height: 150px;
   cursor: pointer;
 }
 
 .commodity-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   border-color: var(--el-color-primary);
 }
 
 .commodity-card-image {
-  width: 100%;
-  height: 70%;
+  width: 180px;
+  min-width: 180px;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-  border-bottom: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
   flex-shrink: 0;
   position: relative;
 }
@@ -3950,14 +3956,15 @@ export default {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  padding: 10px;
 }
 
 .commodity-card-content {
-  padding: 0.3rem 0.5rem;
-  height: 30%;
+  padding: 0.8rem 1rem;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  justify-content: space-between;
   overflow: hidden;
 }
 
@@ -3984,58 +3991,56 @@ export default {
 
 .commodity-card-info {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  font-size: 0.75rem;
-  overflow-y: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  align-content: start;
 }
 
 .commodity-card-info .info-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 0.3rem;
   min-height: 20px;
 }
 
 .commodity-card-info .info-label {
   color: #999;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .commodity-card-info .info-value {
   color: #ccc;
-  font-size: 0.7rem;
-  text-align: right;
+  font-size: 0.75rem;
   flex: 1;
-  margin-left: 0.5rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .commodity-card-info .price-highlight {
-  color: #fff;
+  color: #ffffff;
   font-weight: bold;
-  font-size: 0.75rem;
+  font-size: 0.9rem;
 }
 
 .commodity-card-info .description-text {
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
   white-space: normal;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   line-height: 1.3;
 }
 
 .commodity-card-info .nametag-text {
   color: #e6a23c;
   font-weight: 600;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
 }
 
 .commodity-card-info .nametag-parse {
@@ -4043,11 +4048,36 @@ export default {
   user-select: none;
   color: #e6a23c;
   font-weight: 600;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
 }
 
 .commodity-card-info .nametag-parse:hover {
   opacity: 0.8;
+}
+
+/* 横向布局特定样式 */
+.commodity-card-content .float-bar-container {
+  margin-top: 0;
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.commodity-card-content .float-bar-container .float-bar {
+  height: 6px;
+}
+
+.commodity-card-content .float-bar-container .float-pointer {
+  height: 12px;
+}
+
+.commodity-card-content .float-value {
+  display: block;
+  text-align: left;
+  font-size: 0.75rem;
+  color: #ccc;
+  margin-top: 0.3rem;
+  font-weight: 500;
 }
 
 .commodity-card-actions {
