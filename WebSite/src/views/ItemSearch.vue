@@ -485,6 +485,30 @@
                 <span class="info-value">{{ item.userNickName || '-' }}</span>
               </div>
             </div>
+            <!-- 印花/挂件价值 -->
+            <div class="sticker-value-info" v-if="(item.stickers && item.stickers.length > 0) || (item.pendants && item.pendants.length > 0)">
+              <div class="sticker-value-item" v-if="item.stickerTotalValue !== undefined">
+                <span class="sticker-value-label">印花价值:</span>
+                <span class="sticker-value-amount">¥{{ item.stickerTotalValue || '0.00' }}</span>
+              </div>
+              <div class="sticker-value-item" v-if="item.pendantTotalValue !== undefined">
+                <span class="sticker-value-label">挂件价值:</span>
+                <span class="sticker-value-amount">¥{{ item.pendantTotalValue || '0.00' }}</span>
+              </div>
+              <div class="sticker-value-loading" v-if="item.priceLoading">
+                <span>价格查询中...</span>
+              </div>
+            </div>
+            <!-- 购买按钮 -->
+            <el-button 
+              v-if="!isMultiSelectMode"
+              type="success" 
+              size="small" 
+              class="card-buy-button"
+              @click.stop="handleBuyCommodity(item)"
+            >
+              购买
+            </el-button>
           </div>
         </div>
         <!-- 加载更多提示 -->
@@ -628,6 +652,26 @@
                 <span class="info-value">{{ item.paintseed }}</span>
               </div>
             </div>
+            <!-- 印花/挂件价值 -->
+            <div class="sticker-value-info" v-if="item.stickers && item.stickers.length > 0">
+              <div class="sticker-value-item" v-if="item.stickerTotalValue !== undefined">
+                <span class="sticker-value-label">印花价值:</span>
+                <span class="sticker-value-amount">¥{{ item.stickerTotalValue || '0.00' }}</span>
+              </div>
+              <div class="sticker-value-loading" v-if="item.priceLoading">
+                <span>价格查询中...</span>
+              </div>
+            </div>
+            <!-- 购买按钮 -->
+            <el-button 
+              v-if="!isMultiSelectMode"
+              type="success" 
+              size="small" 
+              class="card-buy-button"
+              @click.stop="handleBuyBuffCommodity(item)"
+            >
+              购买
+            </el-button>
           </div>
         </div>
         <!-- BUFF加载更多提示 -->
@@ -814,24 +858,40 @@
                   :key="index"
                   class="preview-sticker-list-item"
                 >
-                  <div class="preview-sticker-list-img-wrapper">
+                  <div class="preview-sticker-list-img-wrapper" @click="showStickerPreview(sticker)">
                     <img
                       v-if="sticker.TemplateHashName"
                       :src="getWeaponImage(sticker.TemplateHashName)"
                       :alt="sticker.Name"
-                      class="preview-sticker-list-img"
+                      class="preview-sticker-list-img clickable"
                       @error="(e) => e.target.style.display = 'none'"
                     />
                     <img
                       v-else-if="sticker.ImgUrl || sticker.img_url"
                       :src="sticker.ImgUrl || sticker.img_url"
                       :alt="sticker.Name || sticker.name"
-                      class="preview-sticker-list-img"
+                      class="preview-sticker-list-img clickable"
                       @error="(e) => e.target.style.display = 'none'"
                     />
                     <div v-else class="preview-sticker-list-placeholder">?</div>
                   </div>
-                  <div class="preview-sticker-list-name">{{ sticker.Name || sticker.name || '未知印花' }}</div>
+                  <div class="preview-sticker-list-info">
+                    <div class="preview-sticker-list-name">{{ sticker.Name || sticker.name || '未知印花' }}</div>
+                    <div class="preview-sticker-list-price" v-if="sticker.priceInfo">
+                      <span v-if="sticker.priceInfo.yyyp_price" class="price-yyyp">
+                        悠悠: ¥{{ sticker.priceInfo.yyyp_price }}
+                      </span>
+                      <span v-if="sticker.priceInfo.buff_price" class="price-buff">
+                        BUFF: ¥{{ sticker.priceInfo.buff_price }}
+                      </span>
+                      <span v-if="!sticker.priceInfo.yyyp_price && !sticker.priceInfo.buff_price" class="price-none">
+                        暂无价格
+                      </span>
+                    </div>
+                    <div class="preview-sticker-list-price loading" v-else-if="sticker.priceLoading">
+                      加载中...
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -843,24 +903,40 @@
                   :key="'pendant-' + index"
                   class="preview-sticker-list-item pendant-item"
                 >
-                  <div class="preview-sticker-list-img-wrapper">
+                  <div class="preview-sticker-list-img-wrapper" @click="showPendantPreview(pendant)">
                     <img
                       v-if="pendant.steamHashName"
                       :src="getWeaponImage(pendant.steamHashName)"
                       :alt="pendant.name"
-                      class="preview-sticker-list-img"
+                      class="preview-sticker-list-img clickable"
                       @error="(e) => e.target.style.display = 'none'"
                     />
                     <img
                       v-else-if="pendant.imgUrl"
                       :src="pendant.imgUrl"
                       :alt="pendant.name"
-                      class="preview-sticker-list-img"
+                      class="preview-sticker-list-img clickable"
                       @error="(e) => e.target.style.display = 'none'"
                     />
                     <div v-else class="preview-sticker-list-placeholder">🎗️</div>
                   </div>
-                  <div class="preview-sticker-list-name">{{ pendant.pendantSourceName || pendant.name || '挂件' }}</div>
+                  <div class="preview-sticker-list-info">
+                    <div class="preview-sticker-list-name">{{ pendant.pendantSourceName || pendant.name || '挂件' }}</div>
+                    <div class="preview-sticker-list-price" v-if="pendant.priceInfo">
+                      <span v-if="pendant.priceInfo.yyyp_price" class="price-yyyp">
+                        悠悠: ¥{{ pendant.priceInfo.yyyp_price }}
+                      </span>
+                      <span v-if="pendant.priceInfo.buff_price" class="price-buff">
+                        BUFF: ¥{{ pendant.priceInfo.buff_price }}
+                      </span>
+                      <span v-if="!pendant.priceInfo.yyyp_price && !pendant.priceInfo.buff_price" class="price-none">
+                        暂无价格
+                      </span>
+                    </div>
+                    <div class="preview-sticker-list-price loading" v-else-if="pendant.priceLoading">
+                      加载中...
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -873,6 +949,31 @@
         <!-- 右下角购买按钮 -->
         <div class="preview-bottom-right-button">
           <el-button type="success" @click="handleBuyCommodityFromPreview">购买</el-button>
+        </div>
+      </div>
+    </el-dialog>
+
+    <!-- 印花/挂件放大预览弹窗 -->
+    <el-dialog
+      v-model="stickerPreviewVisible"
+      :title="stickerPreviewData.name"
+      width="500px"
+      :close-on-click-modal="true"
+      :close-on-press-escape="true"
+      class="sticker-preview-dialog"
+    >
+      <div class="sticker-preview-content">
+        <div class="sticker-preview-image-wrapper">
+          <img 
+            :src="stickerPreviewData.imageUrl" 
+            :alt="stickerPreviewData.name"
+            class="sticker-preview-image"
+            @error="handleImageError"
+          />
+        </div>
+        <div class="sticker-preview-info">
+          <div class="sticker-preview-name">{{ stickerPreviewData.name }}</div>
+          <div class="sticker-preview-type">{{ stickerPreviewData.type }}</div>
         </div>
       </div>
     </el-dialog>
@@ -919,6 +1020,14 @@ export default {
     const commodityPreviewVisible = ref(false)
     const commodityPreviewItem = ref(null)
     const commodityPreviewType = ref('') // 'buff' 或 'yyyp'
+    
+    // 印花/挂件放大预览
+    const stickerPreviewVisible = ref(false)
+    const stickerPreviewData = ref({
+      name: '',
+      imageUrl: '',
+      type: ''
+    })
     
     // BUFF商品列表
     const buffCommodities = ref([])
@@ -1426,6 +1535,9 @@ export default {
           // 预加载图片（相同URL只加载一次）
           preloadImages(commodityList)
           
+          // 批量获取印花/挂件价格
+          fetchStickerPrices(commodityList)
+          
           // 滚动到商品列表区域
           setTimeout(() => {
             const listElement = document.querySelector('.yyyp-commodity-list')
@@ -1494,6 +1606,9 @@ export default {
             // 预加载新图片
             preloadImages(newCommodities)
             
+            // 批量获取新商品的印花/挂件价格
+            fetchStickerPrices(newCommodities)
+            
             // 获取新商品的改名信息
             fetchAllNameTags(newCommodities)
           } else {
@@ -1558,6 +1673,9 @@ export default {
             
             // 预加载新图片
             preloadImages(newCommodities)
+            
+            // 批量获取新商品的印花/挂件价格
+            fetchStickerPrices(newCommodities)
           } else {
             buffHasMore.value = false
           }
@@ -1786,6 +1904,123 @@ export default {
         ElMessage.error('获取改名信息失败: ' + (error.response?.data?.message || error.message))
       } finally {
         commodity.nameTagLoading = false
+      }
+    }
+
+    // 批量获取印花/挂件价格
+    const fetchStickerPrices = async (commodityList) => {
+      if (!commodityList || commodityList.length === 0) {
+        return
+      }
+
+      console.log('开始批量获取印花/挂件价格')
+
+      // 收集所有需要查询的 steam_hash_name
+      const steamHashNames = new Set()
+      
+      commodityList.forEach(item => {
+        // 设置加载状态
+        item.priceLoading = true
+        
+        // 收集印花的 steam_hash_name
+        if (item.stickers && item.stickers.length > 0) {
+          item.stickers.forEach(sticker => {
+            const hashName = sticker.TemplateHashName || sticker.steam_hash_name
+            if (hashName) {
+              steamHashNames.add(hashName)
+            }
+          })
+        }
+        
+        // 收集挂件的 steam_hash_name
+        if (item.pendants && item.pendants.length > 0) {
+          item.pendants.forEach(pendant => {
+            const hashName = pendant.steamHashName || pendant.steam_hash_name
+            if (hashName) {
+              steamHashNames.add(hashName)
+            }
+          })
+        }
+      })
+
+      if (steamHashNames.size === 0) {
+        console.log('没有需要查询价格的印花/挂件')
+        commodityList.forEach(item => {
+          item.priceLoading = false
+        })
+        return
+      }
+
+      console.log(`共需要查询 ${steamHashNames.size} 个印花/挂件的价格`)
+
+      try {
+        // 调用批量查询接口
+        const apiUrl = '/api/itemSearchApiV1/batch-sticker-prices'
+        console.log('准备调用API:', apiUrl)
+        const response = await axios.post(
+          apiUrl,
+          {
+            steam_hash_names: Array.from(steamHashNames)
+          }
+        )
+
+        if (response.data.success) {
+          const priceMap = response.data.data
+          console.log('获取到价格数据:', priceMap)
+
+          // 更新每个商品的印花/挂件价格信息
+          commodityList.forEach(item => {
+            let stickerTotalValue = 0
+            let pendantTotalValue = 0
+
+            // 处理印花价格
+            if (item.stickers && item.stickers.length > 0) {
+              item.stickers.forEach(sticker => {
+                const hashName = sticker.TemplateHashName || sticker.steam_hash_name
+                if (hashName && priceMap[hashName]) {
+                  const priceInfo = priceMap[hashName]
+                  sticker.priceInfo = priceInfo
+                  
+                  // 累加价格（优先使用悠悠有品价格）
+                  const price = parseFloat(priceInfo.yyyp_price || priceInfo.buff_price || 0)
+                  stickerTotalValue += price
+                }
+              })
+            }
+
+            // 处理挂件价格
+            if (item.pendants && item.pendants.length > 0) {
+              item.pendants.forEach(pendant => {
+                const hashName = pendant.steamHashName || pendant.steam_hash_name
+                if (hashName && priceMap[hashName]) {
+                  const priceInfo = priceMap[hashName]
+                  pendant.priceInfo = priceInfo
+                  
+                  // 累加价格（优先使用悠悠有品价格）
+                  const price = parseFloat(priceInfo.yyyp_price || priceInfo.buff_price || 0)
+                  pendantTotalValue += price
+                }
+              })
+            }
+
+            // 设置总价值
+            item.stickerTotalValue = stickerTotalValue.toFixed(2)
+            item.pendantTotalValue = pendantTotalValue.toFixed(2)
+            item.priceLoading = false
+          })
+
+          console.log('印花/挂件价格更新完成')
+        } else {
+          console.error('批量查询价格失败:', response.data.message)
+          commodityList.forEach(item => {
+            item.priceLoading = false
+          })
+        }
+      } catch (error) {
+        console.error('批量查询价格异常:', error)
+        commodityList.forEach(item => {
+          item.priceLoading = false
+        })
       }
     }
 
@@ -2101,6 +2336,9 @@ export default {
           // 预加载图片（相同URL只加载一次）
           preloadImages(commodityList)
           
+          // 批量获取印花/挂件价格
+          fetchStickerPrices(commodityList)
+          
           // 滚动到商品列表区域
           setTimeout(() => {
             const listElement = document.querySelector('.buff-commodity-list')
@@ -2248,6 +2486,14 @@ export default {
         commodityPreviewItem.value = item
         commodityPreviewType.value = type
         commodityPreviewVisible.value = true
+        
+        // 如果商品有印花或挂件，且还没有价格信息，则获取价格
+        const needsFetch = (item.stickers && item.stickers.length > 0 && !item.stickers[0].priceInfo) ||
+                          (item.pendants && item.pendants.length > 0 && !item.pendants[0].priceInfo)
+        
+        if (needsFetch) {
+          fetchStickerPrices([item])
+        }
       }
     }
 
@@ -2348,6 +2594,52 @@ export default {
       return item.itemName || item.name || '商品详情'
     }
 
+    // 显示印花放大预览
+    const showStickerPreview = (sticker) => {
+      let imageUrl = ''
+      let name = ''
+      
+      if (sticker.TemplateHashName) {
+        imageUrl = getWeaponImage(sticker.TemplateHashName)
+        name = sticker.Name || '印花'
+      } else if (sticker.ImgUrl || sticker.img_url) {
+        imageUrl = sticker.ImgUrl || sticker.img_url
+        name = sticker.Name || sticker.name || '印花'
+      }
+      
+      if (imageUrl) {
+        stickerPreviewData.value = {
+          name: name,
+          imageUrl: imageUrl,
+          type: '印花'
+        }
+        stickerPreviewVisible.value = true
+      }
+    }
+
+    // 显示挂件放大预览
+    const showPendantPreview = (pendant) => {
+      let imageUrl = ''
+      let name = ''
+      
+      if (pendant.steamHashName) {
+        imageUrl = getWeaponImage(pendant.steamHashName)
+        name = pendant.name || '挂件'
+      } else if (pendant.imgUrl) {
+        imageUrl = pendant.imgUrl
+        name = pendant.name || '挂件'
+      }
+      
+      if (imageUrl) {
+        stickerPreviewData.value = {
+          name: pendant.pendantSourceName || name,
+          imageUrl: imageUrl,
+          type: '挂件'
+        }
+        stickerPreviewVisible.value = true
+      }
+    }
+
     // 从详情弹窗购买商品
     const handleBuyCommodityFromPreview = () => {
       commodityPreviewVisible.value = false
@@ -2400,6 +2692,11 @@ export default {
       handleCommodityCardClick,
       getCommodityTitle,
       handleBuyCommodityFromPreview,
+      // 印花/挂件预览
+      stickerPreviewVisible,
+      stickerPreviewData,
+      showStickerPreview,
+      showPendantPreview,
       // 多选模式
       isMultiSelectMode,
       selectedCommodities,
@@ -2444,6 +2741,7 @@ export default {
       toggleYYYPList,
       handleBuyCommodity,
       fetchSingleNameTag,
+      fetchStickerPrices,
       showStickersDialog,
       closeYYYPList,
       handleYYYPPageChange,
@@ -3966,6 +4264,8 @@ export default {
   flex-direction: column;
   justify-content: space-between;
   overflow: hidden;
+  position: relative; /* 为购买按钮定位 */
+  padding-bottom: 2.5rem; /* 为购买按钮留出空间 */
 }
 
 .commodity-card-title {
@@ -4043,6 +4343,22 @@ export default {
   font-size: 0.75rem;
 }
 
+/* 卡片购买按钮 */
+.card-buy-button {
+  position: absolute;
+  bottom: 0.6rem;
+  right: 0.8rem;
+  padding: 0.4rem 1rem;
+  font-size: 0.75rem;
+  z-index: 10;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.card-buy-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+}
+
 .commodity-card-info .nametag-parse {
   cursor: pointer;
   user-select: none;
@@ -4053,6 +4369,41 @@ export default {
 
 .commodity-card-info .nametag-parse:hover {
   opacity: 0.8;
+}
+
+/* 印花/挂件价值信息 */
+.sticker-value-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-color);
+  font-size: 0.75rem;
+}
+
+.sticker-value-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.sticker-value-label {
+  color: #999;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+.sticker-value-amount {
+  color: #67c23a;
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.sticker-value-loading {
+  color: #e6a23c;
+  font-size: 0.7rem;
+  font-style: italic;
 }
 
 /* 横向布局特定样式 */
@@ -4310,6 +4661,40 @@ export default {
   white-space: nowrap;
 }
 
+/* 印花/挂件价格信息 */
+.preview-sticker-list-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.preview-sticker-list-price {
+  display: flex;
+  gap: 0.8rem;
+  font-size: 0.75rem;
+}
+
+.preview-sticker-list-price .price-yyyp {
+  color: #67c23a;
+  font-weight: 600;
+}
+
+.preview-sticker-list-price .price-buff {
+  color: #409eff;
+  font-weight: 600;
+}
+
+.preview-sticker-list-price .price-none {
+  color: #999;
+  font-style: italic;
+}
+
+.preview-sticker-list-price.loading {
+  color: #e6a23c;
+  font-style: italic;
+}
+
 .preview-no-stickers {
   flex: 1;
   display: flex;
@@ -4444,6 +4829,86 @@ export default {
 .scroll-hint {
   color: #888;
   font-size: 0.85rem;
+}
+
+/* 印花/挂件放大预览弹窗样式 */
+.sticker-preview-dialog :deep(.el-dialog__header) {
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  padding: 16px 20px;
+}
+
+.sticker-preview-dialog :deep(.el-dialog__title) {
+  color: #fff;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.sticker-preview-dialog :deep(.el-dialog__body) {
+  background: var(--bg-secondary);
+  padding: 2rem;
+}
+
+.sticker-preview-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.sticker-preview-image-wrapper {
+  width: 100%;
+  height: 300px;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.sticker-preview-image {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.1));
+}
+
+.sticker-preview-info {
+  width: 100%;
+  text-align: center;
+}
+
+.sticker-preview-name {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 0.5rem;
+}
+
+.sticker-preview-type {
+  font-size: 0.9rem;
+  color: #999;
+  padding: 0.25rem 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  display: inline-block;
+}
+
+/* 印花图片可点击样式 */
+.preview-sticker-list-img-wrapper {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.preview-sticker-list-img-wrapper:hover {
+  transform: scale(1.1);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.preview-sticker-list-img.clickable {
+  cursor: pointer;
 }
 </style>
 

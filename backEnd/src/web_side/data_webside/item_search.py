@@ -12,7 +12,7 @@ itemSearchApiV1 = Blueprint('itemSearchApiV1', __name__)
 logger = Log()
 
 
-@itemSearchApiV1.route('/api/item-search/search', methods=['POST'])
+@itemSearchApiV1.route('/search', methods=['POST'])
 def search_items():
     """
     搜索饰品
@@ -154,7 +154,7 @@ def search_items():
         }), 500
 
 
-@itemSearchApiV1.route('/api/item-search/weapon-names', methods=['POST'])
+@itemSearchApiV1.route('/weapon-names', methods=['POST'])
 def get_weapon_names():
     """
     获取指定武器类型的所有武器名称列表
@@ -204,7 +204,7 @@ def get_weapon_names():
         }), 500
 
 
-@itemSearchApiV1.route('/api/item-search/csqaq-detail', methods=['GET'])
+@itemSearchApiV1.route('/csqaq-detail', methods=['GET'])
 def get_csqaq_detail():
     """
     获取 CSQAQ 饰品详细信息
@@ -289,6 +289,101 @@ def get_csqaq_detail():
         return jsonify({
             'success': False,
             'message': f'获取失败: {str(e)}'
+        }), 500
+
+
+@itemSearchApiV1.route('/batch-sticker-prices', methods=['POST'])
+def batch_query_sticker_prices():
+    """
+    批量查询印花/挂件价格
+    
+    请求体:
+    {
+        "steam_hash_names": ["Sticker | s1mple (Gold) | Paris 2023", "Charm | ...]
+    }
+    
+    返回:
+    {
+        "success": true,
+        "data": {
+            "Sticker | s1mple (Gold) | Paris 2023": {
+                "yyyp_price": "123.45",
+                "buff_price": "120.00",
+                "market_listing_item_name": "印花 | s1mple（金色）| 2023年巴黎锦标赛",
+                "icon_url": "https://...",
+                "weapon_type": "Sticker",
+                "item_name": "s1mple (Gold)",
+                "yyyp_on_sale_count": "10",
+                "buff_on_sale_count": "15"
+            },
+            ...
+        }
+    }
+    """
+    try:
+        data = request.get_json()
+        if not data or 'steam_hash_names' not in data:
+            return jsonify({
+                'success': False,
+                'message': '缺少必需参数: steam_hash_names'
+            }), 400
+        
+        steam_hash_names = data['steam_hash_names']
+        
+        if not isinstance(steam_hash_names, list):
+            return jsonify({
+                'success': False,
+                'message': 'steam_hash_names 必须是数组'
+            }), 400
+        
+        if not steam_hash_names:
+            return jsonify({
+                'success': True,
+                'data': {}
+            })
+        
+        logger.write_log(f"批量查询印花价格: 共 {len(steam_hash_names)} 个", 'info')
+        
+        # 批量查询数据库
+        result_map = {}
+        
+        for steam_hash_name in steam_hash_names:
+            if not steam_hash_name:
+                continue
+            
+            # 查询数据库
+            records = WeaponClassIDModel.find_by_steam_hash_name(steam_hash_name)
+            
+            if records and len(records) > 0:
+                record = records[0]
+                result_map[steam_hash_name] = {
+                    'yyyp_price': record.yyyp_Price if record.yyyp_Price else None,
+                    'buff_price': record.buff_Price if record.buff_Price else None,
+                    'market_listing_item_name': record.market_listing_item_name if record.market_listing_item_name else None,
+                    'icon_url': record.icon_url if record.icon_url else None,
+                    'weapon_type': record.weapon_type if record.weapon_type else None,
+                    'item_name': record.item_name if record.item_name else None,
+                    'yyyp_on_sale_count': record.yyyp_OnSaleCount if record.yyyp_OnSaleCount else None,
+                    'buff_on_sale_count': record.buff_OnSaleCount if record.buff_OnSaleCount else None
+                }
+            else:
+                # 未找到记录
+                result_map[steam_hash_name] = None
+        
+        logger.write_log(f"批量查询完成: 找到 {len([v for v in result_map.values() if v])} 个有价格数据", 'info')
+        
+        return jsonify({
+            'success': True,
+            'data': result_map
+        })
+    
+    except Exception as e:
+        logger.write_log(f"批量查询印花价格失败: {str(e)}", 'error')
+        import traceback
+        logger.write_log(f"详细错误: {traceback.format_exc()}", 'error')
+        return jsonify({
+            'success': False,
+            'message': f'查询失败: {str(e)}'
         }), 500
 
 

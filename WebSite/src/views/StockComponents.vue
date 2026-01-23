@@ -86,8 +86,8 @@
             <el-button type="success" @click="handleUpdateComponent" :loading="updateLoading" :disabled="!selectedComponent">
               获取/更新组件物品
             </el-button>
-            <el-button type="success" @click="handleUpdateAllComponents" :loading="updateAllLoading" :disabled="!selectedSteamId">
-              获取/更新全部组件
+            <el-button type="success" @click="handleUpdateAbnormalComponents" :loading="updateAbnormalLoading" :disabled="!selectedSteamId || abnormalComponentsCount === 0">
+              更新异常组件数据 {{ abnormalComponentsCount > 0 ? `(${abnormalComponentsCount})` : '' }}
             </el-button>
             <el-button type="primary" plain @click="handleFillAllPlatformPrices" :loading="platformPriceLoading" :disabled="!selectedSteamId">
               获取/更新平台价格
@@ -779,6 +779,7 @@ export default {
     const loading = ref(false)
     const updateLoading = ref(false)
     const updateAllLoading = ref(false)
+    const updateAbnormalLoading = ref(false)
     const platformPriceLoading = ref(false)
     const componentData = ref([])
     const groupedData = ref([])
@@ -836,6 +837,11 @@ export default {
     
     // classid常量 - 组件的classid
     const COMPONENT_CLASSID = '3604678661'
+
+    // 计算异常组件数量
+    const abnormalComponentsCount = computed(() => {
+      return inventoryComponents.value.filter(item => hasCountMismatch(item)).length
+    })
 
     const totalStats = ref({
       totalCount: 0,
@@ -1813,6 +1819,7 @@ export default {
         }
         
         // 更新成功后重新加载数据
+        await loadInventoryComponents()
         await loadComponentData()
         
       } catch (error) {
@@ -1820,6 +1827,86 @@ export default {
         ElMessage.error('批量更新组件失败: ' + (error.response?.data?.message || error.message))
       } finally {
         updateAllLoading.value = false
+      }
+    }
+
+    const handleUpdateAbnormalComponents = async () => {
+      if (!selectedSteamId.value) {
+        ElMessage.warning('请先选择Steam账号')
+        return
+      }
+      
+      // 筛选出异常组件（显示数量与实际数量不一致）
+      const abnormalComponents = inventoryComponents.value.filter(item => hasCountMismatch(item))
+      
+      if (abnormalComponents.length === 0) {
+        ElMessage.info('没有找到异常组件')
+        return
+      }
+      
+      // 提取所有异常组件的assetid
+      const assetidList = abnormalComponents.map(item => item.assetid)
+      
+      // 确认操作
+      const confirmResult = await ElMessageBox.confirm(
+        `检测到 ${abnormalComponents.length} 个异常组件（显示数量与实际数量不一致），是否更新这些组件的数据？`,
+        '确认更新异常组件',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning',
+        }
+      ).catch(() => false)
+      
+      if (!confirmResult) {
+        return
+      }
+      
+      updateAbnormalLoading.value = true
+      try {
+        console.log('更新异常组件 - steamId:', selectedSteamId.value, '异常组件数量:', assetidList.length)
+        
+        ElMessage.info(`开始更新 ${assetidList.length} 个异常组件，请稍候...`)
+        
+        const response = await axios.post(`${API_SPIDER}/prefectWorldSpiderV1/getInventoryComponent`, {
+          steamId: selectedSteamId.value,
+          assetid: assetidList
+        })
+        
+        console.log('更新异常组件响应:', response.data)
+        
+        const successCount = response.data.success_count || 0
+        const failedCount = response.data.failed_count || 0
+        const totalItems = response.data.total_items || 0
+        
+        if (response.data.success) {
+          ElMessage.success(`异常组件更新成功! 成功: ${successCount}/${assetidList.length}, 总物品数: ${totalItems}`)
+        } else {
+          ElMessage.warning(`部分异常组件更新失败! 成功: ${successCount}, 失败: ${failedCount}, 总物品数: ${totalItems}`)
+        }
+        
+        // 自动同步购入价格
+        try {
+          console.log('自动同步购入价格...')
+          const priceResponse = await axios.post(`${API_COMPONENTS}/auto_fill_prices/${selectedSteamId.value}`)
+          if (priceResponse.data.success) {
+            const data = priceResponse.data.data
+            console.log(`购入价格自动同步完成: 成功填充 ${data.filled_count}/${data.total_count}`)
+          }
+        } catch (priceError) {
+          console.error('自动同步购入价格失败:', priceError)
+          // 不阻断主流程，只记录错误
+        }
+        
+        // 更新成功后重新加载数据
+        await loadInventoryComponents()
+        await loadComponentData()
+        
+      } catch (error) {
+        console.error('更新异常组件失败:', error)
+        ElMessage.error('更新异常组件失败: ' + (error.response?.data?.message || error.message))
+      } finally {
+        updateAbnormalLoading.value = false
       }
     }
 
@@ -2225,6 +2312,7 @@ export default {
       showPriceDiff,
       updateLoading,
       updateAllLoading,
+      updateAbnormalLoading,
       platformPriceLoading,
       removeLoading,
       componentData,
@@ -2243,6 +2331,7 @@ export default {
       selectedSteamId,
       inventoryComponents,
       selectedComponent,
+      abnormalComponentsCount,
       editingGoodsAssetId,
       editingPrice,
       tableRef,
@@ -2283,6 +2372,7 @@ export default {
       handleComponentSelect,
       handleUpdateComponent,
       handleUpdateAllComponents,
+      handleUpdateAbnormalComponents,
       handleToggleGroupMode,
       handleFillReferencePrice,
       handleFillAllPlatformPrices,
