@@ -12,7 +12,7 @@ from .lent import LentModel
 from .rental import RentalModel
 from .weapon_classID import WeaponClassIDModel
 from .auto_search_weapon import AutoSearchWeaponModel
-from .weapon_price_history import WeaponPriceHistoryModel
+from .yyyp_weapon_price_history import YyypWeaponPriceHistoryModel
 
 __all__ = [
     'ConfigModel',
@@ -24,5 +24,5 @@ __all__ = [
     'RentalModel',
     'WeaponClassIDModel',
     'AutoSearchWeaponModel',
-    'WeaponPriceHistoryModel'
+    'YyypWeaponPriceHistoryModel'
 ]

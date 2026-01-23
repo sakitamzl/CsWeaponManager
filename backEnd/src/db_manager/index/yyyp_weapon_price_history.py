@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-饰品价格历史表模型
-用于记录饰品价格的历史变化数据
+悠悠有品饰品价格历史表模型
+用于记录悠悠有品饰品价格的历史变化数据
 """
 
 from typing import Dict, Any, List
@@ -9,12 +9,12 @@ from datetime import datetime
 from ..base_model import BaseModel
 
 
-class WeaponPriceHistoryModel(BaseModel):
-    """饰品价格历史表模型"""
+class YyypWeaponPriceHistoryModel(BaseModel):
+    """悠悠有品饰品价格历史表模型"""
 
     @classmethod
     def get_table_name(cls) -> str:
-        return "weapon_price_history"
+        return "yyyp_weapon_price_history"
 
     @classmethod
     def get_fields(cls) -> Dict[str, Dict[str, Any]]:
@@ -23,6 +23,9 @@ class WeaponPriceHistoryModel(BaseModel):
         - id: 自增主键
         - steam_hash_name: Steam市场名称（关联weapon_classID表）
         - yyyp_price: 悠悠有品价格
+        - yyyp_rent: 悠悠有品租金
+        - yyyp_on_sale_count: 悠悠有品在售数量
+        - yyyp_on_lease_count: 悠悠有品出租数量
         - record_time: 记录时间
         """
         return {
@@ -38,6 +41,21 @@ class WeaponPriceHistoryModel(BaseModel):
                 'default': None
             },
             'yyyp_price': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None
+            },
+            'yyyp_rent': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None
+            },
+            'yyyp_on_sale_count': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None
+            },
+            'yyyp_on_lease_count': {
                 'type': 'TEXT',
                 'not_null': False,
                 'default': None
@@ -72,7 +90,8 @@ class WeaponPriceHistoryModel(BaseModel):
         """
         批量插入价格历史记录
         
-        :param price_records: 价格记录列表，每项包含 steam_hash_name, yyyp_price, record_time
+        :param price_records: 价格记录列表，每项包含 steam_hash_name, yyyp_price, yyyp_rent, 
+                             yyyp_on_sale_count, yyyp_on_lease_count, record_time
         :return: 成功插入的数量
         """
         if not price_records:
@@ -85,6 +104,9 @@ class WeaponPriceHistoryModel(BaseModel):
             try:
                 steam_hash_name = record.get('steam_hash_name')
                 yyyp_price = record.get('yyyp_price')
+                yyyp_rent = record.get('yyyp_rent')
+                yyyp_on_sale_count = record.get('yyyp_on_sale_count')
+                yyyp_on_lease_count = record.get('yyyp_on_lease_count')
                 record_time = record.get('record_time')
 
                 if not steam_hash_name or not record_time:
@@ -92,11 +114,13 @@ class WeaponPriceHistoryModel(BaseModel):
                     continue
 
                 sql_insert = f'''INSERT INTO {cls.get_table_name()} 
-                                ([steam_hash_name], [yyyp_price], [record_time]) 
-                                VALUES (?, ?, ?)'''
+                                ([steam_hash_name], [yyyp_price], [yyyp_rent], [yyyp_on_sale_count], 
+                                 [yyyp_on_lease_count], [record_time]) 
+                                VALUES (?, ?, ?, ?, ?, ?)'''
                 
                 affected_rows = db.execute_insert(sql_insert, (
-                    steam_hash_name, yyyp_price, record_time
+                    steam_hash_name, yyyp_price, yyyp_rent, 
+                    yyyp_on_sale_count, yyyp_on_lease_count, record_time
                 ))
 
                 if affected_rows > 0:
