@@ -168,29 +168,15 @@
 
           <!-- 短信登录方式 -->
           <template v-if="editForm.yyypLoginMethod === 'sms'">
-            <el-form-item label="Session ID" required>
-              <div style="display: flex; gap: 10px;">
-                <el-input 
-                  v-model="editForm.yyypSessionId" 
-                  placeholder="请输入或生成Session ID"
-                  style="flex: 1;"
-                />
-                <el-button 
-                  type="primary" 
-                  @click="handleEditGenerateSessionId"
-                  :loading="editGeneratingSessionId"
-                >
-                  生成SessionID
-                </el-button>
-              </div>
-            </el-form-item>
-            <el-form-item label="手机号" required>
+            <el-form-item label="手机号">
               <el-input 
                 v-model="editForm.yyypPhone" 
-                placeholder="请输入手机号"
-                maxlength="11"
+                placeholder="手机号"
+                disabled
+                readonly
               />
             </el-form-item>
+            
             <el-form-item label="验证码">
               <div style="display: flex; gap: 10px;">
                 <el-input 
@@ -217,7 +203,7 @@
                 style="width: 100%;"
               >
                 <el-icon style="margin-right: 5px;"><Grid /></el-icon>
-                {{ editYyypSmsLoginLoading ? '登录中...' : '短信登录' }}
+                {{ editYyypSmsLoginLoading ? '登录中...' : '重新登录' }}
               </el-button>
             </el-form-item>
           </template>
@@ -1843,8 +1829,10 @@
               <div style="display: flex; gap: 10px;">
                 <el-input 
                   v-model="inputForm.yyypSessionId" 
-                  placeholder="请输入或生成Session ID"
+                  placeholder="点击生成按钮生成Session ID"
                   style="flex: 1;"
+                  readonly
+                  disabled
                 />
                 <el-button 
                   type="primary" 
@@ -1852,6 +1840,24 @@
                   :loading="generatingSessionId"
                 >
                   生成SessionID
+                </el-button>
+              </div>
+            </el-form-item>
+            <el-form-item label="Device ID" required>
+              <div style="display: flex; gap: 10px;">
+                <el-input 
+                  v-model="inputForm.yyypDeviceId" 
+                  placeholder="点击生成按钮生成Device ID"
+                  style="flex: 1;"
+                  readonly
+                  disabled
+                />
+                <el-button 
+                  type="primary" 
+                  @click="handleGenerateDeviceId"
+                  :loading="generatingDeviceId"
+                >
+                  生成DeviceID
                 </el-button>
               </div>
             </el-form-item>
@@ -2122,11 +2128,13 @@ export default {
     const smsCodeCountdown = ref(0)  // 验证码倒计时
     const smsCodeTimer = ref(null)  // 验证码倒计时定时器
     const generatingSessionId = ref(false)  // 生成SessionID loading
+    const generatingDeviceId = ref(false)  // 生成DeviceID loading
     const editYyypSmsLoginLoading = ref(false)  // 编辑对话框短信登录loading
     const editSendingSmsCode = ref(false)  // 编辑对话框发送验证码loading
     const editSmsCodeCountdown = ref(0)  // 编辑对话框验证码倒计时
     const editSmsCodeTimer = ref(null)  // 编辑对话框验证码倒计时定时器
     const editGeneratingSessionId = ref(false)  // 编辑对话框生成SessionID loading
+    const editGeneratingDeviceId = ref(false)  // 编辑对话框生成DeviceID loading
     
     // 编辑对话框折叠面板状态
     const editYyypBasicCollapse = ref([])
@@ -3891,15 +3899,25 @@ export default {
         editForm.value.tracestate = config.yyyp_tracestate || ''
         editForm.value.deviceInfo = config.yyyp_device_info || ''
         
+        // 短信登录相关字段 - 将已存储的 sessionid 同步到短信登录的 Session ID 输入框
+        editForm.value.yyypLoginMethod = config.yyypLoginMethod || 'capture'  // 默认为抓包方式
+        editForm.value.yyypSessionId = config.yyyp_Sessionid || ''  // 同步 Session ID
+        editForm.value.yyypDeviceId = config.yyyp_deviceid || ''  // 同步 Device ID
+        editForm.value.yyypPhone = config.yyyp_phone || ''
+        editForm.value.yyypSmsCode = ''  // 验证码不保存，每次都需要重新获取
+        
         console.log('悠悠有品配置解析结果:', {
           phone: editForm.value.phone,
           sessionid: editForm.value.sessionid,
+          yyypSessionId: editForm.value.yyypSessionId,
+          yyypDeviceId: editForm.value.yyypDeviceId,
           token: editForm.value.token,
           deviceName: editForm.value.deviceName,
           appVersion: editForm.value.appVersion,
           sleepTime: editForm.value.sleepTime,
           appType: editForm.value.appType,
-          userId: editForm.value.userId
+          userId: editForm.value.userId,
+          yyypLoginMethod: editForm.value.yyypLoginMethod
         })
       } else if (source.type === 'buff') {
         // BUFF配置
@@ -4082,6 +4100,12 @@ export default {
         sk: '',
         tracestate: '',
         deviceInfo: '',
+        // 悠悠有品短信登录字段
+        yyypLoginMethod: 'sms',
+        yyypSessionId: '',
+        yyypDeviceId: '',
+        yyypPhone: '',
+        yyypSmsCode: '',
         // BUFF特有字段
         cookie: '',
         systemVersion: '',
@@ -4116,6 +4140,17 @@ export default {
         // CSQAQ特有字段
         csqaqApiToken: ''
       }
+      
+      // 清理短信登录相关状态
+      if (editSmsCodeTimer.value) {
+        clearInterval(editSmsCodeTimer.value)
+        editSmsCodeTimer.value = null
+      }
+      editSmsCodeCountdown.value = 0
+      editYyypSmsLoginLoading.value = false
+      editSendingSmsCode.value = false
+      editGeneratingSessionId.value = false
+      editGeneratingDeviceId.value = false
     }
 
     // 打开添加数据源对话框
@@ -5454,6 +5489,11 @@ export default {
     
     // 短信登录（添加对话框）
     const handleYyypSmsLogin = async () => {
+      if (!inputForm.value.yyypSessionId) {
+        ElMessage.error('请先生成或输入Session ID')
+        return
+      }
+      
       if (!inputForm.value.yyypPhone) {
         ElMessage.error('请输入手机号')
         return
@@ -5468,6 +5508,7 @@ export default {
       try {
         // TODO: 调用后端API进行短信登录
         // const response = await axios.post(apiUrls.yyypSmsLogin, {
+        //   sessionId: inputForm.value.yyypSessionId,
         //   phone: inputForm.value.yyypPhone,
         //   code: inputForm.value.yyypSmsCode
         // })
@@ -5476,11 +5517,25 @@ export default {
         ElMessage.success('登录成功！配置信息已自动填充')
         yyypSmsLoginStatus.value = 'success'
         
+        // 将短信登录的 Session ID 同步到认证令牌配置中
+        inputForm.value.sessionid = inputForm.value.yyypSessionId
+        
         // TODO: 从后端响应中获取配置信息并填充到表单
         // inputForm.value.phone = response.data.phone
-        // inputForm.value.sessionid = response.data.sessionid
+        // inputForm.value.sessionid = response.data.sessionid  // 后端返回的sessionid
         // inputForm.value.token = response.data.token
-        // ... 其他字段
+        // inputForm.value.appVersion = response.data.appVersion
+        // inputForm.value.appType = response.data.appType
+        // inputForm.value.userId = response.data.userId
+        // inputForm.value.steamId = response.data.steamId
+        // inputForm.value.deviceName = response.data.deviceName
+        // inputForm.value.devicetoken = response.data.devicetoken
+        // inputForm.value.deviceid = response.data.deviceid
+        // inputForm.value.deviceInfo = response.data.deviceInfo
+        // inputForm.value.deviceuk = response.data.deviceuk
+        // inputForm.value.uk = response.data.uk
+        // inputForm.value.sk = response.data.sk
+        // inputForm.value.tracestate = response.data.tracestate
         
         // 自动展开配置折叠面板
         inputYyypConfigCollapse.value = ['config']
@@ -5536,6 +5591,11 @@ export default {
     
     // 短信登录（编辑对话框）
     const handleEditYyypSmsLogin = async () => {
+      if (!editForm.value.yyypSessionId) {
+        ElMessage.error('请先生成或输入Session ID')
+        return
+      }
+      
       if (!editForm.value.yyypPhone) {
         ElMessage.error('请输入手机号')
         return
@@ -5550,6 +5610,7 @@ export default {
       try {
         // TODO: 调用后端API进行短信登录
         // const response = await axios.post(apiUrls.yyypSmsLogin, {
+        //   sessionId: editForm.value.yyypSessionId,
         //   phone: editForm.value.yyypPhone,
         //   code: editForm.value.yyypSmsCode
         // })
@@ -5557,14 +5618,29 @@ export default {
         // 模拟登录成功，自动填充配置信息
         ElMessage.success('登录成功！配置信息已自动填充')
         
+        // 将短信登录的 Session ID 同步到认证令牌配置中
+        editForm.value.sessionid = editForm.value.yyypSessionId
+        
         // TODO: 从后端响应中获取配置信息并填充到表单
         // editForm.value.phone = response.data.phone
-        // editForm.value.sessionid = response.data.sessionid
+        // editForm.value.sessionid = response.data.sessionid  // 后端返回的sessionid
         // editForm.value.token = response.data.token
-        // ... 其他字段
+        // editForm.value.appVersion = response.data.appVersion
+        // editForm.value.appType = response.data.appType
+        // editForm.value.userId = response.data.userId
+        // editForm.value.steamId = response.data.steamId
+        // editForm.value.deviceName = response.data.deviceName
+        // editForm.value.devicetoken = response.data.devicetoken
+        // editForm.value.deviceid = response.data.deviceid
+        // editForm.value.deviceInfo = response.data.deviceInfo
+        // editForm.value.deviceuk = response.data.deviceuk
+        // editForm.value.uk = response.data.uk
+        // editForm.value.sk = response.data.sk
+        // editForm.value.tracestate = response.data.tracestate
         
-        // 自动展开配置折叠面板
+        // 自动展开配置折叠面板，方便查看
         editYyypBasicCollapse.value = ['basic']
+        editYyypTokenCollapse.value = ['token']
       } catch (error) {
         console.error('短信登录失败:', error)
         ElMessage.error('登录失败: ' + (error.response?.data?.message || error.message))
@@ -5610,6 +5686,46 @@ export default {
         ElMessage.error('生成SessionID失败: ' + (error.response?.data?.message || error.message))
       } finally {
         editGeneratingSessionId.value = false
+      }
+    }
+    
+    // 生成DeviceID（添加对话框）
+    const handleGenerateDeviceId = async () => {
+      generatingDeviceId.value = true
+      try {
+        // TODO: 调用后端API生成DeviceID
+        // const response = await axios.post(apiUrls.generateYyypDeviceId)
+        // inputForm.value.yyypDeviceId = response.data.deviceId
+        
+        // 模拟生成DeviceID
+        const randomDeviceId = 'DEVICE_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+        inputForm.value.yyypDeviceId = randomDeviceId
+        ElMessage.success('DeviceID生成成功')
+      } catch (error) {
+        console.error('生成DeviceID失败:', error)
+        ElMessage.error('生成DeviceID失败: ' + (error.response?.data?.message || error.message))
+      } finally {
+        generatingDeviceId.value = false
+      }
+    }
+    
+    // 生成DeviceID（编辑对话框）
+    const handleEditGenerateDeviceId = async () => {
+      editGeneratingDeviceId.value = true
+      try {
+        // TODO: 调用后端API生成DeviceID
+        // const response = await axios.post(apiUrls.generateYyypDeviceId)
+        // editForm.value.yyypDeviceId = response.data.deviceId
+        
+        // 模拟生成DeviceID
+        const randomDeviceId = 'DEVICE_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+        editForm.value.yyypDeviceId = randomDeviceId
+        ElMessage.success('DeviceID生成成功')
+      } catch (error) {
+        console.error('生成DeviceID失败:', error)
+        ElMessage.error('生成DeviceID失败: ' + (error.response?.data?.message || error.message))
+      } finally {
+        editGeneratingDeviceId.value = false
       }
     }
 
@@ -5686,6 +5802,8 @@ export default {
       handleYyypSmsLogin,
       generatingSessionId,
       handleGenerateSessionId,
+      generatingDeviceId,
+      handleGenerateDeviceId,
       editYyypSmsLoginLoading,
       editSendingSmsCode,
       editSmsCodeCountdown,
@@ -5693,6 +5811,8 @@ export default {
       handleEditYyypSmsLogin,
       editGeneratingSessionId,
       handleEditGenerateSessionId,
+      editGeneratingDeviceId,
+      handleEditGenerateDeviceId,
       // 编辑对话框折叠面板
       editYyypBasicCollapse,
       editYyypTokenCollapse,
