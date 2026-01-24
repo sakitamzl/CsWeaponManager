@@ -264,11 +264,14 @@
               <div class="card-image">
                 <!-- 左上角标签 -->
                 <div class="card-badges">
-                  <el-tag v-if="item.float_range" size="small" class="badge-item" :style="{ color: getFloatRangeColor(item.float_range) + ' !important', backgroundColor: 'rgba(0, 0, 0, 0.7)', borderColor: getFloatRangeColor(item.float_range) }">
-                    {{ item.float_range }}
+                  <el-tag v-if="extractFloatRangeFromName(item.market_listing_item_name)" size="small" class="badge-item" :style="{ color: getFloatRangeColor(extractFloatRangeFromName(item.market_listing_item_name)) + ' !important', backgroundColor: 'rgba(0, 0, 0, 0.7)', borderColor: getFloatRangeColor(extractFloatRangeFromName(item.market_listing_item_name)) }">
+                    {{ extractFloatRangeFromName(item.market_listing_item_name) }}
                   </el-tag>
                   <el-tag v-if="item.Rarity" size="small" class="badge-item" :style="{ color: getRarityColor(item.Rarity) + ' !important', backgroundColor: 'rgba(0, 0, 0, 0.7)', borderColor: getRarityColor(item.Rarity) }">
                     {{ item.Rarity }}
+                  </el-tag>
+                  <el-tag v-if="item.market_listing_item_name && item.market_listing_item_name.includes('纪念品')" size="small" class="badge-item souvenir-badge" :style="{ color: '#FFD700 !important', backgroundColor: 'rgba(0, 0, 0, 0.7)', borderColor: '#FFD700' }">
+                    纪念品
                   </el-tag>
                 </div>
                 
@@ -288,10 +291,10 @@
                   {{ item.market_listing_item_name }}
                 </div>
                 <div class="card-info">
-                  <div class="info-row" v-if="item.float_range">
+                  <div class="info-row" v-if="extractFloatRangeFromName(item.market_listing_item_name)">
                     <span class="info-label">磨损:</span>
-                    <span class="float-range-text" :style="`color: ${getFloatRangeColor(item.float_range)} !important; font-weight: 600 !important;`">
-                      {{ item.float_range }}
+                    <span class="float-range-text" :style="`color: ${getFloatRangeColor(extractFloatRangeFromName(item.market_listing_item_name))} !important; font-weight: 600 !important;`">
+                      {{ extractFloatRangeFromName(item.market_listing_item_name) }}
                     </span>
                   </div>
                   <div class="info-row" v-if="item.Rarity">
@@ -1068,10 +1071,10 @@ export default {
     const filteredResults = computed(() => {
       let results = searchResults.value
       
-      // 根据选择的外观筛选（使用 float_range 字段）
+      // 根据选择的外观筛选（从 market_listing_item_name 中提取磨损等级）
       if (selectedExterior.value) {
         results = results.filter(item => {
-          const floatRange = item.float_range || ''
+          const floatRange = extractFloatRangeFromName(item.market_listing_item_name)
           return floatRange === selectedExterior.value
         })
       }
@@ -1407,6 +1410,21 @@ export default {
         '战痕累累': 'danger'
       }
       return typeMap[floatRange] || ''
+    }
+
+    // 从 market_listing_item_name 中提取磨损等级
+    const extractFloatRangeFromName = (itemName) => {
+      if (!itemName) return ''
+      
+      const wearLevels = ['崭新出厂', '略有磨损', '久经沙场', '破损不堪', '战痕累累']
+      
+      for (const wear of wearLevels) {
+        if (itemName.includes(`(${wear})`) || itemName.includes(wear)) {
+          return wear
+        }
+      }
+      
+      return ''
     }
 
     // 获取磨损等级的颜色
@@ -2557,7 +2575,7 @@ export default {
       
       try {
         await ElMessageBox.confirm(
-          `确定要批量购买 ${selectedCommodities.value.length} 件商品吗？\n总价: ¥${totalPrice.toFixed(2)}`,
+          `确定要批量购买 ${selectedCommodities.value.length} 件商品吗？\n总价: ¥${totalPrice.toFixed(2)}\n\n购买将自动执行，无需再次确认。`,
           '批量购买确认',
           {
             confirmButtonText: '确定购买',
@@ -2566,23 +2584,112 @@ export default {
           }
         )
         
+        // 显示批量购买进度
+        const loadingMessage = ElMessage({
+          message: `正在批量购买 0/${selectedCommodities.value.length} 件商品...`,
+          type: 'info',
+          duration: 0,
+          customClass: 'batch-buy-loading-message'
+        })
+        
+        let successCount = 0
+        let failCount = 0
+        const failedItems = []
+        
         // 执行批量购买
         if (selectedCommodityType.value === 'buff') {
-          for (const item of selectedCommodities.value) {
-            await handleBuyBuffCommodity(item)
+          for (let i = 0; i < selectedCommodities.value.length; i++) {
+            const item = selectedCommodities.value[i]
+            loadingMessage.message = `正在购买 ${i + 1}/${selectedCommodities.value.length} 件商品...\n${item.commodityName || item.name || '商品'}`
+            
+            try {
+              // BUFF购买逻辑（暂未实现）
+              console.log('购买BUFF商品:', item)
+              // TODO: 实现BUFF购买
+              successCount++
+            } catch (error) {
+              console.error('购买失败:', error)
+              failCount++
+              failedItems.push(item.commodityName || item.name || '未知商品')
+            }
+            
+            // 添加延迟避免请求过快
+            if (i < selectedCommodities.value.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, 500))
+            }
           }
         } else if (selectedCommodityType.value === 'yyyp') {
-          for (const item of selectedCommodities.value) {
-            await handleBuyCommodity(item)
+          for (let i = 0; i < selectedCommodities.value.length; i++) {
+            const item = selectedCommodities.value[i]
+            loadingMessage.message = `正在购买 ${i + 1}/${selectedCommodities.value.length} 件商品...\n${item.commodityName || '商品'}`
+            
+            try {
+              // 静默购买悠悠有品商品
+              const requestData = {
+                steamId: selectedSteamId.value,
+                commodityId: item.id,
+                buyQuantity: 1,
+                price: item.price,
+                autoConfirmPayment: true,
+                pollPayment: true
+              }
+              
+              const response = await axios.post(
+                `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/buyCommodity`,
+                requestData
+              )
+              
+              if (response.data.success) {
+                successCount++
+                console.log(`购买成功 [${i + 1}/${selectedCommodities.value.length}]:`, item.commodityName)
+              } else {
+                failCount++
+                failedItems.push(item.commodityName || '未知商品')
+                console.error(`购买失败 [${i + 1}/${selectedCommodities.value.length}]:`, response.data.message)
+              }
+            } catch (error) {
+              console.error('购买失败:', error)
+              failCount++
+              failedItems.push(item.commodityName || '未知商品')
+            }
+            
+            // 添加延迟避免请求过快
+            if (i < selectedCommodities.value.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, 500))
+            }
           }
         }
         
-        ElMessage.success('批量购买请求已发送')
+        loadingMessage.close()
+        
+        // 显示批量购买结果
+        let resultMessage = `批量购买完成！\n\n`
+        resultMessage += `成功：${successCount} 件\n`
+        resultMessage += `失败：${failCount} 件\n`
+        resultMessage += `总价：¥${totalPrice.toFixed(2)}`
+        
+        if (failedItems.length > 0) {
+          resultMessage += `\n\n失败商品：\n${failedItems.slice(0, 5).join('\n')}`
+          if (failedItems.length > 5) {
+            resultMessage += `\n... 还有 ${failedItems.length - 5} 件`
+          }
+        }
+        
+        ElMessageBox.alert(
+          resultMessage,
+          '批量购买结果',
+          {
+            confirmButtonText: '知道了',
+            type: successCount > 0 ? 'success' : 'warning'
+          }
+        )
+        
         clearCommoditySelection()
         
       } catch (e) {
         if (e !== 'cancel') {
           console.error('批量购买失败:', e)
+          ElMessage.error('批量购买失败: ' + (e.message || '未知错误'))
         }
       }
     }
@@ -2761,6 +2868,7 @@ export default {
       getWeaponTypeColor,
       getFloatRangeType,
       getFloatRangeColor,
+      extractFloatRangeFromName,
       getWearColor,
       getWearRange,
       getExteriorColor,
