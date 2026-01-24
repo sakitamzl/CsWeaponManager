@@ -1,7 +1,7 @@
 <template>
   <div class="login-container">
     <div class="login-box">
-      <h1 class="login-title">CS武器管理系统</h1>
+      <h1 class="login-title">CsWeaponManager</h1>
       <el-form :model="loginForm" :rules="rules" ref="loginFormRef" class="login-form">
         <el-form-item prop="username">
           <el-input

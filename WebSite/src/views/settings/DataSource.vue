@@ -158,33 +158,100 @@
 
         <!-- 悠悠有品特有配置 -->
         <template v-if="editForm.type === 'youpin'">
-          <el-form-item>
-            <el-button 
-              type="success" 
-              @click="startYyypTokenCollection(true)" 
-              :loading="yyypTokenLoading"
-              :disabled="yyypTokenStatus === 'success'"
-              style="width: 100%;"
-            >
-              <el-icon style="margin-right: 5px;"><Grid /></el-icon>
-              {{ yyypTokenLoading ? '正在获取令牌...' : yyypTokenStatus === 'success' ? '✓ 令牌已获取' : '重新获取悠悠有品令牌' }}
-            </el-button>
-            <div v-if="yyypTokenStatus === 'waiting'" style="margin-top: 10px; padding: 10px; background: #fff7e6; border-radius: 4px; border-left: 3px solid #faad14;">
-              <div style="color: #faad14; font-weight: 500; margin-bottom: 5px;">
-                <el-icon><Loading /></el-icon> 等待手机APP访问...
-              </div>
-              <div style="color: #666; font-size: 12px;">
-                1. 在手机WiFi设置中配置代理: <strong>{{ proxyAddress || '...' }}</strong><br/>
-                2. 打开悠悠有品APP并登录<br/>
-                3. 系统将自动获取令牌
-              </div>
-            </div>
-            <div v-if="yyypTokenStatus === 'success'" style="margin-top: 10px; padding: 10px; background: #f6ffed; border-radius: 4px; border-left: 3px solid #52c41a;">
-              <div style="color: #52c41a; font-weight: 500;">
-                <el-icon><CircleCheck /></el-icon> 令牌获取成功!
-              </div>
-            </div>
+          <!-- 登录方式选择 -->
+          <el-form-item label="登录方式" required>
+            <el-radio-group v-model="editForm.yyypLoginMethod">
+              <el-radio label="sms">短信登录</el-radio>
+              <el-radio label="capture">通过抓包获取</el-radio>
+            </el-radio-group>
           </el-form-item>
+
+          <!-- 短信登录方式 -->
+          <template v-if="editForm.yyypLoginMethod === 'sms'">
+            <el-form-item label="Session ID" required>
+              <div style="display: flex; gap: 10px;">
+                <el-input 
+                  v-model="editForm.yyypSessionId" 
+                  placeholder="请输入或生成Session ID"
+                  style="flex: 1;"
+                />
+                <el-button 
+                  type="primary" 
+                  @click="handleEditGenerateSessionId"
+                  :loading="editGeneratingSessionId"
+                >
+                  生成SessionID
+                </el-button>
+              </div>
+            </el-form-item>
+            <el-form-item label="手机号" required>
+              <el-input 
+                v-model="editForm.yyypPhone" 
+                placeholder="请输入手机号"
+                maxlength="11"
+              />
+            </el-form-item>
+            <el-form-item label="验证码">
+              <div style="display: flex; gap: 10px;">
+                <el-input 
+                  v-model="editForm.yyypSmsCode" 
+                  placeholder="请输入短信验证码"
+                  maxlength="6"
+                  style="flex: 1;"
+                />
+                <el-button 
+                  type="primary" 
+                  @click="handleEditSendSmsCode"
+                  :disabled="editSmsCodeCountdown > 0"
+                  :loading="editSendingSmsCode"
+                >
+                  {{ editSmsCodeCountdown > 0 ? `${editSmsCodeCountdown}秒后重试` : '发送验证码' }}
+                </el-button>
+              </div>
+            </el-form-item>
+            <el-form-item>
+              <el-button 
+                type="success" 
+                @click="handleEditYyypSmsLogin" 
+                :loading="editYyypSmsLoginLoading"
+                style="width: 100%;"
+              >
+                <el-icon style="margin-right: 5px;"><Grid /></el-icon>
+                {{ editYyypSmsLoginLoading ? '登录中...' : '短信登录' }}
+              </el-button>
+            </el-form-item>
+          </template>
+
+          <!-- 通过抓包获取方式 -->
+          <template v-else-if="editForm.yyypLoginMethod === 'capture'">
+            <el-form-item>
+              <el-button 
+                type="success" 
+                @click="startYyypTokenCollection(true)" 
+                :loading="yyypTokenLoading"
+                :disabled="yyypTokenStatus === 'success'"
+                style="width: 100%;"
+              >
+                <el-icon style="margin-right: 5px;"><Grid /></el-icon>
+                {{ yyypTokenLoading ? '正在获取令牌...' : yyypTokenStatus === 'success' ? '✓ 令牌已获取' : '重新获取悠悠有品令牌' }}
+              </el-button>
+              <div v-if="yyypTokenStatus === 'waiting'" style="margin-top: 10px; padding: 10px; background: #fff7e6; border-radius: 4px; border-left: 3px solid #faad14;">
+                <div style="color: #faad14; font-weight: 500; margin-bottom: 5px;">
+                  <el-icon><Loading /></el-icon> 等待手机APP访问...
+                </div>
+                <div style="color: #666; font-size: 12px;">
+                  1. 在手机WiFi设置中配置代理: <strong>{{ proxyAddress || '...' }}</strong><br/>
+                  2. 打开悠悠有品APP并登录<br/>
+                  3. 系统将自动获取令牌
+                </div>
+              </div>
+              <div v-if="yyypTokenStatus === 'success'" style="margin-top: 10px; padding: 10px; background: #f6ffed; border-radius: 4px; border-left: 3px solid #52c41a;">
+                <div style="color: #52c41a; font-weight: 500;">
+                  <el-icon><CircleCheck /></el-icon> 令牌获取成功!
+                </div>
+              </div>
+            </el-form-item>
+          </template>
           
           
           <!-- 基础配置 -->
@@ -1762,33 +1829,117 @@
         
         <!-- 悠悠有品特有配置 -->
         <template v-if="inputForm.type === 'youpin'">
-          <el-form-item>
-            <el-button 
-              type="success" 
-              @click="startYyypTokenCollection(false)" 
-              :loading="yyypTokenLoading"
-              :disabled="yyypTokenStatus === 'success'"
-              style="width: 100%;"
-            >
-              <el-icon style="margin-right: 5px;"><Grid /></el-icon>
-              {{ yyypTokenLoading ? '正在获取令牌...' : yyypTokenStatus === 'success' ? '✓ 令牌已获取' : '一键获取悠悠有品令牌' }}
-            </el-button>
-            <div v-if="yyypTokenStatus === 'waiting'" style="margin-top: 10px; padding: 10px; background: #fff7e6; border-radius: 4px; border-left: 3px solid #faad14;">
-              <div style="color: #faad14; font-weight: 500; margin-bottom: 5px;">
-                <el-icon><Loading /></el-icon> 等待手机APP访问...
-              </div>
-              <div style="color: #666; font-size: 12px;">
-                1. 在手机WiFi设置中配置代理: <strong>{{ proxyAddress || '...' }}</strong><br/>
-                2. 打开悠悠有品APP并登录<br/>
-                3. 系统将自动获取令牌
-              </div>
-            </div>
-            <div v-if="yyypTokenStatus === 'success'" style="margin-top: 10px; padding: 10px; background: #f6ffed; border-radius: 4px; border-left: 3px solid #52c41a;">
-              <div style="color: #52c41a; font-weight: 500;">
-                <el-icon><CircleCheck /></el-icon> 令牌获取成功!
-              </div>
-            </div>
+          <!-- 登录方式选择 -->
+          <el-form-item label="登录方式" required>
+            <el-radio-group v-model="inputForm.yyypLoginMethod">
+              <el-radio label="sms">短信登录</el-radio>
+              <el-radio label="capture">通过抓包获取</el-radio>
+            </el-radio-group>
           </el-form-item>
+
+          <!-- 短信登录方式 -->
+          <template v-if="inputForm.yyypLoginMethod === 'sms'">
+            <el-form-item label="Session ID" required>
+              <div style="display: flex; gap: 10px;">
+                <el-input 
+                  v-model="inputForm.yyypSessionId" 
+                  placeholder="请输入或生成Session ID"
+                  style="flex: 1;"
+                />
+                <el-button 
+                  type="primary" 
+                  @click="handleGenerateSessionId"
+                  :loading="generatingSessionId"
+                >
+                  生成SessionID
+                </el-button>
+              </div>
+            </el-form-item>
+            <el-form-item label="手机号" required>
+              <el-input 
+                v-model="inputForm.yyypPhone" 
+                placeholder="请输入手机号"
+                maxlength="11"
+              />
+            </el-form-item>
+            <el-form-item label="验证码">
+              <div style="display: flex; gap: 10px;">
+                <el-input 
+                  v-model="inputForm.yyypSmsCode" 
+                  placeholder="请输入短信验证码"
+                  maxlength="6"
+                  style="flex: 1;"
+                />
+                <el-button 
+                  type="primary" 
+                  @click="handleSendSmsCode"
+                  :disabled="smsCodeCountdown > 0"
+                  :loading="sendingSmsCode"
+                >
+                  {{ smsCodeCountdown > 0 ? `${smsCodeCountdown}秒后重试` : '发送验证码' }}
+                </el-button>
+              </div>
+            </el-form-item>
+            <el-form-item>
+              <el-button 
+                type="success" 
+                @click="handleYyypSmsLogin" 
+                :loading="yyypSmsLoginLoading"
+                style="width: 100%;"
+              >
+                <el-icon style="margin-right: 5px;"><Grid /></el-icon>
+                {{ yyypSmsLoginLoading ? '登录中...' : '短信登录' }}
+              </el-button>
+              <div v-if="yyypSmsLoginStatus === 'success'" style="margin-top: 10px; padding: 10px; background: #f6ffed; border-radius: 4px; border-left: 3px solid #52c41a;">
+                <div style="color: #52c41a; font-weight: 500;">
+                  <el-icon><CircleCheck /></el-icon> 登录成功！配置信息已自动填充
+                </div>
+              </div>
+            </el-form-item>
+          </template>
+
+          <!-- 通过抓包获取方式 -->
+          <template v-else-if="inputForm.yyypLoginMethod === 'capture'">
+            <el-form-item>
+              <el-button 
+                type="success" 
+                @click="startYyypTokenCollection(false)" 
+                :loading="yyypTokenLoading"
+                :disabled="yyypTokenStatus === 'success'"
+                style="width: 100%;"
+              >
+                <el-icon style="margin-right: 5px;"><Grid /></el-icon>
+                {{ yyypTokenLoading ? '正在获取令牌...' : yyypTokenStatus === 'success' ? '✓ 令牌已获取' : '一键获取悠悠有品令牌' }}
+              </el-button>
+              <div v-if="yyypTokenStatus === 'waiting'" style="margin-top: 10px; padding: 10px; background: #fff7e6; border-radius: 4px; border-left: 3px solid #faad14;">
+                <div style="color: #faad14; font-weight: 500; margin-bottom: 5px;">
+                  <el-icon><Loading /></el-icon> 等待手机APP访问...
+                </div>
+                <div style="color: #666; font-size: 12px;">
+                  1. 在手机WiFi设置中配置代理: <strong>{{ proxyAddress || '...' }}</strong><br/>
+                  2. 打开悠悠有品APP并登录<br/>
+                  3. 系统将自动获取令牌
+                </div>
+              </div>
+              <div v-if="yyypTokenStatus === 'success'" style="margin-top: 10px; padding: 10px; background: #f6ffed; border-radius: 4px; border-left: 3px solid #52c41a;">
+                <div style="color: #52c41a; font-weight: 500;">
+                  <el-icon><CircleCheck /></el-icon> 令牌获取成功!
+                </div>
+              </div>
+            </el-form-item>
+          </template>
+
+          <!-- 配置信息折叠面板 - 仅在抓包方式或登录成功后显示 -->
+          <el-collapse v-if="inputForm.yyypLoginMethod === 'capture' || yyypSmsLoginStatus === 'success'" v-model="inputYyypConfigCollapse" style="margin-top: 20px;">
+            <el-collapse-item title="配置信息（可选）" name="config">
+              <el-alert 
+                title="提示" 
+                type="info" 
+                :closable="false"
+                style="margin-bottom: 15px;"
+              >
+                短信登录成功后，配置信息已自动填充。如需修改，可在此处编辑。
+              </el-alert>
           <el-form-item label="手机号" required>
             <el-input 
               v-model="inputForm.phone" 
@@ -1891,6 +2042,8 @@
               placeholder="请输入Device Info (JSON格式)"
             />
           </el-form-item>
+            </el-collapse-item>
+          </el-collapse>
         </template>
         
         <el-form-item v-if="['youpin', 'buff', 'steam', 'csfloat'].includes(inputForm.type)" label="是否自动采集">
@@ -1962,6 +2115,19 @@ export default {
     const tokenCheckTimer = ref(null)  // Token 获取状态检查定时器
     const proxyAddress = ref('')  // 代理地址 (从后端获取)
     
+    // 悠悠有品短信登录相关状态
+    const yyypSmsLoginLoading = ref(false)  // 短信登录loading
+    const yyypSmsLoginStatus = ref('')  // 短信登录状态: success, failed
+    const sendingSmsCode = ref(false)  // 发送验证码loading
+    const smsCodeCountdown = ref(0)  // 验证码倒计时
+    const smsCodeTimer = ref(null)  // 验证码倒计时定时器
+    const generatingSessionId = ref(false)  // 生成SessionID loading
+    const editYyypSmsLoginLoading = ref(false)  // 编辑对话框短信登录loading
+    const editSendingSmsCode = ref(false)  // 编辑对话框发送验证码loading
+    const editSmsCodeCountdown = ref(0)  // 编辑对话框验证码倒计时
+    const editSmsCodeTimer = ref(null)  // 编辑对话框验证码倒计时定时器
+    const editGeneratingSessionId = ref(false)  // 编辑对话框生成SessionID loading
+    
     // 编辑对话框折叠面板状态
     const editYyypBasicCollapse = ref([])
     const editYyypTokenCollapse = ref([])
@@ -1979,6 +2145,7 @@ export default {
     const inputCsqaqCollapse = ref(['config'])
     const inputSteamdtCollapse = ref(['config'])
     const inputSteamCollapse = ref([])
+    const inputYyypConfigCollapse = ref([])  // 悠悠有品配置折叠面板
     const editSteamCollapse = ref([])
     const editSteamLoginCollapse = ref([])
     const editPerfectWorldCollapse = ref([])
@@ -1993,6 +2160,9 @@ export default {
       apiKey: '',
       enabled: true,
       // 悠悠有品特有字段
+      yyypLoginMethod: 'capture', // 登录方式：sms/capture
+      yyypPhone: '', // 短信登录手机号
+      yyypSmsCode: '', // 短信验证码
       phone: '',
       sessionid: '',
       token: '',
@@ -2057,6 +2227,9 @@ export default {
       apiKey: '',
       enabled: false,
       // 悠悠有品特有字段
+      yyypLoginMethod: 'sms', // 登录方式：sms/capture，默认短信登录
+      yyypPhone: '', // 短信登录手机号
+      yyypSmsCode: '', // 短信验证码
       phone: '',
       sessionid: '',
       token: '',
@@ -5236,6 +5409,210 @@ export default {
       }
     }
 
+    // ==================== 悠悠有品短信登录相关方法 ====================
+    
+    // 发送短信验证码（添加对话框）
+    const handleSendSmsCode = async () => {
+      if (!inputForm.value.yyypPhone) {
+        ElMessage.error('请输入手机号')
+        return
+      }
+      
+      // 验证手机号格式
+      const phoneRegex = /^1[3-9]\d{9}$/
+      if (!phoneRegex.test(inputForm.value.yyypPhone)) {
+        ElMessage.error('请输入正确的手机号')
+        return
+      }
+      
+      sendingSmsCode.value = true
+      try {
+        // TODO: 调用后端API发送短信验证码
+        // const response = await axios.post(apiUrls.sendYyypSmsCode, {
+        //   phone: inputForm.value.yyypPhone
+        // })
+        
+        // 模拟发送成功
+        ElMessage.success('验证码已发送，请查收短信')
+        
+        // 开始倒计时
+        smsCodeCountdown.value = 60
+        smsCodeTimer.value = setInterval(() => {
+          smsCodeCountdown.value--
+          if (smsCodeCountdown.value <= 0) {
+            clearInterval(smsCodeTimer.value)
+            smsCodeTimer.value = null
+          }
+        }, 1000)
+      } catch (error) {
+        console.error('发送验证码失败:', error)
+        ElMessage.error('发送验证码失败: ' + (error.response?.data?.message || error.message))
+      } finally {
+        sendingSmsCode.value = false
+      }
+    }
+    
+    // 短信登录（添加对话框）
+    const handleYyypSmsLogin = async () => {
+      if (!inputForm.value.yyypPhone) {
+        ElMessage.error('请输入手机号')
+        return
+      }
+      
+      if (!inputForm.value.yyypSmsCode) {
+        ElMessage.error('请输入验证码')
+        return
+      }
+      
+      yyypSmsLoginLoading.value = true
+      try {
+        // TODO: 调用后端API进行短信登录
+        // const response = await axios.post(apiUrls.yyypSmsLogin, {
+        //   phone: inputForm.value.yyypPhone,
+        //   code: inputForm.value.yyypSmsCode
+        // })
+        
+        // 模拟登录成功，自动填充配置信息
+        ElMessage.success('登录成功！配置信息已自动填充')
+        yyypSmsLoginStatus.value = 'success'
+        
+        // TODO: 从后端响应中获取配置信息并填充到表单
+        // inputForm.value.phone = response.data.phone
+        // inputForm.value.sessionid = response.data.sessionid
+        // inputForm.value.token = response.data.token
+        // ... 其他字段
+        
+        // 自动展开配置折叠面板
+        inputYyypConfigCollapse.value = ['config']
+      } catch (error) {
+        console.error('短信登录失败:', error)
+        ElMessage.error('登录失败: ' + (error.response?.data?.message || error.message))
+        yyypSmsLoginStatus.value = 'failed'
+      } finally {
+        yyypSmsLoginLoading.value = false
+      }
+    }
+    
+    // 发送短信验证码（编辑对话框）
+    const handleEditSendSmsCode = async () => {
+      if (!editForm.value.yyypPhone) {
+        ElMessage.error('请输入手机号')
+        return
+      }
+      
+      // 验证手机号格式
+      const phoneRegex = /^1[3-9]\d{9}$/
+      if (!phoneRegex.test(editForm.value.yyypPhone)) {
+        ElMessage.error('请输入正确的手机号')
+        return
+      }
+      
+      editSendingSmsCode.value = true
+      try {
+        // TODO: 调用后端API发送短信验证码
+        // const response = await axios.post(apiUrls.sendYyypSmsCode, {
+        //   phone: editForm.value.yyypPhone
+        // })
+        
+        // 模拟发送成功
+        ElMessage.success('验证码已发送，请查收短信')
+        
+        // 开始倒计时
+        editSmsCodeCountdown.value = 60
+        editSmsCodeTimer.value = setInterval(() => {
+          editSmsCodeCountdown.value--
+          if (editSmsCodeCountdown.value <= 0) {
+            clearInterval(editSmsCodeTimer.value)
+            editSmsCodeTimer.value = null
+          }
+        }, 1000)
+      } catch (error) {
+        console.error('发送验证码失败:', error)
+        ElMessage.error('发送验证码失败: ' + (error.response?.data?.message || error.message))
+      } finally {
+        editSendingSmsCode.value = false
+      }
+    }
+    
+    // 短信登录（编辑对话框）
+    const handleEditYyypSmsLogin = async () => {
+      if (!editForm.value.yyypPhone) {
+        ElMessage.error('请输入手机号')
+        return
+      }
+      
+      if (!editForm.value.yyypSmsCode) {
+        ElMessage.error('请输入验证码')
+        return
+      }
+      
+      editYyypSmsLoginLoading.value = true
+      try {
+        // TODO: 调用后端API进行短信登录
+        // const response = await axios.post(apiUrls.yyypSmsLogin, {
+        //   phone: editForm.value.yyypPhone,
+        //   code: editForm.value.yyypSmsCode
+        // })
+        
+        // 模拟登录成功，自动填充配置信息
+        ElMessage.success('登录成功！配置信息已自动填充')
+        
+        // TODO: 从后端响应中获取配置信息并填充到表单
+        // editForm.value.phone = response.data.phone
+        // editForm.value.sessionid = response.data.sessionid
+        // editForm.value.token = response.data.token
+        // ... 其他字段
+        
+        // 自动展开配置折叠面板
+        editYyypBasicCollapse.value = ['basic']
+      } catch (error) {
+        console.error('短信登录失败:', error)
+        ElMessage.error('登录失败: ' + (error.response?.data?.message || error.message))
+      } finally {
+        editYyypSmsLoginLoading.value = false
+      }
+    }
+    
+    // 生成SessionID（添加对话框）
+    const handleGenerateSessionId = async () => {
+      generatingSessionId.value = true
+      try {
+        // TODO: 调用后端API生成SessionID
+        // const response = await axios.post(apiUrls.generateYyypSessionId)
+        // inputForm.value.yyypSessionId = response.data.sessionId
+        
+        // 模拟生成SessionID
+        const randomSessionId = 'SESSION_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+        inputForm.value.yyypSessionId = randomSessionId
+        ElMessage.success('SessionID生成成功')
+      } catch (error) {
+        console.error('生成SessionID失败:', error)
+        ElMessage.error('生成SessionID失败: ' + (error.response?.data?.message || error.message))
+      } finally {
+        generatingSessionId.value = false
+      }
+    }
+    
+    // 生成SessionID（编辑对话框）
+    const handleEditGenerateSessionId = async () => {
+      editGeneratingSessionId.value = true
+      try {
+        // TODO: 调用后端API生成SessionID
+        // const response = await axios.post(apiUrls.generateYyypSessionId)
+        // editForm.value.yyypSessionId = response.data.sessionId
+        
+        // 模拟生成SessionID
+        const randomSessionId = 'SESSION_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+        editForm.value.yyypSessionId = randomSessionId
+        ElMessage.success('SessionID生成成功')
+      } catch (error) {
+        console.error('生成SessionID失败:', error)
+        ElMessage.error('生成SessionID失败: ' + (error.response?.data?.message || error.message))
+      } finally {
+        editGeneratingSessionId.value = false
+      }
+    }
+
     onMounted(() => {
       loadDataSources()
       startAutoRefresh() // 启动自动刷新
@@ -5300,6 +5677,22 @@ export default {
       startPerfectWorldTokenCollection,
       startCsfloatTokenCollection,
       proxyAddress,
+      // 悠悠有品短信登录相关
+      yyypSmsLoginLoading,
+      yyypSmsLoginStatus,
+      sendingSmsCode,
+      smsCodeCountdown,
+      handleSendSmsCode,
+      handleYyypSmsLogin,
+      generatingSessionId,
+      handleGenerateSessionId,
+      editYyypSmsLoginLoading,
+      editSendingSmsCode,
+      editSmsCodeCountdown,
+      handleEditSendSmsCode,
+      handleEditYyypSmsLogin,
+      editGeneratingSessionId,
+      handleEditGenerateSessionId,
       // 编辑对话框折叠面板
       editYyypBasicCollapse,
       editYyypTokenCollapse,
@@ -5317,6 +5710,7 @@ export default {
       inputCsqaqCollapse,
       inputSteamdtCollapse,
       inputSteamCollapse,
+      inputYyypConfigCollapse,
       editSteamCollapse,
       editSteamLoginCollapse,
       editPerfectWorldCollapse,
