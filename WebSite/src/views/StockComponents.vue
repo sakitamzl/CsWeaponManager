@@ -90,7 +90,7 @@
               更新异常组件数据 {{ abnormalComponentsCount > 0 ? `(${abnormalComponentsCount})` : '' }}
             </el-button>
             <el-button type="primary" plain @click="handleFillAllPlatformPrices" :loading="platformPriceLoading" :disabled="!selectedSteamId">
-              强制更新平台价格
+              更新平台价格
             </el-button>
             <el-button 
               :type="showPriceDiff ? 'info' : 'primary'" 
@@ -2010,7 +2010,7 @@ export default {
 
       platformPriceLoading.value = true
       try {
-        ElMessage.info('正在强制更新平台价格（悠悠有品 + BUFF），请稍候...')
+        ElMessage.info('正在更新平台价格（悠悠有品 + BUFF），请稍候...')
 
         // 依次调用悠悠有品和BUFF价格接口，强制重新获取最新价格
         const yyypResponse = await axios.post(
