@@ -2,22 +2,15 @@
   <div>
     <!-- 统计数据卡片 -->
     <div class="stats-container">
-      <div class="grid grid-7">
+      <div class="grid grid-5">
         <div class="card">
-          <h3>总购买金额</h3>
-          <p class="stat-number">¥{{ buyStats.totalAmount }}</p>
+          <h3>总库存数量</h3>
+          <p class="stat-number">{{ totalInventoryCount }}</p>
+          <p class="stat-subtitle">库存: {{ inventoryStats.totalCount }} | 组件: {{ componentStats.totalCount }}</p>
         </div>
         <div class="card">
           <h3>总出售金额</h3>
           <p class="stat-number">¥{{ sellStats.totalAmount }}</p>
-        </div>
-        <div class="card">
-          <h3>总库存数量</h3>
-          <p class="stat-number">{{ inventoryStats.totalCount }}</p>
-        </div>
-        <div class="card">
-          <h3>购入总价值</h3>
-          <p class="stat-number">¥{{ inventoryStats.total_price }}</p>
         </div>
         <div class="card">
           <h3>悠悠有品最低价</h3>

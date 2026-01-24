@@ -90,7 +90,7 @@
               更新异常组件数据 {{ abnormalComponentsCount > 0 ? `(${abnormalComponentsCount})` : '' }}
             </el-button>
             <el-button type="primary" plain @click="handleFillAllPlatformPrices" :loading="platformPriceLoading" :disabled="!selectedSteamId">
-              获取/更新平台价格
+              强制更新平台价格
             </el-button>
             <el-button 
               :type="showPriceDiff ? 'info' : 'primary'" 
@@ -1993,7 +1993,7 @@ export default {
 
       platformPriceLoading.value = true
       try {
-        ElMessage.info('正在获取/更新平台价格（悠悠有品 + BUFF），请稍候...')
+        ElMessage.info('正在强制更新平台价格（悠悠有品 + BUFF），请稍候...')
 
         // 依次调用悠悠有品和BUFF价格接口，强制重新获取最新价格
         const yyypResponse = await axios.post(
@@ -2011,24 +2011,27 @@ export default {
         const buffSuccess = buffResponse.data.success
 
         if (yyypSuccess && buffSuccess) {
+          const yyypData = yyypResponse.data.data
+          const buffData = buffResponse.data.data
           ElMessage.success({
-            message: '平台价格获取/更新完成（悠悠有品 + BUFF）',
+            message: `平台价格强制更新完成！\n悠悠有品：更新 ${yyypData.updated} 条\nBUFF：更新 ${buffData.updated} 条`,
             duration: 5000,
             showClose: true
           })
         } else if (yyypSuccess) {
-          ElMessage.warning('悠悠有品价格获取/更新成功，BUFF价格同步失败')
+          ElMessage.warning('悠悠有品价格更新成功，BUFF价格同步失败')
         } else if (buffSuccess) {
-          ElMessage.warning('BUFF价格获取/更新成功，悠悠有品价格同步失败')
+          ElMessage.warning('BUFF价格更新成功，悠悠有品价格同步失败')
         } else {
-          ElMessage.error('平台价格获取/更新失败')
+          ElMessage.error('平台价格更新失败')
         }
 
-        // 重新加载数据
+        // 重新加载数据和统计信息
+        await loadStats()
         await (groupMode.value ? loadGroupedData() : loadComponentData())
       } catch (error) {
-        console.error('平台价格获取/更新失败:', error)
-        ElMessage.error('平台价格获取/更新失败: ' + (error.response?.data?.message || error.message))
+        console.error('平台价格更新失败:', error)
+        ElMessage.error('平台价格更新失败: ' + (error.response?.data?.message || error.message))
       } finally {
         platformPriceLoading.value = false
       }

@@ -1190,6 +1190,9 @@ def fill_reference_price(steam_id, source):
     Args:
         steam_id: Steam 用户 ID
         source: 价格来源，支持 'yyyp'（悠悠有品）或 'buff'
+    
+    Request Body (JSON):
+        force_update: bool, 是否强制更新所有价格（默认 False，仅更新空值或不同的价格）
     """
     source = (source or '').lower()
     if source not in ('yyyp', 'buff'):
@@ -1199,6 +1202,10 @@ def fill_reference_price(steam_id, source):
         }), 400
 
     try:
+        # 获取请求参数
+        request_data = request.get_json() or {}
+        force_update = request_data.get('force_update', False)
+        
         db = DatabaseManager()
 
         component_column = 'yyyp_price' if source == 'yyyp' else 'buff_price'
@@ -1274,7 +1281,9 @@ def fill_reference_price(steam_id, source):
                 continue
 
             current_price_str = '' if current_price is None else str(current_price)
-            if current_price_str == target_price:
+            
+            # 如果不是强制更新模式，且当前价格与目标价格相同，则跳过
+            if not force_update and current_price_str == target_price:
                 unchanged += 1
                 continue
 
@@ -1282,7 +1291,8 @@ def fill_reference_price(steam_id, source):
             updated += 1
 
         total = len(components)
-        message = f"{'悠悠有品' if source == 'yyyp' else 'BUFF'}价格同步完成：总计 {total}，匹配 {matched}，更新 {updated}，保持不变 {unchanged}，缺少价格 {missing_price}"
+        update_mode = "强制更新" if force_update else "增量更新"
+        message = f"{'悠悠有品' if source == 'yyyp' else 'BUFF'}价格同步完成（{update_mode}）：总计 {total}，匹配 {matched}，更新 {updated}，保持不变 {unchanged}，缺少价格 {missing_price}"
 
         return jsonify({
             'success': True,
@@ -1292,7 +1302,8 @@ def fill_reference_price(steam_id, source):
                 'matched': matched,
                 'updated': updated,
                 'unchanged': unchanged,
-                'missing_price': missing_price
+                'missing_price': missing_price,
+                'force_update': force_update
             }
         })
 
