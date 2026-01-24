@@ -1810,6 +1810,14 @@ export default {
               }
             }
           )
+          
+          // 购买成功后自动刷新列表
+          if (yyypCurrentWeapon.value) {
+            console.log('购买成功，自动刷新悠悠有品列表...')
+            setTimeout(async () => {
+              await handleRefreshYYYP()
+            }, 1000) // 延迟1秒刷新，确保后端数据已更新
+          }
         } else {
           ElMessageBox.alert(
             `购买失败：${response.data.message || '未知错误'}\n\n请检查配置或稍后重试。`,
@@ -2680,11 +2688,28 @@ export default {
           '批量购买结果',
           {
             confirmButtonText: '知道了',
-            type: successCount > 0 ? 'success' : 'warning'
+            type: successCount > 0 ? 'success' : 'warning',
+            callback: () => {
+              if (successCount > 0) {
+                ElMessage.success(`成功购买 ${successCount} 件商品`)
+              }
+            }
           }
         )
         
         clearCommoditySelection()
+        
+        // 如果有成功购买的商品，自动刷新列表
+        if (successCount > 0) {
+          console.log('批量购买成功，自动刷新列表...')
+          setTimeout(async () => {
+            if (selectedCommodityType.value === 'yyyp' && yyypCurrentWeapon.value) {
+              await handleRefreshYYYP()
+            } else if (selectedCommodityType.value === 'buff' && buffCurrentWeapon.value) {
+              await handleRefreshBuff()
+            }
+          }, 1000) // 延迟1秒刷新，确保后端数据已更新
+        }
         
       } catch (e) {
         if (e !== 'cancel') {
