@@ -156,9 +156,13 @@
         
         <!-- 统计数据 -->
         <div class="inventory-stats">
-          <div class="grid grid-5">
-            <div class="card">
-              <h3>总组件数量</h3>
+          <div class="grid grid-stats-custom">
+            <div class="card card-square">
+              <h3>组件数量</h3>
+              <p class="stat-number">{{ totalStats.componentCount }}</p>
+            </div>
+            <div class="card card-square">
+              <h3>组件内饰品</h3>
               <p class="stat-number">{{ totalStats.totalCount }}</p>
             </div>
             <div class="card">
@@ -844,6 +848,7 @@ export default {
     })
 
     const totalStats = ref({
+      componentCount: 0,
       totalCount: 0,
       totalCost: '0.00',
       totalYYYPPrice: '0.00',
@@ -1376,21 +1381,33 @@ export default {
           params.assetid = selectedComponent.value
         }
 
-        const response = await axios.get(`${API_COMPONENTS}/components/stats/${selectedSteamId.value}`, {
-          params: params
-        })
-        console.log('统计数据响应:', response.data)
+        // 并行请求：统计数据 + 组件数量
+        const [statsResponse, countResponse] = await Promise.all([
+          axios.get(`${API_COMPONENTS}/components/stats/${selectedSteamId.value}`, {
+            params: params
+          }),
+          axios.get(`${API_COMPONENTS}/components/count/${selectedSteamId.value}`)
+        ])
         
-        if (response.data.success) {
-          const stats = response.data.data
+        console.log('统计数据响应:', statsResponse.data)
+        console.log('组件数量响应:', countResponse.data)
+        
+        if (statsResponse.data.success) {
+          const stats = statsResponse.data.data
           
           const totalCost = parseFloat(stats.totalCost || 0)
           const totalYYYPPrice = parseFloat(stats.totalYYYPPrice || 0)
           const totalBuffPrice = parseFloat(stats.totalBuffPrice || 0)
           const totalSteamPrice = parseFloat(stats.totalSteamPrice || 0)
           
+          // 获取真正的组件数量（去重后的assetid数量）
+          const componentCount = countResponse.data.success 
+            ? (countResponse.data.data.component_count || 0)
+            : 0
+          
           totalStats.value = {
-            totalCount: stats.totalCount || 0,
+            componentCount: componentCount,  // 使用去重后的组件数量
+            totalCount: stats.totalCount || 0,  // 组件内饰品总数
             totalCost: totalCost.toFixed(2),
             totalYYYPPrice: totalYYYPPrice.toFixed(2),
             totalBuffPrice: totalBuffPrice.toFixed(2),
@@ -2706,14 +2723,39 @@ export default {
   grid-template-columns: repeat(5, 1fr);
 }
 
+.grid-6 {
+  grid-template-columns: repeat(6, 1fr);
+}
+
+/* 自定义统计卡片布局 - 前两个卡片窄一些 */
+.grid-stats-custom {
+  grid-template-columns: 0.8fr 0.8fr 1fr 1fr 1fr 1fr;
+}
+
 @media (max-width: 1400px) {
   .grid-5 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .grid-6 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .grid-stats-custom {
     grid-template-columns: repeat(3, 1fr);
   }
 }
 
 @media (max-width: 768px) {
   .grid-5 {
+    grid-template-columns: 1fr;
+  }
+  
+  .grid-6 {
+    grid-template-columns: 1fr;
+  }
+  
+  .grid-stats-custom {
     grid-template-columns: 1fr;
   }
   

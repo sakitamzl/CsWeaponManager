@@ -46,6 +46,57 @@ def get_steam_ids():
         }), 500
 
 
+@webStockComponentsV1.route('/components/count/<steam_id>', methods=['GET'])
+def get_components_count(steam_id):
+    """
+    获取指定用户的库存组件数量（按assetid去重）
+    
+    Args:
+        steam_id: Steam 用户 ID
+    
+    返回:
+    {
+        "success": True,
+        "data": {
+            "component_count": 去重后的组件数量（不同的assetid数量）
+        }
+    }
+    """
+    try:
+        db = DatabaseManager()
+        
+        # 查询该用户的不同assetid数量（去重）
+        sql = """
+        SELECT COUNT(DISTINCT assetid) as component_count
+        FROM steam_stockComponents
+        WHERE data_user = ?
+          AND assetid IS NOT NULL
+          AND assetid != ''
+        """
+        
+        result = db.execute_query(sql, (steam_id,))
+        
+        component_count = 0
+        if result and result[0][0] is not None:
+            component_count = result[0][0]
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'component_count': component_count
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"查询组件数量失败: {e}")
+        import traceback
+        print(f"详细错误信息: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'error': f'查询失败: {str(e)}'
+        }), 500
+
+
 @webStockComponentsV1.route('/weapon_types/<steam_id>', methods=['GET'])
 def get_weapon_types(steam_id):
     """获取指定用户的所有武器类型（按优先级排序）"""

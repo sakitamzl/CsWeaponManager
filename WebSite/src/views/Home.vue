@@ -6,36 +6,36 @@
         <div class="card">
           <h3>总库存数量</h3>
           <p class="stat-number">{{ totalInventoryCount }}</p>
-          <p class="stat-subtitle">库存: {{ inventoryStats.totalCount }} | 组件: {{ componentStats.totalCount }}</p>
+          <p class="stat-subtitle">库存: {{ inventoryStats?.totalCount || 0 }} | 组件: {{ componentStats?.totalCount || 0 }}</p>
         </div>
         <div class="card">
           <h3>总出售金额</h3>
-          <p class="stat-number">¥{{ sellStats.totalAmount }}</p>
+          <p class="stat-number">¥{{ sellStats?.totalAmount || '0.00' }}</p>
         </div>
         <div class="card">
           <h3>悠悠有品最低价</h3>
           <div class="stat-price-container">
-            <p class="stat-number">¥{{ inventoryStats.yyyp_price }}</p>
-            <p class="stat-diff" :style="{ color: inventoryStats.yyyp_diff >= 0 ? '#f56c6c' : '#4CAF50' }">
-              {{ inventoryStats.yyyp_diff >= 0 ? '+' : '' }}¥{{ inventoryStats.yyyp_diff }}
+            <p class="stat-number">¥{{ inventoryStats?.yyyp_price || '0.00' }}</p>
+            <p class="stat-diff" :style="{ color: (inventoryStats?.yyyp_diff || 0) >= 0 ? '#f56c6c' : '#4CAF50' }">
+              {{ (inventoryStats?.yyyp_diff || 0) >= 0 ? '+' : '' }}¥{{ inventoryStats?.yyyp_diff || '0.00' }}
             </p>
           </div>
         </div>
         <div class="card">
           <h3>BUFF最低价</h3>
           <div class="stat-price-container">
-            <p class="stat-number">¥{{ inventoryStats.buff_price }}</p>
-            <p class="stat-diff" :style="{ color: inventoryStats.buff_diff >= 0 ? '#f56c6c' : '#4CAF50' }">
-              {{ inventoryStats.buff_diff >= 0 ? '+' : '' }}¥{{ inventoryStats.buff_diff }}
+            <p class="stat-number">¥{{ inventoryStats?.buff_price || '0.00' }}</p>
+            <p class="stat-diff" :style="{ color: (inventoryStats?.buff_diff || 0) >= 0 ? '#f56c6c' : '#4CAF50' }">
+              {{ (inventoryStats?.buff_diff || 0) >= 0 ? '+' : '' }}¥{{ inventoryStats?.buff_diff || '0.00' }}
             </p>
           </div>
         </div>
         <div class="card">
           <h3>Steam参考价</h3>
           <div class="stat-price-container">
-            <p class="stat-number">¥{{ inventoryStats.steam_price }}</p>
-            <p class="stat-diff" :style="{ color: inventoryStats.steam_diff >= 0 ? '#f56c6c' : '#4CAF50' }">
-              {{ inventoryStats.steam_diff >= 0 ? '+' : '' }}¥{{ inventoryStats.steam_diff }}
+            <p class="stat-number">¥{{ inventoryStats?.steam_price || '0.00' }}</p>
+            <p class="stat-diff" :style="{ color: (inventoryStats?.steam_diff || 0) >= 0 ? '#f56c6c' : '#4CAF50' }">
+              {{ (inventoryStats?.steam_diff || 0) >= 0 ? '+' : '' }}¥{{ inventoryStats?.steam_diff || '0.00' }}
             </p>
           </div>
         </div>
@@ -416,10 +416,12 @@ export default {
   name: 'Home',
   setup() {
     const buyStats = ref({
-      totalAmount: '0.00'
+      totalAmount: '0.00',
+      totalCount: 0
     })
     const sellStats = ref({
-      totalAmount: '0.00'
+      totalAmount: '0.00',
+      totalCount: 0
     })
     const inventoryStats = ref({
       totalCount: 0,
@@ -430,6 +432,14 @@ export default {
       buff_diff: '0.00',
       steam_price: '0.00',
       steam_diff: '0.00'
+    })
+    const componentStats = ref({
+      totalCount: 0
+    })
+    
+    // 计算总库存数量（库存 + 组件）
+    const totalInventoryCount = computed(() => {
+      return (inventoryStats.value?.totalCount || 0) + (componentStats.value?.totalCount || 0)
     })
     const steamIdList = ref([])
     const selectedSteamId = ref('')
@@ -503,11 +513,17 @@ export default {
         const response = await axios.get(`${API_CONFIG.BASE_URL}/webBuyV1/getBuyStats`)
         if (response.data) {
           buyStats.value = {
-            totalAmount: response.data.total_amount?.toFixed(2) || '0.00'
+            totalAmount: response.data.total_amount?.toFixed(2) || '0.00',
+            totalCount: response.data.total_count || 0
           }
         }
       } catch (error) {
         console.error('加载购买统计失败:', error)
+        // 保持默认值
+        buyStats.value = {
+          totalAmount: '0.00',
+          totalCount: 0
+        }
       }
     }
 
@@ -517,11 +533,17 @@ export default {
         const response = await axios.get(`${API_CONFIG.BASE_URL}/webSellV1/getSellStats`)
         if (response.data) {
           sellStats.value = {
-            totalAmount: response.data.total_amount?.toFixed(2) || '0.00'
+            totalAmount: response.data.total_amount?.toFixed(2) || '0.00',
+            totalCount: response.data.total_count || 0
           }
         }
       } catch (error) {
         console.error('加载出售统计失败:', error)
+        // 保持默认值
+        sellStats.value = {
+          totalAmount: '0.00',
+          totalCount: 0
+        }
       }
     }
 
@@ -641,6 +663,23 @@ export default {
         }
       } catch (error) {
         console.error('加载库存统计失败:', error)
+        // 保持默认值
+        if (!steamId || steamId === 'all') {
+          inventoryStats.value = {
+            totalCount: 0,
+            total_price: '0.00',
+            yyyp_price: '0.00',
+            yyyp_diff: '0.00',
+            buff_price: '0.00',
+            buff_diff: '0.00',
+            steam_price: '0.00',
+            steam_diff: '0.00'
+          }
+        }
+        inventoryChartStats.value = {
+          totalCount: 0,
+          totalValue: '0.00'
+        }
       }
     }
 
@@ -697,8 +736,25 @@ export default {
           totalCount: totalCount,
           totalValue: totalValue.toFixed(2)
         }
+        
+        // 更新顶部统计卡片的组件数量（仅在加载全部数据时）
+        if (!steamId || steamId === 'all') {
+          componentStats.value = {
+            totalCount: totalCount
+          }
+        }
       } catch (error) {
         console.error('加载库存组件统计失败:', error)
+        // 保持默认值
+        if (!steamId || steamId === 'all') {
+          componentStats.value = {
+            totalCount: 0
+          }
+        }
+        componentChartStats.value = {
+          totalCount: 0,
+          totalValue: '0.00'
+        }
       }
     }
 
@@ -2518,6 +2574,12 @@ export default {
   margin-top: clamp(1.5rem, 3vw, 2rem);
 }
 
+.grid-5 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: clamp(1rem, 2vw, 1.25rem);
+}
+
 .grid-7 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -2529,6 +2591,13 @@ export default {
   font-weight: bold;
   color: #4CAF50;
   margin-top: clamp(0.5rem, 1vw, 0.625rem);
+}
+
+.stat-subtitle {
+  font-size: clamp(0.75rem, 1.5vw, 0.875rem);
+  color: #888;
+  margin-top: 0.5rem;
+  text-align: center;
 }
 
 .stat-price-container {
@@ -2546,12 +2615,20 @@ export default {
 }
 
 @media (max-width: 1200px) {
+  .grid-5 {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+  
   .grid-7 {
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   }
 }
 
 @media (max-width: 768px) {
+  .grid-5 {
+    grid-template-columns: 1fr;
+  }
+  
   .grid-7 {
     grid-template-columns: 1fr;
   }
