@@ -2727,9 +2727,9 @@ export default {
   grid-template-columns: repeat(6, 1fr);
 }
 
-/* 自定义统计卡片布局 - 前两个卡片窄一些 */
+/* 统计卡片布局 - 前三个卡片窄一些 */
 .grid-stats-custom {
-  grid-template-columns: 0.8fr 0.8fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: 0.5fr 0.5fr 0.5fr 1fr 1fr 1fr;
 }
 
 @media (max-width: 1400px) {

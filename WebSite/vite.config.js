@@ -15,6 +15,7 @@ export default defineConfig({
   server: {
     host: '0.0.0.0', // 允许外部访问
     port: 9003,
+    allowedHosts: 'all', // 允许所有域名访问
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:9001',
