@@ -1,5 +1,5 @@
 <template>
-  <div class="buy-page-container">
+  <div>
     <!-- 搜索与统计数据 -->
     <div class="stats-summary">
       <div class="card">
@@ -1740,11 +1740,6 @@ export default {
 </script>
 
 <style scoped>
-/* 页面容器样式 */
-.buy-page-container {
-  padding: 1.5rem;
-}
-
 /* 武器图片单元格样式 */
 .weapon-image-cell {
   width: 100%;
