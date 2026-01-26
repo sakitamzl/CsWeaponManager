@@ -123,12 +123,14 @@ def get_buff_accounts():
         }), 500
 
 
-@webOnSaleV1.route('/getOnSaleItems', methods=['GET'])
+@webOnSaleV1.route('/getOnSaleItems', methods=['POST'])
 def get_on_sale_items():
     """获取在售商品列表"""
     try:
-        platform = request.args.get('platform', '')
-        account_id = request.args.get('account_id', '')
+        data = request.get_json() or {}
+        platform = data.get('platform', '')
+        account_id = data.get('account_id', '')
+        trade_type = data.get('trade_type', 'sale')  # 交易类型：sale, lease, sublease, presale, transfer
         
         if not platform or not account_id:
             return jsonify({
@@ -161,9 +163,25 @@ def get_on_sale_items():
         
         steam_id = config_result[0][0]
         
-        # 调用Spider服务获取出售列表
+        # 根据交易类型选择不同的Spider API
+        spider_endpoint_map = {
+            'sale': '/youping898SpiderV1/getSellList',
+            'lease': '/youping898SpiderV1/getLeaseList',
+            'sublease': '/youping898SpiderV1/getSubleaseList',
+            'presale': '/youping898SpiderV1/getPresaleList',
+            'transfer': '/youping898SpiderV1/getTransferList'
+        }
+        
+        spider_endpoint = spider_endpoint_map.get(trade_type)
+        if not spider_endpoint:
+            return jsonify({
+                'success': False,
+                'message': f'不支持的交易类型: {trade_type}'
+            }), 400
+        
+        # 调用Spider服务获取列表
         try:
-            spider_url = f"{SPIDER_API_ADDRESS}/youping898SpiderV1/getSellList"
+            spider_url = f"{SPIDER_API_ADDRESS}{spider_endpoint}"
             spider_response = requests.post(
                 spider_url,
                 json={
@@ -185,7 +203,7 @@ def get_on_sale_items():
             if not spider_data.get('success'):
                 return jsonify({
                     'success': False,
-                    'message': spider_data.get('message', '获取出售列表失败')
+                    'message': spider_data.get('message', '获取列表失败')
                 }), 500
             
             # 转换数据格式
@@ -233,6 +251,7 @@ def get_on_sale_items():
                     'buy_price': buy_price,  # 从 steam_inventory 表查询
                     'platform': 'yyyp',
                     'account_id': int(account_id),
+                    'trade_type': trade_type,  # 添加交易类型字段
                     'sticker': json.dumps(commodity.get('stickers', [])),
                     'pendant': json.dumps(commodity.get('pendants', [])) if commodity.get('havePendant') else None,
                     'rename': None,

@@ -2044,7 +2044,7 @@ export default {
         }
 
         // 重新加载数据和统计信息
-        await loadStats()
+        await loadComponentStats()
         await (groupMode.value ? loadGroupedData() : loadComponentData())
       } catch (error) {
         console.error('平台价格更新失败:', error)
