@@ -222,8 +222,56 @@
               </div>
             </div>
             <div class="card-prices">
+              <!-- 预售类型：显示售价、市场价和保证金 -->
+              <template v-if="item.trade_type === 'presale'">
+                <div class="price-row">
+                  <div class="price-group">
+                    <span class="price-label">售价:</span>
+                    <span class="price-value sale-price">¥{{ parseFloat(item.sale_price).toFixed(2) }}</span>
+                  </div>
+                  <div class="price-group" v-if="item.reference_price">
+                    <span class="price-label">市场:</span>
+                    <span class="price-value">{{ item.reference_price }}</span>
+                  </div>
+                </div>
+                <div class="price-row">
+                  <div class="price-group" v-if="item.guard_price_desc">
+                    <span class="price-label">保证金:</span>
+                    <span class="price-value" style="color: #FFA500;">{{ item.guard_price_desc }}</span>
+                  </div>
+                  <div class="price-group" v-if="item.cache_expiration_desc">
+                    <span class="price-label">冷却:</span>
+                    <span class="price-value" style="color: #67C23A;">{{ item.cache_expiration_desc }}</span>
+                  </div>
+                </div>
+              </template>
+              
+              <!-- 租赁类型：显示租金和押金 -->
+              <template v-else-if="item.trade_type === 'lease' || item.trade_type === 'sublease'">
+                <div class="price-row">
+                  <div class="price-group">
+                    <span class="price-label">短租:</span>
+                    <span class="price-value sale-price">¥{{ parseFloat(item.short_lease_amount || 0).toFixed(2) }}/天</span>
+                  </div>
+                  <div class="price-group">
+                    <span class="price-label">长租:</span>
+                    <span class="price-value">¥{{ parseFloat(item.long_lease_amount || 0).toFixed(2) }}/天</span>
+                  </div>
+                </div>
+                <div class="price-row">
+                  <div class="price-group">
+                    <span class="price-label">押金:</span>
+                    <span class="price-value" style="color: #FFA500;">¥{{ parseFloat(item.deposit_amount || 0).toFixed(2) }}</span>
+                  </div>
+                  <div class="price-group">
+                    <span class="price-label">最长:</span>
+                    <span class="price-value">{{ item.lease_max_days || 0 }}天</span>
+                  </div>
+                </div>
+              </template>
+              
               <!-- 出售类型：显示售价和购入价 -->
-              <template v-if="item.trade_type !== 'lease' && item.trade_type !== 'sublease'">
+              <template v-else>
                 <div class="price-row">
                   <div class="price-group">
                     <span class="price-label">售价:</span>
@@ -243,30 +291,6 @@
                     >
                       {{ (parseFloat(item.sale_price) - parseFloat(item.buy_price)) >= 0 ? '+' : '' }}¥{{ Math.abs(parseFloat(item.sale_price) - parseFloat(item.buy_price)).toFixed(2) }}
                     </span>
-                  </div>
-                </div>
-              </template>
-              
-              <!-- 租赁类型：显示租金和押金 -->
-              <template v-else>
-                <div class="price-row">
-                  <div class="price-group">
-                    <span class="price-label">短租:</span>
-                    <span class="price-value sale-price">¥{{ parseFloat(item.short_lease_amount || 0).toFixed(2) }}/天</span>
-                  </div>
-                  <div class="price-group">
-                    <span class="price-label">长租:</span>
-                    <span class="price-value">¥{{ parseFloat(item.long_lease_amount || 0).toFixed(2) }}/天</span>
-                  </div>
-                </div>
-                <div class="price-row">
-                  <div class="price-group">
-                    <span class="price-label">押金:</span>
-                    <span class="price-value" style="color: #FFA500;">¥{{ parseFloat(item.deposit_amount || 0).toFixed(2) }}</span>
-                  </div>
-                  <div class="price-group">
-                    <span class="price-label">最长:</span>
-                    <span class="price-value">{{ item.lease_max_days || 0 }}天</span>
                   </div>
                 </div>
               </template>
@@ -388,8 +412,8 @@
           </template>
         </el-table-column>
         
-        <!-- 出售类型的列 -->
-        <template v-if="selectedTradeType !== 'lease' && selectedTradeType !== 'sublease'">
+        <!-- 出售和过户类型的列 -->
+        <template v-if="selectedTradeType === 'sale' || selectedTradeType === 'transfer'">
           <el-table-column prop="sale_price" label="售价" width="150">
             <template #default="scope">
               <span style="color: #fff; font-weight: bold;">¥{{ parseFloat(scope.row.sale_price).toFixed(2) }}</span>
@@ -410,6 +434,33 @@
               >
                 {{ (parseFloat(scope.row.sale_price) - parseFloat(scope.row.buy_price)) >= 0 ? '+' : '' }}¥{{ Math.abs(parseFloat(scope.row.sale_price) - parseFloat(scope.row.buy_price)).toFixed(2) }}
               </span>
+              <span v-else style="color: #888;">-</span>
+            </template>
+          </el-table-column>
+        </template>
+        
+        <!-- 预售类型的列 -->
+        <template v-else-if="selectedTradeType === 'presale'">
+          <el-table-column label="售价" width="150">
+            <template #default="scope">
+              <span style="color: #67C23A; font-weight: bold;">¥{{ parseFloat(scope.row.sale_price).toFixed(2) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="市场价" width="150">
+            <template #default="scope">
+              <span v-if="scope.row.reference_price" style="color: #409EFF;">{{ scope.row.reference_price }}</span>
+              <span v-else style="color: #888;">-</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="保证金" width="120">
+            <template #default="scope">
+              <span v-if="scope.row.guard_price_desc" style="color: #FFA500; font-weight: bold;">{{ scope.row.guard_price_desc }}</span>
+              <span v-else style="color: #888;">-</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="冷却时间" width="120">
+            <template #default="scope">
+              <span v-if="scope.row.cache_expiration_desc" style="color: #E6A23C;">{{ scope.row.cache_expiration_desc }}</span>
               <span v-else style="color: #888;">-</span>
             </template>
           </el-table-column>
@@ -773,30 +824,54 @@ export default {
           if (response.data && response.data.success) {
             // 转换租赁数据格式以匹配前端期望
             const leaseData = response.data.data?.commodityInfoList || []
-            onSaleData.value = leaseData.map(item => ({
-              id: item.id,
-              item_name: item.name,
-              steam_hash_name: item.commodityHashName,  // 租赁API返回的是commodityHashName
-              sale_price: item.shortLeaseAmount || item.longLeaseAmount || 0,  // 租金（短期或长期）
-              buy_price: null,  // 租赁没有购入价
-              weapon_float: item.abrade,
-              weapon_type: item.typeName || '',
-              float_range: item.exteriorName || '',  // 磨损等级名称
-              sticker: null,  // 租赁列表中没有贴纸详细信息
-              pendant: null,  // 租赁列表中没有挂件详细信息
-              rename: null,  // 租赁列表中没有改名信息
-              on_sale_time: item.statusDesc || null,  // 在售时间描述（如"在售1天"）
-              platform: 'yyyp',
-              trade_type: 'lease',
-              account_id: selectedAccount.value,
-              // 租赁特有字段
-              lease_max_days: item.leaseMaxDays,  // 最大出租天数
-              short_lease_amount: item.shortLeaseAmount,  // 短租租金
-              long_lease_amount: item.longLeaseAmount,  // 长租租金
-              deposit_amount: item.depositAmount,  // 押金
-              lease_amount_desc: item.leaseAmountDesc,  // 租金描述
-              deposit_amount_desc: item.depositAmountDesc  // 押金描述
-            }))
+            onSaleData.value = leaseData.map(item => {
+              // 解析印花数据
+              let stickerData = null
+              if (item.haveSticker && item.stickers && item.stickers.length > 0) {
+                stickerData = JSON.stringify(item.stickers.map(sticker => ({
+                  name: sticker.name,
+                  image: sticker.imageUrl,
+                  abrade: sticker.abradeDesc,
+                  rawIndex: sticker.rawIndex
+                })))
+              }
+              
+              // 解析挂件数据
+              let pendantData = null
+              if (item.havePendant && item.pendants && item.pendants.length > 0) {
+                const pendant = item.pendants[0]  // 通常只有一个挂件
+                pendantData = JSON.stringify({
+                  name: pendant.name || '',
+                  image: pendant.imageUrl || '',
+                  pattern: pendant.pattern || ''
+                })
+              }
+              
+              return {
+                id: item.id,
+                item_name: item.name,
+                steam_hash_name: item.commodityHashName,  // 租赁API返回的是commodityHashName
+                sale_price: item.shortLeaseAmount || item.longLeaseAmount || 0,  // 租金（短期或长期）
+                buy_price: null,  // 租赁没有购入价
+                weapon_float: item.abrade,
+                weapon_type: item.typeName || '',
+                float_range: item.exteriorName || '',  // 磨损等级名称
+                sticker: stickerData,  // 印花数据
+                pendant: pendantData,  // 挂件数据
+                rename: item.haveNameTag ? '已改名' : null,  // 改名标记
+                on_sale_time: item.statusDesc || null,  // 在售时间描述（如"在售1天"）
+                platform: 'yyyp',
+                trade_type: 'lease',
+                account_id: selectedAccount.value,
+                // 租赁特有字段
+                lease_max_days: item.leaseMaxDays,  // 最大出租天数
+                short_lease_amount: item.shortLeaseAmount,  // 短租租金
+                long_lease_amount: item.longLeaseAmount,  // 长租租金
+                deposit_amount: item.depositAmount,  // 押金
+                lease_amount_desc: item.leaseAmountDesc,  // 租金描述
+                deposit_amount_desc: item.depositAmountDesc  // 押金描述
+              }
+            })
             ElMessage.success('加载成功')
           } else {
             ElMessage.error(response.data?.message || '加载失败')
@@ -812,30 +887,114 @@ export default {
           if (response.data && response.data.success) {
             // 转换转租数据格式以匹配前端期望
             const subleaseData = response.data.data?.commodityInfoList || []
-            onSaleData.value = subleaseData.map(item => ({
-              id: item.id,
-              item_name: item.name,
-              steam_hash_name: item.commodityHashName,  // 转租API返回的是commodityHashName
-              sale_price: item.shortLeaseAmount || item.longLeaseAmount || 0,  // 租金（短期或长期）
-              buy_price: null,  // 转租没有购入价
-              weapon_float: item.abrade,
-              weapon_type: item.typeName || '',
-              float_range: item.exteriorName || '',  // 磨损等级名称
-              sticker: null,  // 转租列表中没有贴纸详细信息
-              pendant: null,  // 转租列表中没有挂件详细信息
-              rename: null,  // 转租列表中没有改名信息
-              on_sale_time: item.statusDesc || null,  // 在售时间描述（如"在售1天"）
-              platform: 'yyyp',
-              trade_type: 'sublease',
-              account_id: selectedAccount.value,
-              // 转租特有字段
-              lease_max_days: item.leaseMaxDays,  // 最大出租天数
-              short_lease_amount: item.shortLeaseAmount,  // 短租租金
-              long_lease_amount: item.longLeaseAmount,  // 长租租金
-              deposit_amount: item.depositAmount,  // 押金
-              lease_amount_desc: item.leaseAmountDesc,  // 租金描述
-              deposit_amount_desc: item.depositAmountDesc  // 押金描述
-            }))
+            onSaleData.value = subleaseData.map(item => {
+              // 解析印花数据
+              let stickerData = null
+              if (item.haveSticker && item.stickers && item.stickers.length > 0) {
+                stickerData = JSON.stringify(item.stickers.map(sticker => ({
+                  name: sticker.name,
+                  image: sticker.imageUrl,
+                  abrade: sticker.abradeDesc,
+                  rawIndex: sticker.rawIndex
+                })))
+              }
+              
+              // 解析挂件数据
+              let pendantData = null
+              if (item.havePendant && item.pendants && item.pendants.length > 0) {
+                const pendant = item.pendants[0]  // 通常只有一个挂件
+                pendantData = JSON.stringify({
+                  name: pendant.name || '',
+                  image: pendant.imageUrl || '',
+                  pattern: pendant.pattern || ''
+                })
+              }
+              
+              return {
+                id: item.id,
+                item_name: item.name,
+                steam_hash_name: item.commodityHashName,  // 转租API返回的是commodityHashName
+                sale_price: item.shortLeaseAmount || item.longLeaseAmount || 0,  // 租金（短期或长期）
+                buy_price: null,  // 转租没有购入价
+                weapon_float: item.abrade,
+                weapon_type: item.typeName || '',
+                float_range: item.exteriorName || '',  // 磨损等级名称
+                sticker: stickerData,  // 印花数据
+                pendant: pendantData,  // 挂件数据
+                rename: item.haveNameTag ? '已改名' : null,  // 改名标记
+                on_sale_time: item.statusDesc || null,  // 在售时间描述（如"在售1天"）
+                platform: 'yyyp',
+                trade_type: 'sublease',
+                account_id: selectedAccount.value,
+                // 转租特有字段
+                lease_max_days: item.leaseMaxDays,  // 最大出租天数
+                short_lease_amount: item.shortLeaseAmount,  // 短租租金
+                long_lease_amount: item.longLeaseAmount,  // 长租租金
+                deposit_amount: item.depositAmount,  // 押金
+                lease_amount_desc: item.leaseAmountDesc,  // 租金描述
+                deposit_amount_desc: item.depositAmountDesc  // 押金描述
+              }
+            })
+            ElMessage.success('加载成功')
+          } else {
+            ElMessage.error(response.data?.message || '加载失败')
+          }
+        } else if (selectedTradeType.value === 'presale') {
+          // 预售类型：调用预售列表API
+          response = await axios.post(apiUrls.yyypGetPresaleList(), {
+            steamId: accountList.value.find(acc => acc.id === selectedAccount.value)?.steam_id || '',
+            page: 1,
+            pageSize: 1000
+          })
+          
+          if (response.data && response.data.success) {
+            // 转换预售数据格式以匹配前端期望
+            const presaleData = response.data.data?.commodityInfoList || []
+            onSaleData.value = presaleData.map(item => {
+              // 解析印花数据
+              let stickerData = null
+              if (item.stickers && item.stickers.length > 0) {
+                stickerData = JSON.stringify(item.stickers.map(sticker => ({
+                  name: sticker.name,
+                  image: sticker.imageUrl,
+                  abrade: sticker.abradeDesc,
+                  rawIndex: sticker.rawIndex
+                })))
+              }
+              
+              // 解析挂件数据（如果有）
+              let pendantData = null
+              if (item.pendant) {
+                pendantData = JSON.stringify({
+                  name: item.pendant.name || '',
+                  image: item.pendant.imageUrl || '',
+                  pattern: item.pendant.pattern || ''
+                })
+              }
+              
+              return {
+                id: item.id,
+                item_name: item.name,
+                steam_hash_name: item.commodityHashName,
+                sale_price: parseFloat(item.sellAmount || 0),  // 售价
+                buy_price: null,  // 预售没有购入价显示
+                weapon_float: item.abrade,
+                weapon_type: item.typeName || '',
+                float_range: item.exteriorName || '',
+                sticker: stickerData,  // 印花数据
+                pendant: pendantData,  // 挂件数据
+                rename: item.haveNameTag ? '已改名' : null,  // 改名标记
+                on_sale_time: item.cacheExpirationDesc || null,  // 剩余冷却天数
+                platform: 'yyyp',
+                trade_type: 'presale',
+                account_id: selectedAccount.value,
+                // 预售特有字段
+                reference_price: item.referencePrice,  // 市场价
+                guard_price_desc: item.guardPriceDesc,  // 保证金描述
+                cache_expiration_desc: item.cacheExpirationDesc,  // 剩余冷却天数
+                paintseed: item.paintseed  // 图案模板
+              }
+            })
             ElMessage.success('加载成功')
           } else {
             ElMessage.error(response.data?.message || '加载失败')
@@ -2340,6 +2499,10 @@ export default {
 .inventory-card.selected {
   border-color: var(--el-color-primary);
   background: rgba(64, 158, 255, 0.1);
-  box-shadow: 0 0 0 2px var(--el-color-primary);
+}
+
+.inventory-card.selected:hover {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 2px var(--el-color-primary);
 }
 </style>

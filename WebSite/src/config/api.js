@@ -391,6 +391,8 @@ export const API_CONFIG = {
 
     YYYP_GET_LEASE_LIST: '/youping898SpiderV1/getLeaseList',  // 获取租赁列表
     YYYP_GET_SUBLEASE_LIST: '/youping898SpiderV1/getSubleaseList',  // 获取转租列表
+    YYYP_GET_PRESALE_LIST: '/youping898SpiderV1/getPresaleList',  // 获取预售列表
+    YYYP_GET_SELL_LIST: '/youping898SpiderV1/getSellList',  // 获取出售列表
     YYYP_OFF_SHELF: '/youping898SpiderV1/offShelfItems',  // 下架商品
 
     
@@ -809,6 +811,7 @@ export const apiUrls = {
 
   yyypGetLeaseList: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_LEASE_LIST),
   yyypGetSubleaseList: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_SUBLEASE_LIST),
+  yyypGetPresaleList: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_PRESALE_LIST),
   yyypOffShelf: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_OFF_SHELF),
 
 }
