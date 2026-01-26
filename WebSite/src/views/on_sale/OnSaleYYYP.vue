@@ -132,7 +132,7 @@
         <div class="action-buttons">
           <el-button type="danger" @click="selectedItems = []">清空选择</el-button>
           <el-button type="success">批量改价</el-button>
-          <el-button type="primary">批量下架</el-button>
+          <el-button type="primary" @click="handleBatchRemoveFromSale">批量下架</el-button>
         </div>
       </div>
 
@@ -159,7 +159,7 @@
               <span>无图片</span>
             </div>
             <!-- 在售状态覆盖层 - 左上角 -->
-            <div v-if="item.trade_type === 'lease' && item.on_sale_time" class="status-overlay">
+            <div v-if="(item.trade_type === 'lease' || item.trade_type === 'sublease') && item.on_sale_time" class="status-overlay">
               {{ formatOnSaleTime(item.on_sale_time) }}
             </div>
             <!-- 贴纸覆盖层 - 左下角 -->
@@ -223,7 +223,7 @@
             </div>
             <div class="card-prices">
               <!-- 出售类型：显示售价和购入价 -->
-              <template v-if="item.trade_type !== 'lease'">
+              <template v-if="item.trade_type !== 'lease' && item.trade_type !== 'sublease'">
                 <div class="price-row">
                   <div class="price-group">
                     <span class="price-label">售价:</span>
@@ -389,7 +389,7 @@
         </el-table-column>
         
         <!-- 出售类型的列 -->
-        <template v-if="selectedTradeType !== 'lease'">
+        <template v-if="selectedTradeType !== 'lease' && selectedTradeType !== 'sublease'">
           <el-table-column prop="sale_price" label="售价" width="150">
             <template #default="scope">
               <span style="color: #fff; font-weight: bold;">¥{{ parseFloat(scope.row.sale_price).toFixed(2) }}</span>
@@ -801,6 +801,45 @@ export default {
           } else {
             ElMessage.error(response.data?.message || '加载失败')
           }
+        } else if (selectedTradeType.value === 'sublease') {
+          // 转租类型：调用转租列表API
+          response = await axios.post(apiUrls.yyypGetSubleaseList(), {
+            steamId: accountList.value.find(acc => acc.id === selectedAccount.value)?.steam_id || '',
+            page: 1,
+            pageSize: 1000
+          })
+          
+          if (response.data && response.data.success) {
+            // 转换转租数据格式以匹配前端期望
+            const subleaseData = response.data.data?.commodityInfoList || []
+            onSaleData.value = subleaseData.map(item => ({
+              id: item.id,
+              item_name: item.name,
+              steam_hash_name: item.commodityHashName,  // 转租API返回的是commodityHashName
+              sale_price: item.shortLeaseAmount || item.longLeaseAmount || 0,  // 租金（短期或长期）
+              buy_price: null,  // 转租没有购入价
+              weapon_float: item.abrade,
+              weapon_type: item.typeName || '',
+              float_range: item.exteriorName || '',  // 磨损等级名称
+              sticker: null,  // 转租列表中没有贴纸详细信息
+              pendant: null,  // 转租列表中没有挂件详细信息
+              rename: null,  // 转租列表中没有改名信息
+              on_sale_time: item.statusDesc || null,  // 在售时间描述（如"在售1天"）
+              platform: 'yyyp',
+              trade_type: 'sublease',
+              account_id: selectedAccount.value,
+              // 转租特有字段
+              lease_max_days: item.leaseMaxDays,  // 最大出租天数
+              short_lease_amount: item.shortLeaseAmount,  // 短租租金
+              long_lease_amount: item.longLeaseAmount,  // 长租租金
+              deposit_amount: item.depositAmount,  // 押金
+              lease_amount_desc: item.leaseAmountDesc,  // 租金描述
+              deposit_amount_desc: item.depositAmountDesc  // 押金描述
+            }))
+            ElMessage.success('加载成功')
+          } else {
+            ElMessage.error(response.data?.message || '加载失败')
+          }
         } else {
           // 其他类型：调用原有的在售商品API
           response = await axios.post(apiUrls.getOnSaleItems(), {
@@ -958,10 +997,23 @@ export default {
         )
 
         loading.value = true
-        const response = await axios.post(apiUrls.removeFromSale(), {
-          id: item.id,
-          account_id: selectedAccount.value
-        })
+        
+        // 根据交易类型选择不同的API
+        let response
+        if (item.trade_type === 'lease' || item.trade_type === 'sublease') {
+          // 租赁和转租类型：调用悠悠有品下架API
+          const steamId = accountList.value.find(acc => acc.id === selectedAccount.value)?.steam_id || ''
+          response = await axios.post(apiUrls.yyypOffShelf(), {
+            steamId: steamId,
+            ids: [item.id]  // 传递ID数组
+          })
+        } else {
+          // 其他类型：调用原有的下架API
+          response = await axios.post(apiUrls.removeFromSale(), {
+            id: item.id,
+            account_id: selectedAccount.value
+          })
+        }
 
         if (response.data && response.data.success) {
           ElMessage.success('下架成功')
@@ -974,6 +1026,97 @@ export default {
         if (error !== 'cancel') {
           console.error('下架失败:', error)
           ElMessage.error('下架失败: ' + error.message)
+        }
+      } finally {
+        loading.value = false
+      }
+    }
+
+    // 批量下架商品
+    const handleBatchRemoveFromSale = async () => {
+      // 检查是否有选中的物品
+      if (selectedItems.value.length === 0) {
+        ElMessage.warning('请先选择要下架的物品')
+        return
+      }
+
+      try {
+        await ElMessageBox.confirm(
+          `确定要批量下架选中的 ${selectedItems.value.length} 件物品吗？`,
+          '确认批量下架',
+          {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        )
+
+        loading.value = true
+        
+        // 提取所有选中物品的ID
+        const itemIds = selectedItems.value.map(item => item.id)
+        
+        // 根据交易类型选择不同的API
+        let response
+        // 检查第一个选中物品的交易类型（假设批量操作的物品类型相同）
+        const firstItemType = selectedItems.value[0].trade_type
+        
+        if (firstItemType === 'lease' || firstItemType === 'sublease') {
+          // 租赁和转租类型：调用悠悠有品下架API
+          const steamId = accountList.value.find(acc => acc.id === selectedAccount.value)?.steam_id || ''
+          response = await axios.post(apiUrls.yyypOffShelf(), {
+            steamId: steamId,
+            ids: itemIds  // 传递ID数组，后端会转换为逗号分隔的字符串
+          })
+        } else {
+          // 其他类型：调用原有的下架API（需要逐个下架）
+          // 注意：原有API可能不支持批量，这里使用循环处理
+          let successCount = 0
+          let failCount = 0
+          
+          for (const item of selectedItems.value) {
+            try {
+              const res = await axios.post(apiUrls.removeFromSale(), {
+                id: item.id,
+                account_id: selectedAccount.value
+              })
+              if (res.data && res.data.success) {
+                successCount++
+              } else {
+                failCount++
+              }
+            } catch (err) {
+              failCount++
+              console.error(`下架物品 ${item.id} 失败:`, err)
+            }
+          }
+          
+          if (successCount > 0) {
+            ElMessage.success(`成功下架 ${successCount} 件物品${failCount > 0 ? `，失败 ${failCount} 件` : ''}`)
+          } else {
+            ElMessage.error('批量下架失败')
+          }
+          
+          // 清空选中列表并刷新数据
+          selectedItems.value = []
+          loadOnSaleData()
+          loading.value = false
+          return
+        }
+
+        if (response.data && response.data.success) {
+          ElMessage.success(`成功批量下架 ${selectedItems.value.length} 件物品`)
+          // 清空选中列表
+          selectedItems.value = []
+          // 刷新数据
+          loadOnSaleData()
+        } else {
+          ElMessage.error(response.data?.message || '批量下架失败')
+        }
+      } catch (error) {
+        if (error !== 'cancel') {
+          console.error('批量下架失败:', error)
+          ElMessage.error('批量下架失败: ' + error.message)
         }
       } finally {
         loading.value = false
@@ -1170,6 +1313,7 @@ export default {
       validatePriceInput,
       confirmUpdatePrice,
       handleRemoveFromSale,
+      handleBatchRemoveFromSale,
       openPreview,
       getWeaponImage,
       handleImageError,
