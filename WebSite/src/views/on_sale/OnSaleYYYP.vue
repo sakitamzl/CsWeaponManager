@@ -1637,7 +1637,7 @@ export default {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 1rem;
-  padding: 1rem 0;
+  padding: 1rem;
 }
 
 .inventory-card {
@@ -2499,6 +2499,7 @@ export default {
 .inventory-card.selected {
   border-color: var(--el-color-primary);
   background: rgba(64, 158, 255, 0.1);
+  box-shadow: 0 0 0 2px var(--el-color-primary);
 }
 
 .inventory-card.selected:hover {
