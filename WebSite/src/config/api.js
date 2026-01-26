@@ -387,6 +387,12 @@ export const API_CONFIG = {
 
     
 
+    // 悠悠有品租赁相关
+
+    YYYP_GET_LEASE_LIST: '/youping898SpiderV1/getLeaseList',  // 获取租赁列表
+
+    
+
     // 登录设置相关
 
     LOGIN_SETTINGS: '/loginSettingsV1/api/login-settings',  // 获取/保存登录设置
@@ -794,6 +800,12 @@ export const apiUrls = {
   updateSalePrice: () => getApiUrl(API_CONFIG.ENDPOINTS.ON_SALE_UPDATE_PRICE),
 
   removeFromSale: () => getApiUrl(API_CONFIG.ENDPOINTS.ON_SALE_REMOVE),
+
+  
+
+  // 悠悠有品租赁API
+
+  yyypGetLeaseList: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_LEASE_LIST),
 
 }
 

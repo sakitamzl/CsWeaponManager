@@ -1,24 +1,5 @@
 <template>
   <div>
-    <!-- 交易类型选择栏 -->
-    <div class="trade-type-bar card">
-      <div class="trade-type-tabs">
-        <div 
-          v-for="type in tradeTypes" 
-          :key="type.value"
-          class="trade-type-tab"
-          :class="{ active: selectedTradeType === type.value }"
-          @click="handleTradeTypeChange(type.value)"
-        >
-          <span class="trade-type-icon">{{ type.icon }}</span>
-          <span class="trade-type-label">{{ type.label }}</span>
-          <span class="trade-type-count" v-if="getTradeTypeCount(type.value) > 0">
-            {{ getTradeTypeCount(type.value) }}
-          </span>
-        </div>
-      </div>
-    </div>
-
     <!-- 筛选器 -->
     <div class="filters card">
       <div class="flex flex-wrap gap-4 items-center">
@@ -98,6 +79,25 @@
       </div>
     </div>
 
+    <!-- 交易类型选择栏 -->
+    <div class="trade-type-bar card">
+      <div class="trade-type-tabs">
+        <div 
+          v-for="type in tradeTypes" 
+          :key="type.value"
+          class="trade-type-tab"
+          :class="{ active: selectedTradeType === type.value }"
+          @click="handleTradeTypeChange(type.value)"
+        >
+          <span class="trade-type-icon">{{ type.icon }}</span>
+          <span class="trade-type-label">{{ type.label }}</span>
+          <span class="trade-type-count" v-if="getTradeTypeCount(type.value) > 0">
+            {{ getTradeTypeCount(type.value) }}
+          </span>
+        </div>
+      </div>
+    </div>
+
     <!-- 统计信息 -->
     <div class="inventory-stats">
       <div class="grid grid-4">
@@ -157,6 +157,10 @@
             />
             <div v-else class="image-placeholder">
               <span>无图片</span>
+            </div>
+            <!-- 在售状态覆盖层 - 左上角 -->
+            <div v-if="item.trade_type === 'lease' && item.on_sale_time" class="status-overlay">
+              {{ formatOnSaleTime(item.on_sale_time) }}
             </div>
             <!-- 贴纸覆盖层 - 左下角 -->
             <div v-if="item.sticker" class="sticker-overlay">
@@ -218,37 +222,59 @@
               </div>
             </div>
             <div class="card-prices">
-              <!-- 第一行：售价和购入价 -->
-              <div class="price-row">
-                <div class="price-group">
-                  <span class="price-label">售价:</span>
-                  <span class="price-value sale-price">¥{{ parseFloat(item.sale_price).toFixed(2) }}</span>
+              <!-- 出售类型：显示售价和购入价 -->
+              <template v-if="item.trade_type !== 'lease'">
+                <div class="price-row">
+                  <div class="price-group">
+                    <span class="price-label">售价:</span>
+                    <span class="price-value sale-price">¥{{ parseFloat(item.sale_price).toFixed(2) }}</span>
+                  </div>
+                  <div class="price-group" v-if="item.buy_price">
+                    <span class="price-label">购入:</span>
+                    <span class="price-value">¥{{ parseFloat(item.buy_price).toFixed(2) }}</span>
+                  </div>
                 </div>
-                <div class="price-group" v-if="item.buy_price">
-                  <span class="price-label">购入:</span>
-                  <span class="price-value">¥{{ parseFloat(item.buy_price).toFixed(2) }}</span>
+                <div class="price-row" v-if="item.buy_price">
+                  <div class="price-group">
+                    <span class="price-label">预期收益:</span>
+                    <span 
+                      class="price-value"
+                      :class="getPriceDiffClass(item.sale_price, item.buy_price)"
+                    >
+                      {{ (parseFloat(item.sale_price) - parseFloat(item.buy_price)) >= 0 ? '+' : '' }}¥{{ Math.abs(parseFloat(item.sale_price) - parseFloat(item.buy_price)).toFixed(2) }}
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <!-- 第二行：预期收益 -->
-              <div class="price-row" v-if="item.buy_price">
-                <div class="price-group">
-                  <span class="price-label">预期收益:</span>
-                  <span 
-                    class="price-value"
-                    :class="getPriceDiffClass(item.sale_price, item.buy_price)"
-                  >
-                    {{ (parseFloat(item.sale_price) - parseFloat(item.buy_price)) >= 0 ? '+' : '' }}¥{{ Math.abs(parseFloat(item.sale_price) - parseFloat(item.buy_price)).toFixed(2) }}
-                  </span>
+              </template>
+              
+              <!-- 租赁类型：显示租金和押金 -->
+              <template v-else>
+                <div class="price-row">
+                  <div class="price-group">
+                    <span class="price-label">短租:</span>
+                    <span class="price-value sale-price">¥{{ parseFloat(item.short_lease_amount || 0).toFixed(2) }}/天</span>
+                  </div>
+                  <div class="price-group">
+                    <span class="price-label">长租:</span>
+                    <span class="price-value">¥{{ parseFloat(item.long_lease_amount || 0).toFixed(2) }}/天</span>
+                  </div>
                 </div>
-              </div>
+                <div class="price-row">
+                  <div class="price-group">
+                    <span class="price-label">押金:</span>
+                    <span class="price-value" style="color: #FFA500;">¥{{ parseFloat(item.deposit_amount || 0).toFixed(2) }}</span>
+                  </div>
+                  <div class="price-group">
+                    <span class="price-label">最长:</span>
+                    <span class="price-value">{{ item.lease_max_days || 0 }}天</span>
+                  </div>
+                </div>
+              </template>
             </div>
             <div class="card-footer">
               <div class="card-tags">
                 <el-tag v-if="item.rename" type="info" size="small" class="rename-tag">
                   <span class="tag-icon">🏷️</span>{{ item.rename }}
-                </el-tag>
-                <el-tag v-if="item.on_sale_time" type="success" size="small">
-                  {{ formatOnSaleTime(item.on_sale_time) }}
                 </el-tag>
               </div>
               <div class="card-actions">
@@ -361,29 +387,58 @@
             <span v-else style="color: #888;">N/A</span>
           </template>
         </el-table-column>
-        <el-table-column prop="sale_price" label="售价" width="150">
-          <template #default="scope">
-            <span style="color: #fff; font-weight: bold;">¥{{ parseFloat(scope.row.sale_price).toFixed(2) }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="buy_price" label="购入价" width="150">
-          <template #default="scope">
-            <span v-if="scope.row.buy_price" style="color: #fff;">¥{{ parseFloat(scope.row.buy_price).toFixed(2) }}</span>
-            <span v-else style="color: #888;">-</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="预期收益" width="150">
-          <template #default="scope">
-            <span 
-              v-if="scope.row.buy_price"
-              :class="getPriceDiffClass(scope.row.sale_price, scope.row.buy_price)"
-              style="font-weight: bold;"
-            >
-              {{ (parseFloat(scope.row.sale_price) - parseFloat(scope.row.buy_price)) >= 0 ? '+' : '' }}¥{{ Math.abs(parseFloat(scope.row.sale_price) - parseFloat(scope.row.buy_price)).toFixed(2) }}
-            </span>
-            <span v-else style="color: #888;">-</span>
-          </template>
-        </el-table-column>
+        
+        <!-- 出售类型的列 -->
+        <template v-if="selectedTradeType !== 'lease'">
+          <el-table-column prop="sale_price" label="售价" width="150">
+            <template #default="scope">
+              <span style="color: #fff; font-weight: bold;">¥{{ parseFloat(scope.row.sale_price).toFixed(2) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="buy_price" label="购入价" width="150">
+            <template #default="scope">
+              <span v-if="scope.row.buy_price" style="color: #fff;">¥{{ parseFloat(scope.row.buy_price).toFixed(2) }}</span>
+              <span v-else style="color: #888;">-</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="预期收益" width="150">
+            <template #default="scope">
+              <span 
+                v-if="scope.row.buy_price"
+                :class="getPriceDiffClass(scope.row.sale_price, scope.row.buy_price)"
+                style="font-weight: bold;"
+              >
+                {{ (parseFloat(scope.row.sale_price) - parseFloat(scope.row.buy_price)) >= 0 ? '+' : '' }}¥{{ Math.abs(parseFloat(scope.row.sale_price) - parseFloat(scope.row.buy_price)).toFixed(2) }}
+              </span>
+              <span v-else style="color: #888;">-</span>
+            </template>
+          </el-table-column>
+        </template>
+        
+        <!-- 租赁类型的列 -->
+        <template v-else>
+          <el-table-column label="短租租金" width="120">
+            <template #default="scope">
+              <span style="color: #67C23A; font-weight: bold;">¥{{ parseFloat(scope.row.short_lease_amount || 0).toFixed(2) }}/天</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="长租租金" width="120">
+            <template #default="scope">
+              <span style="color: #409EFF; font-weight: bold;">¥{{ parseFloat(scope.row.long_lease_amount || 0).toFixed(2) }}/天</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="押金" width="150">
+            <template #default="scope">
+              <span style="color: #FFA500; font-weight: bold;">¥{{ parseFloat(scope.row.deposit_amount || 0).toFixed(2) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="最长租期" width="100">
+            <template #default="scope">
+              <span style="color: #fff;">{{ scope.row.lease_max_days || 0 }}天</span>
+            </template>
+          </el-table-column>
+        </template>
+        
         <el-table-column prop="on_sale_time" label="上架时间" width="180">
           <template #default="scope">
             <span v-if="scope.row.on_sale_time" style="color: #9E9E9E;">
@@ -598,9 +653,7 @@ export default {
       { value: 'lease', label: '租赁', icon: '🔄' },
       { value: 'sublease', label: '转租', icon: '🔁' },
       { value: 'presale', label: '预售', icon: '⏰' },
-      { value: 'transfer', label: '过户', icon: '📝' },
-      { value: 'private_sale', label: '私密出售', icon: '🔒' },
-      { value: 'private_rent', label: '私募出租', icon: '🔐' }
+      { value: 'transfer', label: '过户', icon: '📝' }
     ])
     
     // 图片404缓存
@@ -706,16 +759,62 @@ export default {
       
       loading.value = true
       try {
-        const response = await axios.post(apiUrls.getOnSaleItems(), {
-          platform: 'yyyp',
-          account_id: selectedAccount.value,
-          trade_type: selectedTradeType.value  // 添加交易类型参数
-        })
-        if (response.data && response.data.success) {
-          onSaleData.value = response.data.data || []
-          ElMessage.success('加载成功')
+        let response
+        
+        // 根据交易类型选择不同的API
+        if (selectedTradeType.value === 'lease') {
+          // 租赁类型：调用租赁列表API
+          response = await axios.post(apiUrls.yyypGetLeaseList(), {
+            steamId: accountList.value.find(acc => acc.id === selectedAccount.value)?.steam_id || '',
+            page: 1,
+            pageSize: 1000
+          })
+          
+          if (response.data && response.data.success) {
+            // 转换租赁数据格式以匹配前端期望
+            const leaseData = response.data.data?.commodityInfoList || []
+            onSaleData.value = leaseData.map(item => ({
+              id: item.id,
+              item_name: item.name,
+              steam_hash_name: item.commodityHashName,  // 租赁API返回的是commodityHashName
+              sale_price: item.shortLeaseAmount || item.longLeaseAmount || 0,  // 租金（短期或长期）
+              buy_price: null,  // 租赁没有购入价
+              weapon_float: item.abrade,
+              weapon_type: item.typeName || '',
+              float_range: item.exteriorName || '',  // 磨损等级名称
+              sticker: null,  // 租赁列表中没有贴纸详细信息
+              pendant: null,  // 租赁列表中没有挂件详细信息
+              rename: null,  // 租赁列表中没有改名信息
+              on_sale_time: item.statusDesc || null,  // 在售时间描述（如"在售1天"）
+              platform: 'yyyp',
+              trade_type: 'lease',
+              account_id: selectedAccount.value,
+              // 租赁特有字段
+              lease_max_days: item.leaseMaxDays,  // 最大出租天数
+              short_lease_amount: item.shortLeaseAmount,  // 短租租金
+              long_lease_amount: item.longLeaseAmount,  // 长租租金
+              deposit_amount: item.depositAmount,  // 押金
+              lease_amount_desc: item.leaseAmountDesc,  // 租金描述
+              deposit_amount_desc: item.depositAmountDesc  // 押金描述
+            }))
+            ElMessage.success('加载成功')
+          } else {
+            ElMessage.error(response.data?.message || '加载失败')
+          }
         } else {
-          ElMessage.error(response.data?.message || '加载失败')
+          // 其他类型：调用原有的在售商品API
+          response = await axios.post(apiUrls.getOnSaleItems(), {
+            platform: 'yyyp',
+            account_id: selectedAccount.value,
+            trade_type: selectedTradeType.value
+          })
+          
+          if (response.data && response.data.success) {
+            onSaleData.value = response.data.data || []
+            ElMessage.success('加载成功')
+          } else {
+            ElMessage.error(response.data?.message || '加载失败')
+          }
         }
       } catch (error) {
         console.error('加载在售数据失败:', error)
@@ -1006,7 +1105,20 @@ export default {
 
     const formatOnSaleTime = (time) => {
       if (!time) return ''
+      
+      // 如果已经是描述性文本（如"在售1天"），直接返回
+      if (typeof time === 'string' && (time.includes('在售') || time.includes('天') || time.includes('小时'))) {
+        return time
+      }
+      
+      // 尝试解析为日期
       const date = new Date(time)
+      
+      // 检查是否为有效日期
+      if (isNaN(date.getTime())) {
+        return ''  // 无效日期返回空字符串，不显示
+      }
+      
       const now = new Date()
       const diff = now - date
       const days = Math.floor(diff / (1000 * 60 * 60 * 24))
@@ -1322,6 +1434,23 @@ export default {
 
 .pendant-placeholder-overlay {
   font-size: 18px;
+}
+
+/* 在售状态覆盖层 - 左上角 */
+.status-overlay {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 4px 8px;
+  background: rgba(76, 175, 80, 0.9);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
+  z-index: 3;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
 }
 
 /* 平台标签 */
