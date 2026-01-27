@@ -704,7 +704,8 @@ export default {
       { value: 'lease', label: '租赁', icon: '🔄' },
       { value: 'sublease', label: '转租', icon: '🔁' },
       { value: 'presale', label: '预售', icon: '⏰' },
-      { value: 'transfer', label: '过户', icon: '📝' }
+      { value: 'transfer', label: '过户', icon: '📝' },
+      { value: 'instant', label: '秒到账', icon: '⚡' }
     ])
     
     // 图片404缓存
