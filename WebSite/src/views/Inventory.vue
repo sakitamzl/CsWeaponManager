@@ -1319,6 +1319,29 @@
         </div>
       </div>
     </el-dialog>
+
+    <!-- 平台选择对话框 -->
+    <PlatformSelectDialog
+      v-model="platformSelectVisible"
+      :item-count="selectedItems.length"
+      @select="handlePlatformSelect"
+      @cancel="handlePlatformSelectCancel"
+    />
+
+    <!-- 悠悠有品出租表单对话框 -->
+    <el-dialog
+      v-model="rentFormVisible"
+      title="悠悠有品 - 出租饰品"
+      width="600px"
+      :close-on-click-modal="false"
+      class="rent-form-dialog"
+      @closed="handleRentFormClosed"
+    >
+      <RentFormYYYP
+        @cancel="rentFormVisible = false"
+        @submit="handleRentFormSubmit"
+      />
+    </el-dialog>
   </div>
 </template>
 
@@ -1328,9 +1351,15 @@ import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { ArrowDown, Loading, Close, Star, Box, Upload, InfoFilled } from '@element-plus/icons-vue'
 import axios from 'axios'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
+import PlatformSelectDialog from './Inventory/PlatformSelectDialog.vue'
+import RentFormYYYP from './Inventory/RentFormYYYP.vue'
 
 export default {
   name: 'Inventory',
+  components: {
+    PlatformSelectDialog,
+    RentFormYYYP
+  },
   setup() {
     const loading = ref(false)
     const fetchingInventory = ref(false) // 获取库存中
@@ -1421,6 +1450,11 @@ export default {
     const submitting = ref(false)
     const isGroupedView = ref(false) // 是否组合显示
     const expandedGroups = ref({}) // 记录哪些组是展开的
+
+    // 出租相关状态
+    const platformSelectVisible = ref(false) // 平台选择对话框
+    const rentFormVisible = ref(false) // 出租表单对话框
+    const selectedRentPlatform = ref('') // 选中的出租平台
     
     // 每个物品的表单数据
     const itemForms = ref([])
@@ -2725,16 +2759,49 @@ export default {
       fetchAllYYYPRealtimePrices()
     }
     
-    // 显示出租弹窗
+    // 显示出租弹窗 - 改为先选择平台
     const showRentDialog = () => {
       if (selectedItems.value.length === 0) {
         ElMessage.warning('请先选择要出租的物品')
         return
       }
-      sellRentDialogType.value = 'rent'
-      sellRentDialogTitle.value = '出租物品'
-      initItemForms()
-      sellRentDialogVisible.value = true
+      // 打开平台选择对话框
+      platformSelectVisible.value = true
+    }
+
+    // 处理平台选择
+    const handlePlatformSelect = (platform) => {
+      selectedRentPlatform.value = platform
+
+      if (platform === 'yyyp') {
+        // 打开悠悠有品出租表单
+        rentFormVisible.value = true
+      } else if (platform === 'buff') {
+        // BUFF 出租功能待开发
+        ElMessage.info('BUFF出租功能开发中，敬请期待...')
+      }
+    }
+
+    // 取消平台选择
+    const handlePlatformSelectCancel = () => {
+      selectedRentPlatform.value = ''
+    }
+
+    // 出租表单关闭
+    const handleRentFormClosed = () => {
+      selectedRentPlatform.value = ''
+    }
+
+    // 处理出租表单提交
+    const handleRentFormSubmit = async (formData) => {
+      console.log('出租表单提交:', formData)
+      console.log('选中的物品:', selectedItems.value)
+
+      // TODO: 这里对接悠悠有品出租 API
+      ElMessage.info('出租功能API对接开发中...')
+
+      // 暂时关闭表单
+      // rentFormVisible.value = false
     }
     
     // 验证单个物品的价格输入
@@ -3535,6 +3602,14 @@ export default {
       yyypRealtimePrices,
       loadingYYYPPrices,
       confirmSellRent,
+      // 出租功能
+      platformSelectVisible,
+      rentFormVisible,
+      selectedRentPlatform,
+      handlePlatformSelect,
+      handlePlatformSelectCancel,
+      handleRentFormClosed,
+      handleRentFormSubmit,
       // 组合显示
       isGroupedView,
       toggleGroupedView,
@@ -5960,5 +6035,20 @@ export default {
   .weapon-image-cell {
     height: 60px;
   }
+}
+
+/* 出租表单对话框样式 */
+.rent-form-dialog :deep(.el-dialog__header) {
+  padding: 0;
+  border-bottom: none;
+}
+
+.rent-form-dialog :deep(.el-dialog__body) {
+  padding: 0;
+  background: #1a1a1a;
+}
+
+.rent-form-dialog :deep(.el-dialog__footer) {
+  display: none;
 }
 </style>
