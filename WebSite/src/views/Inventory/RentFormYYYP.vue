@@ -1,97 +1,66 @@
 <template>
   <div class="rent-form-yyyp">
-    <div class="form-header">
-      <div class="form-title">
-        <span class="item-count">{{ items.length }}个饰品上架</span>
-      </div>
-    </div>
+    <!-- 头部标题已简化，去掉“X个饰品上架”提示 -->
 
     <div class="form-content">
-      <!-- 选中的饰品列表（每个饰品独立配置 短租/长租/押金） -->
+      <!-- 交易方式 + 押金赔付 + 增值服务 -->
       <div class="form-section">
-        <div class="section-label">选中的饰品（逐个设置短租/长租/押金）</div>
-        <div class="items-list">
-          <div
-            v-for="(item, index) in items"
-            :key="item.assetid"
-            class="item-card"
-          >
-            <div class="item-main">
-              <div class="item-image">
-                <img
-                  v-if="item.image"
-                  :src="item.image"
-                  :alt="item.name"
-                  @error="handleImageError"
-                />
-                <div v-else class="image-placeholder">无图</div>
-              </div>
-              <div class="item-info">
-                <div class="item-name" :title="item.name">{{ item.name }}</div>
-                <div class="item-details">
-                  <span v-if="item.float" class="item-float">磨损: {{ item.float }}</span>
-                  <span v-if="item.buyPrice" class="item-price">购入: ¥{{ item.buyPrice }}</span>
-                </div>
-              </div>
-              <div class="item-index">#{{ index + 1 }}</div>
-            </div>
-
-            <!-- 每个饰品的价格配置 -->
-            <div class="item-form-row">
-              <!-- 短租租金 -->
-              <div class="item-form-field">
-                <div class="field-label">短租租金</div>
-                <el-input
-                  v-model="itemFormMap[item.assetid].shortRentPrice"
-                  :placeholder="rentPriceTip"
-                  class="price-input"
-                >
-                  <template #prepend>¥</template>
-                  <template #append>/天</template>
-                </el-input>
-              </div>
-
-              <!-- 长租租金 -->
-              <div class="item-form-field">
-                <div class="field-label">长租租金</div>
-                <el-input
-                  v-model="itemFormMap[item.assetid].longRentPrice"
-                  placeholder="可选，长租优惠价"
-                  class="price-input"
-                >
-                  <template #prepend>¥</template>
-                  <template #append>/天</template>
-                </el-input>
-              </div>
-
-              <!-- 商品押金 -->
-              <div class="item-form-field">
-                <div class="field-label">商品押金</div>
-                <el-input
-                  v-model="itemFormMap[item.assetid].depositPrice"
-                  :placeholder="depositTip"
-                  class="price-input"
-                >
-                  <template #prepend>¥</template>
-                </el-input>
+        <div class="trade-and-services-row">
+          <!-- 交易方式 -->
+          <div class="trade-mode-block trade-card">
+            <div class="trade-mode-buttons">
+              <div
+                v-for="method in tradeMethods"
+                :key="method.id"
+                class="trade-mode-btn"
+                :class="{ active: formData.tradeMode === method.type }"
+                @click="formData.tradeMode = method.type"
+              >
+                <span class="mode-label">{{ method.name }}</span>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- 交易方式 -->
-      <div class="form-section">
-        <div class="section-label">交易方式</div>
-        <div class="trade-mode-buttons">
-          <div
-            v-for="method in tradeMethods"
-            :key="method.id"
-            class="trade-mode-btn"
-            :class="{ active: formData.tradeMode === method.type }"
-            @click="formData.tradeMode = method.type"
-          >
-            <span class="mode-label">{{ method.name }}</span>
+          <!-- 押金赔付 -->
+          <div class="trade-card deposit-card">
+            <div class="compensation-icon">
+              <span class="icon-badge">V</span>
+            </div>
+            <div class="compensation-content">
+              <div class="compensation-text">买断或不归还，全额赔押金，赔付服务费</div>
+              <div class="service-fee">
+                <span class="fee-value highlight">{{ serviceFeeRate }}%</span>
+                <span v-if="vipServiceFeeRate" class="fee-original">{{ vipServiceFeeRate }}%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 增值服务 -->
+          <div class="trade-card services-card">
+            <div class="services-title">增值服务</div>
+            <div class="value-added-inline">
+              <!-- 0CD出租 -->
+              <div
+                v-if="enableZeroCDRent"
+                class="service-item-inline"
+                @click="toggleService('zeroCooldown')"
+              >
+                <el-checkbox v-model="formData.services.zeroCooldown">
+                  <span class="service-badge zero-cd">0CD</span>
+                </el-checkbox>
+              </div>
+
+              <!-- 租送活动 -->
+              <div
+                v-if="rentActivities.length > 0"
+                class="service-item-inline"
+                @click="toggleService('rentActivity')"
+              >
+                <el-checkbox v-model="formData.services.rentActivity">
+                  <span class="service-badge rent-activity">租送</span>
+                </el-checkbox>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -133,54 +102,76 @@
         </div>
       </div>
 
-      <!-- 押金赔付 -->
+      <!-- 选中的饰品列表 -->
       <div class="form-section">
-        <div class="section-label">押金赔付</div>
-        <div class="deposit-compensation-card">
-          <div class="compensation-icon">
-            <span class="icon-badge">V</span>
-          </div>
-          <div class="compensation-content">
-            <div class="compensation-text">买断或不归还,全额赔押金,赔付服务费</div>
-            <div class="service-fee">
-              <span class="fee-value highlight">{{ serviceFeeRate }}%</span>
-              <span v-if="vipServiceFeeRate" class="fee-original">{{ vipServiceFeeRate }}%</span>
-            </div>
-          </div>
-          <div class="compensation-arrow">›</div>
-        </div>
-      </div>
-
-      <!-- 增值服务 -->
-      <div class="form-section">
-        <div class="section-label">增值服务</div>
-        <div class="value-added-services">
-          <!-- 0CD出租 -->
+        <div class="section-label">选中的饰品</div>
+        <div class="items-list">
           <div
-            v-if="enableZeroCDRent"
-            class="service-item"
-            @click="toggleService('zeroCooldown')"
+            v-for="(item, index) in items"
+            :key="item.assetid"
+            class="item-card"
           >
-            <div class="service-checkbox">
-              <el-checkbox v-model="formData.services.zeroCooldown" />
+            <!-- 左侧：饰品信息 -->
+            <div class="item-left-box">
+              <div class="item-image">
+                <img
+                  v-if="item.image"
+                  :src="item.image"
+                  :alt="item.name"
+                  @error="handleImageError"
+                />
+                <div v-else class="image-placeholder">无图</div>
+              </div>
+              <div class="item-info">
+                <div class="item-name" :title="item.name">{{ item.name }}</div>
+                
+                <!-- 磨损值 -->
+                <div v-if="item.float" class="item-float-text">
+                  磨损: {{ item.float }}
+                </div>
+                
+                <!-- 磨损进度条 -->
+                <div v-if="item.float" class="float-bar">
+                  <div class="float-segment fn"></div>
+                  <div class="float-segment mw"></div>
+                  <div class="float-segment ft"></div>
+                  <div class="float-segment ww"></div>
+                  <div class="float-segment bs"></div>
+                  <div
+                    class="float-pointer"
+                    :style="{ left: `${parseFloat(item.float) * 100}%` }"
+                  ></div>
+                </div>
+                
+                <!-- 购入价格 -->
+                <div v-if="item.buyPrice" class="item-buy-price">
+                  购入: ¥{{ item.buyPrice }}
+                </div>
+              </div>
             </div>
-            <div class="service-info">
-              <span class="service-badge zero-cd">0CD出租</span>
-            </div>
-          </div>
 
-          <!-- 租送活动 -->
-          <div
-            v-if="rentActivities.length > 0"
-            class="service-item"
-            @click="toggleService('rentActivity')"
-          >
-            <div class="service-checkbox">
-              <el-checkbox v-model="formData.services.rentActivity" />
-            </div>
-            <div class="service-info">
-              <span class="service-badge rent-activity">租送活动</span>
-              <span class="service-label">{{ rentActivityDesc }}</span>
+            <!-- 右侧：输入框 -->
+            <div class="item-right-box">
+              <!-- 短租租金 -->
+              <el-input
+                v-model="itemFormMap[item.assetid].shortRentPrice"
+                placeholder="短租租金"
+                class="price-input"
+              />
+
+              <!-- 长租租金 -->
+              <el-input
+                v-model="itemFormMap[item.assetid].longRentPrice"
+                placeholder="长租租金"
+                class="price-input"
+              />
+
+              <!-- 商品押金 -->
+              <el-input
+                v-model="itemFormMap[item.assetid].depositPrice"
+                placeholder="商品押金"
+                class="price-input"
+              />
             </div>
           </div>
         </div>
@@ -490,6 +481,7 @@ export default {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 70vh;
   background: #1a1a1a;
   color: #fff;
 }
@@ -525,7 +517,7 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  max-height: 200px;
+  max-height: 50vh;
   overflow-y: auto;
   padding: 0.5rem;
   background: #0a0a0a;
@@ -533,9 +525,9 @@ export default {
 }
 
 .item-card {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  display: grid;
+  grid-template-columns: 4fr 6fr;
+  gap: 1rem;
   padding: 0.75rem;
   background: #2a2a2a;
   border: 1px solid #3a3a3a;
@@ -548,9 +540,24 @@ export default {
   border-color: #4a4a4a;
 }
 
+/* 左侧饰品信息盒子 */
+.item-left-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+/* 右侧输入框盒子 */
+.item-right-box {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  align-items: center;
+}
+
 .item-image {
-  width: 60px;
-  height: 60px;
+  width: 80px;
+  height: 80px;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   border-radius: 6px;
   display: flex;
@@ -574,6 +581,9 @@ export default {
 .item-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .item-name {
@@ -583,28 +593,116 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  margin-bottom: 0.25rem;
 }
 
-.item-details {
-  display: flex;
-  gap: 0.75rem;
-  font-size: 0.8rem;
+.item-float-text {
+  font-size: 0.85rem;
   color: #999;
-}
-
-.item-float,
-.item-price {
   font-family: monospace;
 }
 
-.item-index {
-  font-size: 0.85rem;
-  color: #666;
-  font-weight: 600;
-  padding: 0.25rem 0.5rem;
-  background: #1a1a1a;
+/* 磨损进度条样式 - 与Inventory页面一致 */
+.float-bar {
+  position: relative;
+  height: 8px;
+  display: flex;
   border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.float-segment {
+  height: 100%;
+  transition: opacity 0.2s;
+}
+
+.float-segment:hover {
+  opacity: 0.8;
+}
+
+/* CS2 标准磨损等级颜色 */
+.float-segment.fn {
+  flex: 7;  /* 0.00 - 0.07 */
+  background: linear-gradient(to right, #4CAF50, #66BB6A);
+}
+
+.float-segment.mw {
+  flex: 8;  /* 0.07 - 0.15 */
+  background: linear-gradient(to right, #8BC34A, #9CCC65);
+}
+
+.float-segment.ft {
+  flex: 23; /* 0.15 - 0.38 */
+  background: linear-gradient(to right, #FFC107, #FFB300);
+}
+
+.float-segment.ww {
+  flex: 7;  /* 0.38 - 0.45 */
+  background: linear-gradient(to right, #FF9800, #FB8C00);
+}
+
+.float-segment.bs {
+  flex: 55; /* 0.45 - 1.00 */
+  background: linear-gradient(to right, #F44336, #E53935);
+}
+
+/* 磨损值指针 */
+.float-pointer {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 3px;
+  height: 16px;
+  background: #fff;
+  border-radius: 2px;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5), 0 0 8px rgba(255, 255, 255, 0.8);
+  z-index: 10;
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.float-pointer::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid #fff;
+}
+
+.float-pointer::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 5px solid #fff;
+}
+
+.item-buy-price {
+  font-size: 0.85rem;
+  color: #4CAF50;
+  font-weight: 500;
+  font-family: monospace;
+}
+
+.item-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.field-label {
+  font-size: 0.8rem;
+  color: #ccc;
 }
 
 /* 表单区块 */
@@ -623,6 +721,39 @@ export default {
 .trade-mode-buttons {
   display: flex;
   gap: 1rem;
+}
+
+/* 顶部 行：交易方式 + 押金赔付 + 增值服务 */
+.trade-and-services-row {
+  display: grid;
+  grid-template-columns: 2fr 2fr 1.5fr;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.trade-mode-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* 顶部三块统一卡片样式 */
+.trade-card {
+  padding: 1rem;
+  background: #2a2a2a;
+  border: 2px solid #3a3a3a;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+}
+
+/* 押金赔付卡片：图标与文本同一行显示 */
+.deposit-card {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .trade-mode-btn {
@@ -707,24 +838,6 @@ export default {
   padding-left: 0.25rem;
 }
 
-/* 押金赔付卡片 */
-.deposit-compensation-card {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: #2a2a2a;
-  border: 2px solid #3a3a3a;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.deposit-compensation-card:hover {
-  background: #333;
-  border-color: #4a4a4a;
-}
-
 .compensation-icon {
   width: 40px;
   height: 40px;
@@ -784,6 +897,24 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+.value-added-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.service-item-inline {
+  display: flex;
+  align-items: center;
+}
+
+.services-title {
+  font-size: 0.9rem;
+  color: #ccc;
+  margin-bottom: 0.5rem;
 }
 
 .service-item {
@@ -954,9 +1085,22 @@ export default {
     max-height: 150px;
   }
 
+  .item-card {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
   .item-image {
-    width: 50px;
-    height: 50px;
+    width: 60px;
+    height: 60px;
+  }
+  
+  .trade-and-services-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .item-right-box {
+    grid-template-columns: 1fr;
   }
 }
 </style>

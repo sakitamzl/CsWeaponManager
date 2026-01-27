@@ -1331,8 +1331,8 @@
     <!-- 悠悠有品出租表单对话框 -->
     <el-dialog
       v-model="rentFormVisible"
-      title="悠悠有品 - 出租饰品"
-      width="600px"
+      width="1000px"
+      :show-header="false"
       :close-on-click-modal="false"
       class="rent-form-dialog"
       @closed="handleRentFormClosed"
@@ -6089,14 +6089,26 @@ export default {
 }
 
 /* 出租表单对话框样式 */
+.rent-form-dialog :deep(.el-dialog) {
+  max-height: 75vh;
+  height: 75vh;
+  display: flex;
+  flex-direction: column;
+}
+
 .rent-form-dialog :deep(.el-dialog__header) {
   padding: 0;
   border-bottom: none;
+  flex-shrink: 0;
 }
 
 .rent-form-dialog :deep(.el-dialog__body) {
   padding: 0;
   background: #1a1a1a;
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .rent-form-dialog :deep(.el-dialog__footer) {
