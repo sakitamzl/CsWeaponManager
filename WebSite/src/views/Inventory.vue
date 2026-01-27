@@ -1338,6 +1338,8 @@
       @closed="handleRentFormClosed"
     >
       <RentFormYYYP
+        :items="formattedSelectedItems"
+        :initData="rentInitData"
         @cancel="rentFormVisible = false"
         @submit="handleRentFormSubmit"
       />
@@ -1455,6 +1457,7 @@ export default {
     const platformSelectVisible = ref(false) // 平台选择对话框
     const rentFormVisible = ref(false) // 出租表单对话框
     const selectedRentPlatform = ref('') // 选中的出租平台
+    const rentInitData = ref(null) // 出租 init 数据
     
     // 每个物品的表单数据
     const itemForms = ref([])
@@ -3370,6 +3373,18 @@ export default {
       }
     })
 
+    // 格式化选中的饰品数据，用于传递给出租表单
+    const formattedSelectedItems = computed(() => {
+      return selectedItems.value.map(item => ({
+        assetid: item.assetid,
+        name: getCardTitle(item),
+        steam_hash_name: item.steam_hash_name || item.item_name,
+        image: getWeaponImage(item.steam_hash_name),
+        float: item.weapon_float,
+        buyPrice: item.buy_price ? parseFloat(item.buy_price).toFixed(2) : null
+      }))
+    })
+
     // 统计数据计算（使用后端返回的全局统计，支持所有筛选条件）
     const inventoryStats = computed(() => {
       const totalCount = statsData.value.total_count || 0
@@ -3606,6 +3621,8 @@ export default {
       platformSelectVisible,
       rentFormVisible,
       selectedRentPlatform,
+      rentInitData,
+      formattedSelectedItems,
       handlePlatformSelect,
       handlePlatformSelectCancel,
       handleRentFormClosed,
