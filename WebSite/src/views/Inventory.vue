@@ -2790,7 +2790,8 @@ export default {
             `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/rentInit`,
             {
               steamId: selectedSteamId.value,
-              assetIds: selectedItems.value.map(item => item.assetid)
+              // 直接传 steam_hash_name 列表，后端 rentInit 会按该列表请求悠悠有品 init
+              steam_hash_name: selectedItems.value.map(item => item.steam_hash_name)
             }
           )
 

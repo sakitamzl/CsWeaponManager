@@ -7,32 +7,75 @@
     </div>
 
     <div class="form-content">
-      <!-- 选中的饰品列表 -->
+      <!-- 选中的饰品列表（每个饰品独立配置 短租/长租/押金） -->
       <div class="form-section">
-        <div class="section-label">选中的饰品</div>
+        <div class="section-label">选中的饰品（逐个设置短租/长租/押金）</div>
         <div class="items-list">
           <div
             v-for="(item, index) in items"
             :key="item.assetid"
             class="item-card"
           >
-            <div class="item-image">
-              <img
-                v-if="item.image"
-                :src="item.image"
-                :alt="item.name"
-                @error="handleImageError"
-              />
-              <div v-else class="image-placeholder">无图</div>
+            <div class="item-main">
+              <div class="item-image">
+                <img
+                  v-if="item.image"
+                  :src="item.image"
+                  :alt="item.name"
+                  @error="handleImageError"
+                />
+                <div v-else class="image-placeholder">无图</div>
+              </div>
+              <div class="item-info">
+                <div class="item-name" :title="item.name">{{ item.name }}</div>
+                <div class="item-details">
+                  <span v-if="item.float" class="item-float">磨损: {{ item.float }}</span>
+                  <span v-if="item.buyPrice" class="item-price">购入: ¥{{ item.buyPrice }}</span>
+                </div>
+              </div>
+              <div class="item-index">#{{ index + 1 }}</div>
             </div>
-            <div class="item-info">
-              <div class="item-name" :title="item.name">{{ item.name }}</div>
-              <div class="item-details">
-                <span v-if="item.float" class="item-float">磨损: {{ item.float }}</span>
-                <span v-if="item.buyPrice" class="item-price">购入: ¥{{ item.buyPrice }}</span>
+
+            <!-- 每个饰品的价格配置 -->
+            <div class="item-form-row">
+              <!-- 短租租金 -->
+              <div class="item-form-field">
+                <div class="field-label">短租租金</div>
+                <el-input
+                  v-model="itemFormMap[item.assetid].shortRentPrice"
+                  :placeholder="rentPriceTip"
+                  class="price-input"
+                >
+                  <template #prepend>¥</template>
+                  <template #append>/天</template>
+                </el-input>
+              </div>
+
+              <!-- 长租租金 -->
+              <div class="item-form-field">
+                <div class="field-label">长租租金</div>
+                <el-input
+                  v-model="itemFormMap[item.assetid].longRentPrice"
+                  placeholder="可选，长租优惠价"
+                  class="price-input"
+                >
+                  <template #prepend>¥</template>
+                  <template #append>/天</template>
+                </el-input>
+              </div>
+
+              <!-- 商品押金 -->
+              <div class="item-form-field">
+                <div class="field-label">商品押金</div>
+                <el-input
+                  v-model="itemFormMap[item.assetid].depositPrice"
+                  :placeholder="depositTip"
+                  class="price-input"
+                >
+                  <template #prepend>¥</template>
+                </el-input>
               </div>
             </div>
-            <div class="item-index">#{{ index + 1 }}</div>
           </div>
         </div>
       </div>
@@ -90,22 +133,6 @@
         </div>
       </div>
 
-      <!-- 短租租金 -->
-      <div class="form-section">
-        <div class="section-label">短租租金</div>
-        <div class="input-with-tips">
-          <el-input
-            v-model="formData.shortRentPrice"
-            :placeholder="rentPriceTip"
-            class="price-input"
-          >
-            <template #prepend>¥</template>
-            <template #append>/天</template>
-          </el-input>
-          <div v-if="rentPriceTip" class="input-tip">{{ rentPriceTip }}</div>
-        </div>
-      </div>
-
       <!-- 押金赔付 -->
       <div class="form-section">
         <div class="section-label">押金赔付</div>
@@ -121,21 +148,6 @@
             </div>
           </div>
           <div class="compensation-arrow">›</div>
-        </div>
-      </div>
-
-      <!-- 商品押金 -->
-      <div class="form-section">
-        <div class="section-label">商品押金</div>
-        <div class="input-with-tips">
-          <el-input
-            v-model="formData.depositPrice"
-            :placeholder="depositTip"
-            class="price-input"
-          >
-            <template #prepend>¥</template>
-          </el-input>
-          <div v-if="depositTip" class="input-tip">{{ depositTip }}</div>
         </div>
       </div>
 
@@ -205,18 +217,19 @@ export default {
   },
   emits: ['cancel', 'submit'],
   setup(props, { emit }) {
-    // 表单数据
+    // 全局表单数据（交易方式/租期/增值服务）
     const formData = reactive({
       tradeMode: 1, // 默认租赁
       rentDays: 8, // 默认天数
       customDays: null,
-      shortRentPrice: '',
-      depositPrice: '',
       services: {
         zeroCooldown: false, // 0CD出租
         rentActivity: false  // 租送活动
       }
     })
+
+    // 每个饰品独立的价格表单：短租/长租/押金
+    const itemFormMap = reactive({})
 
     // 从 initData 解析交易方式
     const tradeMethods = computed(() => {
@@ -313,15 +326,34 @@ export default {
       return activity.activityDesc || ''
     })
 
-    // 初始化表单数据
-    watch(() => props.initData, (newData) => {
-      if (newData) {
-        // 设置默认租赁天数为第一个选项
-        if (rentDaysOptions.value.length > 0) {
-          formData.rentDays = rentDaysOptions.value[0]
-        }
+    // 初始化表单数据（全局 + 每个饰品）
+    const initForms = () => {
+      // 全局租期默认值
+      if (rentDaysOptions.value.length > 0) {
+        formData.rentDays = rentDaysOptions.value[0]
       }
-    }, { immediate: true })
+
+      // 初始化每个饰品的价格表单
+      if (props.items && props.items.length > 0) {
+        props.items.forEach((item) => {
+          if (!itemFormMap[item.assetid]) {
+            itemFormMap[item.assetid] = {
+              shortRentPrice: '',
+              longRentPrice: '',
+              depositPrice: ''
+            }
+          }
+        })
+      }
+    }
+
+    watch(
+      () => [props.initData, props.items],
+      () => {
+        initForms()
+      },
+      { immediate: true, deep: true }
+    )
 
     // 切换服务选项
     const toggleService = (serviceName) => {
@@ -345,13 +377,20 @@ export default {
         return
       }
 
-      // 准备提交数据
+      // 准备提交数据（全局配置 + 每个饰品的独立价格）
       const submitData = {
         tradeMode: formData.tradeMode,
         rentDays: formData.rentDays === 'custom' ? formData.customDays : formData.rentDays,
-        shortRentPrice: parseFloat(formData.shortRentPrice),
-        depositPrice: parseFloat(formData.depositPrice),
-        services: formData.services
+        services: formData.services,
+        items: props.items.map((item) => ({
+          assetid: item.assetid,
+          steam_hash_name: item.steam_hash_name,
+          shortRentPrice: parseFloat(itemFormMap[item.assetid].shortRentPrice),
+          longRentPrice: itemFormMap[item.assetid].longRentPrice
+            ? parseFloat(itemFormMap[item.assetid].longRentPrice)
+            : null,
+          depositPrice: parseFloat(itemFormMap[item.assetid].depositPrice)
+        }))
       }
 
       emit('submit', submitData)
@@ -371,50 +410,53 @@ export default {
         }
       }
 
-      // 验证短租租金
-      if (!formData.shortRentPrice || formData.shortRentPrice === '') {
-        ElMessage.warning('请输入短租租金')
-        return false
-      }
-      const shortRent = parseFloat(formData.shortRentPrice)
-      if (isNaN(shortRent) || shortRent <= 0) {
-        ElMessage.warning('请输入有效的短租租金')
-        return false
-      }
-
-      // 验证租金范围
+      // 验证每个饰品的价格配置
       const minRent = firstItemConfig.value?.coefficient?.minRent
       const maxRent = firstItemConfig.value?.coefficient?.maxRent
-      if (minRent && shortRent < parseFloat(minRent)) {
-        ElMessage.warning(`租金不能低于 ¥${minRent}/天`)
-        return false
-      }
-      if (maxRent && shortRent > parseFloat(maxRent)) {
-        ElMessage.warning(`租金不能高于 ¥${maxRent}/天`)
-        return false
-      }
-
-      // 验证押金
-      if (!formData.depositPrice || formData.depositPrice === '') {
-        ElMessage.warning('请输入商品押金')
-        return false
-      }
-      const deposit = parseFloat(formData.depositPrice)
-      if (isNaN(deposit) || deposit <= 0) {
-        ElMessage.warning('请输入有效的押金')
-        return false
-      }
-
-      // 验证押金范围
       const minDeposit = firstItemConfig.value?.coefficient?.minDeposit
       const maxDeposit = firstItemConfig.value?.coefficient?.maxDeposit
-      if (minDeposit && deposit < parseFloat(minDeposit)) {
-        ElMessage.warning(`押金不能低于 ¥${minDeposit}`)
-        return false
-      }
-      if (maxDeposit && deposit > parseFloat(maxDeposit)) {
-        ElMessage.warning(`押金不能高于 ¥${maxDeposit}`)
-        return false
+
+      for (const item of props.items || []) {
+        const itemForm = itemFormMap[item.assetid]
+        if (!itemForm) continue
+
+        // 短租租金必填
+        if (!itemForm.shortRentPrice || itemForm.shortRentPrice === '') {
+          ElMessage.warning(`【${item.name}】请输入短租租金`)
+          return false
+        }
+        const shortRent = parseFloat(itemForm.shortRentPrice)
+        if (isNaN(shortRent) || shortRent <= 0) {
+          ElMessage.warning(`【${item.name}】请输入有效的短租租金`)
+          return false
+        }
+        if (minRent && shortRent < parseFloat(minRent)) {
+          ElMessage.warning(`【${item.name}】租金不能低于 ¥${minRent}/天`)
+          return false
+        }
+        if (maxRent && shortRent > parseFloat(maxRent)) {
+          ElMessage.warning(`【${item.name}】租金不能高于 ¥${maxRent}/天`)
+          return false
+        }
+
+        // 押金必填
+        if (!itemForm.depositPrice || itemForm.depositPrice === '') {
+          ElMessage.warning(`【${item.name}】请输入商品押金`)
+          return false
+        }
+        const deposit = parseFloat(itemForm.depositPrice)
+        if (isNaN(deposit) || deposit <= 0) {
+          ElMessage.warning(`【${item.name}】请输入有效的押金`)
+          return false
+        }
+        if (minDeposit && deposit < parseFloat(minDeposit)) {
+          ElMessage.warning(`【${item.name}】押金不能低于 ¥${minDeposit}`)
+          return false
+        }
+        if (maxDeposit && deposit > parseFloat(maxDeposit)) {
+          ElMessage.warning(`【${item.name}】押金不能高于 ¥${maxDeposit}`)
+          return false
+        }
       }
 
       return true
@@ -422,6 +464,7 @@ export default {
 
     return {
       formData,
+      itemFormMap,
       tradeMethods,
       rentDaysOptions,
       minRentDays,
