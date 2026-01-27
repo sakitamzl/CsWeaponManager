@@ -2773,12 +2773,45 @@ export default {
     }
 
     // 处理平台选择
-    const handlePlatformSelect = (platform) => {
+    const handlePlatformSelect = async (platform) => {
       selectedRentPlatform.value = platform
 
       if (platform === 'yyyp') {
-        // 打开悠悠有品出租表单
-        rentFormVisible.value = true
+        // 显示加载提示
+        const loading = ElLoading.service({
+          lock: true,
+          text: '正在获取出租配置...',
+          background: 'rgba(0, 0, 0, 0.7)'
+        })
+
+        try {
+          // 调用 init API
+          const response = await axios.post(
+            `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/rentInit`,
+            {
+              steamId: selectedSteamId.value,
+              assetIds: selectedItems.value.map(item => item.assetid)
+            }
+          )
+
+          if (response.data.success) {
+            // 保存 init 数据
+            rentInitData.value = response.data.data
+
+            // 打开悠悠有品出租表单
+            rentFormVisible.value = true
+
+            console.log('[出租] 获取配置成功')
+          } else {
+            ElMessage.error(response.data.message || '获取出租配置失败')
+            console.error('[出租] 获取配置失败:', response.data.message)
+          }
+        } catch (error) {
+          console.error('获取出租配置失败:', error)
+          ElMessage.error('获取出租配置失败，请重试')
+        } finally {
+          loading.close()
+        }
       } else if (platform === 'buff') {
         // BUFF 出租功能待开发
         ElMessage.info('BUFF出租功能开发中，敬请期待...')
