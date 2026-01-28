@@ -174,7 +174,7 @@ class BaseModel(ABC):
             self._original_data = self._data.copy()
             return True
         except Exception as e:
-            print(f"插入记录失败: {e}")
+            print(f"[错误] 插入记录失败 - 表: {self.get_table_name()}, 错误: {e}")
             return False
     
     def _update(self) -> bool:

@@ -43,12 +43,12 @@ class SteamMarketModel(BaseModel):
                 'default': None  # 仅销售记录有此字段，表示原始价格（含手续费）
             },
             'trade_date': {
-                'type': 'TEXT',
+                'type': 'DATETIME',
                 'not_null': False,
                 'default': None
             },
             'listing_date': {
-                'type': 'TEXT',
+                'type': 'DATETIME',
                 'not_null': False,
                 'default': None
             },

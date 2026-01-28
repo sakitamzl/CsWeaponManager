@@ -78,27 +78,22 @@
           >
             <span class="day-label">{{ days }}天</span>
           </div>
-          <div
-            class="rent-day-btn custom-btn"
-            :class="{ active: formData.rentDays === 'custom' }"
-            @click="formData.rentDays = 'custom'"
-          >
-            <span class="day-label">自定义</span>
+          <!-- 自定义天数输入框 -->
+          <div class="rent-day-input-wrapper">
+            <el-input
+              v-model="formData.customDays"
+              placeholder="自定义"
+              type="number"
+              :min="minRentDays"
+              :max="maxRentDays"
+              class="custom-days-inline-input"
+              @focus="formData.rentDays = 'custom'"
+            >
+              <template #suffix>
+                <span class="input-suffix">天</span>
+              </template>
+            </el-input>
           </div>
-        </div>
-        <!-- 自定义天数输入 -->
-        <div v-if="formData.rentDays === 'custom'" class="custom-days-input">
-          <el-input
-            v-model="formData.customDays"
-            placeholder="请输入天数"
-            type="number"
-            :min="minRentDays"
-            :max="maxRentDays"
-          >
-            <template #append>
-              <span>天 ({{ minRentDays }}-{{ maxRentDays }})</span>
-            </template>
-          </el-input>
         </div>
       </div>
 
@@ -180,6 +175,9 @@
 
     <!-- 底部操作按钮 -->
     <div class="form-footer">
+      <el-button class="footer-btn auto-price-btn" @click="handleAutoPricing">
+        一键定价
+      </el-button>
       <el-button class="footer-btn cancel-btn" @click="handleCancel">
         取消
       </el-button>
@@ -453,6 +451,46 @@ export default {
       return true
     }
 
+    // 一键定价功能
+    const handleAutoPricing = () => {
+      if (!props.items || props.items.length === 0) {
+        ElMessage.warning('没有可定价的饰品')
+        return
+      }
+
+      let successCount = 0
+      
+      props.items.forEach((item) => {
+        const itemForm = itemFormMap[item.assetid]
+        if (!itemForm) return
+
+        // 根据购入价格自动计算租金和押金
+        const buyPrice = parseFloat(item.buyPrice || item.buy_price || 0)
+        
+        if (buyPrice > 0) {
+          // 短租租金：购入价格的 1-2% 左右
+          const shortRent = (buyPrice * 0.015).toFixed(2)
+          itemForm.shortRentPrice = shortRent
+          
+          // 长租租金：短租的 80%
+          const longRent = (parseFloat(shortRent) * 0.8).toFixed(2)
+          itemForm.longRentPrice = longRent
+          
+          // 押金：购入价格的 100-110%
+          const deposit = (buyPrice * 1.05).toFixed(2)
+          itemForm.depositPrice = deposit
+          
+          successCount++
+        }
+      })
+
+      if (successCount > 0) {
+        ElMessage.success(`已为 ${successCount} 件饰品自动定价`)
+      } else {
+        ElMessage.warning('没有可定价的饰品（缺少购入价格）')
+      }
+    }
+
     return {
       formData,
       itemFormMap,
@@ -470,7 +508,8 @@ export default {
       toggleService,
       handleImageError,
       handleCancel,
-      handleSubmit
+      handleSubmit,
+      handleAutoPricing
     }
   }
 }
@@ -816,9 +855,67 @@ export default {
   color: #fff;
 }
 
-/* 自定义天数输入 */
-.custom-days-input {
-  margin-top: 0.75rem;
+/* 自定义天数输入框 */
+.rent-day-input-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.custom-days-inline-input {
+  width: 100%;
+}
+
+.custom-days-inline-input :deep(.el-input__wrapper) {
+  background-color: #2a2a2a;
+  border: 2px solid #3a3a3a;
+  box-shadow: none;
+  border-radius: 8px;
+  padding: 0.75rem;
+  transition: all 0.3s ease;
+}
+
+.custom-days-inline-input :deep(.el-input__wrapper:hover) {
+  background: #333;
+  border-color: #4a4a4a;
+}
+
+.custom-days-inline-input :deep(.el-input__wrapper.is-focus) {
+  background: rgba(64, 158, 255, 0.1);
+  border-color: #409EFF;
+}
+
+.custom-days-inline-input :deep(.el-input__inner) {
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* 隐藏数字输入框的上下箭头 */
+.custom-days-inline-input :deep(.el-input__inner)::-webkit-outer-spin-button,
+.custom-days-inline-input :deep(.el-input__inner)::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.custom-days-inline-input :deep(.el-input__inner[type="number"]) {
+  -moz-appearance: textfield;
+}
+
+.custom-days-inline-input :deep(.el-input__inner::placeholder) {
+  color: #999;
+  font-weight: 500;
+}
+
+.custom-days-inline-input :deep(.el-input__suffix) {
+  display: flex;
+  align-items: center;
+}
+
+.input-suffix {
+  color: #999;
+  font-size: 0.9rem;
+  margin-right: 0.5rem;
 }
 
 /* 输入框带提示 */
@@ -980,6 +1077,17 @@ export default {
   height: 48px;
   font-size: 1rem;
   font-weight: 600;
+}
+
+.auto-price-btn {
+  background: linear-gradient(135deg, #67C23A, #85CE61);
+  color: #fff;
+  border: none;
+}
+
+.auto-price-btn:hover {
+  background: linear-gradient(135deg, #85CE61, #67C23A);
+  opacity: 0.9;
 }
 
 .cancel-btn {
