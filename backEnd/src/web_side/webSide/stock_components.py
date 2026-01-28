@@ -916,7 +916,7 @@ def auto_fill_prices(steam_id):
     
     逻辑:
         1. 优先通过 goods_assetid 匹配 steam_inventory 表的 assetid 获取 buy_price（不管有没有磨损值）
-        2. 如果匹配不到，对于有 float 值的组件，使用 item_name + weapon_float 精确匹配 buy 表
+        2. 如果匹配不到，对于有 float 值的组件，使用 steam_hash_name + weapon_float 精确匹配 buy 表
         3. 对于没有 float 值的组件，使用 steam_hash_name 批量查询 buy 表的平均价格
     
     返回:
@@ -1037,24 +1037,25 @@ def auto_fill_prices(steam_id):
             else:
                 no_float_components.append((goods_assetid, item_name, steam_hash_name))
 
-        # 第三步：处理有 float 值的组件（逐个精确匹配 buy 表）
+        # 第三步：处理有 float 值的组件（逐个精确匹配 buy 表，仅使用 steam_hash_name）
         for goods_assetid, item_name, weapon_float, steam_hash_name in float_components:
             buy_price = None
             try:
                 float_value = float(weapon_float)
-                # 精确匹配：item_name + weapon_float
-                exact_price_sql = """
-                SELECT price
-                FROM buy
-                WHERE item_name = ? AND ABS(CAST(weapon_float AS REAL) - ?) < 0.0001
-                ORDER BY order_time DESC
-                LIMIT 1
-                """
-                exact_result = db.execute_query(exact_price_sql, (item_name, float_value))
+                # 精确匹配：steam_hash_name + weapon_float
+                if steam_hash_name and steam_hash_name not in ['', 'None']:
+                    exact_price_sql = """
+                    SELECT price
+                    FROM buy
+                    WHERE steam_hash_name = ? AND ABS(CAST(weapon_float AS REAL) - ?) < 0.0001
+                    ORDER BY order_time DESC
+                    LIMIT 1
+                    """
+                    exact_result = db.execute_query(exact_price_sql, (steam_hash_name, float_value))
 
-                if exact_result and exact_result[0][0] is not None:
-                    buy_price = exact_result[0][0]
-                    print(f"✅ 精确匹配（磨损值） - goods_assetid: {goods_assetid}, item_name: {item_name}, float: {weapon_float}, price: {buy_price}")
+                    if exact_result and exact_result[0][0] is not None:
+                        buy_price = exact_result[0][0]
+                        print(f"✅ 精确匹配（磨损值） - goods_assetid: {goods_assetid}, hash_name: {steam_hash_name}, float: {weapon_float}, price: {buy_price}")
             except (ValueError, TypeError):
                 pass
 
