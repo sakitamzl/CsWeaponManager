@@ -2,15 +2,14 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Layout from '@/views/Layout.vue'
 import Home from '@/views/Home.vue'
 import ItemSearch from '@/views/ItemSearch.vue'
-import Buy from '@/views/Buy.vue'
-import Sell from '@/views/Sell.vue'
+import Buy from '@/views/Buy/index.vue'
+import Sell from '@/views/Sell/index.vue'
 import OnSaleContainer from '@/views/on_sale/OnSaleContainer.vue'
 import Rental from '@/views/Rental.vue'
-import Lent from '@/views/Lent.vue'
+import Lent from '@/views/Lent/index.vue'
 import Inventory from '@/views/Inventory/index.vue'
-import Setting from '@/views/Setting.vue'
-import StockComponents from '@/views/StockComponents.vue'
-import Settings from '@/views/Settings.vue'
+import StockComponents from '@/views/StockComponents/index.vue'
+import Settings from '@/views/settings/index.vue'
 import DataWebsite from '@/views/data_website/DataWebsite.vue'
 import DataSpider from '@/views/data_spider/DataSpider.vue'
 import Login from '@/views/Login.vue'
@@ -97,12 +96,6 @@ const routes = [
         name: 'Inventory',
         component: Inventory,
         meta: { title: 'Steam库存' }
-      },
-      {
-        path: '/setting',
-        name: 'Setting',
-        component: Setting,
-        meta: { title: '设置' }
       },
       {
         path: '/stock-components',
