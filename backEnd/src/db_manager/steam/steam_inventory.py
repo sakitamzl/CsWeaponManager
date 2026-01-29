@@ -75,7 +75,7 @@ class SteamInventoryModel(BaseModel):
                 'type': 'TEXT',
                 'not_null': False,
                 'default': None,
-                'comment': '备注信息（交易保护等）'
+                'comment': '备注信息（owner_descriptions的所有内容，包括交易保护和可交易时间等）'
             },
             'data_user': {
                 'type': 'TEXT',

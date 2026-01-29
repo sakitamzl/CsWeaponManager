@@ -250,9 +250,14 @@ def insert_inventory():
         inventory_record.rename = rename_value if rename_value else None
         
         # 交易相关
-        # remark 存储交易保护信息，如果没有则为NULL
-        trade_lock_info = data.get('trade_lock_info')
-        inventory_record.remark = trade_lock_info if trade_lock_info else None
+        # remark 字段统一存储 owner_descriptions 的所有内容（remake 字段）
+        # 优先使用 remake 字段，如果没有则使用 trade_lock_info（保留兼容性）
+        remake = data.get('remake')
+        if remake:
+            inventory_record.remark = remake
+        else:
+            trade_lock_info = data.get('trade_lock_info')
+            inventory_record.remark = trade_lock_info if trade_lock_info else None
         
         # 印花和挂件信息 - 查询steam_hash_name并一起存储
         sticker_info = data.get('sticker')
@@ -373,7 +378,7 @@ def get_inventory_by_user(data_user):
                 'weapon_type': record.weapon_type,
                 'weapon_float': record.weapon_float,
                 'float_range': record.float_range,
-                'remark': record.remark,
+                'remark': record.remark,  # remark字段现在存储owner_descriptions的所有内容（remake）
                 'steam_hash_name': record.steam_hash_name,  # 添加steam_hash_name字段
                 'buy_price': record.buy_price,  # 添加buy_price字段
                 'yyyp_price': record.yyyp_price,  # 添加yyyp_price字段
@@ -568,9 +573,14 @@ def insert_inventory_batch():
                 inventory_record.weapon_certificate = certificate_value if certificate_value else None
                 
                 # 交易相关
-                # remark 存储交易保护信息，如果没有则为NULL
-                trade_lock_info = item_data.get('trade_lock_info')
-                inventory_record.remark = trade_lock_info if trade_lock_info else None
+                # remark 字段统一存储 owner_descriptions 的所有内容（remake 字段）
+                # 优先使用 remake 字段，如果没有则使用 trade_lock_info（保留兼容性）
+                remake = item_data.get('remake')
+                if remake:
+                    inventory_record.remark = remake
+                else:
+                    trade_lock_info = item_data.get('trade_lock_info')
+                    inventory_record.remark = trade_lock_info if trade_lock_info else None
                 
                 # 印花和挂件信息 - 查询steam_hash_name并一起存储
                 sticker_info = item_data.get('sticker')
