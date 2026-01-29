@@ -2899,14 +2899,85 @@ export default {
 
     // 处理出租表单提交
     const handleRentFormSubmit = async (formData) => {
-      console.log('出租表单提交:', formData)
-      console.log('选中的物品:', selectedItems.value)
+      console.log('[出租提交] 表单数据:', formData)
 
-      // TODO: 这里对接悠悠有品出租 API
-      ElMessage.info('出租功能API对接开发中...')
+      // 显示加载提示
+      const loading = ElLoading.service({
+        lock: true,
+        text: '正在上架出租...',
+        background: 'rgba(0, 0, 0, 0.7)'
+      })
 
-      // 暂时关闭表单
-      // rentFormVisible.value = false
+      try {
+        // 调用上架出租 API
+        const response = await axios.post(
+          `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/uploadRent`,
+          {
+            steamId: selectedSteamId.value,
+            items: formData.items.map(item => {
+              const itemData = {
+                assetid: item.assetid,
+                shortRentPrice: item.shortRentPrice,
+                depositPrice: item.depositPrice,
+                rentDays: formData.rentDays,
+                tradeMode: formData.tradeMode,
+                zeroCooldown: formData.services.zeroCooldown,
+                rentActivity: formData.services.rentActivity,
+                price: item.price || null,
+                remark: ''
+              }
+
+              // 仅当租期>21天时才传递长租价格
+              if (formData.rentDays > 21 && item.longRentPrice) {
+                itemData.longRentPrice = item.longRentPrice
+              }
+
+              return itemData
+            })
+          }
+        )
+
+        if (response.data.success) {
+          const stats = response.data.stats
+          const failedItems = response.data.data.filter(item => item.Status === 0)
+
+          // 显示结果
+          if (stats.failed === 0) {
+            ElMessage.success(`成功上架 ${stats.success} 个饰品！`)
+          } else {
+            // 有失败的饰品，显示详细信息
+            const failedMessages = failedItems.map(item => {
+              const itemName = selectedItems.value.find(i => i.assetid === item.AssetId)?.steam_hash_name || item.AssetId
+              return `${itemName}: ${item.Remark}`
+            }).join('\n')
+
+            ElMessageBox.alert(
+              `成功: ${stats.success} 个\n失败: ${stats.failed} 个\n\n失败原因:\n${failedMessages}`,
+              '上架结果',
+              {
+                confirmButtonText: '确定',
+                type: stats.success > 0 ? 'warning' : 'error'
+              }
+            )
+          }
+
+          // 关闭表单
+          rentFormVisible.value = false
+
+          // 刷新库存列表
+          await loadInventoryData()
+
+          console.log('[出租提交] 上架成功:', response.data)
+        } else {
+          ElMessage.error(response.data.message || '上架失败')
+          console.error('[出租提交] 上架失败:', response.data.message)
+        }
+      } catch (error) {
+        console.error('[出租提交] 请求失败:', error)
+        ElMessage.error('上架失败，请重试')
+      } finally {
+        loading.close()
+      }
     }
     
     // 验证单个物品的价格输入

@@ -155,8 +155,9 @@
                 class="price-input"
               />
 
-              <!-- 长租租金 -->
+              <!-- 长租租金（仅租期>21天时显示） -->
               <el-input
+                v-if="showLongRentPrice"
                 v-model="itemFormMap[item.assetid].longRentPrice"
                 placeholder="长租租金"
                 class="price-input"
@@ -316,6 +317,12 @@ export default {
     // 是否可以启用0CD出租（需要同时满足：后端支持 + 有折扣活动）
     const canEnableZeroCD = computed(() => {
       return hasStrikethrough.value && firstItemConfig.value?.enableZeroCD === true
+    })
+
+    // 是否显示长租价格输入框（租期>21天时显示）
+    const showLongRentPrice = computed(() => {
+      const currentDays = formData.rentDays === 'custom' ? formData.customDays : formData.rentDays
+      return currentDays && currentDays > 21
     })
 
     // 租送活动
@@ -745,6 +752,7 @@ export default {
       compensationRichText,
       hasStrikethrough,
       canEnableZeroCD,
+      showLongRentPrice,
       rentActivities,
       rentActivityDesc,
       toggleService,
