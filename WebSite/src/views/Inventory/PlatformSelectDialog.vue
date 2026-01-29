@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="visible"
-    title="选择出租平台"
+    :title="dialogTitle"
     width="500px"
     :close-on-click-modal="false"
     class="platform-select-dialog"
@@ -10,7 +10,7 @@
     <div class="platform-select-content">
       <div class="platform-tip">
         <el-icon class="tip-icon"><InfoFilled /></el-icon>
-        <span>请选择要将饰品上架的平台</span>
+        <span>{{ tipText }}</span>
       </div>
 
       <div class="platform-list">
@@ -25,7 +25,7 @@
           </div>
           <div class="platform-info">
             <div class="platform-name">悠悠有品</div>
-            <div class="platform-desc">支持短租、长租多种模式</div>
+            <div class="platform-desc" v-if="isRentMode">支持短租、长租多种模式</div>
           </div>
           <div class="platform-check">
             <el-icon v-if="selectedPlatform === 'yyyp'" class="check-icon"><Check /></el-icon>
@@ -35,7 +35,7 @@
         <!-- BUFF (预留) -->
         <div
           class="platform-card disabled"
-          title="BUFF 出租功能开发中..."
+          :title="`BUFF ${isRentMode ? '出租' : '出售'}功能开发中...`"
         >
           <div class="platform-icon buff-icon">
             <span>B</span>
@@ -72,7 +72,7 @@
 </template>
 
 <script>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { InfoFilled, Check, Box } from '@element-plus/icons-vue'
 
 export default {
@@ -90,12 +90,22 @@ export default {
     itemCount: {
       type: Number,
       default: 0
+    },
+    mode: {
+      type: String,
+      default: 'rent', // 'rent' 或 'sell'
+      validator: (value) => ['rent', 'sell'].includes(value)
     }
   },
   emits: ['update:modelValue', 'select', 'cancel'],
   setup(props, { emit }) {
     const visible = ref(props.modelValue)
     const selectedPlatform = ref('yyyp') // 默认选中悠悠有品
+
+    // 计算属性
+    const isRentMode = computed(() => props.mode === 'rent')
+    const dialogTitle = computed(() => isRentMode.value ? '选择出租平台' : '选择出售平台')
+    const tipText = computed(() => isRentMode.value ? '请选择要将饰品出租的平台' : '请选择要将饰品出售的平台')
 
     watch(() => props.modelValue, (newVal) => {
       visible.value = newVal
@@ -128,6 +138,9 @@ export default {
     return {
       visible,
       selectedPlatform,
+      isRentMode,
+      dialogTitle,
+      tipText,
       handleCancel,
       handleConfirm,
       handleClosed

@@ -1145,9 +1145,8 @@
       </div>
       
       <template #footer>
-        <el-button type="success" @click="confirmSellRent('yyyp')" :loading="submitting">上架悠悠</el-button>
-        <el-button type="success" @click="confirmSellRent('buff')" :loading="submitting" disabled>上架BUFF</el-button>
-        <el-button type="success" @click="confirmSellRent('csfl')" :loading="submitting" disabled>上架CSFL</el-button>
+        <el-button @click="sellRentDialogVisible = false">取消</el-button>
+        <el-button type="success" @click="confirmSellRent(selectedRentPlatform)" :loading="submitting">上架</el-button>
       </template>
     </el-dialog>
 
@@ -1324,6 +1323,7 @@
     <PlatformSelectDialog
       v-model="platformSelectVisible"
       :item-count="selectedItems.length"
+      :mode="sellRentDialogType"
       @select="handlePlatformSelect"
       @cancel="handlePlatformSelectCancel"
     />
@@ -1353,8 +1353,8 @@ import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { ArrowDown, Loading, Close, Star, Box, Upload, InfoFilled } from '@element-plus/icons-vue'
 import axios from 'axios'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
-import PlatformSelectDialog from './Inventory/PlatformSelectDialog.vue'
-import RentFormYYYP from './Inventory/RentFormYYYP.vue'
+import PlatformSelectDialog from './PlatformSelectDialog.vue'
+import RentFormYYYP from './RentFormYYYP.vue'
 
 export default {
   name: 'Inventory',
@@ -2747,19 +2747,15 @@ export default {
       loadingYYYPPrices.value = false
     }
     
-    // 显示出售弹窗
-    const showSellDialog = async () => {
+    // 显示出售弹窗 - 改为先选择平台
+    const showSellDialog = () => {
       if (selectedItems.value.length === 0) {
         ElMessage.warning('请先选择要出售的物品')
         return
       }
+      // 打开平台选择对话框
       sellRentDialogType.value = 'sell'
-      sellRentDialogTitle.value = '出售物品'
-      initItemForms()
-      sellRentDialogVisible.value = true
-      
-      // 异步查询悠悠底价
-      fetchAllYYYPRealtimePrices()
+      platformSelectVisible.value = true
     }
     
     // 显示出租弹窗 - 改为先选择平台
@@ -2775,47 +2771,63 @@ export default {
     // 处理平台选择
     const handlePlatformSelect = async (platform) => {
       selectedRentPlatform.value = platform
+      const actionType = sellRentDialogType.value // 'sell' 或 'rent'
 
       if (platform === 'yyyp') {
-        // 显示加载提示
-        const loading = ElLoading.service({
-          lock: true,
-          text: '正在获取出租配置...',
-          background: 'rgba(0, 0, 0, 0.7)'
-        })
+        if (actionType === 'rent') {
+          // 出租流程
+          // 显示加载提示
+          const loading = ElLoading.service({
+            lock: true,
+            text: '正在获取出租配置...',
+            background: 'rgba(0, 0, 0, 0.7)'
+          })
 
-        try {
-          // 调用 init API
-          const response = await axios.post(
-            `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/rentInit`,
-            {
-              steamId: selectedSteamId.value,
-              // 直接传 steam_hash_name 列表，后端 rentInit 会按该列表请求悠悠有品 init
-              steam_hash_name: selectedItems.value.map(item => item.steam_hash_name)
+          try {
+            // 调用 init API
+            const response = await axios.post(
+              `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/rentInit`,
+              {
+                steamId: selectedSteamId.value,
+                // 直接传 steam_hash_name 列表，后端 rentInit 会按该列表请求悠悠有品 init
+                steam_hash_name: selectedItems.value.map(item => item.steam_hash_name)
+              }
+            )
+
+            if (response.data.success) {
+              // 保存 init 数据
+              rentInitData.value = response.data.data
+
+              // 打开悠悠有品出租表单
+              rentFormVisible.value = true
+
+              console.log('[出租] 获取配置成功')
+            } else {
+              ElMessage.error(response.data.message || '获取出租配置失败')
+              console.error('[出租] 获取配置失败:', response.data.message)
             }
-          )
-
-          if (response.data.success) {
-            // 保存 init 数据
-            rentInitData.value = response.data.data
-
-            // 打开悠悠有品出租表单
-            rentFormVisible.value = true
-
-            console.log('[出租] 获取配置成功')
-          } else {
-            ElMessage.error(response.data.message || '获取出租配置失败')
-            console.error('[出租] 获取配置失败:', response.data.message)
+          } catch (error) {
+            console.error('获取出租配置失败:', error)
+            ElMessage.error('获取出租配置失败，请重试')
+          } finally {
+            loading.close()
           }
-        } catch (error) {
-          console.error('获取出租配置失败:', error)
-          ElMessage.error('获取出租配置失败，请重试')
-        } finally {
-          loading.close()
+        } else if (actionType === 'sell') {
+          // 出售流程
+          sellRentDialogTitle.value = '出售物品'
+          initItemForms()
+          sellRentDialogVisible.value = true
+
+          // 异步查询悠悠底价
+          fetchAllYYYPRealtimePrices()
         }
       } else if (platform === 'buff') {
-        // BUFF 出租功能待开发
-        ElMessage.info('BUFF出租功能开发中，敬请期待...')
+        // BUFF 功能待开发
+        if (actionType === 'rent') {
+          ElMessage.info('BUFF出租功能开发中，敬请期待...')
+        } else {
+          ElMessage.info('BUFF出售功能开发中，敬请期待...')
+        }
       }
     }
 
