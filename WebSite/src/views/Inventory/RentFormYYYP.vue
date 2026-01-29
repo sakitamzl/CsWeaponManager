@@ -37,6 +37,7 @@
               <!-- 0CD出租 -->
               <div
                 class="service-item-inline service-switch-item"
+                :class="{ disabled: !canEnableZeroCD }"
               >
                 <span class="service-label">
                   <span class="service-badge zero-cd">0CD</span>
@@ -44,6 +45,7 @@
                 <el-switch
                   v-model="formData.services.zeroCooldown"
                   size="large"
+                  :disabled="!canEnableZeroCD"
                 />
               </div>
 
@@ -302,9 +304,18 @@ export default {
       return vipRate ? (vipRate * 100).toFixed(0) : null
     })
 
-    // 是否支持0CD出租
-    const enableZeroCDRent = computed(() => {
-      return firstItemConfig.value?.enableZeroCD === true
+    // 检测赔付文本中是否有删除线（表示有折扣活动）
+    const hasStrikethrough = computed(() => {
+      if (!compensationRichText.value) {
+        return false
+      }
+      // 检查HTML中是否包含 text-decoration: line-through
+      return compensationRichText.value.includes('text-decoration: line-through')
+    })
+
+    // 是否可以启用0CD出租（需要同时满足：后端支持 + 有折扣活动）
+    const canEnableZeroCD = computed(() => {
+      return hasStrikethrough.value && firstItemConfig.value?.enableZeroCD === true
     })
 
     // 租送活动
@@ -351,58 +362,101 @@ export default {
 
     // 获取赔付文本
     const fetchCompensationText = async () => {
+      console.log('[DEBUG] fetchCompensationText called')
+      console.log('[DEBUG] props.items:', props.items)
+      console.log('[DEBUG] props.steamId:', props.steamId)
+
       if (!props.items || props.items.length === 0) {
+        console.log('[DEBUG] No items, returning early')
         return
       }
 
       try {
         // 使用第一个饰品的数据
         const firstItem = props.items[0]
+        console.log('[DEBUG] firstItem:', firstItem)
 
         // 构建itemInfo
         const itemInfo = {
-          abrade: firstItem.weapon_float || '0',
+          abrade: String(firstItem.weapon_float || firstItem.float || '0'),
           leaseType: formData.tradeMode === 1 ? 0 : 1,  // 0=租赁, 1=可租可售
           marketHashName: firstItem.steam_hash_name || firstItem.name,
           marketPrice: String(firstItem.yyyp_Price || firstItem.weapon_classID?.yyyp_Price || '0'),
           pageSourceType: 10,
-          paintSeed: firstItem.paintseed || 0,
-          steamAssetId: firstItem.assetid || 0,
+          paintSeed: parseInt(firstItem.paintseed || 0),
+          steamAssetId: parseInt(firstItem.assetid || 0),
           supportEasyCompensation: false,
-          templateId: firstItem.weapon_classID?.yyyp_id || 0
+          templateId: parseInt(firstItem.weapon_classID?.yyyp_id || 0)
         }
+        console.log('[DEBUG] itemInfo:', itemInfo)
 
-        const response = await fetch(`${window.location.origin.replace('9003', '9005')}/youping898SpiderV1/getCompensationText`, {
+        const requestBody = {
+          steamId: props.steamId || '',
+          itemInfo: itemInfo
+        }
+        console.log('[DEBUG] Request body:', requestBody)
+
+        const apiUrl = `${window.location.origin.replace('9003', '9005')}/youping898SpiderV1/getCompensationText`
+        console.log('[DEBUG] API URL:', apiUrl)
+
+        const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            steamId: firstItem.steamId || '',
-            itemInfo: itemInfo
-          })
+          body: JSON.stringify(requestBody)
         })
 
+        console.log('[DEBUG] Response status:', response.status)
         const result = await response.json()
+        console.log('[DEBUG] Response result:', result)
 
         if (result.success && result.data) {
           // 使用富文本HTML
           const richContent = result.data.compensationRichContent
+          console.log('[DEBUG] Rich content:', richContent)
           if (richContent) {
             compensationRichText.value = richContent
+            console.log('[DEBUG] Compensation text set successfully')
           }
+        } else {
+          console.log('[DEBUG] Response not successful or no data')
         }
       } catch (error) {
-        console.error('获取赔付文本失败:', error)
+        console.error('[DEBUG] Error in fetchCompensationText:', error)
         // 失败时保留默认值
       }
     }
 
     watch(
       () => [props.initData, props.items],
-      () => {
+      (newVal, oldVal) => {
+        console.log('[DEBUG] Watch triggered')
+        console.log('[DEBUG] New initData:', newVal[0])
+        console.log('[DEBUG] New items:', newVal[1])
+        console.log('[DEBUG] Old initData:', oldVal?.[0])
+        console.log('[DEBUG] Old items:', oldVal?.[1])
+
         initForms()
-        fetchCompensationText()  // 获取赔付文本
+
+        // 直接从 initData 中获取赔付文本（已在 handleRentPlatformSelect 中预加载）
+        if (props.initData?.compensationRichContent) {
+          compensationRichText.value = props.initData.compensationRichContent
+          console.log('[DEBUG] 从 initData 加载赔付文本:', props.initData.compensationRichContent)
+
+          // 检测是否有删除线，如果有则自动开启0CD
+          if (hasStrikethrough.value && firstItemConfig.value?.enableZeroCD === true) {
+            formData.services.zeroCooldown = true
+            console.log('[DEBUG] 检测到折扣活动，自动开启0CD')
+          } else {
+            formData.services.zeroCooldown = false
+            console.log('[DEBUG] 无折扣活动或不支持0CD，禁用0CD')
+          }
+        } else {
+          // 如果 initData 中没有，则尝试请求API（降级方案）
+          console.log('[DEBUG] initData 中没有赔付文本，尝试请求API')
+          fetchCompensationText()
+        }
       },
       { immediate: true, deep: true }
     )
@@ -689,7 +743,8 @@ export default {
       serviceFeeRate,
       vipServiceFeeRate,
       compensationRichText,
-      enableZeroCDRent,
+      hasStrikethrough,
+      canEnableZeroCD,
       rentActivities,
       rentActivityDesc,
       toggleService,
@@ -1146,8 +1201,18 @@ export default {
 
 .compensation-text {
   font-size: 0.9rem;
-  color: #fff;
+  line-height: 1.5;
   margin-bottom: 0.25rem;
+}
+
+/* 确保富文本中的内联样式能够正确显示 */
+.compensation-text span {
+  display: inline;
+}
+
+/* 删除线样式 */
+.compensation-text span[style*="text-decoration: line-through"] {
+  text-decoration: line-through !important;
 }
 
 .service-fee {
@@ -1208,6 +1273,21 @@ export default {
 
 .service-switch-item:hover {
   background: rgba(255, 255, 255, 0.05);
+}
+
+/* 禁用状态样式 */
+.service-switch-item.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.service-switch-item.disabled:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.service-switch-item.disabled .service-badge {
+  opacity: 0.6;
 }
 
 .service-switch-item .service-label {

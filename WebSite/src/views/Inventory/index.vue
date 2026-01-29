@@ -2813,27 +2813,62 @@ export default {
         })
 
         try {
-          // 调用 init API
-          const response = await axios.post(
-            `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/rentInit`,
-            {
-              steamId: selectedSteamId.value,
-              // 直接传 steam_hash_name 列表，后端 rentInit 会按该列表请求悠悠有品 init
-              steam_hash_name: selectedItems.value.map(item => item.steam_hash_name)
-            }
-          )
+          // 并发调用 rentInit 和 getCompensationText API
+          const firstItem = selectedItems.value[0]
 
-          if (response.data.success) {
+          // 构建赔付文本请求的 itemInfo
+          const itemInfo = {
+            abrade: String(firstItem.weapon_float || '0'),
+            leaseType: 0,  // 默认租赁模式
+            marketHashName: firstItem.steam_hash_name || firstItem.item_name,
+            marketPrice: String(firstItem.yyyp_Price || firstItem.weapon_classID?.yyyp_Price || '0'),
+            pageSourceType: 10,
+            paintSeed: parseInt(firstItem.paintseed || 0),
+            steamAssetId: parseInt(firstItem.assetid || 0),
+            supportEasyCompensation: false,
+            templateId: parseInt(firstItem.weapon_classID?.yyyp_id || 0)
+          }
+
+          console.log('[出租] 开始并发请求 rentInit 和 getCompensationText')
+          console.log('[出租] itemInfo:', itemInfo)
+
+          // 并发请求
+          const [initResponse, compensationResponse] = await Promise.all([
+            axios.post(
+              `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/rentInit`,
+              {
+                steamId: selectedSteamId.value,
+                steam_hash_name: selectedItems.value.map(item => item.steam_hash_name)
+              }
+            ),
+            axios.post(
+              `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getCompensationText`,
+              {
+                steamId: selectedSteamId.value,
+                itemInfo: itemInfo
+              }
+            )
+          ])
+
+          if (initResponse.data.success) {
             // 保存 init 数据
-            rentInitData.value = response.data.data
+            rentInitData.value = initResponse.data.data
+
+            // 保存赔付文本到 initData 中，方便 RentFormYYYP 使用
+            if (compensationResponse.data.success && compensationResponse.data.data) {
+              rentInitData.value.compensationRichContent = compensationResponse.data.data.compensationRichContent
+              console.log('[出租] 赔付文本获取成功:', compensationResponse.data.data.compensationRichContent)
+            } else {
+              console.warn('[出租] 赔付文本获取失败:', compensationResponse.data.message)
+            }
 
             // 打开悠悠有品出租表单
             rentFormVisible.value = true
 
             console.log('[出租] 获取配置成功')
           } else {
-            ElMessage.error(response.data.message || '获取出租配置失败')
-            console.error('[出租] 获取配置失败:', response.data.message)
+            ElMessage.error(initResponse.data.message || '获取出租配置失败')
+            console.error('[出租] 获取配置失败:', initResponse.data.message)
           }
         } catch (error) {
           console.error('获取出租配置失败:', error)
@@ -3448,6 +3483,10 @@ export default {
         steam_hash_name: item.steam_hash_name || item.item_name,
         image: getWeaponImage(item.steam_hash_name),
         float: item.weapon_float,
+        weapon_float: item.weapon_float,
+        paintseed: item.paintseed,
+        yyyp_Price: item.yyyp_Price,
+        weapon_classID: item.weapon_classID,
         buyPrice: item.buy_price ? parseFloat(item.buy_price).toFixed(2) : null
       }))
     })
