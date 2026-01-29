@@ -132,7 +132,9 @@
         <div class="action-buttons">
           <el-button type="danger" @click="selectedItems = []">清空选择</el-button>
           <el-button type="success">批量改价</el-button>
-          <el-button type="primary" @click="handleBatchRemoveFromSale">批量下架</el-button>
+          <el-button type="primary" @click="handleBatchRemoveFromSale">
+            {{ selectedTradeType === 'sublease' ? '批量取消转租' : '批量下架' }}
+          </el-button>
         </div>
       </div>
 
@@ -306,7 +308,7 @@
                   改价
                 </el-button>
                 <el-button size="small" type="primary" @click.stop="handleRemoveFromSale(item)">
-                  下架
+                  {{ item.trade_type === 'sublease' ? '取消转租' : '下架' }}
                 </el-button>
               </div>
             </div>
@@ -504,7 +506,7 @@
               改价
             </el-button>
             <el-button size="small" type="primary" @click.stop="handleRemoveFromSale(scope.row)">
-              下架
+              {{ scope.row.trade_type === 'sublease' ? '取消转租' : '下架' }}
             </el-button>
           </template>
         </el-table-column>
@@ -620,7 +622,9 @@
               </div>
               <div class="preview-action-buttons">
                 <el-button type="success" @click="handleUpdatePrice(previewItem)">修改售价</el-button>
-                <el-button type="primary" @click="handleRemoveFromSale(previewItem)">下架商品</el-button>
+                <el-button type="primary" @click="handleRemoveFromSale(previewItem)">
+                  {{ previewItem.trade_type === 'sublease' ? '取消转租' : '下架商品' }}
+                </el-button>
               </div>
             </div>
           </div>
@@ -798,7 +802,9 @@ export default {
     // 处理交易类型切换
     const handleTradeTypeChange = (tradeType) => {
       selectedTradeType.value = tradeType
-      // 切换交易类型时重新加载数据
+      // 切换交易类型时清空多选
+      selectedItems.value = []
+      // 重新加载数据
       loadOnSaleData()
     }
 
