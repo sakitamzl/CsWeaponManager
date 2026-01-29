@@ -8,17 +8,11 @@
     @closed="handleClosed"
   >
     <div class="platform-select-content">
-      <div class="platform-tip">
-        <el-icon class="tip-icon"><InfoFilled /></el-icon>
-        <span>{{ tipText }}</span>
-      </div>
-
       <div class="platform-list">
         <!-- 悠悠有品 -->
         <div
-          class="platform-card"
-          :class="{ selected: selectedPlatform === 'yyyp' }"
-          @click="selectedPlatform = 'yyyp'"
+          class="platform-card clickable"
+          @click="handleCardClick('yyyp')"
         >
           <div class="platform-icon yyyp-icon">
             <span>悠</span>
@@ -26,9 +20,6 @@
           <div class="platform-info">
             <div class="platform-name">悠悠有品</div>
             <div class="platform-desc" v-if="isRentMode">支持短租、长租多种模式</div>
-          </div>
-          <div class="platform-check">
-            <el-icon v-if="selectedPlatform === 'yyyp'" class="check-icon"><Check /></el-icon>
           </div>
         </div>
 
@@ -55,19 +46,6 @@
         <span>已选择 {{ itemCount }} 件饰品</span>
       </div>
     </div>
-
-    <template #footer>
-      <div class="dialog-footer">
-        <el-button @click="handleCancel">取消</el-button>
-        <el-button
-          type="primary"
-          @click="handleConfirm"
-          :disabled="!selectedPlatform"
-        >
-          下一步
-        </el-button>
-      </div>
-    </template>
   </el-dialog>
 </template>
 
@@ -135,6 +113,12 @@ export default {
       selectedPlatform.value = 'yyyp'
     }
 
+    const handleCardClick = (platform) => {
+      selectedPlatform.value = platform
+      // 直接触发确认
+      handleConfirm()
+    }
+
     return {
       visible,
       selectedPlatform,
@@ -143,7 +127,8 @@ export default {
       tipText,
       handleCancel,
       handleConfirm,
-      handleClosed
+      handleClosed,
+      handleCardClick
     }
   }
 }
@@ -214,17 +199,20 @@ export default {
   position: relative;
 }
 
-.platform-card:hover:not(.disabled) {
+.platform-card.clickable {
+  cursor: pointer;
+}
+
+.platform-card.clickable:hover {
   background: #333;
   border-color: #4a4a4a;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-.platform-card.selected {
-  background: rgba(64, 158, 255, 0.1);
-  border-color: #409EFF;
-  box-shadow: 0 0 0 1px #409EFF;
+.platform-card.clickable:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 .platform-card.disabled {
@@ -267,29 +255,6 @@ export default {
 .platform-desc {
   font-size: 0.85rem;
   color: #999;
-}
-
-.platform-check {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.check-icon {
-  font-size: 1.5rem;
-  color: #409EFF;
-  animation: scaleIn 0.3s ease;
-}
-
-@keyframes scaleIn {
-  from {
-    transform: scale(0);
-  }
-  to {
-    transform: scale(1);
-  }
 }
 
 .platform-badge {

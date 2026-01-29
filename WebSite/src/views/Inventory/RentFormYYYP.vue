@@ -27,11 +27,7 @@
               <span class="icon-badge">V</span>
             </div>
             <div class="compensation-content">
-              <div class="compensation-text">买断或不归还，全额赔押金，赔付服务费</div>
-              <div class="service-fee">
-                <span class="fee-value highlight">{{ serviceFeeRate }}%</span>
-                <span v-if="vipServiceFeeRate" class="fee-original">{{ vipServiceFeeRate }}%</span>
-              </div>
+              <div class="compensation-text" v-html="compensationRichText"></div>
             </div>
           </div>
 
@@ -220,6 +216,9 @@ export default {
   setup(props, { emit }) {
     const autoPricingLoading = ref(false)
 
+    // 赔付文本（富文本HTML）
+    const compensationRichText = ref('')
+
     // 全局表单数据（交易方式/租期/增值服务）
     const formData = reactive({
       tradeMode: 1, // 默认租赁
@@ -350,10 +349,60 @@ export default {
       }
     }
 
+    // 获取赔付文本
+    const fetchCompensationText = async () => {
+      if (!props.items || props.items.length === 0) {
+        return
+      }
+
+      try {
+        // 使用第一个饰品的数据
+        const firstItem = props.items[0]
+
+        // 构建itemInfo
+        const itemInfo = {
+          abrade: firstItem.weapon_float || '0',
+          leaseType: formData.tradeMode === 1 ? 0 : 1,  // 0=租赁, 1=可租可售
+          marketHashName: firstItem.steam_hash_name || firstItem.name,
+          marketPrice: String(firstItem.yyyp_Price || firstItem.weapon_classID?.yyyp_Price || '0'),
+          pageSourceType: 10,
+          paintSeed: firstItem.paintseed || 0,
+          steamAssetId: firstItem.assetid || 0,
+          supportEasyCompensation: false,
+          templateId: firstItem.weapon_classID?.yyyp_id || 0
+        }
+
+        const response = await fetch(`${window.location.origin.replace('9003', '9005')}/youping898SpiderV1/getCompensationText`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            steamId: firstItem.steamId || '',
+            itemInfo: itemInfo
+          })
+        })
+
+        const result = await response.json()
+
+        if (result.success && result.data) {
+          // 使用富文本HTML
+          const richContent = result.data.compensationRichContent
+          if (richContent) {
+            compensationRichText.value = richContent
+          }
+        }
+      } catch (error) {
+        console.error('获取赔付文本失败:', error)
+        // 失败时保留默认值
+      }
+    }
+
     watch(
       () => [props.initData, props.items],
       () => {
         initForms()
+        fetchCompensationText()  // 获取赔付文本
       },
       { immediate: true, deep: true }
     )
@@ -639,6 +688,7 @@ export default {
       depositTip,
       serviceFeeRate,
       vipServiceFeeRate,
+      compensationRichText,
       enableZeroCDRent,
       rentActivities,
       rentActivityDesc,
