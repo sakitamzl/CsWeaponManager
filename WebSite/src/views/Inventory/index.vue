@@ -1319,13 +1319,22 @@
       </div>
     </el-dialog>
 
-    <!-- 平台选择对话框 -->
+    <!-- 出售平台选择对话框 -->
     <PlatformSelectDialog
-      v-model="platformSelectVisible"
+      v-model="sellPlatformSelectVisible"
       :item-count="selectedItems.length"
-      :mode="sellRentDialogType"
-      @select="handlePlatformSelect"
-      @cancel="handlePlatformSelectCancel"
+      mode="sell"
+      @select="handleSellPlatformSelect"
+      @cancel="handleSellPlatformSelectCancel"
+    />
+
+    <!-- 出租平台选择对话框 -->
+    <PlatformSelectDialog
+      v-model="rentPlatformSelectVisible"
+      :item-count="selectedItems.length"
+      mode="rent"
+      @select="handleRentPlatformSelect"
+      @cancel="handleRentPlatformSelectCancel"
     />
 
     <!-- 悠悠有品出租表单对话框 -->
@@ -1453,8 +1462,11 @@ export default {
     const isGroupedView = ref(false) // 是否组合显示
     const expandedGroups = ref({}) // 记录哪些组是展开的
 
+    // 出售平台选择对话框
+    const sellPlatformSelectVisible = ref(false) // 出售平台选择对话框
+
     // 出租相关状态
-    const platformSelectVisible = ref(false) // 平台选择对话框
+    const rentPlatformSelectVisible = ref(false) // 出租平台选择对话框
     const rentFormVisible = ref(false) // 出租表单对话框
     const selectedRentPlatform = ref('') // 选中的出租平台
     const rentInitData = ref(null) // 出租 init 数据
@@ -2753,86 +2765,94 @@ export default {
         ElMessage.warning('请先选择要出售的物品')
         return
       }
-      // 打开平台选择对话框
+      // 打开出售平台选择对话框
       sellRentDialogType.value = 'sell'
-      platformSelectVisible.value = true
+      sellPlatformSelectVisible.value = true
     }
-    
+
     // 显示出租弹窗 - 改为先选择平台
     const showRentDialog = () => {
       if (selectedItems.value.length === 0) {
         ElMessage.warning('请先选择要出租的物品')
         return
       }
-      // 打开平台选择对话框
-      platformSelectVisible.value = true
+      // 打开出租平台选择对话框
+      sellRentDialogType.value = 'rent'
+      rentPlatformSelectVisible.value = true
     }
 
-    // 处理平台选择
-    const handlePlatformSelect = async (platform) => {
+    // 处理出售平台选择
+    const handleSellPlatformSelect = async (platform) => {
       selectedRentPlatform.value = platform
-      const actionType = sellRentDialogType.value // 'sell' 或 'rent'
 
       if (platform === 'yyyp') {
-        if (actionType === 'rent') {
-          // 出租流程
-          // 显示加载提示
-          const loading = ElLoading.service({
-            lock: true,
-            text: '正在获取出租配置...',
-            background: 'rgba(0, 0, 0, 0.7)'
-          })
+        // 出售流程
+        sellRentDialogTitle.value = '出售物品'
+        initItemForms()
+        sellRentDialogVisible.value = true
 
-          try {
-            // 调用 init API
-            const response = await axios.post(
-              `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/rentInit`,
-              {
-                steamId: selectedSteamId.value,
-                // 直接传 steam_hash_name 列表，后端 rentInit 会按该列表请求悠悠有品 init
-                steam_hash_name: selectedItems.value.map(item => item.steam_hash_name)
-              }
-            )
-
-            if (response.data.success) {
-              // 保存 init 数据
-              rentInitData.value = response.data.data
-
-              // 打开悠悠有品出租表单
-              rentFormVisible.value = true
-
-              console.log('[出租] 获取配置成功')
-            } else {
-              ElMessage.error(response.data.message || '获取出租配置失败')
-              console.error('[出租] 获取配置失败:', response.data.message)
-            }
-          } catch (error) {
-            console.error('获取出租配置失败:', error)
-            ElMessage.error('获取出租配置失败，请重试')
-          } finally {
-            loading.close()
-          }
-        } else if (actionType === 'sell') {
-          // 出售流程
-          sellRentDialogTitle.value = '出售物品'
-          initItemForms()
-          sellRentDialogVisible.value = true
-
-          // 异步查询悠悠底价
-          fetchAllYYYPRealtimePrices()
-        }
+        // 异步查询悠悠底价
+        fetchAllYYYPRealtimePrices()
       } else if (platform === 'buff') {
-        // BUFF 功能待开发
-        if (actionType === 'rent') {
-          ElMessage.info('BUFF出租功能开发中，敬请期待...')
-        } else {
-          ElMessage.info('BUFF出售功能开发中，敬请期待...')
-        }
+        // BUFF 出售功能待开发
+        ElMessage.info('BUFF出售功能开发中，敬请期待...')
       }
     }
 
-    // 取消平台选择
-    const handlePlatformSelectCancel = () => {
+    // 处理出租平台选择
+    const handleRentPlatformSelect = async (platform) => {
+      selectedRentPlatform.value = platform
+
+      if (platform === 'yyyp') {
+        // 出租流程 - 显示加载提示
+        const loading = ElLoading.service({
+          lock: true,
+          text: '正在获取出租配置...',
+          background: 'rgba(0, 0, 0, 0.7)'
+        })
+
+        try {
+          // 调用 init API
+          const response = await axios.post(
+            `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/rentInit`,
+            {
+              steamId: selectedSteamId.value,
+              // 直接传 steam_hash_name 列表，后端 rentInit 会按该列表请求悠悠有品 init
+              steam_hash_name: selectedItems.value.map(item => item.steam_hash_name)
+            }
+          )
+
+          if (response.data.success) {
+            // 保存 init 数据
+            rentInitData.value = response.data.data
+
+            // 打开悠悠有品出租表单
+            rentFormVisible.value = true
+
+            console.log('[出租] 获取配置成功')
+          } else {
+            ElMessage.error(response.data.message || '获取出租配置失败')
+            console.error('[出租] 获取配置失败:', response.data.message)
+          }
+        } catch (error) {
+          console.error('获取出租配置失败:', error)
+          ElMessage.error('获取出租配置失败，请重试')
+        } finally {
+          loading.close()
+        }
+      } else if (platform === 'buff') {
+        // BUFF 出租功能待开发
+        ElMessage.info('BUFF出租功能开发中，敬请期待...')
+      }
+    }
+
+    // 取消出售平台选择
+    const handleSellPlatformSelectCancel = () => {
+      selectedRentPlatform.value = ''
+    }
+
+    // 取消出租平台选择
+    const handleRentPlatformSelectCancel = () => {
       selectedRentPlatform.value = ''
     }
 
@@ -3663,14 +3683,18 @@ export default {
       yyypRealtimePrices,
       loadingYYYPPrices,
       confirmSellRent,
+      // 出售平台选择
+      sellPlatformSelectVisible,
+      handleSellPlatformSelect,
+      handleSellPlatformSelectCancel,
       // 出租功能
-      platformSelectVisible,
+      rentPlatformSelectVisible,
       rentFormVisible,
       selectedRentPlatform,
       rentInitData,
       formattedSelectedItems,
-      handlePlatformSelect,
-      handlePlatformSelectCancel,
+      handleRentPlatformSelect,
+      handleRentPlatformSelectCancel,
       handleRentFormClosed,
       handleRentFormSubmit,
       // 组合显示

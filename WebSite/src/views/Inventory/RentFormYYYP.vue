@@ -37,28 +37,31 @@
 
           <!-- 增值服务 -->
           <div class="trade-card services-card">
-            <div class="services-title">增值服务</div>
             <div class="value-added-inline">
               <!-- 0CD出租 -->
               <div
-                v-if="enableZeroCDRent"
-                class="service-item-inline"
-                @click="toggleService('zeroCooldown')"
+                class="service-item-inline service-switch-item"
               >
-                <el-checkbox v-model="formData.services.zeroCooldown">
+                <span class="service-label">
                   <span class="service-badge zero-cd">0CD</span>
-                </el-checkbox>
+                </span>
+                <el-switch
+                  v-model="formData.services.zeroCooldown"
+                  size="large"
+                />
               </div>
 
               <!-- 租送活动 -->
               <div
-                v-if="rentActivities.length > 0"
-                class="service-item-inline"
-                @click="toggleService('rentActivity')"
+                class="service-item-inline service-switch-item"
               >
-                <el-checkbox v-model="formData.services.rentActivity">
+                <span class="service-label">
                   <span class="service-badge rent-activity">租送</span>
-                </el-checkbox>
+                </span>
+                <el-switch
+                  v-model="formData.services.rentActivity"
+                  size="large"
+                />
               </div>
             </div>
           </div>
@@ -1006,6 +1009,26 @@ export default {
 .service-item-inline {
   display: flex;
   align-items: center;
+}
+
+.service-switch-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.service-switch-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.service-switch-item .service-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .services-title {
