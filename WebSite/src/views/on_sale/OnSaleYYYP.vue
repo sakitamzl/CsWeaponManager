@@ -558,6 +558,29 @@
       </template>
     </el-dialog>
 
+    <!-- 租赁改价弹窗 -->
+    <el-dialog
+      v-model="rentPriceDialogVisible"
+      :title="selectedItem ? `租赁改价 - ${getCardTitle(selectedItem)}` : '租赁改价'"
+      width="900px"
+      :close-on-click-modal="false"
+      class="rent-price-dialog"
+    >
+      <div v-if="selectedItem && rentInitData" class="rent-price-content">
+        <RentFormYYYP
+          :items="[selectedItem]"
+          :steamId="selectedItem.steam_id || selectedAccount"
+          :initData="rentInitData"
+          @submit="confirmRentPriceUpdate"
+          @cancel="rentPriceDialogVisible = false"
+        />
+      </div>
+      <div v-else class="loading-placeholder">
+        <el-icon class="is-loading"><Loading /></el-icon>
+        <span>加载租赁配置中...</span>
+      </div>
+    </el-dialog>
+
     <!-- 预览弹窗 -->
     <el-dialog
       v-model="previewVisible"
@@ -687,9 +710,13 @@ import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
+import RentFormYYYP from '@/views/Inventory/RentFormYYYP.vue'
 
 export default {
   name: 'OnSale',
+  components: {
+    RentFormYYYP
+  },
   setup() {
     const loading = ref(false)
     const updating = ref(false)
@@ -721,12 +748,17 @@ export default {
     
     // 弹窗相关
     const updatePriceDialogVisible = ref(false)
+    const rentPriceDialogVisible = ref(false)  // 租赁改价对话框
     const previewVisible = ref(false)
     const selectedItem = ref(null)
     const previewItem = ref(null)
     const updatePriceForm = ref({
       newPrice: ''
     })
+
+    // 租赁改价相关
+    const rentPriceFormData = ref(null)  // 租赁改价表单数据
+    const rentInitData = ref(null)  // 租赁初始化数据
 
     // 统计数据
     const onSaleStats = computed(() => {
@@ -919,6 +951,7 @@ export default {
               
               return {
                 id: item.id,
+                order_no: item.orderNo || item.id,  // 订单号，用于取消转租
                 item_name: item.name,
                 steam_hash_name: item.commodityHashName,  // 转租API返回的是commodityHashName
                 sale_price: item.shortLeaseAmount || item.longLeaseAmount || 0,  // 租金（短期或长期）
@@ -1065,9 +1098,17 @@ export default {
     // 打开改价弹窗
     const handleUpdatePrice = (item) => {
       selectedItem.value = item
-      updatePriceForm.value.newPrice = item.sale_price
-      updatePriceDialogVisible.value = true
       previewVisible.value = false
+
+      // 判断是否为租赁或转租类型
+      if (item.trade_type === 'lease' || item.trade_type === 'sublease') {
+        // 打开租赁改价对话框
+        openRentPriceDialog(item)
+      } else {
+        // 打开简单售价改价对话框
+        updatePriceForm.value.newPrice = item.sale_price
+        updatePriceDialogVisible.value = true
+      }
     }
 
     // 校验价格输入
@@ -1149,12 +1190,148 @@ export default {
       }
     }
 
+    // 打开租赁改价对话框
+    const openRentPriceDialog = async (item) => {
+      try {
+        loading.value = true
+
+        // 构建请求item格式，参考Inventory页面中的格式
+        const requestItem = {
+          assetid: item.assetid || item.id,
+          weapon_float: item.weapon_float || item.float,
+          paintseed: item.paintseed,
+          steam_hash_name: item.steam_hash_name || item.item_name,
+          weapon_classID: {
+            yyyp_Price: item.yyyp_price || item.market_price,
+            yyyp_id: item.template_id || item.yyyp_id
+          }
+        }
+
+        // 获取租赁初始化数据和赔付文本（参考Inventory页面的逻辑）
+        const [initResponse, compensationResponse] = await Promise.all([
+          axios.post(
+            `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/rentInit`,
+            {
+              steamId: item.steam_id || selectedAccount.value,
+              items: [requestItem]
+            }
+          ),
+          axios.post(
+            `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getCompensationText`,
+            {
+              steamId: item.steam_id || selectedAccount.value,
+              itemInfo: {
+                abrade: String(item.weapon_float || item.float || '0'),
+                leaseType: 0,  // 租赁
+                marketHashName: item.steam_hash_name || item.item_name,
+                marketPrice: String(item.yyyp_price || item.market_price || '0'),
+                pageSourceType: 10,
+                paintSeed: parseInt(item.paintseed || 0),
+                steamAssetId: parseInt(item.assetid || item.id || 0),
+                supportEasyCompensation: false,
+                templateId: parseInt(item.template_id || item.yyyp_id || 0)
+              }
+            }
+          )
+        ])
+
+        // 解析初始化数据
+        if (initResponse.data && initResponse.data.success) {
+          rentInitData.value = initResponse.data.data
+
+          // 合并赔付文本数据
+          if (compensationResponse.data && compensationResponse.data.success) {
+            const compensationData = compensationResponse.data.data
+            if (rentInitData.value.activityCustomConfigDTOList) {
+              rentInitData.value.depositProtect = compensationData.depositProtect
+              rentInitData.value.compensationText = compensationData.compensationText
+            }
+          }
+
+          // 打开租赁改价对话框
+          rentPriceDialogVisible.value = true
+        } else {
+          ElMessage.error(initResponse.data?.message || '获取租赁配置失败')
+        }
+      } catch (error) {
+        console.error('打开租赁改价对话框失败:', error)
+        ElMessage.error('打开租赁改价对话框失败: ' + error.message)
+      } finally {
+        loading.value = false
+      }
+    }
+
+    // 提交租赁改价
+    const confirmRentPriceUpdate = async (formData) => {
+      try {
+        updating.value = true
+
+        // 构建租赁配置
+        const rentConfig = {
+          LeaseUnitPrice: formData.shortRentPrice,
+          LeaseMaxDays: formData.rentDays === 'custom' ? formData.customDays : formData.rentDays,
+          CompensationType: formData.compensationType || 7,
+          SupportZeroCD: formData.services.zeroCooldown ? 1 : 0,
+          OpenLeaseActivity: formData.services.rentActivity || false,
+          UseDepositSafeguard: 1
+        }
+
+        // 添加长租单价（仅当租期>21天时）
+        const rentDays = formData.rentDays === 'custom' ? formData.customDays : formData.rentDays
+        if (rentDays > 21 && formData.longRentPrice) {
+          rentConfig.LongLeaseUnitPrice = formData.longRentPrice
+        }
+
+        // 添加0CD配置（如果启用）
+        if (formData.services.zeroCooldown && rentInitData.value?.zeroCDConfig) {
+          rentConfig.ZeroCDConfig = {
+            MinCoefficient: rentInitData.value.zeroCDConfig.minCoefficient || "95",
+            PricingType: rentInitData.value.zeroCDConfig.pricingType || 0
+          }
+        }
+
+        // 添加其他配置字段
+        if (rentInitData.value?.depositProtect) {
+          rentConfig.LeaseDeposit = rentInitData.value.depositProtect.depositPrice || "0"
+          rentConfig.NomarlChargePercent = String(rentInitData.value.depositProtect.rate || "0.25")
+          rentConfig.VipChargePercent = String(rentInitData.value.depositProtect.vipRate || "0.2")
+          rentConfig.VipSwitchStatus = rentInitData.value.depositProtect.vipSwitchStatus || 1
+          rentConfig.OriginCompensationType = formData.compensationType || 7
+        }
+
+        // 发送改价请求
+        const response = await axios.post(apiUrls.yyypChangePrice(), {
+          steamId: selectedItem.value.steam_id || selectedAccount.value,
+          commodityId: selectedItem.value.id,
+          rentConfig: rentConfig,
+          remark: formData.remark || '',
+          isCanLease: true,
+          isCanSold: false
+        })
+
+        if (response.data && response.data.success) {
+          ElMessage.success('租赁改价成功')
+          rentPriceDialogVisible.value = false
+          loadOnSaleData()
+        } else {
+          ElMessage.error(response.data?.message || '租赁改价失败')
+        }
+      } catch (error) {
+        console.error('租赁改价失败:', error)
+        ElMessage.error('租赁改价失败: ' + error.message)
+      } finally {
+        updating.value = false
+      }
+    }
+
     // 下架商品
     const handleRemoveFromSale = async (item) => {
+      const actionText = item.trade_type === 'sublease' ? '取消转租' : '下架'
+
       try {
         await ElMessageBox.confirm(
-          `确定要下架 "${getCardTitle(item)}" 吗？`,
-          '确认下架',
+          `确定要${actionText} "${getCardTitle(item)}" 吗？`,
+          `确认${actionText}`,
           {
             confirmButtonText: '确定',
             cancelButtonText: '取消',
@@ -1163,11 +1340,18 @@ export default {
         )
 
         loading.value = true
-        
+
         // 根据交易类型选择不同的API
         let response
-        if (item.trade_type === 'lease' || item.trade_type === 'sublease') {
-          // 租赁和转租类型：调用悠悠有品下架API
+        if (item.trade_type === 'sublease') {
+          // 转租类型：调用取消转租API
+          const steamId = accountList.value.find(acc => acc.id === selectedAccount.value)?.steam_id || ''
+          response = await axios.post(apiUrls.yyypCancelSublease(), {
+            steamId: steamId,
+            orderNoList: [item.order_no || item.id]  // 传递订单号数组
+          })
+        } else if (item.trade_type === 'lease') {
+          // 租赁类型：调用悠悠有品下架API
           const steamId = accountList.value.find(acc => acc.id === selectedAccount.value)?.steam_id || ''
           response = await axios.post(apiUrls.yyypOffShelf(), {
             steamId: steamId,
@@ -1182,16 +1366,16 @@ export default {
         }
 
         if (response.data && response.data.success) {
-          ElMessage.success('下架成功')
+          ElMessage.success(`${actionText}成功`)
           previewVisible.value = false
           loadOnSaleData()
         } else {
-          ElMessage.error(response.data?.message || '下架失败')
+          ElMessage.error(response.data?.message || `${actionText}失败`)
         }
       } catch (error) {
         if (error !== 'cancel') {
-          console.error('下架失败:', error)
-          ElMessage.error('下架失败: ' + error.message)
+          console.error(`${actionText}失败:`, error)
+          ElMessage.error(`${actionText}失败: ` + error.message)
         }
       } finally {
         loading.value = false
@@ -1206,10 +1390,13 @@ export default {
         return
       }
 
+      const firstItemType = selectedItems.value[0].trade_type
+      const actionText = firstItemType === 'sublease' ? '批量取消转租' : '批量下架'
+
       try {
         await ElMessageBox.confirm(
-          `确定要批量下架选中的 ${selectedItems.value.length} 件物品吗？`,
-          '确认批量下架',
+          `确定要${actionText}选中的 ${selectedItems.value.length} 件物品吗？`,
+          `确认${actionText}`,
           {
             confirmButtonText: '确定',
             cancelButtonText: '取消',
@@ -1218,21 +1405,25 @@ export default {
         )
 
         loading.value = true
-        
-        // 提取所有选中物品的ID
-        const itemIds = selectedItems.value.map(item => item.id)
-        
+
         // 根据交易类型选择不同的API
         let response
-        // 检查第一个选中物品的交易类型（假设批量操作的物品类型相同）
-        const firstItemType = selectedItems.value[0].trade_type
-        
-        if (firstItemType === 'lease' || firstItemType === 'sublease') {
-          // 租赁和转租类型：调用悠悠有品下架API
+
+        if (firstItemType === 'sublease') {
+          // 转租类型：调用批量取消转租API
           const steamId = accountList.value.find(acc => acc.id === selectedAccount.value)?.steam_id || ''
+          const orderNoList = selectedItems.value.map(item => item.order_no || item.id)
+          response = await axios.post(apiUrls.yyypCancelSublease(), {
+            steamId: steamId,
+            orderNoList: orderNoList  // 传递订单号数组
+          })
+        } else if (firstItemType === 'lease') {
+          // 租赁类型：调用悠悠有品下架API
+          const steamId = accountList.value.find(acc => acc.id === selectedAccount.value)?.steam_id || ''
+          const itemIds = selectedItems.value.map(item => item.id)
           response = await axios.post(apiUrls.yyypOffShelf(), {
             steamId: steamId,
-            ids: itemIds  // 传递ID数组，后端会转换为逗号分隔的字符串
+            ids: itemIds  // 传递ID数组
           })
         } else {
           // 其他类型：调用原有的下架API（需要逐个下架）
@@ -1271,18 +1462,18 @@ export default {
         }
 
         if (response.data && response.data.success) {
-          ElMessage.success(`成功批量下架 ${selectedItems.value.length} 件物品`)
+          ElMessage.success(`成功${actionText} ${selectedItems.value.length} 件物品`)
           // 清空选中列表
           selectedItems.value = []
           // 刷新数据
           loadOnSaleData()
         } else {
-          ElMessage.error(response.data?.message || '批量下架失败')
+          ElMessage.error(response.data?.message || `${actionText}失败`)
         }
       } catch (error) {
         if (error !== 'cancel') {
-          console.error('批量下架失败:', error)
-          ElMessage.error('批量下架失败: ' + error.message)
+          console.error(`${actionText}失败:`, error)
+          ElMessage.error(`${actionText}失败: ` + error.message)
         }
       } finally {
         loading.value = false
@@ -1465,10 +1656,12 @@ export default {
       isMultiSelectMode,
       selectedItems,
       updatePriceDialogVisible,
+      rentPriceDialogVisible,
       previewVisible,
       selectedItem,
       previewItem,
       updatePriceForm,
+      rentInitData,
       onSaleStats,
       currentDisplayData,
       loadOnSaleData,
@@ -1478,6 +1671,7 @@ export default {
       handleUpdatePrice,
       validatePriceInput,
       confirmUpdatePrice,
+      confirmRentPriceUpdate,
       handleRemoveFromSale,
       handleBatchRemoveFromSale,
       openPreview,
