@@ -169,6 +169,74 @@ def getWeaponByEnName(en_weapon_name):
         }), 500
 
 
+@youpin898SelectWeaponV1.route('/getYyypIdBySteamHashName', methods=['POST'])
+def getYyypIdBySteamHashName():
+    """
+    根据 steam_hash_name 批量查询悠悠有品模板ID和价格信息
+
+    请求体:
+    {
+        "steam_hash_names": ["M4A1-S | Fade (Factory New)", ...]  # 等同于 steam_hash_name / en_weapon_name
+    }
+
+    返回:
+    {
+        "success": true/false,
+        "data": {
+            "<steam_hash_name>": {
+                "steam_hash_name": "...",
+                "yyyp_id": 109804,
+                "yyyp_Price": "3696.0",
+                "yyyp_Rent": "...",
+                "yyyp_OnSaleCount": "...",
+                "yyyp_OnLeaseCount": "..."
+            },
+            ...
+        }
+    }
+    """
+    try:
+        data = request.get_json() or {}
+        names = data.get('steam_hash_names') or data.get('hash_names') or data.get('steamHashNames')
+
+        if isinstance(names, str):
+            names = [names]
+        if not isinstance(names, list) or not names:
+            return jsonify({
+                'success': False,
+                'error': 'steam_hash_names 需要为非空数组或字符串'
+            }), 400
+
+        result = {}
+        for name in names:
+            if not name:
+                continue
+            records = WeaponClassIDModel.find_by_steam_hash_name(name)
+            if not records:
+                continue
+            rec = records[0]
+            result[name] = {
+                'steam_hash_name': rec.steam_hash_name,
+                'yyyp_id': getattr(rec, 'yyyp_id', None),
+                'yyyp_Price': getattr(rec, 'yyyp_Price', None),
+                'yyyp_Rent': getattr(rec, 'yyyp_Rent', None),
+                'yyyp_OnSaleCount': getattr(rec, 'yyyp_OnSaleCount', None),
+                'yyyp_OnLeaseCount': getattr(rec, 'yyyp_OnLeaseCount', None)
+            }
+
+        return jsonify({
+            'success': True,
+            'data': result
+        }), 200
+    except Exception as e:
+        print(f"根据steam_hash_name查询yyyp_id失败: {e}")
+        import traceback
+        print(f"详细错误信息: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'error': f'服务器错误: {str(e)}'
+        }), 500
+
 @youpin898SelectWeaponV1.route('/getIconStatus', methods=['POST'])
 def getIconStatus():
     """批量获取icon_base64状态"""

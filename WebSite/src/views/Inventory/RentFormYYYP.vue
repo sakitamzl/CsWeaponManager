@@ -178,7 +178,11 @@
 
     <!-- 底部操作按钮 -->
     <div class="form-footer">
-      <el-button class="footer-btn auto-price-btn" @click="handleAutoPricing">
+      <el-button
+        class="footer-btn auto-price-btn"
+        @click="handleAutoPricing"
+        :loading="autoPricingLoading"
+      >
         一键定价
       </el-button>
       <el-button class="footer-btn cancel-btn" @click="handleCancel">
@@ -194,6 +198,7 @@
 <script>
 import { ref, reactive, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { apiUrls } from '@/config/api'
 
 export default {
   name: 'RentFormYYYP',
@@ -205,10 +210,16 @@ export default {
     initData: {
       type: Object,
       default: () => null
+    },
+    steamId: {
+      type: String,
+      default: ''
     }
   },
   emits: ['cancel', 'submit'],
   setup(props, { emit }) {
+    const autoPricingLoading = ref(false)
+
     // 全局表单数据（交易方式/租期/增值服务）
     const formData = reactive({
       tradeMode: 1, // 默认租赁
@@ -454,43 +465,166 @@ export default {
       return true
     }
 
-    // 一键定价功能
-    const handleAutoPricing = () => {
+    // 本地回退的一键定价逻辑（按购入价简单估算）
+    const localAutoPricingFallback = () => {
+      if (!props.items || props.items.length === 0) {
+        ElMessage.warning('没有可定价的饰品')
+        return 0
+      }
+
+      let successCount = 0
+
+      props.items.forEach((item) => {
+        const itemForm = itemFormMap[item.assetid]
+        if (!itemForm) return
+
+        const buyPrice = parseFloat(item.buyPrice || item.buy_price || 0)
+        if (buyPrice > 0) {
+          const shortRent = (buyPrice * 0.015).toFixed(2)
+          itemForm.shortRentPrice = shortRent
+
+          const longRent = (parseFloat(shortRent) * 0.8).toFixed(2)
+          itemForm.longRentPrice = longRent
+
+          const deposit = (buyPrice * 1.05).toFixed(2)
+          itemForm.depositPrice = deposit
+
+          successCount++
+        }
+      })
+
+      return successCount
+    }
+
+    // 一键定价功能：优先调用后端自动定价接口，失败时回退到本地估算
+    const handleAutoPricing = async () => {
       if (!props.items || props.items.length === 0) {
         ElMessage.warning('没有可定价的饰品')
         return
       }
 
-      let successCount = 0
-      
-      props.items.forEach((item) => {
-        const itemForm = itemFormMap[item.assetid]
-        if (!itemForm) return
-
-        // 根据购入价格自动计算租金和押金
-        const buyPrice = parseFloat(item.buyPrice || item.buy_price || 0)
-        
-        if (buyPrice > 0) {
-          // 短租租金：购入价格的 1-2% 左右
-          const shortRent = (buyPrice * 0.015).toFixed(2)
-          itemForm.shortRentPrice = shortRent
-          
-          // 长租租金：短租的 80%
-          const longRent = (parseFloat(shortRent) * 0.8).toFixed(2)
-          itemForm.longRentPrice = longRent
-          
-          // 押金：购入价格的 100-110%
-          const deposit = (buyPrice * 1.05).toFixed(2)
-          itemForm.depositPrice = deposit
-          
-          successCount++
+      // 收集 steam_hash_name -> assetid 列表
+      const hashNameSet = new Set()
+      const hashToAssetIds = {}
+      props.items.forEach(item => {
+        const hashName = item.steam_hash_name || item.name
+        if (!hashName) return
+        hashNameSet.add(hashName)
+        if (!hashToAssetIds[hashName]) {
+          hashToAssetIds[hashName] = []
         }
+        hashToAssetIds[hashName].push(item.assetid)
       })
 
-      if (successCount > 0) {
-        ElMessage.success(`已为 ${successCount} 件饰品自动定价`)
-      } else {
-        ElMessage.warning('没有可定价的饰品（缺少购入价格）')
+      const steamHashNames = Array.from(hashNameSet)
+      if (!steamHashNames.length) {
+        ElMessage.warning('选中的饰品缺少 steam_hash_name，无法调用自动定价，将使用本地估算')
+        const localCount = localAutoPricingFallback()
+        if (localCount > 0) {
+          ElMessage.success(`已为 ${localCount} 件饰品按购入价估算定价`)
+        }
+        return
+      }
+
+      autoPricingLoading.value = true
+      try {
+        const resp = await fetch(apiUrls.yyypRentAutoPricing(), {
+          method: 'POST',
+          mode: 'cors',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            steamId: props.steamId || '',
+            steam_hash_name: steamHashNames
+          })
+        })
+
+        if (!resp.ok) {
+          throw new Error(`HTTP ${resp.status}`)
+        }
+
+        const result = await resp.json()
+        if (!result.success) {
+          ElMessage.error(result.message || '自动定价失败，将使用本地估算')
+          const localCount = localAutoPricingFallback()
+          if (localCount > 0) {
+            ElMessage.success(`已为 ${localCount} 件饰品按购入价估算定价`)
+          }
+          return
+        }
+
+        const data = result.data || {}
+        const pricingList = data.pricingInfoVos || []
+        if (!pricingList.length) {
+          ElMessage.warning('自动定价成功，但未返回任何定价数据，将使用本地估算')
+          const localCount = localAutoPricingFallback()
+          if (localCount > 0) {
+            ElMessage.success(`已为 ${localCount} 件饰品按购入价估算定价`)
+          }
+          return
+        }
+
+        // 构建 commodityHashName -> 定价信息 映射
+        const priceMap = {}
+        pricingList.forEach(p => {
+          if (!p.commodityHashName) return
+          priceMap[p.commodityHashName] = {
+            price: p.price,
+            shortLeaseUnitPrice: p.shortLeaseUnitPrice,
+            longLeaseUnitPrice: p.longLeaseUnitPrice,
+            leaseDeposit: p.leaseDeposit,
+            leaseMaxDays: p.leaseMaxDays
+          }
+        })
+
+        let successCount = 0
+        // 将定价结果写入每个饰品对应的表单
+        Object.entries(hashToAssetIds).forEach(([hashName, assetIds]) => {
+          const pricing = priceMap[hashName]
+          if (!pricing) return
+
+          assetIds.forEach(assetid => {
+            const itemForm = itemFormMap[assetid]
+            if (!itemForm) return
+
+            const shortRent = parseFloat(pricing.shortLeaseUnitPrice || pricing.price || 0)
+            const longRent = parseFloat(pricing.longLeaseUnitPrice || 0)
+            const deposit = parseFloat(pricing.leaseDeposit || 0)
+
+            if (shortRent > 0) {
+              itemForm.shortRentPrice = shortRent.toFixed(2)
+            }
+            if (longRent > 0) {
+              itemForm.longRentPrice = longRent.toFixed(2)
+            }
+            if (deposit > 0) {
+              itemForm.depositPrice = deposit.toFixed(2)
+            }
+
+            successCount++
+          })
+        })
+
+        if (successCount > 0) {
+          ElMessage.success(`已为 ${successCount} 件饰品完成悠悠有品自动定价`)
+        } else {
+          ElMessage.warning('未能为当前饰品匹配到定价数据，将使用本地估算')
+          const localCount = localAutoPricingFallback()
+          if (localCount > 0) {
+            ElMessage.success(`已为 ${localCount} 件饰品按购入价估算定价`)
+          }
+        }
+      } catch (e) {
+        console.error('悠悠有品自动定价接口异常:', e)
+        ElMessage.error(`自动定价失败: ${e.message}，将使用本地估算`)
+        const localCount = localAutoPricingFallback()
+        if (localCount > 0) {
+          ElMessage.success(`已为 ${localCount} 件饰品按购入价估算定价`)
+        }
+      } finally {
+        autoPricingLoading.value = false
       }
     }
 
@@ -512,7 +646,8 @@ export default {
       handleImageError,
       handleCancel,
       handleSubmit,
-      handleAutoPricing
+      handleAutoPricing,
+      autoPricingLoading
     }
   }
 }

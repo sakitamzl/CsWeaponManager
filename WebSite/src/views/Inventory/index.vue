@@ -1349,6 +1349,7 @@
       <RentFormYYYP
         :items="formattedSelectedItems"
         :initData="rentInitData"
+        :steamId="selectedSteamId"
         @cancel="rentFormVisible = false"
         @submit="handleRentFormSubmit"
       />

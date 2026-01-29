@@ -1,8 +1,20 @@
 <template>
   <div>
-    <!-- 搜索与统计数据 -->
+    <!-- 顶部操作区：自动定价按钮 + 搜索与统计数据 -->
     <div class="stats-summary">
         <div class="card">
+        <div class="page-header">
+          <h2>出租数据</h2>
+          <el-button
+            type="primary"
+            size="small"
+            :loading="autoPricingLoading"
+            @click="handleRentAutoPricing"
+          >
+            自动定价（悠悠有品）
+          </el-button>
+        </div>
+
           <!-- 搜索栏 -->
           <div class="search-section">
             <div class="flex flex-wrap gap-4 items-center">
@@ -615,6 +627,7 @@ export default {
   name: 'Lent',
   setup() {
     const loading = ref(false)
+    const autoPricingLoading = ref(false)
     const dataController = ref(null)
     const statsController = ref(null)
     const lentData = ref([])
@@ -1881,6 +1894,94 @@ export default {
       previewVisible.value = true
     }
 
+    // 出租自动定价：以当前列表中的 steam_hash_name 为目标
+    const handleRentAutoPricing = async () => {
+      if (!lentData.value.length) {
+        ElMessage.warning('当前没有可用于自动定价的出租数据')
+        return
+      }
+
+      // 收集当前数据中的 steam_hash_name，去重
+      const hashNameSet = new Set()
+      lentData.value.forEach(item => {
+        if (item.steam_hash_name) {
+          hashNameSet.add(item.steam_hash_name)
+        }
+      })
+
+      const steamHashNames = Array.from(hashNameSet)
+      if (!steamHashNames.length) {
+        ElMessage.warning('当前数据没有 steam_hash_name，无法自动定价')
+        return
+      }
+
+      autoPricingLoading.value = true
+      try {
+        const resp = await fetch(apiUrls.yyypRentAutoPricing(), {
+          method: 'POST',
+          mode: 'cors',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            steamId: '',                // 留空表示使用配置中的第一个悠悠账号
+            steam_hash_name: steamHashNames
+          })
+        })
+
+        if (!resp.ok) {
+          throw new Error(`HTTP ${resp.status}`)
+        }
+
+        const result = await resp.json()
+        if (!result.success) {
+          ElMessage.error(result.message || '自动定价失败')
+          return
+        }
+
+        const data = result.data || {}
+        const pricingList = data.pricingInfoVos || []
+        if (!pricingList.length) {
+          ElMessage.warning('自动定价成功，但未返回任何定价数据')
+          return
+        }
+
+        // 用返回的价格更新前端展示（只在内存中修改，不写回数据库）
+        const priceMap = {}
+        pricingList.forEach(p => {
+          if (!p.commodityHashName) return
+          priceMap[p.commodityHashName] = {
+            price: p.price,
+            shortLeaseUnitPrice: p.shortLeaseUnitPrice,
+            longLeaseUnitPrice: p.longLeaseUnitPrice,
+            leaseDeposit: p.leaseDeposit,
+            leaseMaxDays: p.leaseMaxDays
+          }
+        })
+
+        lentData.value = lentData.value.map(item => {
+          const key = item.steam_hash_name
+          if (!key || !priceMap[key]) return item
+          const pricing = priceMap[key]
+          return {
+            ...item,
+            // 这里直接把自动定价的单日租金写入 price，方便页面展示
+            price: parseFloat(pricing.shortLeaseUnitPrice || pricing.price || item.price || 0),
+            // 预留字段（可以在将来单独加列展示）
+            _autoPriceInfo: pricing
+          }
+        })
+
+        ElMessage.success(result.message || '自动定价成功，价格已自动填入当前页面')
+      } catch (e) {
+        console.error('出租自动定价失败:', e)
+        ElMessage.error(`自动定价失败: ${e.message}`)
+      } finally {
+        autoPricingLoading.value = false
+      }
+    }
+
     onMounted(async () => {
       // 优化：先加载主数据，其他数据按需加载
       // 立即加载主数据和统计
@@ -1939,6 +2040,7 @@ export default {
       sortOrder,
       previewVisible,
       previewItem,
+      autoPricingLoading,
       formatTime,
       getStatusType,
       getStatusColor,
@@ -1967,7 +2069,8 @@ export default {
       hasExtras,
       parseStickers,
       parsePendant,
-      openPreview
+      openPreview,
+      handleRentAutoPricing
     }
   }
 }

@@ -395,6 +395,9 @@ export const API_CONFIG = {
     YYYP_GET_SELL_LIST: '/youping898SpiderV1/getSellList',  // 获取出售列表
     YYYP_OFF_SHELF: '/youping898SpiderV1/offShelfItems',  // 下架商品
 
+    // 悠悠有品出租自动定价（爬虫端）
+    YYYP_RENT_AUTO_PRICING: '/youping898SpiderV1/rentAutoPricing',
+
     
 
     // 登录设置相关
@@ -813,6 +816,7 @@ export const apiUrls = {
   yyypGetSubleaseList: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_SUBLEASE_LIST),
   yyypGetPresaleList: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_PRESALE_LIST),
   yyypOffShelf: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_OFF_SHELF),
+  yyypRentAutoPricing: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_RENT_AUTO_PRICING),
 
 }
 
