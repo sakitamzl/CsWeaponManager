@@ -1280,42 +1280,59 @@ export default {
     }
 
     // 提交租赁改价
-    const confirmRentPriceUpdate = async (formData) => {
+    const confirmRentPriceUpdate = async (submitData) => {
       try {
         updating.value = true
 
+        // 从提交数据中获取第一个物品的价格配置
+        const itemData = submitData.items[0]
+
+        // 调试日志：输出提交的数据
+        console.log('=== 租赁改价 - 提交数据 ===')
+        console.log('submitData:', JSON.stringify(submitData, null, 2))
+        console.log('itemData:', JSON.stringify(itemData, null, 2))
+        console.log('rentDays:', submitData.rentDays)
+        console.log('services:', submitData.services)
+
         // 构建租赁配置
         const rentConfig = {
-          LeaseUnitPrice: formData.shortRentPrice,
-          LeaseMaxDays: formData.rentDays === 'custom' ? formData.customDays : formData.rentDays,
-          CompensationType: formData.compensationType || 7,
-          SupportZeroCD: formData.services.zeroCooldown ? 1 : 0,
-          OpenLeaseActivity: formData.services.rentActivity || false,
+          LeaseUnitPrice: itemData.shortRentPrice,
+          LeaseMaxDays: submitData.rentDays,
+          CompensationType: 7,  // 默认赔付类型
+          SupportZeroCD: submitData.services.zeroCooldown ? 1 : 0,
+          OpenLeaseActivity: submitData.services.rentActivity || false,
           UseDepositSafeguard: 1
         }
 
         // 添加长租单价（仅当租期>21天时）
-        const rentDays = formData.rentDays === 'custom' ? formData.customDays : formData.rentDays
-        if (rentDays > 21 && formData.longRentPrice) {
-          rentConfig.LongLeaseUnitPrice = formData.longRentPrice
+        if (submitData.rentDays > 21 && itemData.longRentPrice) {
+          rentConfig.LongLeaseUnitPrice = itemData.longRentPrice
         }
 
         // 添加0CD配置（如果启用）
-        if (formData.services.zeroCooldown && rentInitData.value?.zeroCDConfig) {
+        if (submitData.services.zeroCooldown && rentInitData.value?.zeroCDConfig) {
           rentConfig.ZeroCDConfig = {
             MinCoefficient: rentInitData.value.zeroCDConfig.minCoefficient || "95",
             PricingType: rentInitData.value.zeroCDConfig.pricingType || 0
           }
         }
 
-        // 添加其他配置字段
-        if (rentInitData.value?.depositProtect) {
-          rentConfig.LeaseDeposit = rentInitData.value.depositProtect.depositPrice || "0"
-          rentConfig.NomarlChargePercent = String(rentInitData.value.depositProtect.rate || "0.25")
-          rentConfig.VipChargePercent = String(rentInitData.value.depositProtect.vipRate || "0.2")
-          rentConfig.VipSwitchStatus = rentInitData.value.depositProtect.vipSwitchStatus || 1
-          rentConfig.OriginCompensationType = formData.compensationType || 7
+        // 添加押金（从物品数据中获取）
+        if (itemData.depositPrice) {
+          rentConfig.LeaseDeposit = String(itemData.depositPrice)
         }
+
+        // 添加其他配置字段（从 initData 中获取）
+        if (rentInitData.value?.depositProtectFeeConfigMap) {
+          const hashName = itemData.steam_hash_name
+          const depositConfig = rentInitData.value.depositProtectFeeConfigMap[hashName]
+          if (depositConfig) {
+            rentConfig.NomarlChargePercent = String(depositConfig.rate || "0.25")
+            rentConfig.VipChargePercent = String(depositConfig.vipRate || "0.2")
+            rentConfig.VipSwitchStatus = depositConfig.vipSwitchStatus || 1
+          }
+        }
+        rentConfig.OriginCompensationType = 7
 
         // 获取完整的 Steam ID
         const steamId = accountList.value.find(acc => acc.id === selectedAccount.value)?.steam_id || ''
@@ -1326,15 +1343,26 @@ export default {
           return
         }
 
-        // 发送改价请求
-        const response = await axios.post(apiUrls.yyypChangePrice(), {
+        // 调试日志：输出构建的租赁配置
+        console.log('=== 租赁改价 - 构建的配置 ===')
+        console.log('rentConfig:', JSON.stringify(rentConfig, null, 2))
+        console.log('steamId:', steamId)
+        console.log('commodityId:', selectedItem.value.id)
+
+        // 构建完整的请求体
+        const requestBody = {
           steamId: steamId,
           commodityId: selectedItem.value.id,
           rentConfig: rentConfig,
-          remark: formData.remark || '',
+          remark: '',
           isCanLease: true,
           isCanSold: false
-        })
+        }
+        console.log('=== 租赁改价 - 请求体 ===')
+        console.log('requestBody:', JSON.stringify(requestBody, null, 2))
+
+        // 发送改价请求
+        const response = await axios.post(apiUrls.yyypChangePrice(), requestBody)
 
         if (response.data && response.data.success) {
           ElMessage.success('租赁改价成功')
