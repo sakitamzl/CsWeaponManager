@@ -568,8 +568,8 @@
     >
       <div v-if="selectedItem && rentInitData" class="rent-price-content">
         <RentFormYYYP
-          :items="[selectedItem]"
-          :steamId="selectedItem.steam_id || selectedAccount"
+          :items="formattedRentItem"
+          :steamId="steamId"
           :initData="rentInitData"
           @submit="confirmRentPriceUpdate"
           @cancel="rentPriceDialogVisible = false"
@@ -759,6 +759,26 @@ export default {
     // 租赁改价相关
     const rentPriceFormData = ref(null)  // 租赁改价表单数据
     const rentInitData = ref(null)  // 租赁初始化数据
+    const steamId = ref('')  // 当前操作的完整 Steam ID
+
+    // 格式化租赁改价的 item 数据
+    const formattedRentItem = computed(() => {
+      if (!selectedItem.value) return []
+
+      const item = selectedItem.value
+      return [{
+        assetid: item.assetid || item.id,
+        name: item.item_name || item.steam_hash_name,
+        steam_hash_name: item.steam_hash_name || item.item_name,
+        image: getWeaponImage(item.steam_hash_name || item.item_name),
+        float: item.weapon_float || item.float,
+        paintseed: item.paintseed,
+        weapon_classID: {
+          yyyp_Price: item.yyyp_price || item.market_price,
+          yyyp_id: item.template_id || item.yyyp_id
+        }
+      }]
+    })
 
     // 统计数据
     const onSaleStats = computed(() => {
@@ -1195,16 +1215,13 @@ export default {
       try {
         loading.value = true
 
-        // 构建请求item格式，参考Inventory页面中的格式
-        const requestItem = {
-          assetid: item.assetid || item.id,
-          weapon_float: item.weapon_float || item.float,
-          paintseed: item.paintseed,
-          steam_hash_name: item.steam_hash_name || item.item_name,
-          weapon_classID: {
-            yyyp_Price: item.yyyp_price || item.market_price,
-            yyyp_id: item.template_id || item.yyyp_id
-          }
+        // 获取完整的 Steam ID（从 accountList 中查找）
+        steamId.value = accountList.value.find(acc => acc.id === selectedAccount.value)?.steam_id || ''
+
+        if (!steamId.value) {
+          ElMessage.error('无法获取Steam ID，请重新选择账号')
+          loading.value = false
+          return
         }
 
         // 获取租赁初始化数据和赔付文本（参考Inventory页面的逻辑）
@@ -1212,14 +1229,14 @@ export default {
           axios.post(
             `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/rentInit`,
             {
-              steamId: item.steam_id || selectedAccount.value,
-              items: [requestItem]
+              steamId: steamId.value,
+              steam_hash_name: [item.steam_hash_name || item.item_name]
             }
           ),
           axios.post(
             `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getCompensationText`,
             {
-              steamId: item.steam_id || selectedAccount.value,
+              steamId: steamId.value,
               itemInfo: {
                 abrade: String(item.weapon_float || item.float || '0'),
                 leaseType: 0,  // 租赁
@@ -1242,10 +1259,11 @@ export default {
           // 合并赔付文本数据
           if (compensationResponse.data && compensationResponse.data.success) {
             const compensationData = compensationResponse.data.data
-            if (rentInitData.value.activityCustomConfigDTOList) {
-              rentInitData.value.depositProtect = compensationData.depositProtect
-              rentInitData.value.compensationText = compensationData.compensationText
-            }
+            // 保存赔付文本到 initData 中，方便 RentFormYYYP 使用
+            rentInitData.value.compensationRichContent = compensationData.compensationRichContent
+            console.log('[租赁改价] 赔付文本获取成功:', compensationData.compensationRichContent)
+          } else {
+            console.warn('[租赁改价] 赔付文本获取失败:', compensationResponse.data?.message)
           }
 
           // 打开租赁改价对话框
@@ -1299,9 +1317,18 @@ export default {
           rentConfig.OriginCompensationType = formData.compensationType || 7
         }
 
+        // 获取完整的 Steam ID
+        const steamId = accountList.value.find(acc => acc.id === selectedAccount.value)?.steam_id || ''
+
+        if (!steamId) {
+          ElMessage.error('无法获取Steam ID')
+          updating.value = false
+          return
+        }
+
         // 发送改价请求
         const response = await axios.post(apiUrls.yyypChangePrice(), {
-          steamId: selectedItem.value.steam_id || selectedAccount.value,
+          steamId: steamId,
           commodityId: selectedItem.value.id,
           rentConfig: rentConfig,
           remark: formData.remark || '',
@@ -1662,6 +1689,8 @@ export default {
       previewItem,
       updatePriceForm,
       rentInitData,
+      steamId,
+      formattedRentItem,
       onSaleStats,
       currentDisplayData,
       loadOnSaleData,
