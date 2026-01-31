@@ -1,0 +1,1076 @@
+/* 交易类型选择栏样式 */
+.trade-type-bar {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.trade-type-tabs {
+  display: flex;
+  gap: 0.5rem;
+  min-width: max-content;
+}
+
+.trade-type-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--bg-tertiary);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  position: relative;
+  user-select: none;
+}
+
+.trade-type-tab:hover {
+  background: rgba(64, 158, 255, 0.1);
+  border-color: rgba(64, 158, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.trade-type-tab.active {
+  background: linear-gradient(135deg, rgba(64, 158, 255, 0.2) 0%, rgba(64, 158, 255, 0.1) 100%);
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 12px rgba(64, 158, 255, 0.3);
+}
+
+.trade-type-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.trade-type-label {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.trade-type-tab.active .trade-type-label {
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+
+.trade-type-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: var(--text-secondary);
+}
+
+.trade-type-tab.active .trade-type-count {
+  background: var(--el-color-primary);
+  color: #fff;
+}
+
+/* 筛选器样式 */
+.filters {
+  margin-bottom: 1rem;
+  padding: 1rem;
+}
+
+.search-input {
+  width: 300px;
+}
+
+.account-select {
+  width: 250px;
+}
+
+.platform-select,
+.type-select,
+.wear-select {
+  width: 150px;
+}
+
+/* 统计信息样式 */
+.inventory-stats {
+  margin-bottom: 1rem;
+}
+
+.grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.card {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.card h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: normal;
+}
+
+.stat-number {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--text-primary);
+}
+
+/* 卡片网格样式 */
+.card-container {
+  margin-top: 1rem;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.inventory-card {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  overflow: visible;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  height: 340px;
+}
+
+.inventory-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.card-image {
+  position: relative;
+  width: 100%;
+  height: 150px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.card-image img {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+}
+
+.image-placeholder {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+/* 贴纸和挂件覆盖层 */
+.sticker-overlay {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  display: flex;
+  gap: 4px;
+  z-index: 2;
+}
+
+.sticker-item-overlay {
+  width: 32px;
+  height: 32px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+
+.sticker-img-overlay {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.sticker-placeholder-overlay {
+  color: #999;
+  font-size: 12px;
+}
+
+.pendant-overlay {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+}
+
+.pendant-item-overlay {
+  width: 36px;
+  height: 36px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+
+.pendant-img-overlay {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.pendant-placeholder-overlay {
+  font-size: 18px;
+}
+
+/* 在售状态覆盖层 - 左上角 */
+.status-overlay {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 4px 8px;
+  background: rgba(76, 175, 80, 0.9);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
+  z-index: 3;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+}
+
+/* 平台标签 */
+.platform-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+}
+
+/* 卡片内容 */
+.card-content {
+  padding: 0.75rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.card-title {
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.3;
+  min-height: 2.6em;
+}
+
+.card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+}
+
+/* 磨损值显示条 */
+.float-bar-container {
+  margin-top: 0.3rem;
+  padding: 0;
+  margin-bottom: 0;
+}
+
+.float-bar {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  display: flex;
+}
+
+.float-segment {
+  flex: 1;
+  height: 100%;
+}
+
+.float-segment.fn {
+  background: #4CAF50;
+  flex: 0.07;
+}
+
+.float-segment.mw {
+  background: #8BC34A;
+  flex: 0.08;
+}
+
+.float-segment.ft {
+  background: #FFC107;
+  flex: 0.23;
+}
+
+.float-segment.ww {
+  background: #FF9800;
+  flex: 0.07;
+}
+
+.float-segment.bs {
+  background: #F44336;
+  flex: 0.55;
+}
+
+.float-pointer {
+  position: absolute;
+  top: -2px;
+  width: 2px;
+  height: 10px;
+  background: #fff;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+  transform: translateX(-50%);
+  z-index: 1;
+}
+
+.float-value {
+  text-align: left;
+  font-size: 0.75rem;
+  color: #ccc;
+  font-family: monospace;
+  margin-top: 0.2rem;
+  margin-bottom: 0;
+  font-weight: 500;
+}
+
+/* 价格显示 */
+.card-prices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.3rem;
+  padding-top: 0;
+  border-top: none;
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  gap: 0.5rem;
+}
+
+.price-group {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.price-label {
+  color: #999;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+.price-value {
+  color: #fff;
+  font-weight: bold;
+  font-size: 0.75rem;
+}
+
+.price-profit {
+  color: #f56c6c;
+}
+
+.price-loss {
+  color: #4CAF50;
+}
+
+.price-equal {
+  color: #fff;
+}
+
+.sale-price {
+  color: #4CAF50;
+}
+
+/* 卡片底部 */
+.card-footer {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.rename-tag {
+  max-width: 100%;
+}
+
+.tag-icon {
+  margin-right: 0.25rem;
+}
+
+.card-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.card-actions .el-button {
+  flex: 1;
+}
+
+/* 列表样式 */
+.table-container {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.weapon-image-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+}
+
+.weapon-img {
+  max-width: 120px;
+  max-height: 80px;
+  object-fit: contain;
+}
+
+.no-image {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.item-name-cell {
+  padding: 0.5rem 0;
+}
+
+.item-title {
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.item-extras {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.sticker-list,
+.pendant-list {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.sticker-item {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sticker-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.sticker-placeholder {
+  color: #999;
+  font-size: 10px;
+}
+
+.pendant-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.rename-text {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.rename-value {
+  font-style: italic;
+}
+
+.table-footer {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+/* 改价弹窗样式 */
+.update-price-content {
+  padding: 1rem 0;
+}
+
+.update-price-dialog :deep(.el-dialog__header) {
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  padding: 1rem 1.5rem;
+}
+
+.update-price-dialog :deep(.el-dialog__title) {
+  color: #fff;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.update-price-dialog :deep(.el-dialog__body) {
+  background: var(--bg-secondary);
+  padding: 1.5rem;
+}
+
+.update-price-dialog :deep(.el-dialog__footer) {
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  padding: 1rem 1.5rem;
+}
+
+.item-preview {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+}
+
+.preview-thumb {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+}
+
+.item-info {
+  flex: 1;
+}
+
+.item-name {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.current-price {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+/* 预览弹窗样式 */
+.preview-dialog :deep(.el-dialog__header) {
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  padding: 1rem 1.5rem;
+}
+
+.preview-dialog :deep(.el-dialog__title) {
+  color: #fff;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.preview-dialog :deep(.el-dialog__body) {
+  background: var(--bg-secondary);
+  padding: 1.5rem;
+}
+
+.preview-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.preview-main-layout {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.preview-left-section {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.preview-right-section {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.preview-image-section {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+}
+
+.preview-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 1.2rem;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+}
+
+.preview-info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.preview-float-section {
+  padding: 1rem;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+}
+
+.preview-float-bar-container {
+  margin-bottom: 0.75rem;
+}
+
+.preview-float-value {
+  font-family: monospace;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.preview-prices {
+  padding: 1rem;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.preview-price-row {
+  display: flex;
+  gap: 2rem;
+}
+
+.preview-price-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.preview-price-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.preview-price-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.preview-action-buttons {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.preview-action-buttons .el-button {
+  flex: 1;
+}
+
+.preview-rename {
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.preview-rename-icon {
+  font-size: 1.5rem;
+}
+
+.preview-rename-text {
+  font-size: 1rem;
+  color: #fff;
+  font-weight: 500;
+}
+
+/* 预览弹窗中的贴纸列表 */
+.preview-sticker-list-section {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.preview-sticker-list-title {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: bold;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.preview-sticker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  height: auto;
+}
+
+.preview-sticker-list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.preview-sticker-list-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(76, 175, 80, 0.5);
+}
+
+.preview-sticker-list-img-wrapper {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: transform 0.2s ease;
+  cursor: pointer;
+}
+
+.preview-sticker-list-img-wrapper:hover {
+  transform: scale(1.2);
+  border-color: rgba(76, 175, 80, 0.8);
+  z-index: 10;
+}
+
+.preview-sticker-list-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.preview-sticker-list-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.preview-sticker-list-name {
+  color: #fff;
+  font-size: 0.9rem;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 预览弹窗中的挂件信息 */
+.preview-pendant-section {
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.preview-pendant-title {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: bold;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.preview-pendant-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  height: auto;
+}
+
+.preview-pendant-list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.preview-pendant-list-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 215, 0, 0.5);
+}
+
+.preview-pendant-list-img-wrapper {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  transition: transform 0.2s ease;
+  cursor: pointer;
+}
+
+.preview-pendant-list-img-wrapper:hover {
+  transform: scale(1.2);
+  border-color: rgba(255, 215, 0, 0.8);
+  z-index: 10;
+}
+
+.preview-pendant-list-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.preview-pendant-list-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.preview-pendant-list-name {
+  color: #fff;
+  font-size: 0.9rem;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+
+  .grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .preview-dialog {
+    width: 95% !important;
+  }
+
+  .preview-main-layout {
+    flex-direction: column;
+  }
+
+  .inventory-card {
+    height: 320px;
+  }
+}
+
+/* 多选模式操作按钮 */
+.multi-select-actions {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-tertiary);
+  border: 2px solid var(--el-color-primary);
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.multi-select-actions .selected-count {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+.multi-select-actions .action-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* 多选模式下的卡片样式 */
+.inventory-card.multi-select-mode {
+  cursor: pointer;
+  user-select: none;
+}
+
+.inventory-card.multi-select-mode:hover {
+  border-color: var(--el-color-primary);
+}
+
+.inventory-card.selected {
+  border-color: var(--el-color-primary);
+  background: rgba(64, 158, 255, 0.1);
+  box-shadow: 0 0 0 2px var(--el-color-primary);
+}
+
+.inventory-card.selected:hover {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 2px var(--el-color-primary);
+}
+
+/* 批量改价对话框样式 */
+.batch-change-price-dialog .batch-change-price-content {
+  padding: 1rem 0;
+}
+
+.batch-change-price-dialog .selected-items-summary {
+  background: rgba(64, 158, 255, 0.1);
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.batch-change-price-dialog .selected-items-summary p {
+  margin: 0.25rem 0;
+  font-size: 0.95rem;
+}
+
+.batch-change-price-dialog .selected-items-summary strong {
+  color: var(--el-color-primary);
+  font-size: 1.1rem;
+}
+
+.batch-change-price-dialog .hint-text {
+  color: var(--el-text-color-secondary);
+  font-size: 0.9rem;
+}
+
+.batch-change-price-dialog .price-preview {
+  margin-top: 1.5rem;
+}
+
+.batch-change-price-dialog .preview-list {
+  background: var(--bg-secondary);
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.batch-change-price-dialog .preview-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.batch-change-price-dialog .preview-item:last-child {
+  border-bottom: none;
+}
+
+.batch-change-price-dialog .preview-item .item-name {
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.batch-change-price-dialog .preview-item .price-change {
+  color: var(--el-color-success);
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.batch-change-price-dialog .more-items {
+  text-align: center;
+  color: var(--el-text-color-secondary);
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
