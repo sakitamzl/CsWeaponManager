@@ -45,6 +45,9 @@ import { useLogin } from './useLogin.js'
 
 const {
   loginForm,
+  rules,
+  loginFormRef,
+  loading,
   handleLogin
 } = useLogin()
 </script>
