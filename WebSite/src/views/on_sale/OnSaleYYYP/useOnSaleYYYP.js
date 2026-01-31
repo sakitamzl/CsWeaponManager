@@ -4,12 +4,18 @@ import axios from 'axios'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
 import RentFormYYYP from '@/views/Inventory/RentFormYYYP/index.vue'
 import OfferProcessing from './OfferProcessing/index.vue'
+import SaleManagement from './SaleManagement/index.vue'
+import LeaseManagement from './LeaseManagement/index.vue'
+import PresaleManagement from './PresaleManagement/index.vue'
 
 export default {
   name: 'OnSale',
   components: {
     RentFormYYYP,
-    OfferProcessing
+    OfferProcessing,
+    SaleManagement,
+    LeaseManagement,
+    PresaleManagement
   },
   setup() {
     const loading = ref(false)
@@ -188,8 +194,11 @@ export default {
       // 切换交易类型时清空多选
       selectedItems.value = []
       // 如果是报价处理类型，强制使用列表模式
+      // 其他类型默认使用卡片模式
       if (tradeType === 'offer') {
         displayMode.value = 'list'
+      } else {
+        displayMode.value = 'card'
       }
       // 重新加载数据
       loadOnSaleData()
