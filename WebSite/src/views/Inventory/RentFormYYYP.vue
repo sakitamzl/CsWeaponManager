@@ -155,11 +155,11 @@
                 class="price-input"
               />
 
-              <!-- 长租租金（仅租期>21天时显示） -->
+              <!-- 长租租金（租期≤21天时禁用） -->
               <el-input
-                v-if="showLongRentPrice"
                 v-model="itemFormMap[item.assetid].longRentPrice"
                 placeholder="长租租金"
+                :disabled="!showLongRentPrice"
                 class="price-input"
               />
 

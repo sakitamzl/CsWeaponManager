@@ -255,7 +255,7 @@
                     <span class="price-label">短租:</span>
                     <span class="price-value sale-price">¥{{ parseFloat(item.short_lease_amount || 0).toFixed(2) }}/天</span>
                   </div>
-                  <div class="price-group">
+                  <div class="price-group" v-if="item.lease_max_days > 21">
                     <span class="price-label">长租:</span>
                     <span class="price-value">¥{{ parseFloat(item.long_lease_amount || 0).toFixed(2) }}/天</span>
                   </div>
@@ -477,7 +477,8 @@
           </el-table-column>
           <el-table-column label="长租租金" width="120">
             <template #default="scope">
-              <span style="color: #409EFF; font-weight: bold;">¥{{ parseFloat(scope.row.long_lease_amount || 0).toFixed(2) }}/天</span>
+              <span v-if="scope.row.lease_max_days > 21" style="color: #409EFF; font-weight: bold;">¥{{ parseFloat(scope.row.long_lease_amount || 0).toFixed(2) }}/天</span>
+              <span v-else style="color: #999;">-</span>
             </template>
           </el-table-column>
           <el-table-column label="押金" width="150">
