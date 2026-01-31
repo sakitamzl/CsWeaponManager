@@ -1,6 +1,5 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ShoppingCart, ShoppingBag, Shop, ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 
 
 export function useOnSaleContainer() {
@@ -55,4 +54,12 @@ export function useOnSaleContainer() {
       observer.disconnect()
     }
   })
+  
+  return {
+    sidebarCollapsed,
+    isMainSidebarCollapsed,
+    navigateTo,
+    toggleSidebar,
+    handleContentClick
+  }
 }

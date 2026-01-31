@@ -2,15 +2,18 @@ import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { apiUrls } from '@/config/api'
 
-export default {
-  name: 'Sell',
-  setup() {
-    const loading = ref(false)
-    const sellData = ref([])
-    const searchText = ref('')
-    const statusFilter = ref('')
-
 export function useSell() {
+  const loading = ref(false)
+  const sellData = ref([])
+  const searchText = ref('')
+  const statusFilter = ref('')
+  const sourceFilter = ref('')
+  const dataUserFilter = ref('')
+  const weaponTypeFilter = ref([])
+  const floatRangeFilter = ref([])
+  const weaponTypes = ref([])
+  const floatRanges = ref([])
+  const statusList = ref([])
   const statusSubList = ref([])
   const sourceList = ref(['yyyp','buff','csfloat','SMK'])
   const dataUserList = ref([])
@@ -1136,6 +1139,4 @@ export function useSell() {
     previewItem,
     openPreview
   }
-  }
-}
 }

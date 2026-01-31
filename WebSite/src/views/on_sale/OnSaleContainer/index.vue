@@ -59,11 +59,14 @@
 
 <script setup>
 import { useOnSaleContainer } from './useOnSaleContainer.js'
+import { ShoppingCart, ShoppingBag, Shop, ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 
 const {
-  activeTab,
-  tabs,
-  handleTabChange
+  sidebarCollapsed,
+  isMainSidebarCollapsed,
+  navigateTo,
+  toggleSidebar,
+  handleContentClick
 } = useOnSaleContainer()
 </script>
 

@@ -68,6 +68,14 @@ export function useItemSearch() {
   // API 基础地址
   const API_BASE = `${API_CONFIG.BASE_URL}/webInventoryV1`
 
+  // 搜索相关
+  const searchKeyword = ref('')
+  const searchResults = ref([])
+  const isSearching = ref(false)
+  const searchSource = ref('') // 'weapon' 或其他来源
+  const currentPage = ref(1)
+  const pageSize = ref(10)
+
   // 计算属性 - 筛选后的结果
   const filteredResults = computed(() => {
     let results = searchResults.value
@@ -1900,6 +1908,5 @@ export function useItemSearch() {
     getExteriorColor,
     handleSizeChange,
     handleCurrentChange
-  }
   }
 }

@@ -2,17 +2,20 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { ElMessage } from 'element-plus'
 import { apiUrls } from '@/config/api'
 
-export default {
-  name: 'Rental',
-  setup() {
-    const loading = ref(false)
-    const dataController = ref(null)
-    const statsController = ref(null)
-    const rentalData = ref([])
-    const searchText = ref('')
-
 export function useRental() {
+  const loading = ref(false)
+  const dataController = ref(null)
+  const statsController = ref(null)
+  const rentalData = ref([])
+  const searchText = ref('')
+  const statusFilter = ref('')
   const statusSubFilter = ref('')
+  const statusList = ref([])
+  const statusSubList = ref([])
+  const weaponTypeFilter = ref([])
+  const floatRangeFilter = ref([])
+  const weaponTypes = ref([])
+  const floatRanges = ref([])
   const platformList = ref([])
   const platformFilter = ref('')
   const lessorList = ref([])
@@ -314,43 +317,6 @@ export function useRental() {
         keywordOverride: itemName,
         storeInSearch: true
       })
-
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      
-      const rawData = await response.json()
-      console.log('搜索结果:', rawData)
-
-      if (!Array.isArray(rawData)) {
-        throw new Error('搜索结果格式错误')
-      }
-
-      // 转换搜索结果并存储所有数据
-      const searchResults = rawData.map((item, index) => ({
-        id: index + 1,
-        ID: item[0] || '',
-        weapon_name: item[1] || '',
-        weapon_type: item[2] || '',
-        item_name: item[3] || '',
-        weapon_float: item[4] || 0,
-        float_range: item[5] || '',
-        price: item[6] || 0,
-        lessor_name: item[7] || '',
-        status: item[8] || '',
-        status_sub: item[9] || '',
-        from: item[10] || '',
-        lean_start_time: item[11] || '',
-        lean_end_time: item[12] || '',
-        total_Lease_Days: item[13] || 0,
-        max_Lease_Days: item[14] || 0,
-        steam_hash_name: item[15] || '',
-        sticker: item[16] || null,
-        pendant: item[17] || null,
-        rename: item[18] || '',
-        data_user: item[19] || ''
-      }))
 
       // 进入搜索模式
       isSearchMode.value = true
@@ -1219,6 +1185,4 @@ export function useRental() {
     parsePendant,
     openPreview
   }
-  }
-}
 }

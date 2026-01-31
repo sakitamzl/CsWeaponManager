@@ -3,15 +3,19 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
 
-export default {
-  name: 'StockComponents',
-  setup() {
-    const loading = ref(false)
-    const updateLoading = ref(false)
-    const updateAllLoading = ref(false)
-    const updateAbnormalLoading = ref(false)
-
 export function useStockComponents() {
+  const loading = ref(false)
+  const updateLoading = ref(false)
+  const updateAllLoading = ref(false)
+  const updateAbnormalLoading = ref(false)
+  const autoFillLoading = ref(false)
+  const platformPriceLoading = ref(false)
+  const searchText = ref('')
+  const groupMode = ref(true)
+  const displayMode = ref('list')
+  const showPriceDiff = ref(true)
+  const componentData = ref([])
+  const groupedData = ref([])
   const weaponTypeFilter = ref('') // 武器类型筛选
   const weaponTypes = ref([]) // 武器类型列表
   const weaponNameFilter = ref('') // 磨损等级筛选
@@ -1637,6 +1641,4 @@ export function useStockComponents() {
     jumpToComponent,
     closePopover
   }
-  }
-}
 }

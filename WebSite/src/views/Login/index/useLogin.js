@@ -2,10 +2,9 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
+import { apiUrls } from '@/config/api'
 
 export function useLogin() {
-  import { apiUrls } from '@/config/api'
-  
   const router = useRouter()
   const loginFormRef = ref(null)
   const loading = ref(false)
@@ -58,5 +57,13 @@ export function useLogin() {
         loading.value = false
       }
     })
+  }
+  
+  return {
+    loginForm,
+    rules,
+    loginFormRef,
+    loading,
+    handleLogin
   }
 }
