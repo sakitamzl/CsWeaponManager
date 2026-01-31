@@ -1526,13 +1526,18 @@ export default {
             return
           }
 
+          // 获取交易类型（租赁或转租）
+          const tradeType = selectedItems.value[0].trade_type
+
           // 构建批量改价请求体
           const requestBody = {
             steamId: steamId,
-            commodities: commodities
+            commodities: commodities,
+            tradeType: tradeType  // 添加交易类型：lease（租赁）或 sublease（转租）
           }
 
           console.log('[批量改价] 请求体:', JSON.stringify(requestBody, null, 2))
+          console.log('[批量改价] 交易类型:', tradeType)
 
           // 发送批量改价请求（复用单个改价接口）
           const response = await axios.post(apiUrls.yyypChangeRentPrice(), requestBody)
