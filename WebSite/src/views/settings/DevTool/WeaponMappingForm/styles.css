@@ -1,0 +1,116 @@
+.sync-section {
+  background-color: #2a2a2a;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid #444;
+  margin-bottom: 1.5rem;
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #444;
+}
+
+.sync-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.75rem;
+  background-color: rgba(255, 255, 255, 0.02);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.steam-id-select {
+  width: 200px;
+  min-width: 180px;
+}
+
+.sync-info {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background-color: rgba(76, 175, 80, 0.1);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.sync-time {
+  color: #4CAF50;
+  font-size: 0.875rem;
+}
+
+.progress-info {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background-color: rgba(64, 158, 255, 0.1);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(64, 158, 255, 0.3);
+}
+
+.progress-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.progress-item:last-child {
+  margin-bottom: 0;
+}
+
+.progress-label {
+  color: #888;
+  font-size: 0.875rem;
+}
+
+.progress-value {
+  color: #409EFF;
+  font-weight: 600;
+}
+
+.progress-value.success-rate {
+  color: #67C23A;
+}
+
+.status-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.status-label {
+  color: #888;
+  min-width: 60px;
+  font-weight: 500;
+}
+
+.status-value {
+  color: #fff;
+}
+
+.status-value.success-text {
+  color: #67C23A;
+  font-weight: 600;
+}
+
+.status-value.error {
+  color: #F56C6C;
+  font-weight: 600;
+}
+
+.status-value.highlight {
+  color: #E6A23C;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
