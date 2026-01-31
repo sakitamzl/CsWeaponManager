@@ -348,19 +348,22 @@ export default {
 
     // 初始化表单数据（全局 + 每个饰品）
     const initForms = () => {
-      // 全局租期默认值
-      if (rentDaysOptions.value.length > 0) {
+      // 全局租期默认值：优先使用当前租期，否则使用第一个选项
+      if (props.items && props.items.length > 0 && props.items[0].currentRentDays) {
+        formData.rentDays = props.items[0].currentRentDays
+      } else if (rentDaysOptions.value.length > 0) {
         formData.rentDays = rentDaysOptions.value[0]
       }
 
-      // 初始化每个饰品的价格表单
+      // 初始化每个饰品的价格表单，自动填充原有数据
       if (props.items && props.items.length > 0) {
         props.items.forEach((item) => {
           if (!itemFormMap[item.assetid]) {
+            // 自动填充当前的租赁价格数据
             itemFormMap[item.assetid] = {
-              shortRentPrice: '',
-              longRentPrice: '',
-              depositPrice: ''
+              shortRentPrice: item.currentShortRentPrice || '',
+              longRentPrice: item.currentLongRentPrice || '',
+              depositPrice: item.currentDepositPrice || item.weapon_classID?.yyyp_Price || ''
             }
           }
         })

@@ -867,13 +867,14 @@ export default {
           float: item.weapon_float || item.float,
           paintseed: item.paintseed,
           weapon_classID: {
-            yyyp_Price: item.yyyp_price || item.market_price,
+            yyyp_Price: item.deposit_amount || item.yyyp_price || item.market_price,
             yyyp_id: item.template_id || item.yyyp_id
           },
           // 添加当前租赁配置用于自动填充
           currentRentDays: item.lease_max_days,
-          currentShortRentPrice: item.lease_amount,
-          currentLongRentPrice: item.long_lease_amount
+          currentShortRentPrice: item.short_lease_amount,
+          currentLongRentPrice: item.long_lease_amount,
+          currentDepositPrice: item.deposit_amount
         }))
       }
 
@@ -889,13 +890,14 @@ export default {
         float: item.weapon_float || item.float,
         paintseed: item.paintseed,
         weapon_classID: {
-          yyyp_Price: item.yyyp_price || item.market_price,
+          yyyp_Price: item.deposit_amount || item.yyyp_price || item.market_price,
           yyyp_id: item.template_id || item.yyyp_id
         },
         // 添加当前租赁配置用于自动填充
         currentRentDays: item.lease_max_days,
-        currentShortRentPrice: item.lease_amount,
-        currentLongRentPrice: item.long_lease_amount
+        currentShortRentPrice: item.short_lease_amount,
+        currentLongRentPrice: item.long_lease_amount,
+        currentDepositPrice: item.deposit_amount
       }]
     })
 
