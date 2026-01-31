@@ -1323,13 +1323,13 @@
 <script>
 import { Plus, User, Grid, Loading, CircleCheck, DataAnalysis } from '@element-plus/icons-vue'
 import { useDataSource } from './useDataSource.js'
-import SteamForm from './SteamForm/index.vue'
-import YoupinForm from './YoupinForm/index.vue'
-import BuffForm from './BuffForm/index.vue'
-import PerfectWorldForm from './PerfectWorldForm/index.vue'
-import CsfloatForm from './CsfloatForm/index.vue'
-import CsqaqForm from './CsqaqForm/index.vue'
-import SteamdtForm from './SteamdtForm/index.vue'
+import SteamForm from './TransactionSource/SteamForm/index.vue'
+import YoupinForm from './TransactionSource/YoupinForm/index.vue'
+import BuffForm from './TransactionSource/BuffForm/index.vue'
+import PerfectWorldForm from './TransactionSource/PerfectWorldForm/index.vue'
+import CsfloatForm from './TransactionSource/CsfloatForm/index.vue'
+import CsqaqForm from './QuerySorurce/CsqaqForm/index.vue'
+import SteamdtForm from './QuerySorurce/SteamdtForm/index.vue'
 
 export default {
   name: 'DataSource',
