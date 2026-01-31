@@ -1,0 +1,741 @@
+.rent-form-yyyp {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 70vh;
+  background: #1a1a1a;
+  color: #fff;
+}
+
+/* 表单头部 */
+.form-header {
+  padding: 1rem 1.5rem;
+  background: #2a2a2a;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.form-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.item-count {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #fff;
+}
+
+/* 表单内容 */
+.form-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+/* 饰品列表 */
+.items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 50vh;
+  overflow-y: auto;
+  padding: 0.5rem;
+  background: #0a0a0a;
+  border-radius: 8px;
+}
+
+.item-card {
+  display: grid;
+  grid-template-columns: 4fr 6fr;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.item-card:hover {
+  background: #333;
+  border-color: #4a4a4a;
+}
+
+/* 左侧饰品信息盒子 */
+.item-left-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+/* 右侧输入框盒子 */
+.item-right-box {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.item-image {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.item-image img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.image-placeholder {
+  color: #666;
+  font-size: 0.75rem;
+}
+
+.item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.item-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item-float-text {
+  font-size: 0.85rem;
+  color: #999;
+  font-family: monospace;
+}
+
+/* 磨损进度条样式 - 与Inventory页面一致 */
+.float-bar {
+  position: relative;
+  height: 8px;
+  display: flex;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.float-segment {
+  height: 100%;
+  transition: opacity 0.2s;
+}
+
+.float-segment:hover {
+  opacity: 0.8;
+}
+
+/* CS2 标准磨损等级颜色 */
+.float-segment.fn {
+  flex: 7;  /* 0.00 - 0.07 */
+  background: linear-gradient(to right, #4CAF50, #66BB6A);
+}
+
+.float-segment.mw {
+  flex: 8;  /* 0.07 - 0.15 */
+  background: linear-gradient(to right, #8BC34A, #9CCC65);
+}
+
+.float-segment.ft {
+  flex: 23; /* 0.15 - 0.38 */
+  background: linear-gradient(to right, #FFC107, #FFB300);
+}
+
+.float-segment.ww {
+  flex: 7;  /* 0.38 - 0.45 */
+  background: linear-gradient(to right, #FF9800, #FB8C00);
+}
+
+.float-segment.bs {
+  flex: 55; /* 0.45 - 1.00 */
+  background: linear-gradient(to right, #F44336, #E53935);
+}
+
+/* 磨损值指针 */
+.float-pointer {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 3px;
+  height: 16px;
+  background: #fff;
+  border-radius: 2px;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5), 0 0 8px rgba(255, 255, 255, 0.8);
+  z-index: 10;
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.float-pointer::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid #fff;
+}
+
+.float-pointer::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 5px solid #fff;
+}
+
+.item-buy-price {
+  font-size: 0.85rem;
+  color: #4CAF50;
+  font-weight: 500;
+  font-family: monospace;
+}
+
+.item-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.field-label {
+  font-size: 0.8rem;
+  color: #ccc;
+}
+
+/* 表单区块 */
+.form-section {
+  margin-bottom: 1.5rem;
+}
+
+.section-label {
+  font-size: 0.95rem;
+  color: #ccc;
+  margin-bottom: 0.75rem;
+  font-weight: 500;
+}
+
+/* 交易方式按钮 */
+.trade-mode-buttons {
+  display: flex;
+  gap: 1rem;
+}
+
+/* 顶部 行：交易方式 + 押金赔付 + 增值服务 */
+.trade-and-services-row {
+  display: grid;
+  grid-template-columns: 2fr 2fr 1.5fr;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.trade-mode-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* 顶部三块统一卡片样式 */
+.trade-card {
+  padding: 1rem;
+  background: #2a2a2a;
+  border: 2px solid #3a3a3a;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+}
+
+/* 押金赔付卡片：图标与文本同一行显示 */
+.deposit-card {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.trade-mode-btn {
+  flex: 1;
+  padding: 1rem;
+  background: #2a2a2a;
+  border: 2px solid #3a3a3a;
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.trade-mode-btn:hover {
+  background: #333;
+  border-color: #4a4a4a;
+}
+
+.trade-mode-btn.active {
+  background: rgba(64, 158, 255, 0.1);
+  border-color: #409EFF;
+}
+
+.mode-label {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #fff;
+}
+
+/* 出租天数按钮 */
+.rent-days-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+}
+
+.rent-day-btn {
+  padding: 0.75rem;
+  background: #2a2a2a;
+  border: 2px solid #3a3a3a;
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.rent-day-btn:hover {
+  background: #333;
+  border-color: #4a4a4a;
+}
+
+.rent-day-btn.active {
+  background: rgba(64, 158, 255, 0.1);
+  border-color: #409EFF;
+}
+
+.day-label {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #fff;
+}
+
+/* 自定义天数输入框 */
+.rent-day-input-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.custom-days-inline-input {
+  width: 100%;
+}
+
+.custom-days-inline-input :deep(.el-input__wrapper) {
+  background-color: #2a2a2a;
+  border: 2px solid #3a3a3a;
+  box-shadow: none;
+  border-radius: 8px;
+  padding: 0.75rem;
+  transition: all 0.3s ease;
+}
+
+.custom-days-inline-input :deep(.el-input__wrapper:hover) {
+  background: #333;
+  border-color: #4a4a4a;
+}
+
+.custom-days-inline-input :deep(.el-input__wrapper.is-focus) {
+  background: rgba(64, 158, 255, 0.1);
+  border-color: #409EFF;
+}
+
+.custom-days-inline-input :deep(.el-input__inner) {
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* 隐藏数字输入框的上下箭头 */
+.custom-days-inline-input :deep(.el-input__inner)::-webkit-outer-spin-button,
+.custom-days-inline-input :deep(.el-input__inner)::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.custom-days-inline-input :deep(.el-input__inner[type="number"]) {
+  -moz-appearance: textfield;
+}
+
+.custom-days-inline-input :deep(.el-input__inner::placeholder) {
+  color: #999;
+  font-weight: 500;
+}
+
+.custom-days-inline-input :deep(.el-input__suffix) {
+  display: flex;
+  align-items: center;
+}
+
+.input-suffix {
+  color: #999;
+  font-size: 0.9rem;
+  margin-right: 0.5rem;
+}
+
+/* 输入框带提示 */
+.input-with-tips {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.price-input {
+  width: 100%;
+}
+
+.input-tip {
+  font-size: 0.85rem;
+  color: #999;
+  padding-left: 0.25rem;
+}
+
+.compensation-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.icon-badge {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #fff;
+}
+
+.compensation-content {
+  flex: 1;
+}
+
+.compensation-text {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 0.25rem;
+}
+
+/* 确保富文本中的内联样式能够正确显示 */
+.compensation-text span {
+  display: inline;
+}
+
+/* 删除线样式 */
+.compensation-text span[style*="text-decoration: line-through"] {
+  text-decoration: line-through !important;
+}
+
+.service-fee {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fee-value {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #fff;
+}
+
+.fee-value.highlight {
+  color: #f56c6c;
+}
+
+.fee-original {
+  font-size: 0.85rem;
+  color: #999;
+  text-decoration: line-through;
+}
+
+.compensation-arrow {
+  font-size: 1.5rem;
+  color: #666;
+}
+
+/* 增值服务 */
+.value-added-services {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.value-added-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.service-item-inline {
+  display: flex;
+  align-items: center;
+}
+
+.service-switch-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.service-switch-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* 禁用状态样式 */
+.service-switch-item.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.service-switch-item.disabled:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.service-switch-item.disabled .service-badge {
+  opacity: 0.6;
+}
+
+.service-switch-item .service-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.services-title {
+  font-size: 0.9rem;
+  color: #ccc;
+  margin-bottom: 0.5rem;
+}
+
+.service-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #2a2a2a;
+  border: 2px solid #3a3a3a;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.service-item:hover {
+  background: #333;
+  border-color: #4a4a4a;
+}
+
+.service-checkbox {
+  flex-shrink: 0;
+}
+
+.service-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.service-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.service-badge.zero-cd {
+  background: linear-gradient(135deg, #409EFF, #3A8EE6);
+}
+
+.service-badge.rent-activity {
+  background: linear-gradient(135deg, #67C23A, #85CE61);
+}
+
+.service-label {
+  font-size: 0.9rem;
+  color: #fff;
+}
+
+/* 底部操作栏 */
+.form-footer {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: #2a2a2a;
+  border-top: 1px solid #3a3a3a;
+}
+
+.footer-btn {
+  flex: 1;
+  height: 48px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.auto-price-btn {
+  background: linear-gradient(135deg, #67C23A, #85CE61);
+  color: #fff;
+  border: none;
+}
+
+.auto-price-btn:hover {
+  background: linear-gradient(135deg, #85CE61, #67C23A);
+  opacity: 0.9;
+}
+
+.cancel-btn {
+  background: #3a3a3a;
+  color: #fff;
+  border: none;
+}
+
+.cancel-btn:hover {
+  background: #4a4a4a;
+}
+
+.submit-btn {
+  background: linear-gradient(135deg, #409EFF, #3A8EE6);
+  border: none;
+}
+
+.submit-btn:hover {
+  opacity: 0.9;
+}
+
+/* 滚动条样式 */
+.form-content::-webkit-scrollbar,
+.items-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.form-content::-webkit-scrollbar-track,
+.items-list::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+.form-content::-webkit-scrollbar-thumb,
+.items-list::-webkit-scrollbar-thumb {
+  background: #3a3a3a;
+  border-radius: 3px;
+}
+
+.form-content::-webkit-scrollbar-thumb:hover,
+.items-list::-webkit-scrollbar-thumb:hover {
+  background: #4a4a4a;
+}
+
+/* Element Plus 样式覆盖 */
+:deep(.el-input__wrapper) {
+  background-color: #2a2a2a;
+  border: 2px solid #3a3a3a;
+  box-shadow: none;
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+:deep(.el-input__wrapper:hover) {
+  border-color: #4a4a4a;
+}
+
+:deep(.el-input__wrapper.is-focus) {
+  border-color: #409EFF;
+}
+
+:deep(.el-input__inner) {
+  color: #fff;
+  font-size: 1rem;
+}
+
+:deep(.el-input-group__prepend),
+:deep(.el-input-group__append) {
+  background-color: #1a1a1a;
+  color: #fff;
+  border: none;
+  padding: 0 1rem;
+}
+
+:deep(.el-checkbox__inner) {
+  background-color: #2a2a2a;
+  border-color: #3a3a3a;
+}
+
+:deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
+  background-color: #409EFF;
+  border-color: #409EFF;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .rent-days-buttons {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .trade-mode-buttons {
+    flex-direction: column;
+  }
+
+  .form-content {
+    padding: 1rem;
+  }
+
+  .form-footer {
+    padding: 1rem;
+  }
+
+  .items-list {
+    max-height: 150px;
+  }
+
+  .item-card {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .item-image {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .trade-and-services-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .item-right-box {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
