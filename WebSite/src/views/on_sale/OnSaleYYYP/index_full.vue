@@ -821,6 +821,7 @@ export default {
       { value: 'sublease', label: '转租', icon: '🔁' },
       { value: 'presale', label: '预售', icon: '⏰' },
       { value: 'transfer', label: '过户', icon: '📝' },
+      { value: 'rented-out', label: '已租出', icon: '📦' },
       { value: 'instant', label: '秒到账', icon: '⚡' }
     ])
     
@@ -1174,6 +1175,70 @@ export default {
                 guard_price_desc: item.guardPriceDesc,  // 保证金描述
                 cache_expiration_desc: item.cacheExpirationDesc,  // 剩余冷却天数
                 paintseed: item.paintseed  // 图案模板
+              }
+            })
+            ElMessage.success('加载成功')
+          } else {
+            ElMessage.error(response.data?.message || '加载失败')
+          }
+        } else if (selectedTradeType.value === 'rented-out') {
+          // 已租出类型：调用已租出列表API
+          response = await axios.get(apiUrls.getRentedOutList(), {
+            params: {
+              steamId: accountList.value.find(acc => acc.id === selectedAccount.value)?.steam_id || '',
+              page: 1,
+              pageSize: 1000
+            }
+          })
+
+          if (response.data && response.data.success) {
+            // 转换已租出数据格式以匹配前端期望
+            const rentedOutData = response.data.data?.commodityInfoList || []
+            onSaleData.value = rentedOutData.map(item => {
+              // 解析印花数据
+              let stickerData = null
+              if (item.haveSticker && item.stickers && item.stickers.length > 0) {
+                stickerData = JSON.stringify(item.stickers.map(sticker => ({
+                  name: sticker.name,
+                  image: sticker.imageUrl,
+                  abrade: sticker.abradeDesc,
+                  rawIndex: sticker.rawIndex
+                })))
+              }
+
+              // 解析挂件数据
+              let pendantData = null
+              if (item.havePendant && item.pendants && item.pendants.length > 0) {
+                const pendant = item.pendants[0]  // 通常只有一个挂件
+                pendantData = JSON.stringify({
+                  name: pendant.name || '',
+                  image: pendant.imageUrl || '',
+                  pattern: pendant.pattern || ''
+                })
+              }
+
+              return {
+                id: item.id,
+                item_name: item.name,
+                steam_hash_name: item.commodityHashName,
+                sale_price: item.leasePrice || 0,  // 租金
+                buy_price: null,  // 已租出没有购入价
+                weapon_float: item.abrade,
+                weapon_type: item.typeName || '',
+                float_range: item.exteriorName || '',
+                sticker: stickerData,  // 印花数据
+                pendant: pendantData,  // 挂件数据
+                rename: item.haveNameTag ? '已改名' : null,  // 改名标记
+                on_sale_time: item.statusDesc || null,  // 状态描述
+                platform: 'yyyp',
+                trade_type: 'rented-out',
+                account_id: selectedAccount.value,
+                // 已租出特有字段
+                lease_price: item.leasePrice,  // 租金
+                deposit_price: item.depositPrice,  // 押金
+                lease_days: item.leaseDays,  // 租期
+                lease_end_time: item.leaseEndTime,  // 到期时间
+                lessee_name: item.lesseeName  // 租户名称
               }
             })
             ElMessage.success('加载成功')
