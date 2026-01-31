@@ -189,6 +189,4 @@ export function useYyypMessageBox() {
     handleSizeChange,
     getMessageTypeColor
   }
-  }
-}
 }

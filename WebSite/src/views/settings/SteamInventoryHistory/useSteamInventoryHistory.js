@@ -189,4 +189,29 @@ export function useSteamInventoryHistory() {
   onMounted(() => {
     loadData(true) // 首次加载需要统计数据
   })
+  
+  return {
+    loading,
+    tableData,
+    currentPage,
+    pageSize,
+    totalCount,
+    searchText,
+    tradeTypeFilter,
+    dateRange,
+    hasAdvancedFilters,
+    gainCount,
+    lossCount,
+    gainPercentage,
+    lossPercentage,
+    formatDateTime,
+    handleSearch,
+    handleClearSearch,
+    handleTradeTypeChange,
+    handleDateRangeChange,
+    handleTimeSearch,
+    handleSizeChange,
+    handleCurrentChange,
+    handleSortChange
+  }
 }

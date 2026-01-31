@@ -249,14 +249,27 @@ import { useSteamInventoryHistory } from './useSteamInventoryHistory.js'
 
 const {
   loading,
-  inventoryHistoryData,
-  selectedDate,
-  steamId64List,
-  handleDateChange,
-  handleRefresh,
-  getWeaponImage,
-  handleImageError,
-  getItemBorderStyle
+  tableData,
+  currentPage,
+  pageSize,
+  totalCount,
+  searchText,
+  tradeTypeFilter,
+  dateRange,
+  hasAdvancedFilters,
+  gainCount,
+  lossCount,
+  gainPercentage,
+  lossPercentage,
+  formatDateTime,
+  handleSearch,
+  handleClearSearch,
+  handleTradeTypeChange,
+  handleDateRangeChange,
+  handleTimeSearch,
+  handleSizeChange,
+  handleCurrentChange,
+  handleSortChange
 } = useSteamInventoryHistory()
 </script>
 

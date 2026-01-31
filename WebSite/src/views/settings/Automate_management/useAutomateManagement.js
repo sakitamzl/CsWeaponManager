@@ -1429,4 +1429,40 @@ export function useAutomateManagement() {
     await loadPendantSearchConfigs()
     await loadSavedTasks()
   })
+  
+  return {
+    automateForm,
+    customInterval,
+    executing,
+    bulkStarting,
+    bulkStopping,
+    isEditing,
+    steamConfigList,
+    youpinConfigList,
+    buffConfigList,
+    dataSources,
+    runningTasks,
+    renameSearchConfigList,
+    pendantSearchConfigList,
+    updateTasks,
+    fetchTasks,
+    platformPriceTasks,
+    searchWeaponTasks,
+    secondSelectLabel,
+    currentSteamConfigList,
+    currentSearchConfigList,
+    availableTasks,
+    filteredDataSources,
+    formatInterval,
+    handleTypeChange,
+    applyCustomInterval,
+    handleExecute,
+    handleReset,
+    startTask,
+    stopTask,
+    startAllTasks,
+    stopAllTasks,
+    editTask,
+    deleteTask
+  }
 }

@@ -3776,6 +3776,4 @@ export function useDataSource() {
     handleGenerateQRCode,
     getSteamQRStatusText
   }
-  }
-}
 }

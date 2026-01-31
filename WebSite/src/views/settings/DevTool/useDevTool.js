@@ -4,6 +4,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
 
 export function useDevTool() {
+  const devices = ref([])
+  const selectedDevice = ref('')
   const deviceInfo = ref(null)
   const certStatus = ref(null)
   const isLoadingDevices = ref(false)
@@ -875,6 +877,4 @@ export function useDevTool() {
     handleCsqaqUploadSuccess,
     handleCsqaqUploadError
   }
-  }
-}
 }

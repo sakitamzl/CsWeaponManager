@@ -2,70 +2,63 @@
  * SearchPendant组件的业务逻辑
  * 处理挂件搜索功能
  */
-import { ref, computed, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { apiUrls } from '@/config/api.js'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import axios from 'axios'
+import { API_CONFIG, apiUrls } from '@/config/api.js'
 
 export function useSearchPendant() {
-Document,
-Delete,
-Refresh,
-ArrowUp,
-ArrowDown,
-InfoFilled,
-Loading
-  },
-  setup() {
-const router = useRouter()
-const crawlFormRef = ref(null)
-const platformAccountLists = ref({})
-const accountLoadingStates = ref({})
-const isProgrammaticPlatformChange = ref(false)
-const isCrawling = ref(false)
-const crawlResult = ref(null)
+  const router = useRouter()
+  const crawlFormRef = ref(null)
+  const platformAccountLists = ref({})
+  const accountLoadingStates = ref({})
+  const isProgrammaticPlatformChange = ref(false)
+  const isCrawling = ref(false)
+  const crawlResult = ref(null)
 
-const pollingTimer = ref(null)
-const POLL_INTERVAL = 1000
-const noDataCount = ref(0)
-const MAX_NO_DATA_COUNT = 60
-const lastPollingTime = ref(0)
+  const pollingTimer = ref(null)
+  const POLL_INTERVAL = 1000
+  const noDataCount = ref(0)
+  const MAX_NO_DATA_COUNT = 60
+  const lastPollingTime = ref(0)
 
-const getItemIconUrl = (item) => {
-  if (!item) return ''
-  const raw = item.iconUrl ?? item.icon_url
-  if (!raw) return ''
-  const url = typeof raw === 'string' ? raw.trim() : ''
-  if (!url) return ''
-  if (url.startsWith('http://') || url.startsWith('https://')) {
+  const getItemIconUrl = (item) => {
+    if (!item) return ''
+    const raw = item.iconUrl ?? item.icon_url
+    if (!raw) return ''
+    const url = typeof raw === 'string' ? raw.trim() : ''
+    if (!url) return ''
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url
+    }
+    if (url.startsWith('//')) {
+      return `https:${url}`
+    }
     return url
   }
-  if (url.startsWith('//')) {
-    return `https:${url}`
-  }
-  return url
-}
 
-const parsePendants = (rawPendants) => {
-  if (!rawPendants) {
-    return []
-  }
-  if (Array.isArray(rawPendants)) {
-    return rawPendants
-  }
-  if (typeof rawPendants === 'string') {
-    try {
-      const parsed = JSON.parse(rawPendants)
-      return Array.isArray(parsed) ? parsed : []
-    } catch (error) {
-      console.warn('[挂件] 无法解析 pendants 字段:', rawPendants, error)
+  const parsePendants = (rawPendants) => {
+    if (!rawPendants) {
       return []
     }
+    if (Array.isArray(rawPendants)) {
+      return rawPendants
+    }
+    if (typeof rawPendants === 'string') {
+      try {
+        const parsed = JSON.parse(rawPendants)
+        return Array.isArray(parsed) ? parsed : []
+      } catch (error) {
+        console.warn('[挂件] 无法解析 pendants 字段:', rawPendants, error)
+        return []
+      }
+    }
+    return []
   }
-  return []
-}
 
-const normalizeApiItems = (items = []) => {
-  return items.map(item => ({
+  const normalizeApiItems = (items = []) => {
+    return items.map(item => ({
     id: item.commodityId,
     commodityNo: item.commodityNo,
     price: parseFloat(item.price) || 0,
@@ -86,27 +79,27 @@ const normalizeApiItems = (items = []) => {
     pendantTotalPrice: parseFloat(item.pendantTotalPrice) || 0,
     priceDiffPercentage: parseFloat(item.priceDiffPercentage) || 0
   }))
-}
+  }
 
-const rebuildCrawlResult = (items = []) => {
-  const weaponGroups = {}
-  items.forEach(item => {
-    const weaponDisplayName = item.weapon_name || item.weaponName || '未知饰品'
-    if (!weaponGroups[weaponDisplayName]) {
-      weaponGroups[weaponDisplayName] = []
-    }
-    weaponGroups[weaponDisplayName].push(item)
-  })
+  const rebuildCrawlResult = (items = []) => {
+    const weaponGroups = {}
+    items.forEach(item => {
+      const weaponDisplayName = item.weapon_name || item.weaponName || '未知饰品'
+      if (!weaponGroups[weaponDisplayName]) {
+        weaponGroups[weaponDisplayName] = []
+      }
+      weaponGroups[weaponDisplayName].push(item)
+    })
 
-  const weapons = Object.keys(weaponGroups).map(name => ({
-    weapon_name: name,
-    items: weaponGroups[name]
-  }))
+    const weapons = Object.keys(weaponGroups).map(name => ({
+      weapon_name: name,
+      items: weaponGroups[name]
+    }))
 
-  crawlResult.value = { weapons }
-}
+    crawlResult.value = { weapons }
+  }
 
-const loadRecentSearchResults = async () => {
+  const loadRecentSearchResults = async () => {
   try {
     console.log('[挂件] 尝试加载历史结果...')
     // 获取搜索结果，根据选中的配置ID过滤
@@ -133,23 +126,23 @@ const loadRecentSearchResults = async () => {
   } catch (error) {
     console.error('[挂件] 加载历史数据失败:', error)
   }
-}
+  }
 
-const updateCrawlResultWithItems = (newItems) => {
-  const currentItems = crawlResult.value?.weapons?.flatMap(weapon => weapon.items) || []
-  const itemMap = new Map()
-  currentItems.forEach(item => itemMap.set(item.id, item))
-  newItems.forEach(item => itemMap.set(item.id, item))
-  const mergedItems = Array.from(itemMap.values())
-  mergedItems.sort((a, b) => {
-    const diffA = a.priceDiff !== undefined ? a.priceDiff : -Infinity
-    const diffB = b.priceDiff !== undefined ? b.priceDiff : -Infinity
-    return diffB - diffA
-  })
-  rebuildCrawlResult(mergedItems)
-}
+  const updateCrawlResultWithItems = (newItems) => {
+    const currentItems = crawlResult.value?.weapons?.flatMap(weapon => weapon.items) || []
+    const itemMap = new Map()
+    currentItems.forEach(item => itemMap.set(item.id, item))
+    newItems.forEach(item => itemMap.set(item.id, item))
+    const mergedItems = Array.from(itemMap.values())
+    mergedItems.sort((a, b) => {
+      const diffA = a.priceDiff !== undefined ? a.priceDiff : -Infinity
+      const diffB = b.priceDiff !== undefined ? b.priceDiff : -Infinity
+      return diffB - diffA
+    })
+    rebuildCrawlResult(mergedItems)
+  }
 
-const pollSearchResults = async () => {
+  const pollSearchResults = async () => {
   try {
     lastPollingTime.value = Date.now()
     // 获取所有数据，根据选中的配置ID过滤
@@ -182,26 +175,26 @@ const pollSearchResults = async () => {
   } catch (error) {
     console.error('[挂件] 轮询出错:', error)
   }
-}
+  }
 
-const startPolling = () => {
+  const startPolling = () => {
   if (pollingTimer.value) {
     return
   }
   console.log(`[挂件] 启动轮询，间隔 ${POLL_INTERVAL}ms`)
   pollingTimer.value = setInterval(pollSearchResults, POLL_INTERVAL)
   pollSearchResults()
-}
+  }
 
-const stopPolling = () => {
+  const stopPolling = () => {
   if (pollingTimer.value) {
     clearInterval(pollingTimer.value)
     pollingTimer.value = null
     console.log('[挂件] 已停止轮询')
   }
-}
+  }
 
-const clearCrawlHistory = async (skipConfirm = false) => {
+  const clearCrawlHistory = async (skipConfirm = false) => {
   try {
     // 如果有选中的配置，只清空该配置的数据；否则清空所有数据
     const clearMessage = selectedConfigId.value
@@ -258,70 +251,70 @@ const clearCrawlHistory = async (skipConfirm = false) => {
       }
     }
   }
-}
-
-// 合并所有武器的items到一个统一列表，并按差价从高到低排序
-const allCrawlItems = computed(() => {
-  if (!crawlResult.value || !crawlResult.value.weapons) {
-    return []
   }
-  
-  const items = []
-  crawlResult.value.weapons.forEach(weapon => {
-    if (weapon.items && weapon.items.length > 0) {
-      weapon.items.forEach(item => {
-        items.push({
-          ...item,
-          weapon_name: weapon.weapon_name,  // 添加武器名称
-          weapon_id: weapon.weapon_id
-        })
-      })
+
+  // 合并所有武器的items到一个统一列表，并按差价从高到低排序
+  const allCrawlItems = computed(() => {
+    if (!crawlResult.value || !crawlResult.value.weapons) {
+      return []
     }
+    
+    const items = []
+    crawlResult.value.weapons.forEach(weapon => {
+      if (weapon.items && weapon.items.length > 0) {
+        weapon.items.forEach(item => {
+          items.push({
+            ...item,
+            weapon_name: weapon.weapon_name,  // 添加武器名称
+            weapon_id: weapon.weapon_id
+          })
+        })
+      }
+    })
+    
+    // 按差价从高到低排序
+    items.sort((a, b) => {
+      const diffA = a.priceDiff !== undefined ? a.priceDiff : -Infinity
+      const diffB = b.priceDiff !== undefined ? b.priceDiff : -Infinity
+      return diffB - diffA  // 从高到低
+    })
+    
+    return items
   })
-  
-  // 按差价从高到低排序
-  items.sort((a, b) => {
-    const diffA = a.priceDiff !== undefined ? a.priceDiff : -Infinity
-    const diffB = b.priceDiff !== undefined ? b.priceDiff : -Infinity
-    return diffB - diffA  // 从高到低
+
+  // 配置管理相关
+  const savedConfigs = ref([])
+  const selectedConfigId = ref(null)
+
+  // 饰品搜索相关
+  const weaponSearchKeyword = ref('')
+  const weaponSearchResults = ref([])
+  const isSearchingWeapon = ref(false)
+  const isLoadingMore = ref(false)  // 加载更多数据中
+  const currentPage = ref(1)  // 当前页码
+  const pageSize = ref(50)  // 每页数量
+  const hasMore = ref(true)  // 是否还有更多数据
+  const weaponSearchFilters = ref({
+    weaponType: '',  // 武器类型筛选
+    weaponName: '',  // 武器名称筛选
+    rarity: '',      // 稀有度筛选
+    priceMin: null,  // 最低价格
+    priceMax: null,  // 最高价格
+    minOnSaleCount: null  // 最小在售数量
   })
-  
-  return items
-})
+  const weaponNameList = ref([])  // 武器名称列表
+  const isLoadingWeaponNames = ref(false)  // 加载武器名称中
 
-// 配置管理相关
-const savedConfigs = ref([])
-const selectedConfigId = ref(null)
+  // 购买相关
+  const buyingItems = ref({})  // 正在购买的商品 {itemId: true/false}
+  const purchasedItems = ref(new Set())  // 已成功购买的商品ID集合
 
-// 饰品搜索相关
-const weaponSearchKeyword = ref('')
-const weaponSearchResults = ref([])
-const isSearchingWeapon = ref(false)
-const isLoadingMore = ref(false)  // 加载更多数据中
-const currentPage = ref(1)  // 当前页码
-const pageSize = ref(50)  // 每页数量
-const hasMore = ref(true)  // 是否还有更多数据
-const weaponSearchFilters = ref({
-  weaponType: '',  // 武器类型筛选
-  weaponName: '',  // 武器名称筛选
-  rarity: '',      // 稀有度筛选
-  priceMin: null,  // 最低价格
-  priceMax: null,  // 最高价格
-  minOnSaleCount: null  // 最小在售数量
-})
-const weaponNameList = ref([])  // 武器名称列表
-const isLoadingWeaponNames = ref(false)  // 加载武器名称中
+  // 工具与配置区域联动折叠状态
+  const isConfigSectionsCollapsed = ref(false)
+  const isSearchResultsCollapsed = ref(false)  // 搜索结果列表折叠状态
+  const isWeaponListCollapsed = ref(true)  // 饰品列表折叠状态（默认折叠）
 
-// 购买相关
-const buyingItems = ref({})  // 正在购买的商品 {itemId: true/false}
-const purchasedItems = ref(new Set())  // 已成功购买的商品ID集合
-
-// 工具与配置区域联动折叠状态
-const isConfigSectionsCollapsed = ref(false)
-const isSearchResultsCollapsed = ref(false)  // 搜索结果列表折叠状态
-const isWeaponListCollapsed = ref(true)  // 饰品列表折叠状态（默认折叠）
-
-const createDefaultCustomConfig = () => ({
+  const createDefaultCustomConfig = () => ({
   '饰品自动查询间隔': 3,
   '是否自动购买': false,
   '最大差价百分比': 80,
@@ -1769,87 +1762,88 @@ const getRarityColor = (rarity) => {
   return rarityColorMap[rarity] || '#fff'
 }
 
-// 组件挂载时加载数据（不自动启动搜索和轮询）
-onMounted(() => {
-  if (crawlForm.value.platformType) {
-    loadAccountsForPlatform(crawlForm.value.platformType)
+  // 组件挂载时加载数据（不自动启动搜索和轮询）
+  onMounted(() => {
+    if (crawlForm.value.platformType) {
+      loadAccountsForPlatform(crawlForm.value.platformType)
+    }
+    loadConfigList()
+    // 不再自动加载搜索结果和启动轮询，需要点击配置卡片后才进行搜索
+    // 添加页面滚动监听
+    window.addEventListener('scroll', handlePageScroll)
+  })
+
+  onUnmounted(() => {
+    // 移除页面滚动监听
+    window.removeEventListener('scroll', handlePageScroll)
+    stopPolling()
+  })
+
+  return {
+    crawlFormRef,
+    filteredSteamIdList,
+    isCrawling,
+    crawlForm,
+    customConfigForm,
+    booleanOptions,
+    crawlResult,
+    allCrawlItems,
+    canStartCrawl,
+    startCrawl,
+    resetForm,
+    // 配置管理
+    savedConfigs,
+    selectedConfigId,
+    loadConfigList,
+    selectConfig,
+    createNewConfig,
+    saveConfig,
+    autoSaveConfig,
+    handlePlatformTypeChange,
+    deleteConfig,
+    deleteCurrentConfig,
+    formatTime,
+    // 饰品搜索
+    weaponSearchKeyword,
+    weaponSearchResults,
+    isSearchingWeapon,
+    isLoadingMore,
+    hasMore,
+    weaponSearchFilters,
+    weaponNameList,
+    isLoadingWeaponNames,
+    handleWeaponTypeChange,
+    loadWeaponNames,
+    loadWeaponNamesIfNeeded,
+    handleSearchWeapon,
+    loadMoreWeapons,
+    clearWeaponSearch,
+    handleAddWeaponFromSearch,
+    handleAddAllWeaponsFromSearch,
+    getWeaponIdByPlatform,
+    getSourceLabel,
+    addWeaponId,
+    addAllWeaponIds,
+    removeWeaponId,
+    clearAllWeaponIds,
+    weaponIdList,
+    getRowClassName,
+    getRarityColor,
+    // 购买相关
+    buyingItems,
+    purchasedItems,
+    handleBuyWeapon,
+    hasHighlightMoment,
+    getBuyButtonType,
+    getItemIconUrl,
+    // 历史结果管理
+    clearCrawlHistory,
+    // 工具区域折叠
+    isConfigSectionsCollapsed,
+    toggleConfigSections,
+    isSearchResultsCollapsed,
+    toggleSearchResults,
+    isWeaponListCollapsed,
+    toggleWeaponList,
   }
-  loadConfigList()
-  // 不再自动加载搜索结果和启动轮询，需要点击配置卡片后才进行搜索
-  // 添加页面滚动监听
-  window.addEventListener('scroll', handlePageScroll)
-})
-
-onUnmounted(() => {
-  // 移除页面滚动监听
-  window.removeEventListener('scroll', handlePageScroll)
-  stopPolling()
-})
-
-return {
-  crawlFormRef,
-  filteredSteamIdList,
-  isCrawling,
-  crawlForm,
-  customConfigForm,
-  booleanOptions,
-  crawlResult,
-  allCrawlItems,
-  canStartCrawl,
-  startCrawl,
-  resetForm,
-  // 配置管理
-  savedConfigs,
-  selectedConfigId,
-  loadConfigList,
-  selectConfig,
-  createNewConfig,
-  saveConfig,
-  autoSaveConfig,
-  handlePlatformTypeChange,
-  deleteConfig,
-  deleteCurrentConfig,
-  formatTime,
-  // 饰品搜索
-  weaponSearchKeyword,
-  weaponSearchResults,
-  isSearchingWeapon,
-  isLoadingMore,
-  hasMore,
-  weaponSearchFilters,
-  weaponNameList,
-  isLoadingWeaponNames,
-  handleWeaponTypeChange,
-  loadWeaponNames,
-  loadWeaponNamesIfNeeded,
-  handleSearchWeapon,
-  loadMoreWeapons,
-  clearWeaponSearch,
-  handleAddWeaponFromSearch,
-  handleAddAllWeaponsFromSearch,
-  getWeaponIdByPlatform,
-  getSourceLabel,
-  addWeaponId,
-  addAllWeaponIds,
-  removeWeaponId,
-  clearAllWeaponIds,
-  weaponIdList,
-  getRowClassName,
-  getRarityColor,
-  // 购买相关
-  buyingItems,
-  purchasedItems,
-  handleBuyWeapon,
-  hasHighlightMoment,
-  getBuyButtonType,
-  getItemIconUrl,
-  // 历史结果管理
-  clearCrawlHistory,
-  // 工具区域折叠
-  isConfigSectionsCollapsed,
-  toggleConfigSections,
-  isSearchResultsCollapsed,
-  toggleSearchResults,
-  isWeaponListCollapsed,
-  toggleWeaponList,
 }

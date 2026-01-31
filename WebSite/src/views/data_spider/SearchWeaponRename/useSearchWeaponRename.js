@@ -4,7 +4,7 @@ import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Document, Delete, Refresh, ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import { API_CONFIG } from '@/config/api.js'
-import WeaponSearch from '@/views/Units/weapon_search.vue'
+import WeaponSearch from '@/views/Units/weapon_search/index.vue'
 
 export function useSearchWeaponRename() {
 const router = useRouter()

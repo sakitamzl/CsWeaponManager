@@ -453,7 +453,7 @@
 
 <script>
 import { Document, Delete, Refresh, ArrowUp, ArrowDown } from '@element-plus/icons-vue'
-import WeaponSearch from '@/views/Units/weapon_search.vue'
+import WeaponSearch from '@/views/Units/weapon_search/index.vue'
 import { useSearchWeaponRename } from './useSearchWeaponRename.js'
 
 export default {

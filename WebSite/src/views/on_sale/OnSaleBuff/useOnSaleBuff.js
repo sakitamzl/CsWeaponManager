@@ -3,9 +3,12 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
 
-export default {
-
 export function useOnSaleBuff() {
+  const loading = ref(false)
+  const updating = ref(false)
+  const onSaleData = ref([])
+  const accountList = ref([])
+  const selectedAccount = ref('')
   const searchText = ref('')
   const weaponTypeFilter = ref('')
   const floatRangeFilter = ref('')
@@ -417,6 +420,4 @@ export function useOnSaleBuff() {
     formatOnSaleTime,
     getPriceDiffClass
   }
-  }
-}
 }

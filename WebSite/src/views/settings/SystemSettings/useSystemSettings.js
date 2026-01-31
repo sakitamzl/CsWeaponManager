@@ -1,5 +1,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import axios from 'axios'
+import { apiUrls } from '@/config/api.js'
 
 export function useSystemSettings() {
   const basicSettings = ref({
@@ -113,6 +115,4 @@ export function useSystemSettings() {
     handleLoginToggle,
     handleExternalAccessToggle
   }
-  }
-}
 }
