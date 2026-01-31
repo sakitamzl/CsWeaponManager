@@ -1,0 +1,338 @@
+.stats-container {
+  width: 100%;
+  margin-top: clamp(1.5rem, 3vw, 2rem);
+}
+
+.grid-5 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: clamp(1rem, 2vw, 1.25rem);
+}
+
+.grid-7 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: clamp(1rem, 2vw, 1.25rem);
+}
+
+.stat-number {
+  font-size: clamp(1.25rem, 3vw, 1.5rem);
+  font-weight: bold;
+  color: #4CAF50;
+  margin-top: clamp(0.5rem, 1vw, 0.625rem);
+}
+
+.stat-subtitle {
+  font-size: clamp(0.75rem, 1.5vw, 0.875rem);
+  color: #888;
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+.stat-price-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: clamp(0.5rem, 1vw, 0.625rem);
+}
+
+.stat-diff {
+  font-size: clamp(0.875rem, 1.5vw, 1rem);
+  font-weight: bold;
+  margin: 0;
+}
+
+@media (max-width: 1200px) {
+  .grid-5 {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+  
+  .grid-7 {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .grid-5 {
+    grid-template-columns: 1fr;
+  }
+  
+  .grid-7 {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-price-container {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .price-chart {
+    height: 300px;
+  }
+
+  .chart-card {
+    max-width: 100%;
+    min-width: 100%;
+  }
+}
+
+.chart-section {
+  width: 100%;
+  margin-top: clamp(1.5rem, 3vw, 2rem);
+}
+
+.chart-container {
+  width: 100%;
+  margin-top: clamp(1.5rem, 3vw, 2rem);
+  display: flex;
+  justify-content: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.chart-card {
+  padding: clamp(1.5rem, 3vw, 2rem);
+  width: calc(33.333% - 0.67rem);
+  flex: 0 0 calc(33.333% - 0.67rem);
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.chart-card-kline {
+  padding: clamp(1.5rem, 3vw, 2rem);
+  padding-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  width: calc(33.333% - 0.67rem);
+  flex: 0 0 calc(33.333% - 0.67rem);
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.chart-card-kline .chart-header {
+  flex-shrink: 0;
+}
+
+.chart-card-kline .kline-chart {
+  flex: 1;
+  width: 100%;
+  min-height: 360px;
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
+}
+
+.chart-card-full-row {
+  flex-basis: 100%;
+  max-width: 100%;
+}
+
+.chart-card h3 {
+  margin: 0 0 1.5rem 0;
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  color: #fff;
+  text-align: center;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.chart-header h3 {
+  margin: 0;
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  color: #fff;
+}
+
+.chart-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.price-chart {
+  width: 100%;
+  height: 360px;
+  min-height: 240px;
+  cursor: pointer;
+}
+
+.chart-summary {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #333;
+  display: flex;
+  justify-content: space-around;
+  gap: 2rem;
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.summary-label {
+  color: #888;
+  font-size: 0.95rem;
+}
+
+.summary-value {
+  color: #4CAF50;
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+/* 饰品列表弹窗样式 */
+.item-list-dialog {
+  --el-dialog-bg-color: #1a1a1a;
+}
+
+.item-list-container {
+  background-color: #1a1a1a;
+}
+
+.item-list-header {
+  padding: 1rem 0;
+  font-size: 1rem;
+  color: #fff;
+  border-bottom: 1px solid #333;
+  margin-bottom: 1rem;
+}
+
+.table-scroll-container {
+  max-height: 500px;
+  overflow-y: auto;
+  position: relative;
+}
+
+.load-more-indicator {
+  text-align: center;
+  padding: 1rem;
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.item-name-cell {
+  color: #fff;
+  word-break: break-word;
+}
+
+.item-title {
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: #fff;
+}
+
+/* 磨损值显示条样式 */
+.float-bar {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  display: flex;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #2a2a2a;
+}
+
+.float-segment {
+  flex: 1;
+  height: 100%;
+}
+
+.float-segment.fn {
+  background: linear-gradient(90deg, #4CAF50, #66BB6A);
+}
+
+.float-segment.mw {
+  background: linear-gradient(90deg, #66BB6A, #9CCC65);
+}
+
+.float-segment.ft {
+  background: linear-gradient(90deg, #9CCC65, #FDD835);
+}
+
+.float-segment.ww {
+  background: linear-gradient(90deg, #FDD835, #FF9800);
+}
+
+.float-segment.bs {
+  background: linear-gradient(90deg, #FF9800, #F44336);
+}
+
+.float-pointer {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  background: #fff;
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+  transform: translateX(-50%);
+  z-index: 1;
+}
+
+/* Element Plus 表格深色主题 */
+:deep(.el-table) {
+  --el-table-bg-color: #1a1a1a;
+  --el-table-tr-bg-color: #1a1a1a;
+  --el-table-row-hover-bg-color: #2a2a2a;
+  --el-table-header-bg-color: #252525;
+  --el-table-header-text-color: #fff;
+  --el-table-text-color: #fff;
+  --el-table-border-color: #333;
+}
+
+:deep(.el-table__body tr:hover > td) {
+  background-color: #2a2a2a !important;
+}
+
+:deep(.el-dialog) {
+  background-color: #1a1a1a;
+  border: 1px solid #333;
+}
+
+:deep(.el-dialog__header) {
+  background-color: #252525;
+  border-bottom: 1px solid #333;
+}
+
+:deep(.el-dialog__title) {
+  color: #fff;
+}
+
+:deep(.el-dialog__close) {
+  color: #fff;
+}
+
+:deep(.el-dialog__close:hover) {
+  color: #4CAF50;
+}
+
+/* 武器图片样式 */
+.weapon-image-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 4px;
+}
+
+.weapon-img {
+  max-width: 100px;
+  max-height: 75px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.no-image {
+  color: #888;
+  font-size: 0.85rem;
+}
+</style>
