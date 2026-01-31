@@ -1,0 +1,129 @@
+.weapon-search-component {
+  width: 100%;
+}
+
+.search-section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background-color: #252525;
+  border-radius: 0.75rem;
+  border: 1px solid #333;
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 1.5rem 0;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #333;
+}
+
+.search-container {
+  margin-bottom: 1.5rem;
+}
+
+.search-filters {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.weapon-search-input {
+  width: 100%;
+}
+
+.no-spinner :deep(input[type="number"]::-webkit-outer-spin-button),
+.no-spinner :deep(input[type="number"]::-webkit-inner-spin-button) {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.no-spinner :deep(input[type="number"]) {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.search-results-table {
+  margin-top: 1rem;
+}
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background-color: #2a2a2a;
+  border-radius: 0.5rem 0.5rem 0 0;
+  border: 1px solid #333;
+  border-bottom: none;
+  cursor: pointer;
+}
+
+.results-header:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.results-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #4CAF50;
+}
+
+.results-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.collapse-indicator {
+  padding: 0;
+  margin-left: 0.5rem;
+}
+
+.price-text {
+  color: #67C23A;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.count-text {
+  color: #409EFF;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.rarity-tag {
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
+}
+
+.weapon-name {
+  color: #fff;
+  font-weight: 500;
+}
+
+.no-data {
+  color: #666;
+  font-size: 0.875rem;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .search-section {
+    padding: 1rem;
+  }
+
+  .search-filters {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .search-filters > * {
+    width: 100% !important;
+  }
+}
+</style>
+

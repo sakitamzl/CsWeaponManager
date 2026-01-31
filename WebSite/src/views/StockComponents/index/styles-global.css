@@ -1,0 +1,12 @@
+.el-loading-mask {
+  background-color: rgba(26, 26, 26, 0.8) !important;
+}
+
+.el-loading-spinner {
+  color: #409eff !important;
+}
+
+.el-loading-text {
+  color: #fff !important;
+}
+</style>
