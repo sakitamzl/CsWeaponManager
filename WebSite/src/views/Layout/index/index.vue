@@ -6,8 +6,8 @@
         <h1 v-else class="collapsed-title">CS</h1>
       </div>
       <ul>
-        <li 
-          v-for="item in menuItems" 
+        <li
+          v-for="item in menuItems"
           :key="item.path"
           :class="{ active: $route.path === item.path }"
           @click.stop="handleMenuClick(item.path)"
@@ -17,10 +17,10 @@
           <span v-if="!isCollapsed" class="menu-text">{{ item.title }}</span>
         </li>
       </ul>
-      
-      <!-- 空白填充区域，用于捕获点击事件 -->
+
+      <!-- 空白填充区域,用于捕获点击事件 -->
       <div class="sidebar-spacer"></div>
-      
+
       <!-- 用户信息和退出按钮 -->
       <div class="sidebar-footer" v-if="isLoggedIn" @click.stop>
         <div class="user-info" v-if="!isCollapsed">

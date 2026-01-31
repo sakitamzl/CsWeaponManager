@@ -1,18 +1,18 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Layout from '@/views/Layout/index.vue'
+import Layout from '@/views/Layout/index/index.vue'
 import Home from '@/views/Home/index.vue'
-import ItemSearch from '@/views/ItemSearch/index.vue'
+import ItemSearch from '@/views/ItemSearch/index/index.vue'
 import Buy from '@/views/Buy/index.vue'
-import Sell from '@/views/Sell/index.vue'
-import OnSaleContainer from '@/views/on_sale/OnSaleContainer.vue'
-import Rental from '@/views/Rental/index.vue'
-import Lent from '@/views/Lent/index.vue'
-import Inventory from '@/views/Inventory/index.vue'
-import StockComponents from '@/views/StockComponents/index.vue'
-import Settings from '@/views/settings/index.vue'
-import DataWebsite from '@/views/data_website/DataWebsite.vue'
-import DataSpider from '@/views/data_spider/DataSpider.vue'
-import Login from '@/views/Login/index.vue'
+import Sell from '@/views/Sell/index/index.vue'
+import OnSaleContainer from '@/views/on_sale/OnSaleContainer/index.vue'
+import Rental from '@/views/Rental/index/index.vue'
+import Lent from '@/views/Lent/index/index.vue'
+import Inventory from '@/views/Inventory/index/index.vue'
+import StockComponents from '@/views/StockComponents/index/index.vue'
+import Settings from '@/views/settings/index/index.vue'
+import DataWebsite from '@/views/data_website/DataWebsite/index.vue'
+import DataSpider from '@/views/data_spider/DataSpider/index.vue'
+import Login from '@/views/Login/index/index.vue'
 import axios from 'axios'
 import { apiUrls } from '@/config/api'
 
@@ -62,19 +62,19 @@ const routes = [
           {
             path: 'yyyp',
             name: 'OnSaleYYYP',
-            component: () => import('@/views/on_sale/OnSaleYYYP.vue'),
+            component: () => import('@/views/on_sale/OnSaleYYYP/index/index.vue'),
             meta: { title: '悠悠有品' }
           },
           {
             path: 'buff',
             name: 'OnSaleBuff',
-            component: () => import('@/views/on_sale/OnSaleBuff.vue'),
+            component: () => import('@/views/on_sale/OnSaleBuff/index.vue'),
             meta: { title: 'BUFF' }
           },
           {
             path: 'igxe',
             name: 'OnSaleIGXE',
-            component: () => import('@/views/on_sale/OnSaleIGXE.vue'),
+            component: () => import('@/views/on_sale/OnSaleIGXE/index.vue'),
             meta: { title: 'IGXE' }
           }
         ]
@@ -113,55 +113,55 @@ const routes = [
           {
             path: 'data-source',
             name: 'DataSource',
-            component: () => import('@/views/settings/DataSource.vue'),
+            component: () => import('@/views/settings/DataSource/index.vue'),
             meta: { title: '数据来源' }
           },
           {
             path: 'auto-manager',
             name: 'AutoManager',
-            component: () => import('@/views/settings/Automate_management.vue'),
+            component: () => import('@/views/settings/Automate_management/index.vue'),
             meta: { title: '自动化管理' }
           },
           {
             path: 'steam-inventory-history',
             name: 'SteamInventoryHistory',
-            component: () => import('@/views/settings/SteamInventoryHistory.vue'),
+            component: () => import('@/views/settings/SteamInventoryHistory/index.vue'),
             meta: { title: 'Steam交易历史' }
           },
           {
             path: 'system-settings',
             name: 'SystemSettings',
-            component: () => import('@/views/settings/SystemSettings.vue'),
+            component: () => import('@/views/settings/SystemSettings/index.vue'),
             meta: { title: '登录设置' }
           },
           {
             path: 'database-manager',
             name: 'DatabaseManager',
-            component: () => import('@/views/settings/DatabaseManager.vue'),
+            component: () => import('@/views/settings/DatabaseManager/index.vue'),
             meta: { title: '数据库管理' }
           },
           {
             path: 'yyyp-message-box',
             name: 'MessageBox',
-            component: () => import('@/views/settings/yyyp_messagebox.vue'),
+            component: () => import('@/views/settings/yyyp_messagebox/index.vue'),
             meta: { title: '悠悠有品消息' }
           },
           {
             path: 'buff-message-box',
             name: 'BuffMessageBox',
-            component: () => import('@/views/settings/buff_messagebox.vue'),
+            component: () => import('@/views/settings/buff_messagebox/index.vue'),
             meta: { title: 'BUFF消息' }
           },
           {
             path: 'version-update',
             name: 'VersionUpdate',
-            component: () => import('@/views/settings/VersionUpdate.vue'),
+            component: () => import('@/views/settings/VersionUpdate/index.vue'),
             meta: { title: '更新日志' }
           },
           {
             path: 'dev-tools',
             name: 'DevTools',
-            component: () => import('@/views/settings/DevTool.vue'),
+            component: () => import('@/views/settings/DevTool/index.vue'),
             meta: { title: '开荒工具' }
           }
         ]
@@ -176,13 +176,13 @@ const routes = [
           {
             path: 'market-overview',
             name: 'MarketOverview',
-            component: () => import('@/views/data_website/MarketOverview.vue'),
+            component: () => import('@/views/data_website/MarketOverview/index.vue'),
             meta: { title: '市场大盘' }
           },
           {
             path: 'item-search',
             name: 'DataWebsiteItemSearch',
-            component: () => import('@/views/data_website/ItemSearch.vue'),
+            component: () => import('@/views/data_website/ItemSearch/index.vue'),
             meta: { title: '饰品搜索' }
           }
         ]
@@ -197,19 +197,19 @@ const routes = [
           {
             path: 'search-rename',
             name: 'DataSpiderSearchRename',
-            component: () => import('@/views/data_spider/SearchWeaponRename.vue'),
+            component: () => import('@/views/data_spider/SearchWeaponRename/index.vue'),
             meta: { title: '爬取改名' }
           },
           {
             path: 'search-pendant',
             name: 'DataSpiderSearchPendant',
-            component: () => import('@/views/data_spider/SearchPendant.vue'),
+            component: () => import('@/views/data_spider/SearchPendant/index.vue'),
             meta: { title: '爬取挂件' }
           },
           {
             path: 'inventory-mining',
             name: 'DataSpiderInventoryMining',
-            component: () => import('@/views/data_spider/InventoryMining.vue'),
+            component: () => import('@/views/data_spider/InventoryMining/index.vue'),
             meta: { title: '库存挖掘' }
           }
         ]

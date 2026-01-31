@@ -4,15 +4,6 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { CaretRight, CaretBottom, Refresh, Check, Loading } from '@element-plus/icons-vue'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
 
-export default {
-  name: 'ItemSearch',
-  components: {
-    CaretRight,
-    CaretBottom,
-    Refresh,
-    Check
-  },
-
 export function useItemSearch() {
   const steamIdList = ref([])
   const selectedSteamId = ref('')
@@ -1911,5 +1902,4 @@ export function useItemSearch() {
     handleCurrentChange
   }
   }
-}
 }

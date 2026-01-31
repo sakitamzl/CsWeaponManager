@@ -1359,8 +1359,8 @@
 
 
 <script>
-import PlatformSelectDialog from '../PlatformSelectDialog.vue'
-import RentFormYYYP from '../RentFormYYYP.vue'
+import PlatformSelectDialog from '../PlatformSelectDialog/index.vue'
+import RentFormYYYP from '../RentFormYYYP/index.vue'
 import { useInventory } from './useInventory.js'
 
 export default {

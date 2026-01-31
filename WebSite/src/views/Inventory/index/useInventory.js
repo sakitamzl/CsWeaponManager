@@ -3,8 +3,8 @@ import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { ArrowDown, Loading, Close, Star, Box, Upload, InfoFilled } from '@element-plus/icons-vue'
 import axios from 'axios'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
-import PlatformSelectDialog from './PlatformSelectDialog.vue'
-import RentFormYYYP from './RentFormYYYP.vue'
+import PlatformSelectDialog from '../PlatformSelectDialog/index.vue'
+import RentFormYYYP from '../RentFormYYYP/index.vue'
 
 export function useInventory() {
   const loading = ref(false)
