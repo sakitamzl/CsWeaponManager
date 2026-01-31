@@ -62,7 +62,7 @@ const routes = [
           {
             path: 'yyyp',
             name: 'OnSaleYYYP',
-            component: () => import('@/views/on_sale/OnSaleYYYP/index/index.vue'),
+            component: () => import('@/views/on_sale/OnSaleYYYP.vue'),
             meta: { title: '悠悠有品' }
           },
           {
