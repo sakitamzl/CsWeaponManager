@@ -31,7 +31,9 @@ export function useOnSaleYYYPIndex() {
 
   // 处理交易类型切换
   const handleTradeTypeChange = (tradeType) => {
+    console.log('切换交易类型:', tradeType, '对应组件:', componentMap[tradeType])
     selectedTradeType.value = tradeType
+    console.log('当前组件:', currentComponent.value)
   }
 
   return {

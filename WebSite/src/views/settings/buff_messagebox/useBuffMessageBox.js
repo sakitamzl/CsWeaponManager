@@ -20,9 +20,19 @@ export function useBuffMessageBox() {
       const response = await axios.get(apiUrls.buffMessageTypes())
       if (response.data.success) {
         messageTypes.value = response.data.data
+      } else {
+        console.warn('获取BUFF消息类型失败:', response.data.message || response.data.error)
+        // 如果后端返回失败，使用默认类型列表
+        messageTypes.value = []
       }
     } catch (error) {
       console.error('获取BUFF消息类型失败:', error)
+      // 如果请求失败，使用空数组，不影响其他功能
+      messageTypes.value = []
+      // 只在非 500 错误时显示提示（500 错误通常是后端问题，用户无法解决）
+      if (error.response && error.response.status !== 500) {
+        ElMessage.warning('获取消息类型列表失败，将使用默认类型')
+      }
     }
   }
 

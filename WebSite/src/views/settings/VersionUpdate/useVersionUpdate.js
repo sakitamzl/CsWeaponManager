@@ -1,79 +1,76 @@
 import { ref, onMounted, computed, nextTick, onBeforeUnmount } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Loading, Document } from '@element-plus/icons-vue'
 import axios from 'axios'
+import { API_CONFIG } from '@/config/api.js'
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 
 export function useVersionUpdate() {
-const headingIds = new Map()
-let currentFilePath = ''
+  const headingIds = new Map()
+  let currentFilePath = ''
 
-renderer.heading = function(text, level) {
-  // 生成唯一的 ID
-  const rawText = text.replace(/<[^>]*>/g, '') // 移除 HTML 标签
-  let id = rawText
-  .toLowerCase()
-  .replace(/\s+/g, '-')
-  .replace(/[^\w\u4e00-\u9fa5-]/g, '')
-  
-  // 处理重复 ID
-  if (headingIds.has(id)) {
-  const count = headingIds.get(id) + 1
-  headingIds.set(id, count)
-  id = `${id}-${count}`
-  } else {
-  headingIds.set(id, 0)
+  // 创建自定义 renderer
+  const renderer = new marked.Renderer()
+
+  renderer.heading = function(text, level) {
+    // 生成唯一的 ID
+    const rawText = text.replace(/<[^>]*>/g, '') // 移除 HTML 标签
+    let id = rawText
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^\w\u4e00-\u9fa5-]/g, '')
+    
+    // 处理重复 ID
+    if (headingIds.has(id)) {
+      const count = headingIds.get(id) + 1
+      headingIds.set(id, count)
+      id = `${id}-${count}`
+    } else {
+      headingIds.set(id, 0)
+    }
+    
+    return `<h${level} id="${id}">${text}</h${level}>`
   }
-  
-  return `<h${level} id="${id}">${text}</h${level}>`
-}
 
-// 处理图片路径
-renderer.image = function(href, title, text) {
-  // 如果是相对路径，转换为 API 路径
-  let imageSrc = href
-  if (href && !href.startsWith('http://') && !href.startsWith('https://') && !href.startsWith('data:')) {
-  // 获取当前文件的目录
-  const fileDir = currentFilePath.substring(0, currentFilePath.lastIndexOf('/'))
-  // 解析相对路径
-  let resolvedPath = href
-  if (href.startsWith('../')) {
-    // 处理 ../ 路径
-    const parts = fileDir.split('/')
-    const upLevels = (href.match(/\.\.\//g) || []).length
-    const remainingPath = href.replace(/\.\.\//g, '')
-    const newParts = parts.slice(0, parts.length - upLevels)
-    resolvedPath = [...newParts, remainingPath].join('/')
-  } else if (href.startsWith('./')) {
-    // 处理 ./ 路径
-    resolvedPath = fileDir + '/' + href.substring(2)
-  } else if (!href.startsWith('/')) {
-    // 相对路径
-    resolvedPath = fileDir + '/' + href
+  // 处理图片路径
+  renderer.image = function(href, title, text) {
+    // 如果是相对路径，转换为 API 路径
+    let imageSrc = href
+    if (href && !href.startsWith('http://') && !href.startsWith('https://') && !href.startsWith('data:')) {
+      // 获取当前文件的目录
+      const fileDir = currentFilePath.substring(0, currentFilePath.lastIndexOf('/'))
+      // 解析相对路径
+      let resolvedPath = href
+      if (href.startsWith('../')) {
+        // 处理 ../ 路径
+        const parts = fileDir.split('/')
+        const upLevels = (href.match(/\.\.\//g) || []).length
+        const remainingPath = href.replace(/\.\.\//g, '')
+        const newParts = parts.slice(0, parts.length - upLevels)
+        resolvedPath = [...newParts, remainingPath].join('/')
+      } else if (href.startsWith('./')) {
+        // 处理 ./ 路径
+        resolvedPath = fileDir + '/' + href.substring(2)
+      } else if (!href.startsWith('/')) {
+        // 相对路径
+        resolvedPath = fileDir + '/' + href
+      }
+      
+      // 转换为 API 路径
+      imageSrc = `${API_CONFIG.BASE_URL}/api/version/documents/image?path=${encodeURIComponent(resolvedPath)}`
+    }
+    
+    const titleAttr = title ? ` title="${title}"` : ''
+    const altAttr = text ? ` alt="${text}"` : ''
+    return `<img src="${imageSrc}"${altAttr}${titleAttr} />`
   }
-  
-  // 转换为 API 路径
-  imageSrc = `${API_CONFIG.BASE_URL}/api/version/documents/image?path=${encodeURIComponent(resolvedPath)}`
-  }
-  
-  const titleAttr = title ? ` title="${title}"` : ''
-  const altAttr = text ? ` alt="${text}"` : ''
-  return `<img src="${imageSrc}"${altAttr}${titleAttr} />`
-}
 
-marked.setOptions({
-  breaks: true,
-  gfm: true,
-  renderer: renderer
-})
+  marked.setOptions({
+    breaks: true,
+    gfm: true,
+    renderer: renderer
+  })
 
-export default {
-  name: 'VersionUpdate',
-  components: {
-  Loading,
-  Document,
-  TreeNode
-  },
-  setup() {
   const treeLoading = ref(true)
   const treeError = ref(null)
   const fileTree = ref([])
@@ -392,6 +389,4 @@ export default {
     activeAnchor,
     scrollToAnchor
   }
-  }
-}
 }
