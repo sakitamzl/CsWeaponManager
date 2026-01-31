@@ -11,16 +11,4 @@ export default {
 }
 </script>
 
-<style scoped>
-.page-title {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: var(--text-primary);
-  margin: 0 0 0.5rem 0;
-}
-
-.page-desc {
-  color: var(--text-secondary);
-  margin: 0 0 1rem 0;
-}
-</style>
+<style scoped src="../page-styles.css"></style>

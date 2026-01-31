@@ -27,13 +27,13 @@ import { useOnSaleYYYPIndex } from './useOnSaleYYYPIndex.js'
 export default {
   name: 'OnSaleYYYPIndex',
   components: {
-    OnSaleSale: () => import('../OnSaleSale.vue'),
-    OnSaleLease: () => import('../OnSaleLease.vue'),
-    OnSaleSublease: () => import('../OnSaleSublease.vue'),
-    OnSalePresale: () => import('../OnSalePresale.vue'),
-    OnSaleTransfer: () => import('../OnSaleTransfer.vue'),
-    OnSaleRentedOut: () => import('../OnSaleRentedOut.vue'),
-    OnSaleInstant: () => import('../OnSaleInstant.vue')
+    OnSaleSale: () => import('../OnSaleSale/index.vue'),
+    OnSaleLease: () => import('../OnSaleLease/index.vue'),
+    OnSaleSublease: () => import('../OnSaleSublease/index.vue'),
+    OnSalePresale: () => import('../OnSalePresale/index.vue'),
+    OnSaleTransfer: () => import('../OnSaleTransfer/index.vue'),
+    OnSaleRentedOut: () => import('../OnSaleRentedOut/index.vue'),
+    OnSaleInstant: () => import('../OnSaleInstant/index.vue')
   },
   setup() {
     return useOnSaleYYYPIndex()

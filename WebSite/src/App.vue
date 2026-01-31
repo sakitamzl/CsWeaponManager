@@ -8,7 +8,7 @@
 export default {
   name: 'App'
 }
-</script>e
+</script>
 
 <style>
 #app {
@@ -16,7 +16,7 @@ export default {
   background-color: #0d1117 !important;
   color: #000000;
   overflow: auto;
-}e
+}
 
 html, body {
   background-color: #0d1117 !important;
