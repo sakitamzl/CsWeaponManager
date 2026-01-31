@@ -395,7 +395,8 @@ export const API_CONFIG = {
     YYYP_GET_SELL_LIST: '/youping898SpiderV1/getSellList',  // 获取出售列表
     YYYP_OFF_SHELF: '/youping898SpiderV1/offShelfItems',  // 下架商品
     YYYP_CANCEL_SUBLEASE: '/youping898SpiderV1/cancelSublease',  // 取消转租
-    YYYP_CHANGE_PRICE: '/youping898SpiderV1/changePrice',  // 改价（租赁/转租）
+    YYYP_CHANGE_PRICE: '/youping898SpiderV1/changeCommodityPrice',  // 改价（售卖商品）
+    YYYP_CHANGE_RENT_PRICE: '/youping898SpiderV1/changePrice',  // 改价（租赁/转租）
 
     // 悠悠有品出租自动定价（爬虫端）
     YYYP_RENT_AUTO_PRICING: '/youping898SpiderV1/rentAutoPricing',
@@ -819,7 +820,8 @@ export const apiUrls = {
   yyypGetPresaleList: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_PRESALE_LIST),
   yyypOffShelf: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_OFF_SHELF),
   yyypCancelSublease: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_CANCEL_SUBLEASE),
-  yyypChangePrice: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_CHANGE_PRICE),
+  yyypChangePrice: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_CHANGE_PRICE),  // 售卖商品改价
+  yyypChangeRentPrice: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_CHANGE_RENT_PRICE),  // 租赁/转租改价
   yyypRentAutoPricing: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_RENT_AUTO_PRICING),
 
 }

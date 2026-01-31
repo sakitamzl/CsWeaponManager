@@ -1362,8 +1362,8 @@ export default {
         console.log('=== 租赁改价 - 请求体 ===')
         console.log('requestBody:', JSON.stringify(requestBody, null, 2))
 
-        // 发送改价请求
-        const response = await axios.post(apiUrls.yyypChangePrice(), requestBody)
+        // 发送改价请求（使用租赁改价接口）
+        const response = await axios.post(apiUrls.yyypChangeRentPrice(), requestBody)
 
         if (response.data && response.data.success) {
           ElMessage.success('租赁改价成功')
