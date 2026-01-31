@@ -397,6 +397,7 @@ export const API_CONFIG = {
     YYYP_CANCEL_SUBLEASE: '/youping898SpiderV1/cancelSublease',  // 取消转租
     YYYP_CHANGE_PRICE: '/youping898SpiderV1/changeCommodityPrice',  // 改价（售卖商品）
     YYYP_CHANGE_RENT_PRICE: '/youping898SpiderV1/changePrice',  // 改价（租赁/转租）
+    YYYP_BATCH_CHANGE_RENT_PRICE: '/youping898SpiderV1/batchChangePrice',  // 批量改价（租赁/转租）
 
     // 悠悠有品出租自动定价（爬虫端）
     YYYP_RENT_AUTO_PRICING: '/youping898SpiderV1/rentAutoPricing',

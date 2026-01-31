@@ -131,7 +131,7 @@
         </div>
         <div class="action-buttons">
           <el-button type="danger" @click="selectedItems = []">清空选择</el-button>
-          <el-button type="success">批量改价</el-button>
+          <el-button type="success" @click="handleBatchChangePrice">批量改价</el-button>
           <el-button type="primary" @click="handleBatchRemoveFromSale">
             {{ selectedTradeType === 'sublease' ? '批量取消转租' : '批量下架' }}
           </el-button>
@@ -562,12 +562,12 @@
     <!-- 租赁改价弹窗 -->
     <el-dialog
       v-model="rentPriceDialogVisible"
-      :title="selectedItem ? `租赁改价 - ${getCardTitle(selectedItem)}` : '租赁改价'"
+      :title="selectedItem ? `租赁改价 - ${getCardTitle(selectedItem)}` : `批量租赁改价 - 已选择${selectedItems.length}件物品`"
       width="900px"
       :close-on-click-modal="false"
       class="rent-price-dialog"
     >
-      <div v-if="selectedItem && rentInitData" class="rent-price-content">
+      <div v-if="(selectedItem || selectedItems.length > 0) && rentInitData" class="rent-price-content">
         <RentFormYYYP
           :items="formattedRentItem"
           :steamId="steamId"
@@ -580,6 +580,90 @@
         <el-icon class="is-loading"><Loading /></el-icon>
         <span>加载租赁配置中...</span>
       </div>
+    </el-dialog>
+
+    <!-- 批量改价弹窗 -->
+    <el-dialog
+      v-model="batchChangePriceDialogVisible"
+      title="批量改价"
+      width="600px"
+      :close-on-click-modal="false"
+      class="batch-change-price-dialog"
+    >
+      <div class="batch-change-price-content">
+        <div class="selected-items-summary">
+          <p>已选择 <strong>{{ selectedItems.length }}</strong> 件物品</p>
+          <p class="hint-text">交易类型: {{ selectedItems[0]?.trade_type === 'sale' ? '售卖' : (selectedItems[0]?.trade_type === 'lease' ? '租赁' : '转租') }}</p>
+        </div>
+
+        <el-form :model="batchChangePriceForm" label-width="120px">
+          <el-form-item label="改价方式">
+            <el-radio-group v-model="batchChangePriceForm.priceChangeType">
+              <el-radio label="fixed">固定价格</el-radio>
+              <el-radio label="percent">百分比调整</el-radio>
+            </el-radio-group>
+          </el-form-item>
+
+          <!-- 固定价格模式 -->
+          <el-form-item
+            v-if="batchChangePriceForm.priceChangeType === 'fixed'"
+            label="统一价格"
+          >
+            <el-input
+              v-model="batchChangePriceForm.fixedPrice"
+              placeholder="请输入新的售价（如：200.11）"
+            >
+              <template #prepend>¥</template>
+            </el-input>
+            <div style="color: #909399; font-size: 12px; margin-top: 4px;">
+              所有选中物品将被设置为相同价格
+            </div>
+          </el-form-item>
+
+          <!-- 百分比调整模式 -->
+          <template v-if="batchChangePriceForm.priceChangeType === 'percent'">
+            <el-form-item label="调整方式">
+              <el-radio-group v-model="batchChangePriceForm.percentType">
+                <el-radio label="increase">价格增加</el-radio>
+                <el-radio label="decrease">价格减少</el-radio>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item label="调整百分比">
+              <el-input
+                v-model="batchChangePriceForm.percentValue"
+                placeholder="请输入百分比（如：10）"
+              >
+                <template #append>%</template>
+              </el-input>
+              <div style="color: #909399; font-size: 12px; margin-top: 4px;">
+                基于当前价格 {{ batchChangePriceForm.percentType === 'increase' ? '增加' : '减少' }} 指定百分比
+              </div>
+            </el-form-item>
+          </template>
+        </el-form>
+
+        <!-- 预览价格变化 -->
+        <div class="price-preview" v-if="batchChangePriceForm.priceChangeType === 'percent' && batchChangePriceForm.percentValue">
+          <el-divider>价格预览</el-divider>
+          <div class="preview-list">
+            <div v-for="item in selectedItems.slice(0, 3)" :key="item.id" class="preview-item">
+              <span class="item-name">{{ getCardTitle(item).substring(0, 20) }}...</span>
+              <span class="price-change">
+                ¥{{ item.sale_price }} → ¥{{ calculateNewPrice(item.sale_price) }}
+              </span>
+            </div>
+            <div v-if="selectedItems.length > 3" class="more-items">
+              还有 {{ selectedItems.length - 3 }} 件物品...
+            </div>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="batchChangePriceDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmBatchChangePrice" :loading="updating">
+          确定改价
+        </el-button>
+      </template>
     </el-dialog>
 
     <!-- 预览弹窗 -->
@@ -750,6 +834,7 @@ export default {
     // 弹窗相关
     const updatePriceDialogVisible = ref(false)
     const rentPriceDialogVisible = ref(false)  // 租赁改价对话框
+    const batchChangePriceDialogVisible = ref(false)  // 批量改价对话框
     const previewVisible = ref(false)
     const selectedItem = ref(null)
     const previewItem = ref(null)
@@ -762,8 +847,37 @@ export default {
     const rentInitData = ref(null)  // 租赁初始化数据
     const steamId = ref('')  // 当前操作的完整 Steam ID
 
+    // 批量改价相关
+    const batchChangePriceForm = ref({
+      priceChangeType: 'fixed',  // fixed: 固定价格, percent: 百分比调整
+      fixedPrice: '',  // 固定价格值
+      percentValue: '',  // 百分比值
+      percentType: 'increase'  // increase: 增加, decrease: 减少
+    })
+
     // 格式化租赁改价的 item 数据
     const formattedRentItem = computed(() => {
+      // 批量改价模式：使用 selectedItems
+      if (selectedItems.value.length > 0 && !selectedItem.value) {
+        return selectedItems.value.map(item => ({
+          assetid: item.assetid || item.id,
+          name: item.item_name || item.steam_hash_name,
+          steam_hash_name: item.steam_hash_name || item.item_name,
+          image: getWeaponImage(item.steam_hash_name || item.item_name),
+          float: item.weapon_float || item.float,
+          paintseed: item.paintseed,
+          weapon_classID: {
+            yyyp_Price: item.yyyp_price || item.market_price,
+            yyyp_id: item.template_id || item.yyyp_id
+          },
+          // 添加当前租赁配置用于自动填充
+          currentRentDays: item.lease_max_days,
+          currentShortRentPrice: item.lease_amount,
+          currentLongRentPrice: item.long_lease_amount
+        }))
+      }
+
+      // 单个改价模式：使用 selectedItem
       if (!selectedItem.value) return []
 
       const item = selectedItem.value
@@ -777,7 +891,11 @@ export default {
         weapon_classID: {
           yyyp_Price: item.yyyp_price || item.market_price,
           yyyp_id: item.template_id || item.yyyp_id
-        }
+        },
+        // 添加当前租赁配置用于自动填充
+        currentRentDays: item.lease_max_days,
+        currentShortRentPrice: item.lease_amount,
+        currentLongRentPrice: item.long_lease_amount
       }]
     })
 
@@ -1225,8 +1343,8 @@ export default {
           return
         }
 
-        // 获取租赁初始化数据和赔付文本（参考Inventory页面的逻辑）
-        const [initResponse, compensationResponse] = await Promise.all([
+        // 获取租赁初始化数据、赔付文本、转租协议和转租详情（并行请求）
+        const [initResponse, compensationResponse, agreementResponse, detailResponse] = await Promise.all([
           axios.post(
             `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/rentInit`,
             {
@@ -1250,6 +1368,19 @@ export default {
                 templateId: parseInt(item.template_id || item.yyyp_id || 0)
               }
             }
+          ),
+          axios.post(
+            `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getSubleaseAgreement`,
+            {
+              steamId: steamId.value
+            }
+          ),
+          axios.post(
+            `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getSubleaseDetail`,
+            {
+              steamId: steamId.value,
+              commodityIds: [String(item.commodity_id || item.id)]
+            }
           )
         ])
 
@@ -1265,6 +1396,24 @@ export default {
             console.log('[租赁改价] 赔付文本获取成功:', compensationData.compensationRichContent)
           } else {
             console.warn('[租赁改价] 赔付文本获取失败:', compensationResponse.data?.message)
+          }
+
+          // 合并转租协议数据
+          if (agreementResponse.data && agreementResponse.data.success) {
+            const agreementData = agreementResponse.data.data
+            rentInitData.value.agreementList = agreementData
+            console.log('[租赁改价] 转租协议获取成功:', agreementData)
+          } else {
+            console.warn('[租赁改价] 转租协议获取失败:', agreementResponse.data?.message)
+          }
+
+          // 合并转租详情数据
+          if (detailResponse.data && detailResponse.data.success) {
+            const detailData = detailResponse.data.data
+            rentInitData.value.subleaseDetail = detailData
+            console.log('[租赁改价] 转租详情获取成功:', detailData)
+          } else {
+            console.warn('[租赁改价] 转租详情获取失败:', detailResponse.data?.message)
           }
 
           // 打开租赁改价对话框
@@ -1285,55 +1434,12 @@ export default {
       try {
         updating.value = true
 
-        // 从提交数据中获取第一个物品的价格配置
-        const itemData = submitData.items[0]
-
         // 调试日志：输出提交的数据
         console.log('=== 租赁改价 - 提交数据 ===')
         console.log('submitData:', JSON.stringify(submitData, null, 2))
-        console.log('itemData:', JSON.stringify(itemData, null, 2))
         console.log('rentDays:', submitData.rentDays)
         console.log('services:', submitData.services)
-
-        // 构建租赁配置
-        const rentConfig = {
-          LeaseUnitPrice: itemData.shortRentPrice,
-          LeaseMaxDays: submitData.rentDays,
-          CompensationType: 7,  // 默认赔付类型
-          SupportZeroCD: submitData.services.zeroCooldown ? 1 : 0,
-          OpenLeaseActivity: submitData.services.rentActivity || false,
-          UseDepositSafeguard: 1
-        }
-
-        // 添加长租单价（仅当租期>21天时）
-        if (submitData.rentDays > 21 && itemData.longRentPrice) {
-          rentConfig.LongLeaseUnitPrice = itemData.longRentPrice
-        }
-
-        // 添加0CD配置（如果启用）
-        if (submitData.services.zeroCooldown && rentInitData.value?.zeroCDConfig) {
-          rentConfig.ZeroCDConfig = {
-            MinCoefficient: rentInitData.value.zeroCDConfig.minCoefficient || "95",
-            PricingType: rentInitData.value.zeroCDConfig.pricingType || 0
-          }
-        }
-
-        // 添加押金（从物品数据中获取）
-        if (itemData.depositPrice) {
-          rentConfig.LeaseDeposit = String(itemData.depositPrice)
-        }
-
-        // 添加其他配置字段（从 initData 中获取）
-        if (rentInitData.value?.depositProtectFeeConfigMap) {
-          const hashName = itemData.steam_hash_name
-          const depositConfig = rentInitData.value.depositProtectFeeConfigMap[hashName]
-          if (depositConfig) {
-            rentConfig.NomarlChargePercent = String(depositConfig.rate || "0.25")
-            rentConfig.VipChargePercent = String(depositConfig.vipRate || "0.2")
-            rentConfig.VipSwitchStatus = depositConfig.vipSwitchStatus || 1
-          }
-        }
-        rentConfig.OriginCompensationType = 7
+        console.log('批量模式:', submitData.items.length > 1)
 
         // 获取完整的 Steam ID
         const steamId = accountList.value.find(acc => acc.id === selectedAccount.value)?.steam_id || ''
@@ -1344,33 +1450,187 @@ export default {
           return
         }
 
-        // 调试日志：输出构建的租赁配置
-        console.log('=== 租赁改价 - 构建的配置 ===')
-        console.log('rentConfig:', JSON.stringify(rentConfig, null, 2))
-        console.log('steamId:', steamId)
-        console.log('commodityId:', selectedItem.value.id)
+        // 批量改价模式
+        if (submitData.items.length > 1) {
+          // 构建批量改价的商品列表
+          const commodities = []
 
-        // 构建完整的请求体
-        const requestBody = {
-          steamId: steamId,
-          commodityId: selectedItem.value.id,
-          rentConfig: rentConfig,
-          remark: '',
-          isCanLease: true,
-          isCanSold: false
-        }
-        console.log('=== 租赁改价 - 请求体 ===')
-        console.log('requestBody:', JSON.stringify(requestBody, null, 2))
+          for (const itemData of submitData.items) {
+            // 获取对应的商品ID
+            const targetItem = selectedItems.value.find(si => si.assetid === itemData.assetid || si.id === itemData.assetid)
+            if (!targetItem) {
+              console.warn(`找不到对应的商品: ${itemData.name}`)
+              continue
+            }
 
-        // 发送改价请求（使用租赁改价接口）
-        const response = await axios.post(apiUrls.yyypChangeRentPrice(), requestBody)
+            // 构建单个商品的租赁配置
+            const commodityData = {
+              CommodityId: parseInt(targetItem.id),
+              CompensationType: 7,
+              IsCanLease: true,
+              IsCanSold: false,
+              LeaseDeposit: String(itemData.depositPrice || '0'),
+              LeaseMaxDays: parseInt(submitData.rentDays),
+              LeaseUnitPrice: parseFloat(itemData.shortRentPrice),
+              NomarlChargePercent: "0.25",
+              OpenLeaseActivity: submitData.services.rentActivity || false,
+              OriginCompensationType: 7,
+              Price: parseFloat(itemData.depositPrice || 0) * 0.85,  // 默认价格为押金的85%
+              Remark: '',
+              SupportZeroCD: submitData.services.zeroCooldown ? 1 : 0,
+              UseDepositSafeguard: 1,
+              VipChargePercent: "0.2",
+              VipSwitchStatus: 1
+            }
 
-        if (response.data && response.data.success) {
-          ElMessage.success('租赁改价成功')
-          rentPriceDialogVisible.value = false
-          loadOnSaleData()
+            // 添加长租单价（如果租期>21天）
+            if (submitData.rentDays > 21 && itemData.longRentPrice) {
+              commodityData.LongLeaseUnitPrice = parseFloat(itemData.longRentPrice)
+            }
+
+            // 添加0CD配置（如果开启了0CD，必须提供配置）
+            if (submitData.services.zeroCooldown) {
+              if (rentInitData.value?.zeroCDConfig) {
+                commodityData.ZeroCDConfig = {
+                  MinCoefficient: rentInitData.value.zeroCDConfig.minCoefficient || "95",
+                  PricingType: rentInitData.value.zeroCDConfig.pricingType || 0
+                }
+              } else {
+                // 如果开启了0CD但没有配置数据，使用默认配置
+                commodityData.ZeroCDConfig = {
+                  MinCoefficient: "95",
+                  PricingType: 0
+                }
+              }
+            }
+
+            // 添加其他配置字段
+            if (rentInitData.value?.depositProtectFeeConfigMap) {
+              const hashName = itemData.steam_hash_name
+              const depositConfig = rentInitData.value.depositProtectFeeConfigMap[hashName]
+              if (depositConfig) {
+                commodityData.NomarlChargePercent = String(depositConfig.rate || "0.25")
+                commodityData.VipChargePercent = String(depositConfig.vipRate || "0.2")
+                commodityData.VipSwitchStatus = depositConfig.vipSwitchStatus || 1
+              }
+            }
+
+            commodities.push(commodityData)
+          }
+
+          if (commodities.length === 0) {
+            ElMessage.error('没有找到可以改价的商品')
+            updating.value = false
+            return
+          }
+
+          // 构建批量改价请求体
+          const requestBody = {
+            steamId: steamId,
+            commodities: commodities
+          }
+
+          console.log('[批量改价] 请求体:', JSON.stringify(requestBody, null, 2))
+
+          // 发送批量改价请求（复用单个改价接口）
+          const response = await axios.post(apiUrls.yyypChangeRentPrice(), requestBody)
+
+          if (response.data && response.data.success) {
+            // 检查返回的结果
+            const resultData = response.data.data
+            if (resultData && resultData.Commoditys) {
+              const successCount = resultData.Commoditys.filter(c => c.IsSuccess === 1).length
+              const failCount = resultData.Commoditys.length - successCount
+
+              if (successCount > 0) {
+                ElMessage.success(`成功改价 ${successCount} 件物品${failCount > 0 ? `，失败 ${failCount} 件` : ''}`)
+                rentPriceDialogVisible.value = false
+                selectedItems.value = []  // 清空选择
+                await loadOnSaleData()
+              } else {
+                const errors = resultData.Commoditys.map(c => c.Message).join('; ')
+                ElMessage.error(`批量改价失败: ${errors}`)
+              }
+            } else {
+              ElMessage.success('批量改价成功')
+              rentPriceDialogVisible.value = false
+              selectedItems.value = []
+              await loadOnSaleData()
+            }
+          } else {
+            ElMessage.error(response.data?.message || '批量改价失败')
+          }
         } else {
-          ElMessage.error(response.data?.message || '租赁改价失败')
+          // 单个改价模式
+          const itemData = submitData.items[0]
+
+          // 构建租赁配置
+          const rentConfig = {
+            LeaseUnitPrice: itemData.shortRentPrice,
+            LeaseMaxDays: submitData.rentDays,
+            CompensationType: 7,
+            SupportZeroCD: submitData.services.zeroCooldown ? 1 : 0,
+            OpenLeaseActivity: submitData.services.rentActivity || false,
+            UseDepositSafeguard: 1,
+            OriginCompensationType: 7
+          }
+
+          // 添加长租单价
+          if (submitData.rentDays > 21 && itemData.longRentPrice) {
+            rentConfig.LongLeaseUnitPrice = itemData.longRentPrice
+          }
+
+          // 添加0CD配置
+          if (submitData.services.zeroCooldown && rentInitData.value?.zeroCDConfig) {
+            rentConfig.ZeroCDConfig = {
+              MinCoefficient: rentInitData.value.zeroCDConfig.minCoefficient || "95",
+              PricingType: rentInitData.value.zeroCDConfig.pricingType || 0
+            }
+          }
+
+          // 添加押金
+          if (itemData.depositPrice) {
+            rentConfig.LeaseDeposit = String(itemData.depositPrice)
+          }
+
+          // 添加其他配置字段
+          if (rentInitData.value?.depositProtectFeeConfigMap) {
+            const hashName = itemData.steam_hash_name
+            const depositConfig = rentInitData.value.depositProtectFeeConfigMap[hashName]
+            if (depositConfig) {
+              rentConfig.NomarlChargePercent = String(depositConfig.rate || "0.25")
+              rentConfig.VipChargePercent = String(depositConfig.vipRate || "0.2")
+              rentConfig.VipSwitchStatus = depositConfig.vipSwitchStatus || 1
+            }
+          }
+
+          console.log('=== 租赁改价 - 构建的配置 ===')
+          console.log('rentConfig:', JSON.stringify(rentConfig, null, 2))
+          console.log('steamId:', steamId)
+          console.log('commodityId:', selectedItem.value.id)
+
+          // 构建完整的请求体
+          const requestBody = {
+            steamId: steamId,
+            commodityId: selectedItem.value.id,
+            rentConfig: rentConfig,
+            remark: '',
+            isCanLease: true,
+            isCanSold: false
+          }
+          console.log('=== 租赁改价 - 请求体 ===')
+          console.log('requestBody:', JSON.stringify(requestBody, null, 2))
+
+          // 发送改价请求
+          const response = await axios.post(apiUrls.yyypChangeRentPrice(), requestBody)
+
+          if (response.data && response.data.success) {
+            ElMessage.success('租赁改价成功')
+            rentPriceDialogVisible.value = false
+            await loadOnSaleData()
+          } else {
+            ElMessage.error(response.data?.message || '租赁改价失败')
+          }
         }
       } catch (error) {
         console.error('租赁改价失败:', error)
@@ -1435,6 +1695,235 @@ export default {
         }
       } finally {
         loading.value = false
+      }
+    }
+
+    // 打开批量改价对话框
+    const handleBatchChangePrice = async () => {
+      // 检查是否有选中的物品
+      if (selectedItems.value.length === 0) {
+        ElMessage.warning('请先选择要改价的物品')
+        return
+      }
+
+      // 检查所有选中物品的交易类型是否一致
+      const firstItemType = selectedItems.value[0].trade_type
+      const allSameType = selectedItems.value.every(item => item.trade_type === firstItemType)
+
+      if (!allSameType) {
+        ElMessage.warning('请选择相同交易类型的物品进行批量改价')
+        return
+      }
+
+      // 根据交易类型打开不同的对话框
+      if (firstItemType === 'lease' || firstItemType === 'sublease') {
+        // 租赁/转租类型：打开租赁改价对话框（支持批量）
+        try {
+          loading.value = true
+
+          // 获取完整的 Steam ID
+          steamId.value = accountList.value.find(acc => acc.id === selectedAccount.value)?.steam_id || ''
+
+          if (!steamId.value) {
+            ElMessage.error('无法获取Steam ID，请重新选择账号')
+            loading.value = false
+            return
+          }
+
+          // 获取所有选中物品的 steam_hash_name
+          const hashNames = selectedItems.value.map(item => item.steam_hash_name || item.item_name)
+
+          // 获取租赁初始化数据、赔付文本、转租协议和转租详情（批量模式：使用第一个物品获取赔付文本）
+          const firstItem = selectedItems.value[0]
+          // 获取所有选中物品的 commodity_id
+          const commodityIds = selectedItems.value.map(item => String(item.commodity_id || item.id))
+
+          const [initResponse, compensationResponse, agreementResponse, detailResponse] = await Promise.all([
+            axios.post(
+              `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/rentInit`,
+              {
+                steamId: steamId.value,
+                steam_hash_name: hashNames
+              }
+            ),
+            axios.post(
+              `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getCompensationText`,
+              {
+                steamId: steamId.value,
+                itemInfo: {
+                  abrade: String(firstItem.weapon_float || firstItem.float || '0'),
+                  leaseType: 0,  // 租赁
+                  marketHashName: firstItem.steam_hash_name || firstItem.item_name,
+                  marketPrice: String(firstItem.yyyp_price || firstItem.market_price || '0'),
+                  pageSourceType: 10,
+                  paintSeed: parseInt(firstItem.paintseed || 0),
+                  steamAssetId: parseInt(firstItem.assetid || firstItem.id || 0),
+                  supportEasyCompensation: false,
+                  templateId: parseInt(firstItem.template_id || firstItem.yyyp_id || 0)
+                }
+              }
+            ),
+            axios.post(
+              `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getSubleaseAgreement`,
+              {
+                steamId: steamId.value
+              }
+            ),
+            axios.post(
+              `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getSubleaseDetail`,
+              {
+                steamId: steamId.value,
+                commodityIds: commodityIds
+              }
+            )
+          ])
+
+          if (initResponse.data && initResponse.data.success) {
+            rentInitData.value = initResponse.data.data
+
+            // 合并赔付文本数据
+            if (compensationResponse.data && compensationResponse.data.success) {
+              const compensationData = compensationResponse.data.data
+              rentInitData.value.compensationRichContent = compensationData.compensationRichContent
+              console.log('[批量租赁改价] 赔付文本获取成功:', compensationData.compensationRichContent)
+            } else {
+              console.warn('[批量租赁改价] 赔付文本获取失败:', compensationResponse.data?.message)
+            }
+
+            // 合并转租协议数据
+            if (agreementResponse.data && agreementResponse.data.success) {
+              const agreementData = agreementResponse.data.data
+              rentInitData.value.agreementList = agreementData
+              console.log('[批量租赁改价] 转租协议获取成功:', agreementData)
+            } else {
+              console.warn('[批量租赁改价] 转租协议获取失败:', agreementResponse.data?.message)
+            }
+
+            // 合并转租详情数据
+            if (detailResponse.data && detailResponse.data.success) {
+              const detailData = detailResponse.data.data
+              rentInitData.value.subleaseDetail = detailData
+              console.log('[批量租赁改价] 转租详情获取成功:', detailData)
+            } else {
+              console.warn('[批量租赁改价] 转租详情获取失败:', detailResponse.data?.message)
+            }
+
+            // 打开租赁改价对话框（批量模式）
+            rentPriceDialogVisible.value = true
+          } else {
+            ElMessage.error(initResponse.data?.message || '获取租赁配置失败')
+          }
+        } catch (error) {
+          console.error('打开批量租赁改价对话框失败:', error)
+          ElMessage.error('打开批量租赁改价对话框失败: ' + error.message)
+        } finally {
+          loading.value = false
+        }
+      } else {
+        // 售卖类型：打开简单改价对话框
+        batchChangePriceForm.value = {
+          priceChangeType: 'fixed',
+          fixedPrice: '',
+          percentValue: '',
+          percentType: 'increase'
+        }
+        batchChangePriceDialogVisible.value = true
+      }
+    }
+
+    // 计算新价格（用于预览）
+    const calculateNewPrice = (currentPrice) => {
+      const price = parseFloat(currentPrice)
+      if (isNaN(price)) return '0.00'
+
+      if (batchChangePriceForm.value.priceChangeType === 'fixed') {
+        return parseFloat(batchChangePriceForm.value.fixedPrice || 0).toFixed(2)
+      } else {
+        const percent = parseFloat(batchChangePriceForm.value.percentValue || 0) / 100
+        let newPrice = price
+        if (batchChangePriceForm.value.percentType === 'increase') {
+          newPrice = price * (1 + percent)
+        } else {
+          newPrice = price * (1 - percent)
+        }
+        return Math.max(0, newPrice).toFixed(2)
+      }
+    }
+
+    // 确认批量改价
+    const confirmBatchChangePrice = async () => {
+      try {
+        // 表单验证
+        if (batchChangePriceForm.value.priceChangeType === 'fixed') {
+          if (!batchChangePriceForm.value.fixedPrice || parseFloat(batchChangePriceForm.value.fixedPrice) <= 0) {
+            ElMessage.warning('请输入有效的价格')
+            return
+          }
+        } else {
+          if (!batchChangePriceForm.value.percentValue || parseFloat(batchChangePriceForm.value.percentValue) <= 0) {
+            ElMessage.warning('请输入有效的百分比')
+            return
+          }
+        }
+
+        updating.value = true
+        const steamId = accountList.value.find(acc => acc.id === selectedAccount.value)?.steam_id || ''
+        const tradeType = selectedItems.value[0].trade_type
+
+        let successCount = 0
+        let failCount = 0
+        const errors = []
+
+        // 批量处理每个物品
+        for (const item of selectedItems.value) {
+          try {
+            const newPrice = calculateNewPrice(item.sale_price)
+
+            // 根据交易类型调用不同的改价接口
+            if (tradeType === 'sale') {
+              // 售卖商品改价
+              const response = await axios.post(apiUrls.yyypChangePrice(), {
+                steamId: steamId,
+                commodityId: item.id,
+                newPrice: parseFloat(newPrice)
+              })
+
+              if (response.data && response.data.success) {
+                successCount++
+              } else {
+                failCount++
+                errors.push(`${getCardTitle(item)}: ${response.data?.message || '改价失败'}`)
+              }
+            } else if (tradeType === 'lease' || tradeType === 'sublease') {
+              // 租赁/转租改价 - 暂时不支持批量，提示用户
+              ElMessage.warning('租赁和转租商品暂不支持批量改价，请单独修改')
+              updating.value = false
+              return
+            }
+          } catch (error) {
+            failCount++
+            errors.push(`${getCardTitle(item)}: ${error.message}`)
+          }
+        }
+
+        // 显示结果
+        if (successCount > 0) {
+          ElMessage.success(`成功改价 ${successCount} 件物品${failCount > 0 ? `，失败 ${failCount} 件` : ''}`)
+          // 刷新列表
+          await loadOnSaleData()
+          // 清空选择
+          selectedItems.value = []
+          // 关闭对话框
+          batchChangePriceDialogVisible.value = false
+        } else {
+          ElMessage.error(`批量改价失败: ${errors.join('; ')}`)
+        }
+
+      } catch (error) {
+        console.error('批量改价失败:', error)
+        ElMessage.error('批量改价失败: ' + error.message)
+      } finally {
+        updating.value = false
       }
     }
 
@@ -1731,6 +2220,9 @@ export default {
       confirmUpdatePrice,
       confirmRentPriceUpdate,
       handleRemoveFromSale,
+      handleBatchChangePrice,
+      calculateNewPrice,
+      confirmBatchChangePrice,
       handleBatchRemoveFromSale,
       openPreview,
       getWeaponImage,
@@ -2764,5 +3256,72 @@ export default {
 .inventory-card.selected:hover {
   border-color: var(--el-color-primary);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 2px var(--el-color-primary);
+}
+
+/* 批量改价对话框样式 */
+.batch-change-price-dialog .batch-change-price-content {
+  padding: 1rem 0;
+}
+
+.batch-change-price-dialog .selected-items-summary {
+  background: rgba(64, 158, 255, 0.1);
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.batch-change-price-dialog .selected-items-summary p {
+  margin: 0.25rem 0;
+  font-size: 0.95rem;
+}
+
+.batch-change-price-dialog .selected-items-summary strong {
+  color: var(--el-color-primary);
+  font-size: 1.1rem;
+}
+
+.batch-change-price-dialog .hint-text {
+  color: var(--el-text-color-secondary);
+  font-size: 0.9rem;
+}
+
+.batch-change-price-dialog .price-preview {
+  margin-top: 1.5rem;
+}
+
+.batch-change-price-dialog .preview-list {
+  background: var(--bg-secondary);
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.batch-change-price-dialog .preview-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.batch-change-price-dialog .preview-item:last-child {
+  border-bottom: none;
+}
+
+.batch-change-price-dialog .preview-item .item-name {
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.batch-change-price-dialog .preview-item .price-change {
+  color: var(--el-color-success);
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.batch-change-price-dialog .more-items {
+  text-align: center;
+  color: var(--el-text-color-secondary);
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
 }
 </style>
