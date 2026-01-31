@@ -1,0 +1,111 @@
+<template>
+  <div class="perfectworld-form">
+    <el-form-item>
+      <el-button 
+        type="success" 
+        @click="startPerfectWorldTokenCollection" 
+        :loading="perfectWorldTokenLoading"
+        :disabled="perfectWorldTokenStatus === 'success'"
+        style="width: 100%;"
+      >
+        <el-icon style="margin-right: 5px;"><Grid /></el-icon>
+        {{ perfectWorldTokenLoading ? '正在获取令牌...' : perfectWorldTokenStatus === 'success' ? '✓ 令牌已获取' : (isEditMode ? '重新获取完美世界APP令牌' : '一键获取完美世界APP令牌') }}
+      </el-button>
+      <div v-if="perfectWorldTokenStatus === 'waiting'" style="margin-top: 10px; padding: 10px; background: #fff7e6; border-radius: 4px; border-left: 3px solid #faad14;">
+        <div style="color: #faad14; font-weight: 500; margin-bottom: 5px;">
+          <el-icon><Loading /></el-icon> 等待手机APP访问...
+        </div>
+        <div style="color: #666; font-size: 12px;">
+          1. 在手机WiFi设置中配置代理: <strong>{{ proxyAddress || '...' }}</strong><br/>
+          2. 打开完美世界APP并登录<br/>
+          3. 系统将自动获取令牌
+        </div>
+      </div>
+      <div v-if="perfectWorldTokenStatus === 'success'" style="margin-top: 10px; padding: 10px; background: #f6ffed; border-radius: 4px; border-left: 3px solid #52c41a;">
+        <div style="color: #52c41a; font-weight: 500;">
+          <el-icon><CircleCheck /></el-icon> 令牌获取成功!
+        </div>
+      </div>
+    </el-form-item>
+    
+    <!-- 完美世界配置 -->
+    <el-collapse v-model="collapseState">
+      <el-collapse-item title="完美世界APP配置" name="config">
+        <el-form-item label="appversion" required>
+          <el-input v-model="form.appversion" placeholder="请输入appversion" />
+        </el-form-item>
+        <el-form-item label="device" required>
+          <el-input v-model="form.device" placeholder="请输入device" />
+        </el-form-item>
+        <el-form-item label="gameType" required>
+          <el-input v-model="form.gameType" placeholder="请输入gameType" />
+        </el-form-item>
+        <el-form-item label="platform" required>
+          <el-input v-model="form.platform" placeholder="请输入platform" />
+        </el-form-item>
+        <el-form-item label="token" required>
+          <el-input 
+            v-model="form.pwToken" 
+            type="textarea"
+            :rows="2"
+            placeholder="请输入token"
+          />
+        </el-form-item>
+        <el-form-item label="tdSign" required>
+          <el-input 
+            v-model="form.tdSign" 
+            type="textarea"
+            :rows="2"
+            placeholder="请输入tdSign"
+          />
+        </el-form-item>
+        <el-form-item label="SteamID" required>
+          <el-input v-model="form.pwSteamID" placeholder="请输入SteamID" />
+        </el-form-item>
+        <el-form-item v-if="isEditMode" label="更新频率">
+          <el-select v-model="form.updateFreq" placeholder="选择更新频率" style="width: 100%;">
+            <el-option label="每15分钟" value="15min" />
+            <el-option label="每小时" value="1hour" />
+            <el-option label="每3小时" value="3hour" />
+            <el-option label="每6小时" value="6hour" />
+            <el-option label="每12小时" value="12hour" />
+            <el-option label="每天" value="daily" />
+          </el-select>
+        </el-form-item>
+      </el-collapse-item>
+    </el-collapse>
+  </div>
+</template>
+
+<script>
+import usePerfectWorldForm from './usePerfectWorldForm.js'
+import { Grid, Loading, CircleCheck } from '@element-plus/icons-vue'
+
+export default {
+  name: 'PerfectWorldForm',
+  components: {
+    Grid,
+    Loading,
+    CircleCheck
+  },
+  props: {
+    form: {
+      type: Object,
+      required: true
+    },
+    isEditMode: {
+      type: Boolean,
+      default: false
+    },
+    proxyAddress: {
+      type: String,
+      default: ''
+    }
+  },
+  emits: ['update:form', 'update:proxyAddress'],
+  setup(props, { emit }) {
+    return usePerfectWorldForm(props, { emit })
+  }
+}
+</script>
+<style scoped src="./styles.css"></style>

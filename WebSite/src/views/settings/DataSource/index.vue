@@ -157,844 +157,68 @@
         </el-form-item>
 
         <!-- 悠悠有品特有配置 -->
-        <template v-if="editForm.type === 'youpin'">
-          <!-- 登录方式选择 -->
-          <el-form-item label="登录方式" required>
-            <el-radio-group v-model="editForm.yyypLoginMethod">
-              <el-radio label="sms">短信登录</el-radio>
-              <el-radio label="capture">通过抓包获取</el-radio>
-            </el-radio-group>
-          </el-form-item>
-
-          <!-- 短信登录方式 -->
-          <template v-if="editForm.yyypLoginMethod === 'sms'">
-            <el-form-item label="手机号">
-              <el-input 
-                v-model="editForm.yyypPhone" 
-                placeholder="手机号"
-                disabled
-                readonly
-              />
-            </el-form-item>
-            
-            <el-form-item label="验证码">
-              <div style="display: flex; gap: 10px;">
-                <el-input 
-                  v-model="editForm.yyypSmsCode" 
-                  placeholder="请输入短信验证码"
-                  maxlength="6"
-                  style="flex: 1;"
-                />
-                <el-button 
-                  type="primary" 
-                  @click="handleEditSendSmsCode"
-                  :disabled="editSmsCodeCountdown > 0"
-                  :loading="editSendingSmsCode"
-                >
-                  {{ editSmsCodeCountdown > 0 ? `${editSmsCodeCountdown}秒后重试` : '发送验证码' }}
-                </el-button>
-              </div>
-            </el-form-item>
-            <el-form-item>
-              <el-button 
-                type="success" 
-                @click="handleEditYyypSmsLogin" 
-                :loading="editYyypSmsLoginLoading"
-                style="width: 100%;"
-              >
-                <el-icon style="margin-right: 5px;"><Grid /></el-icon>
-                {{ editYyypSmsLoginLoading ? '登录中...' : '重新登录' }}
-              </el-button>
-            </el-form-item>
-          </template>
-
-          <!-- 通过抓包获取方式 -->
-          <template v-else-if="editForm.yyypLoginMethod === 'capture'">
-            <el-form-item>
-              <el-button 
-                type="success" 
-                @click="startYyypTokenCollection(true)" 
-                :loading="yyypTokenLoading"
-                :disabled="yyypTokenStatus === 'success'"
-                style="width: 100%;"
-              >
-                <el-icon style="margin-right: 5px;"><Grid /></el-icon>
-                {{ yyypTokenLoading ? '正在获取令牌...' : yyypTokenStatus === 'success' ? '✓ 令牌已获取' : '重新获取悠悠有品令牌' }}
-              </el-button>
-              <div v-if="yyypTokenStatus === 'waiting'" style="margin-top: 10px; padding: 10px; background: #fff7e6; border-radius: 4px; border-left: 3px solid #faad14;">
-                <div style="color: #faad14; font-weight: 500; margin-bottom: 5px;">
-                  <el-icon><Loading /></el-icon> 等待手机APP访问...
-                </div>
-                <div style="color: #666; font-size: 12px;">
-                  1. 在手机WiFi设置中配置代理: <strong>{{ proxyAddress || '...' }}</strong><br/>
-                  2. 打开悠悠有品APP并登录<br/>
-                  3. 系统将自动获取令牌
-                </div>
-              </div>
-              <div v-if="yyypTokenStatus === 'success'" style="margin-top: 10px; padding: 10px; background: #f6ffed; border-radius: 4px; border-left: 3px solid #52c41a;">
-                <div style="color: #52c41a; font-weight: 500;">
-                  <el-icon><CircleCheck /></el-icon> 令牌获取成功!
-                </div>
-              </div>
-            </el-form-item>
-          </template>
-          
-          
-          <!-- 基础配置 -->
-          <el-collapse v-model="editYyypBasicCollapse" style="margin-bottom: 20px;">
-            <el-collapse-item title="基础配置" name="basic">
-              <el-form-item label="手机号" required>
-                <el-input v-model="editForm.phone" placeholder="请输入手机号" />
-              </el-form-item>
-              <el-form-item label="应用版本" required>
-                <el-input v-model="editForm.appVersion" placeholder="请输入应用版本" />
-              </el-form-item>
-              <el-form-item label="应用类型" required>
-                <el-input v-model="editForm.appType" placeholder="请输入应用类型" />
-              </el-form-item>
-              <el-form-item label="用户ID" required>
-                <el-input v-model="editForm.userId" placeholder="请输入用户ID" />
-              </el-form-item>
-              <el-form-item label="SteamID" required>
-                <el-input v-model="editForm.steamId" placeholder="请输入SteamID" />
-              </el-form-item>
-            </el-collapse-item>
-          </el-collapse>
-          
-          <!-- 认证令牌配置 -->
-          <el-collapse v-model="editYyypTokenCollapse" style="margin-bottom: 20px;">
-            <el-collapse-item title="认证令牌配置" name="token">
-              <el-form-item label="Session ID" required>
-                <el-input v-model="editForm.sessionid" placeholder="请输入Session ID" />
-              </el-form-item>
-              <el-form-item label="Token" required>
-                <el-input 
-                  v-model="editForm.token" 
-                  type="textarea"
-                  :rows="2"
-                  placeholder="请输入Token"
-                />
-              </el-form-item>
-            </el-collapse-item>
-          </el-collapse>
-          
-          <!-- 设备信息配置 -->
-          <el-collapse v-model="editYyypDeviceCollapse" style="margin-bottom: 20px;">
-            <el-collapse-item title="设备信息配置" name="device">
-              <el-form-item label="设备名称" required>
-                <el-input v-model="editForm.deviceName" placeholder="请输入设备名称" />
-              </el-form-item>
-              <el-form-item label="Device Token" required>
-                <el-input v-model="editForm.devicetoken" placeholder="请输入Device Token" />
-              </el-form-item>
-              <el-form-item label="Device ID" required>
-                <el-input v-model="editForm.deviceid" placeholder="请输入Device ID" />
-              </el-form-item>
-              <el-form-item label="Device Info" required>
-                <el-input 
-                  v-model="editForm.deviceInfo" 
-                  type="textarea"
-                  :rows="2"
-                  placeholder="请输入Device Info (JSON格式)"
-                />
-              </el-form-item>
-            </el-collapse-item>
-          </el-collapse>
-          
-          <!-- 高级密钥配置 -->
-          <el-collapse v-model="editYyypAdvancedCollapse">
-            <el-collapse-item title="高级密钥配置" name="advanced">
-              <el-form-item label="Device UK" required>
-                <el-input 
-                  v-model="editForm.deviceuk" 
-                  type="textarea"
-                  :rows="2"
-                  placeholder="请输入Device UK"
-                />
-              </el-form-item>
-              <el-form-item label="UK" required>
-                <el-input 
-                  v-model="editForm.uk" 
-                  type="textarea"
-                  :rows="2"
-                  placeholder="请输入UK"
-                />
-              </el-form-item>
-              <el-form-item label="SK" required>
-                <el-input 
-                  v-model="editForm.sk" 
-                  type="textarea"
-                  :rows="3"
-                  placeholder="请输入SK"
-                />
-              </el-form-item>
-              <el-form-item label="Tracestate" required>
-                <el-input 
-                  v-model="editForm.tracestate" 
-                  type="textarea"
-                  :rows="2"
-                  placeholder="请输入Tracestate"
-                />
-              </el-form-item>
-            </el-collapse-item>
-          </el-collapse>
-        </template>
+        <YoupinForm
+          v-if="editForm.type === 'youpin'"
+          :form="editForm"
+          :is-edit-mode="true"
+          :proxy-address="proxyAddress"
+          @update:form="editForm = $event"
+          @update:proxyAddress="proxyAddress = $event"
+        />
 
         <!-- BUFF特有配置 -->
-        <template v-else-if="editForm.type === 'buff'">
-          <el-form-item>
-            <el-button 
-              type="success" 
-              @click="startBuffTokenCollection(true)" 
-              :loading="buffTokenLoading"
-              :disabled="buffTokenStatus === 'success'"
-              style="width: 100%;"
-            >
-              <el-icon style="margin-right: 5px;"><Grid /></el-icon>
-              {{ buffTokenLoading ? '正在获取令牌...' : buffTokenStatus === 'success' ? '✓ 令牌已获取' : '重新获取BUFF令牌' }}
-            </el-button>
-            <div v-if="buffTokenStatus === 'waiting'" style="margin-top: 10px; padding: 10px; background: #fff7e6; border-radius: 4px; border-left: 3px solid #faad14;">
-              <div style="color: #faad14; font-weight: 500; margin-bottom: 5px;">
-                <el-icon><Loading /></el-icon> 等待手机APP访问...
-              </div>
-              <div style="color: #666; font-size: 12px;">
-                1. 在手机WiFi设置中配置代理: <strong>{{ proxyAddress || '...' }}</strong><br/>
-                2. 打开BUFF APP并登录<br/>
-                3. 系统将自动获取令牌
-              </div>
-            </div>
-            <div v-if="buffTokenStatus === 'success'" style="margin-top: 10px; padding: 10px; background: #f6ffed; border-radius: 4px; border-left: 3px solid #52c41a;">
-              <div style="color: #52c41a; font-weight: 500;">
-                <el-icon><CircleCheck /></el-icon> 令牌获取成功!
-              </div>
-            </div>
-          </el-form-item>
-          
-          
-          <!-- 基础配置 -->
-          <el-collapse v-model="editBuffBasicCollapse" style="margin-bottom: 20px;">
-            <el-collapse-item title="基础配置" name="basic">
-              <el-form-item label="SteamID" required>
-                <el-input v-model="editForm.steamID" placeholder="请输入SteamID" />
-              </el-form-item>
-              <el-form-item label="Cookie" required>
-                <el-input 
-                  v-model="editForm.cookie" 
-                  type="textarea"
-                  :rows="3"
-                  placeholder="请输入Cookie"
-                />
-              </el-form-item>
-            </el-collapse-item>
-          </el-collapse>
-          
-          <!-- 应用信息配置 -->
-          <el-collapse v-model="editBuffAppCollapse" style="margin-bottom: 20px;">
-            <el-collapse-item title="应用信息配置" name="app">
-              <el-form-item label="app-version" required>
-                <el-input v-model="editForm.buffAppVersion" placeholder="请输入app-version" />
-              </el-form-item>
-              <el-form-item label="app-version-code">
-                <el-input v-model="editForm.buffAppVersionCode" placeholder="请输入app-version-code" />
-              </el-form-item>
-              <el-form-item label="channel">
-                <el-input v-model="editForm.buffChannel" placeholder="请输入channel" />
-              </el-form-item>
-              <el-form-item label="user-agent">
-                <el-input v-model="editForm.buffUserAgent" placeholder="请输入user-agent" />
-              </el-form-item>
-            </el-collapse-item>
-          </el-collapse>
-          
-          <!-- 设备信息配置 -->
-          <el-collapse v-model="editBuffDeviceCollapse" style="margin-bottom: 20px;">
-            <el-collapse-item title="设备信息配置" name="device">
-              <el-form-item label="device-id">
-                <el-input v-model="editForm.buffDeviceId" placeholder="请输入device-id" />
-              </el-form-item>
-              <el-form-item label="device-id-weak">
-                <el-input v-model="editForm.buffDeviceIdWeak" placeholder="请输入device-id-weak" />
-              </el-form-item>
-              <el-form-item label="devicename">
-                <el-input v-model="editForm.buffDevicename" placeholder="请输入devicename" />
-              </el-form-item>
-              <el-form-item label="brand">
-                <el-input v-model="editForm.buffBrand" placeholder="请输入brand" />
-              </el-form-item>
-              <el-form-item label="manufacturer">
-                <el-input v-model="editForm.buffManufacturer" placeholder="请输入manufacturer" />
-              </el-form-item>
-              <el-form-item label="model">
-                <el-input v-model="editForm.buffModel" placeholder="请输入model" />
-              </el-form-item>
-              <el-form-item label="product">
-                <el-input v-model="editForm.buffProduct" placeholder="请输入product" />
-              </el-form-item>
-              <el-form-item label="build-fingerprint">
-                <el-input v-model="editForm.buffBuildFingerprint" placeholder="请输入build-fingerprint" />
-              </el-form-item>
-              <el-form-item label="seed">
-                <el-input v-model="editForm.buffSeed" placeholder="请输入seed" />
-              </el-form-item>
-            </el-collapse-item>
-          </el-collapse>
-          
-          <!-- 系统信息配置 -->
-          <el-collapse v-model="editBuffSystemCollapse" style="margin-bottom: 20px;">
-            <el-collapse-item title="系统信息配置" name="system">
-              <el-form-item label="system-type">
-                <el-input v-model="editForm.buffSystemType" placeholder="请输入system-type" />
-              </el-form-item>
-              <el-form-item label="system-version">
-                <el-input v-model="editForm.buffSystemVersion" placeholder="请输入system-version" />
-              </el-form-item>
-              <el-form-item label="rom">
-                <el-input v-model="editForm.buffRom" placeholder="请输入rom" />
-              </el-form-item>
-              <el-form-item label="rom-id">
-                <el-input v-model="editForm.buffRomId" placeholder="请输入rom-id" />
-              </el-form-item>
-            </el-collapse-item>
-          </el-collapse>
-          
-          <!-- 显示与网络配置 -->
-          <el-collapse v-model="editBuffDisplayCollapse" style="margin-bottom: 20px;">
-            <el-collapse-item title="显示与网络配置" name="display">
-              <el-form-item label="resolution">
-                <el-input v-model="editForm.buffResolution" placeholder="请输入resolution" />
-              </el-form-item>
-              <el-form-item label="screen-density">
-                <el-input v-model="editForm.buffScreenDensity" placeholder="请输入screen-density" />
-              </el-form-item>
-              <el-form-item label="screen-size">
-                <el-input v-model="editForm.buffScreenSize" placeholder="请输入screen-size" />
-              </el-form-item>
-              <el-form-item label="network">
-                <el-input v-model="editForm.buffNetwork" placeholder="请输入network" />
-              </el-form-item>
-            </el-collapse-item>
-          </el-collapse>
-          
-          <!-- 时区与本地化配置 -->
-          <el-collapse v-model="editBuffLocaleCollapse" style="margin-bottom: 20px;">
-            <el-collapse-item title="时区与本地化配置" name="locale">
-              <el-form-item label="timestamp">
-                <el-input v-model="editForm.buffTimestamp" placeholder="请输入timestamp" />
-              </el-form-item>
-              <el-form-item label="timezone">
-                <el-input v-model="editForm.buffTimezone" placeholder="请输入timezone" />
-              </el-form-item>
-              <el-form-item label="timezone-offset">
-                <el-input v-model="editForm.buffTimezoneOffset" placeholder="请输入timezone-offset" />
-              </el-form-item>
-              <el-form-item label="timezone-offset-dst">
-                <el-input v-model="editForm.buffTimezoneOffsetDst" placeholder="请输入timezone-offset-dst" />
-              </el-form-item>
-              <el-form-item label="locale">
-                <el-input v-model="editForm.buffLocale" placeholder="请输入locale" />
-              </el-form-item>
-              <el-form-item label="locale-supported">
-                <el-input v-model="editForm.buffLocaleSupported" placeholder="请输入locale-supported" />
-              </el-form-item>
-            </el-collapse-item>
-          </el-collapse>
-        </template>
+        <BuffForm
+          v-else-if="editForm.type === 'buff'"
+          :form="editForm"
+          :is-edit-mode="true"
+          :proxy-address="proxyAddress"
+          @update:form="editForm = $event"
+          @update:proxyAddress="proxyAddress = $event"
+        />
 
         <!-- Steam特有配置 -->
-        <template v-else-if="editForm.type === 'steam'">
-          <!-- Cookie获取方式选择 -->
-          <el-form-item label="获取方式" required>
-            <el-radio-group v-model="editForm.steamCookieMethod">
-              <el-radio label="qrcode">扫码登录</el-radio>
-              <el-radio label="password">账号密码登录</el-radio>
-              <el-radio label="manual">手动输入</el-radio>
-            </el-radio-group>
-          </el-form-item>
-
-          <!-- 扫码登录 -->
-          <template v-if="editForm.steamCookieMethod === 'qrcode'">
-            <el-form-item label="登录二维码">
-              <div 
-                @click="steamQRStatus !== 'success' ? handleEditGenerateQRCode() : null"
-                :style="{
-                  textAlign: 'center', 
-                  padding: '20px', 
-                  background: '#f5f5f5', 
-                  borderRadius: '8px',
-                  cursor: steamQRStatus === 'success' ? 'default' : 'pointer',
-                  transition: 'all 0.3s'
-                }"
-                @mouseenter="$event.currentTarget.style.background = steamQRStatus === 'success' ? '#f5f5f5' : '#e8e8e8'"
-                @mouseleave="$event.currentTarget.style.background = '#f5f5f5'"
-              >
-                <div v-if="!steamQRCode && !steamQRLoading">
-                  <el-icon :size="80" color="#409EFF"><Grid /></el-icon>
-                  <p style="color: #409EFF; margin-top: 10px; font-weight: 500;">点击获取Steam登录二维码</p>
-                </div>
-                <div v-else-if="steamQRLoading">
-                  <el-icon :size="80" class="is-loading" color="#409EFF"><Loading /></el-icon>
-                  <p style="color: #409EFF; margin-top: 10px;">正在获取二维码...</p>
-                </div>
-                <div v-else>
-                  <img :src="steamQRCode" alt="Steam登录二维码" style="width: 200px; height: 200px;" />
-                  <p style="color: #666; margin-top: 10px; font-size: 14px;">
-                    请使用Steam手机APP扫描二维码
-                  </p>
-                  <el-tag :type="steamQRStatus === 'waiting' ? 'info' : steamQRStatus === 'success' ? 'success' : 'warning'" style="margin-top: 10px;">
-                    {{ getSteamQRStatusText() }}
-                  </el-tag>
-                  <div v-if="steamQRStatus === 'expired'" style="margin-top: 10px;">
-                    <el-link type="primary" :underline="false" @click.stop="handleEditGenerateQRCode">
-                      点击刷新二维码
-                    </el-link>
-                  </div>
-                </div>
-              </div>
-            </el-form-item>
-          </template>
-
-          <!-- 账号密码登录 -->
-          <template v-else-if="editForm.steamCookieMethod === 'password'">
-            <el-form-item label="Steam用户名" required>
-              <el-input 
-                v-model="editForm.steamUsername" 
-                placeholder="请输入Steam用户名"
-              />
-            </el-form-item>
-            <el-form-item label="Steam密码" required>
-              <el-input 
-                v-model="editForm.steamPassword" 
-                type="password"
-                show-password
-                placeholder="请输入Steam密码"
-              />
-            </el-form-item>
-            <el-form-item label="Steam PIN">
-              <el-input 
-                v-model="editForm.steamTwofactorCode" 
-                placeholder="请输入5位Steam Guard验证码（如需要）"
-                maxlength="5"
-              />
-              <div style="color: #999; font-size: 12px; margin-top: 5px;">
-                如果您的账号启用了Steam Guard手机令牌，请在此输入验证码
-              </div>
-            </el-form-item>
-            <el-form-item>
-              <el-button 
-                type="success" 
-                @click="handleEditSteamLogin" 
-                :loading="steamLoginLoading"
-                style="width: 100%;"
-              >
-                {{ steamLoginLoading ? '登录中...' : '重新登录获取Cookie' }}
-              </el-button>
-            </el-form-item>
-            <!-- 自动获取的 SteamID 显示 -->
-            <el-form-item v-if="editForm.steamID" label="当前SteamID">
-              <el-input v-model="editForm.steamID" disabled />
-            </el-form-item>
-          </template>
-
-          <!-- 手动输入Cookie -->
-          <template v-else-if="editForm.steamCookieMethod === 'manual'">
-          </template>
-
-          <!-- Steam配置 -->
-          <el-collapse v-model="editSteamCollapse">
-            <el-collapse-item title="Steam配置" name="config">
-              <el-form-item label="基础Cookies">
-                <el-input 
-                  v-model="editForm.steamBaseCookies" 
-                  type="textarea"
-                  :rows="3"
-                  placeholder="扫码登录成功后自动填入，可手动粘贴基础Cookie"
-                />
-                <div style="color: #999; font-size: 12px; margin-top: 4px;">
-                  基础Cookies为扫码后立即返回的Cookie，建议与库存Cookies一同保存。
-                </div>
-              </el-form-item>
-              <el-form-item label="库存Cookies" required>
-                <el-input 
-                  v-model="editForm.steamInventoryCookies" 
-                  type="textarea"
-                  :rows="3"
-                  placeholder="访问库存页后的完整Cookie，采集库存时将使用该值"
-                />
-                <div style="color: #999; font-size: 12px; margin-top: 4px;">
-                  若手动维护，请保证此Cookie可访问 <code>inventory/730/16</code>。
-                </div>
-              </el-form-item>
-
-              <el-form-item label="SteamID" required>
-                <el-input 
-                  v-model="editForm.steamID" 
-                  placeholder="请输入SteamID"
-                />
-              </el-form-item>
-              
-              <el-form-item label="更新频率">
-                <el-select v-model="editForm.updateFreq" placeholder="选择更新频率" style="width: 100%;">
-                  <el-option label="每15分钟" value="15min" />
-                  <el-option label="每小时" value="1hour" />
-                  <el-option label="每3小时" value="3hour" />
-                  <el-option label="每6小时" value="6hour" />
-                  <el-option label="每12小时" value="12hour" />
-                  <el-option label="每天" value="daily" />
-                </el-select>
-              </el-form-item>
-            </el-collapse-item>
-          </el-collapse>
-        </template>
-
-        <!-- Steam登录特有配置（兼容旧数据，使用与steam相同的表单） -->
-        <template v-else-if="editForm.type === 'steam_login'">
-          <!-- Cookie获取方式选择 -->
-          <el-form-item label="获取方式" required>
-            <el-radio-group v-model="editForm.steamCookieMethod">
-              <el-radio label="qrcode">扫码登录</el-radio>
-              <el-radio label="password">账号密码登录</el-radio>
-              <el-radio label="manual">手动输入</el-radio>
-            </el-radio-group>
-          </el-form-item>
-
-          <!-- 扫码登录 -->
-          <template v-if="editForm.steamCookieMethod === 'qrcode'">
-            <el-form-item label="登录二维码">
-              <div 
-                @click="steamQRStatus !== 'success' ? handleEditGenerateQRCode() : null"
-                :style="{
-                  textAlign: 'center', 
-                  padding: '20px', 
-                  background: '#f5f5f5', 
-                  borderRadius: '8px',
-                  cursor: steamQRStatus === 'success' ? 'default' : 'pointer',
-                  transition: 'all 0.3s'
-                }"
-                @mouseenter="$event.currentTarget.style.background = steamQRStatus === 'success' ? '#f5f5f5' : '#e8e8e8'"
-                @mouseleave="$event.currentTarget.style.background = '#f5f5f5'"
-              >
-                <div v-if="!steamQRCode && !steamQRLoading">
-                  <el-icon :size="80" color="#409EFF"><Grid /></el-icon>
-                  <p style="color: #409EFF; margin-top: 10px; font-weight: 500;">点击获取Steam登录二维码</p>
-                </div>
-                <div v-else-if="steamQRLoading">
-                  <el-icon :size="80" class="is-loading" color="#409EFF"><Loading /></el-icon>
-                  <p style="color: #409EFF; margin-top: 10px;">正在获取二维码...</p>
-                </div>
-                <div v-else>
-                  <img :src="steamQRCode" alt="Steam登录二维码" style="width: 200px; height: 200px;" />
-                  <p style="color: #666; margin-top: 10px; font-size: 14px;">
-                    请使用Steam手机APP扫描二维码
-                  </p>
-                  <el-tag :type="steamQRStatus === 'waiting' ? 'info' : steamQRStatus === 'success' ? 'success' : 'warning'" style="margin-top: 10px;">
-                    {{ getSteamQRStatusText() }}
-                  </el-tag>
-                  <div v-if="steamQRStatus === 'expired'" style="margin-top: 10px;">
-                    <el-link type="primary" :underline="false" @click.stop="handleEditGenerateQRCode">
-                      点击刷新二维码
-                    </el-link>
-                  </div>
-                </div>
-              </div>
-            </el-form-item>
-          </template>
-
-          <!-- 账号密码登录 -->
-          <template v-else-if="editForm.steamCookieMethod === 'password'">
-            <el-form-item label="Steam用户名" required>
-              <el-input 
-                v-model="editForm.steamUsername" 
-                placeholder="请输入Steam用户名"
-              />
-            </el-form-item>
-            <el-form-item label="Steam密码" required>
-              <el-input 
-                v-model="editForm.steamPassword" 
-                type="password"
-                show-password
-                placeholder="请输入Steam密码"
-              />
-            </el-form-item>
-            <el-form-item label="Steam PIN">
-              <el-input 
-                v-model="editForm.steamTwofactorCode" 
-                placeholder="请输入5位Steam Guard验证码（如需要）"
-                maxlength="5"
-              />
-              <div style="color: #999; font-size: 12px; margin-top: 5px;">
-                如果您的账号启用了Steam Guard手机令牌，请在此输入验证码
-              </div>
-            </el-form-item>
-            <el-form-item>
-              <el-button 
-                type="success" 
-                @click="handleEditSteamLogin" 
-                :loading="steamLoginLoading"
-                style="width: 100%;"
-              >
-                {{ steamLoginLoading ? '登录中...' : '重新登录获取Cookie' }}
-              </el-button>
-            </el-form-item>
-          </template>
-
-          <!-- 手动输入Cookie -->
-          <template v-else-if="editForm.steamCookieMethod === 'manual'">
-          </template>
-
-          <!-- Steam配置 -->
-          <el-collapse v-model="editSteamLoginCollapse">
-            <el-collapse-item title="Steam配置" name="config">
-              <el-form-item label="基础Cookies">
-                <el-input 
-                  v-model="editForm.steamBaseCookies" 
-                  type="textarea"
-                  :rows="3"
-                  placeholder="扫码登录成功后自动填入，可手动粘贴基础Cookie"
-                />
-                <div style="color: #999; font-size: 12px; margin-top: 4px;">
-                  基础Cookies为扫码后立即返回的Cookie，建议与库存Cookies一同保存。
-                </div>
-              </el-form-item>
-              <el-form-item label="库存Cookies" required>
-                <el-input 
-                  v-model="editForm.steamInventoryCookies" 
-                  type="textarea"
-                  :rows="3"
-                  placeholder="访问库存页后的完整Cookie，采集库存时将使用该值"
-                />
-                <div style="color: #999; font-size: 12px; margin-top: 4px;">
-                  若手动维护，请保证此Cookie可访问 <code>inventory/730/16</code>。
-                </div>
-              </el-form-item>
-
-              <el-form-item label="SteamID" required>
-                <el-input 
-                  v-model="editForm.steamID" 
-                  placeholder="请输入SteamID"
-                />
-              </el-form-item>
-              
-              <el-form-item label="更新频率">
-                <el-select v-model="editForm.updateFreq" placeholder="选择更新频率" style="width: 100%;">
-                  <el-option label="每15分钟" value="15min" />
-                  <el-option label="每小时" value="1hour" />
-                  <el-option label="每3小时" value="3hour" />
-                  <el-option label="每6小时" value="6hour" />
-                  <el-option label="每12小时" value="12hour" />
-                  <el-option label="每天" value="daily" />
-                </el-select>
-              </el-form-item>
-            </el-collapse-item>
-          </el-collapse>
-        </template>
+        <SteamForm
+          v-else-if="editForm.type === 'steam' || editForm.type === 'steam_login'"
+          :form="editForm"
+          :is-edit-mode="true"
+          @update:form="editForm = $event"
+        />
 
         <!-- 完美世界APP特有配置 -->
-        <template v-else-if="editForm.type === 'perfectworld'">
-          <el-form-item>
-            <el-button 
-              type="success" 
-              @click="startPerfectWorldTokenCollection(true)" 
-              :loading="perfectWorldTokenLoading"
-              :disabled="perfectWorldTokenStatus === 'success'"
-              style="width: 100%;"
-            >
-              <el-icon style="margin-right: 5px;"><Grid /></el-icon>
-              {{ perfectWorldTokenLoading ? '正在获取令牌...' : perfectWorldTokenStatus === 'success' ? '✓ 令牌已获取' : '重新获取完美世界APP令牌' }}
-            </el-button>
-            <div v-if="perfectWorldTokenStatus === 'waiting'" style="margin-top: 10px; padding: 10px; background: #fff7e6; border-radius: 4px; border-left: 3px solid #faad14;">
-              <div style="color: #faad14; font-weight: 500; margin-bottom: 5px;">
-                <el-icon><Loading /></el-icon> 等待手机APP访问...
-              </div>
-              <div style="color: #666; font-size: 12px;">
-                1. 在手机WiFi设置中配置代理: <strong>{{ proxyAddress || '...' }}</strong><br/>
-                2. 打开完美世界APP并登录<br/>
-                3. 系统将自动获取令牌
-              </div>
-            </div>
-            <div v-if="perfectWorldTokenStatus === 'success'" style="margin-top: 10px; padding: 10px; background: #f6ffed; border-radius: 4px; border-left: 3px solid #52c41a;">
-              <div style="color: #52c41a; font-weight: 500;">
-                <el-icon><CircleCheck /></el-icon> 令牌获取成功!
-              </div>
-            </div>
-          </el-form-item>
-          
-          <!-- 完美世界配置 -->
-          <el-collapse v-model="editPerfectWorldCollapse">
-            <el-collapse-item title="完美世界APP配置" name="config">
-              <el-form-item label="appversion" required>
-                <el-input v-model="editForm.appversion" placeholder="请输入appversion" />
-              </el-form-item>
-              <el-form-item label="device" required>
-                <el-input v-model="editForm.device" placeholder="请输入device" />
-              </el-form-item>
-              <el-form-item label="gameType" required>
-                <el-input v-model="editForm.gameType" placeholder="请输入gameType" />
-              </el-form-item>
-              <el-form-item label="platform" required>
-                <el-input v-model="editForm.platform" placeholder="请输入platform" />
-              </el-form-item>
-              <el-form-item label="token" required>
-                <el-input 
-                  v-model="editForm.pwToken" 
-                  type="textarea"
-                  :rows="2"
-                  placeholder="请输入token"
-                />
-              </el-form-item>
-              <el-form-item label="tdSign" required>
-                <el-input 
-                  v-model="editForm.tdSign" 
-                  type="textarea"
-                  :rows="2"
-                  placeholder="请输入tdSign"
-                />
-              </el-form-item>
-              <el-form-item label="SteamID" required>
-                <el-input v-model="editForm.pwSteamID" placeholder="请输入SteamID" />
-              </el-form-item>
-              <el-form-item label="更新频率">
-                <el-select v-model="editForm.updateFreq" placeholder="选择更新频率" style="width: 100%;">
-                  <el-option label="每15分钟" value="15min" />
-                  <el-option label="每小时" value="1hour" />
-                  <el-option label="每3小时" value="3hour" />
-                  <el-option label="每6小时" value="6hour" />
-                  <el-option label="每12小时" value="12hour" />
-                  <el-option label="每天" value="daily" />
-                </el-select>
-              </el-form-item>
-            </el-collapse-item>
-          </el-collapse>
-        </template>
+        <PerfectWorldForm
+          v-else-if="editForm.type === 'perfectworld'"
+          :form="editForm"
+          :is-edit-mode="true"
+          :proxy-address="proxyAddress"
+          @update:form="editForm = $event"
+          @update:proxyAddress="proxyAddress = $event"
+        />
 
         <!-- CsFloat特有配置 -->
-        <template v-else-if="editForm.type === 'csfloat'">
-          <el-form-item>
-            <el-button 
-              type="success" 
-              @click="startCsfloatTokenCollection(true)" 
-              :loading="csfloatTokenLoading"
-              :disabled="csfloatTokenStatus === 'success'"
-              style="width: 100%;"
-            >
-              <el-icon style="margin-right: 5px;"><Grid /></el-icon>
-              {{ csfloatTokenLoading ? '正在获取令牌...' : csfloatTokenStatus === 'success' ? '✓ 令牌已获取' : '重新获取CsFloat令牌' }}
-            </el-button>
-            <div v-if="csfloatTokenStatus === 'waiting'" style="margin-top: 10px; padding: 10px; background: #fff7e6; border-radius: 4px; border-left: 3px solid #faad14;">
-              <div style="color: #faad14; font-weight: 500; margin-bottom: 5px;">
-                <el-icon><Loading /></el-icon> 等待浏览器访问...
-              </div>
-              <div style="color: #666; font-size: 12px;">
-                1. 在浏览器中配置代理: <strong>{{ proxyAddress || '...' }}</strong><br/>
-                2. 访问 https://csfloat.com 并登录<br/>
-                3. 系统将自动获取令牌
-              </div>
-            </div>
-            <div v-if="csfloatTokenStatus === 'success'" style="margin-top: 10px; padding: 10px; background: #f6ffed; border-radius: 4px; border-left: 3px solid #52c41a;">
-              <div style="color: #52c41a; font-weight: 500;">
-                <el-icon><CircleCheck /></el-icon> 令牌获取成功!
-              </div>
-            </div>
-          </el-form-item>
-          
-          <el-collapse v-model="editCsfloatCollapse">
-            <el-collapse-item title="CsFloat配置" name="config">
-              <el-form-item label="User-Agent" required>
-                <el-input 
-                  v-model="editForm.csfloatUserAgent" 
-                  placeholder="请输入User-Agent"
-                />
-              </el-form-item>
-              <el-form-item label="Referer" required>
-                <el-input 
-                  v-model="editForm.csfloatReferer" 
-                  placeholder="请输入Referer"
-                />
-              </el-form-item>
-              <el-form-item label="Accept" required>
-                <el-input 
-                  v-model="editForm.csfloatAccept" 
-                  placeholder="请输入Accept"
-                />
-              </el-form-item>
-              <el-form-item label="X-App-Version" required>
-                <el-input 
-                  v-model="editForm.csfloatXAppVersion" 
-                  placeholder="请输入X-App-Version"
-                />
-              </el-form-item>
-              <el-form-item label="Host" required>
-                <el-input 
-                  v-model="editForm.csfloatHost" 
-                  placeholder="请输入Host"
-                />
-              </el-form-item>
-              <el-form-item label="Connection" required>
-                <el-input 
-                  v-model="editForm.csfloatConnection" 
-                  placeholder="请输入Connection"
-                />
-              </el-form-item>
-              <el-form-item label="Accept-Encoding" required>
-                <el-input 
-                  v-model="editForm.csfloatAcceptEncoding" 
-                  placeholder="请输入Accept-Encoding"
-                />
-              </el-form-item>
-              <el-form-item label="Cookie" required>
-                <el-input 
-                  v-model="editForm.csfloatCookie" 
-                  type="textarea"
-                  :rows="3"
-                  placeholder="请输入Cookie"
-                />
-              </el-form-item>
-              <el-form-item label="SteamID" required>
-                <el-input 
-                  v-model="editForm.csfloatSteamID" 
-                  placeholder="请输入SteamID"
-                />
-              </el-form-item>
-            </el-collapse-item>
-          </el-collapse>
-        </template>
+        <CsfloatForm
+          v-else-if="editForm.type === 'csfloat'"
+          :form="editForm"
+          :is-edit-mode="true"
+          :proxy-address="proxyAddress"
+          @update:form="editForm = $event"
+          @update:proxyAddress="proxyAddress = $event"
+        />
 
         <!-- CSQAQ特有配置 -->
-        <template v-else-if="editForm.type === 'csqaq'">
-          <el-collapse v-model="editCsqaqCollapse">
-            <el-collapse-item title="CSQAQ配置" name="config">
-              <el-form-item label="ApiToken" required>
-                <el-input 
-                  v-model="editForm.csqaqApiToken" 
-                  type="textarea"
-                  :rows="3"
-                  placeholder="请输入ApiToken"
-                />
-              </el-form-item>
-            </el-collapse-item>
-          </el-collapse>
-        </template>
+        <CsqaqForm
+          v-else-if="editForm.type === 'csqaq'"
+          :form="editForm"
+          :is-edit-mode="true"
+          @update:form="editForm = $event"
+        />
 
         <!-- SteamDT特有配置 -->
-        <template v-else-if="editForm.type === 'steamdt'">
-          <el-collapse v-model="editSteamdtCollapse">
-            <el-collapse-item title="SteamDT配置" name="config">
-              <el-form-item label="API_KEY" required>
-                <el-input 
-                  v-model="editForm.steamdtApiKey" 
-                  type="textarea"
-                  :rows="3"
-                  placeholder="请输入API_KEY"
-                />
-              </el-form-item>
-              <el-form-item label="回调域名" required>
-                <el-input 
-                  v-model="editForm.steamdtCallbackDomain" 
-                  placeholder="请输入回调域名"
-                />
-              </el-form-item>
-            </el-collapse-item>
-          </el-collapse>
-        </template>
+        <SteamdtForm
+          v-else-if="editForm.type === 'steamdt'"
+          :form="editForm"
+          :is-edit-mode="true"
+          @update:form="editForm = $event"
+        />
 
         <!-- 通用配置 -->
         <template v-else>
@@ -1157,7 +381,17 @@
         </el-form-item>
         
         <!-- BUFF特有配置 -->
-        <template v-if="inputForm.type === 'buff'">
+        <BuffForm
+          v-if="inputForm.type === 'buff'"
+          :form="inputForm"
+          :is-edit-mode="false"
+          :proxy-address="proxyAddress"
+          @update:form="inputForm = $event"
+          @update:proxyAddress="proxyAddress = $event"
+        />
+        
+        <!-- BUFF特有配置 (旧代码保留，待删除) -->
+        <template v-if="false && inputForm.type === 'buff'">
           <el-form-item>
             <el-button 
               type="success" 
@@ -1296,7 +530,15 @@
         </template>
         
         <!-- Steam特有配置 -->
-        <template v-else-if="inputForm.type === 'steam'">
+        <SteamForm
+          v-else-if="inputForm.type === 'steam' || inputForm.type === 'steam_login'"
+          :form="inputForm"
+          :is-edit-mode="false"
+          @update:form="inputForm = $event"
+        />
+        
+        <!-- Steam特有配置 (旧代码保留，待删除) -->
+        <template v-if="false && inputForm.type === 'steam'">
           <!-- Cookie获取方式选择 -->
           <el-form-item label="获取方式" required>
             <el-radio-group v-model="inputForm.steamCookieMethod">
@@ -1573,7 +815,17 @@
         </template>
 
         <!-- 完美世界APP特有配置 -->
-        <template v-else-if="inputForm.type === 'perfectworld'">
+        <PerfectWorldForm
+          v-else-if="inputForm.type === 'perfectworld'"
+          :form="inputForm"
+          :is-edit-mode="false"
+          :proxy-address="proxyAddress"
+          @update:form="inputForm = $event"
+          @update:proxyAddress="proxyAddress = $event"
+        />
+        
+        <!-- 完美世界APP特有配置 (旧代码保留，待删除) -->
+        <template v-if="false && inputForm.type === 'perfectworld'">
           <el-form-item>
             <el-button 
               type="success" 
@@ -1666,7 +918,17 @@
         </template>
         
         <!-- CsFloat特有配置 -->
-        <template v-else-if="inputForm.type === 'csfloat'">
+        <CsfloatForm
+          v-else-if="inputForm.type === 'csfloat'"
+          :form="inputForm"
+          :is-edit-mode="false"
+          :proxy-address="proxyAddress"
+          @update:form="inputForm = $event"
+          @update:proxyAddress="proxyAddress = $event"
+        />
+        
+        <!-- CsFloat特有配置 (旧代码保留，待删除) -->
+        <template v-if="false && inputForm.type === 'csfloat'">
           <el-form-item>
             <el-button 
               type="success" 
@@ -1758,42 +1020,20 @@
         </template>
 
         <!-- CSQAQ特有配置 -->
-        <template v-else-if="inputForm.type === 'csqaq'">
-          <el-collapse v-model="inputCsqaqCollapse">
-            <el-collapse-item title="CSQAQ配置" name="config">
-              <el-form-item label="ApiToken" required>
-                <el-input 
-                  v-model="inputForm.csqaqApiToken" 
-                  type="textarea"
-                  :rows="3"
-                  placeholder="请输入ApiToken"
-                />
-              </el-form-item>
-            </el-collapse-item>
-          </el-collapse>
-        </template>
+        <CsqaqForm
+          v-else-if="inputForm.type === 'csqaq'"
+          :form="inputForm"
+          :is-edit-mode="false"
+          @update:form="inputForm = $event"
+        />
 
         <!-- SteamDT特有配置 -->
-        <template v-else-if="inputForm.type === 'steamdt'">
-          <el-collapse v-model="inputSteamdtCollapse">
-            <el-collapse-item title="SteamDT配置" name="config">
-              <el-form-item label="API_KEY" required>
-                <el-input 
-                  v-model="inputForm.steamdtApiKey" 
-                  type="textarea"
-                  :rows="3"
-                  placeholder="请输入API_KEY"
-                />
-              </el-form-item>
-              <el-form-item label="回调域名" required>
-                <el-input 
-                  v-model="inputForm.steamdtCallbackDomain" 
-                  placeholder="请输入回调域名"
-                />
-              </el-form-item>
-            </el-collapse-item>
-          </el-collapse>
-        </template>
+        <SteamdtForm
+          v-else-if="inputForm.type === 'steamdt'"
+          :form="inputForm"
+          :is-edit-mode="false"
+          @update:form="inputForm = $event"
+        />
         
         <!-- 通用配置 -->
         <template v-else-if="inputForm.type && inputForm.type !== 'youpin' && inputForm.type !== 'steam' && inputForm.type !== 'perfectworld' && inputForm.type !== 'csfloat' && inputForm.type !== 'csqaq' && inputForm.type !== 'steamdt'">
@@ -1814,7 +1054,17 @@
         </template>
         
         <!-- 悠悠有品特有配置 -->
-        <template v-if="inputForm.type === 'youpin'">
+        <YoupinForm
+          v-if="inputForm.type === 'youpin'"
+          :form="inputForm"
+          :is-edit-mode="false"
+          :proxy-address="proxyAddress"
+          @update:form="inputForm = $event"
+          @update:proxyAddress="proxyAddress = $event"
+        />
+        
+        <!-- 悠悠有品特有配置 (旧代码保留，待删除) -->
+        <template v-if="false && inputForm.type === 'youpin'">
           <!-- 登录方式选择 -->
           <el-form-item label="登录方式" required>
             <el-radio-group v-model="inputForm.yyypLoginMethod">
@@ -2073,6 +1323,13 @@
 <script>
 import { Plus, User, Grid, Loading, CircleCheck, DataAnalysis } from '@element-plus/icons-vue'
 import { useDataSource } from './useDataSource.js'
+import SteamForm from './SteamForm/index.vue'
+import YoupinForm from './YoupinForm/index.vue'
+import BuffForm from './BuffForm/index.vue'
+import PerfectWorldForm from './PerfectWorldForm/index.vue'
+import CsfloatForm from './CsfloatForm/index.vue'
+import CsqaqForm from './CsqaqForm/index.vue'
+import SteamdtForm from './SteamdtForm/index.vue'
 
 export default {
   name: 'DataSource',
@@ -2082,7 +1339,14 @@ export default {
     Grid,
     Loading,
     CircleCheck,
-    DataAnalysis
+    DataAnalysis,
+    SteamForm,
+    YoupinForm,
+    BuffForm,
+    PerfectWorldForm,
+    CsfloatForm,
+    CsqaqForm,
+    SteamdtForm
   },
   setup() {
     return useDataSource()
