@@ -394,6 +394,8 @@ export const API_CONFIG = {
     YYYP_GET_PRESALE_LIST: '/youping898SpiderV1/getPresaleList',  // 获取预售列表
     YYYP_GET_SELL_LIST: '/youping898SpiderV1/getSellList',  // 获取出售列表
     YYYP_GET_RENTED_OUT_LIST: '/youping898SpiderV1/getRentedOutList',  // 获取已租出列表
+    YYYP_GET_MY_SELL_ORDERS: '/youping898SpiderV1/getMySellOrders',  // 获取我的出售订单（报价处理）
+    YYYP_PROCESS_OFFER_BUTTON: '/youping898SpiderV1/processOfferButton',  // 处理报价按钮操作
     YYYP_OFF_SHELF: '/youping898SpiderV1/offShelfItems',  // 下架商品
     YYYP_CANCEL_SUBLEASE: '/youping898SpiderV1/cancelSublease',  // 取消转租
     YYYP_CHANGE_PRICE: '/youping898SpiderV1/changeCommodityPrice',  // 改价（售卖商品）
@@ -821,6 +823,8 @@ export const apiUrls = {
   yyypGetSubleaseList: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_SUBLEASE_LIST),
   yyypGetPresaleList: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_PRESALE_LIST),
   getRentedOutList: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_RENTED_OUT_LIST),
+  yyypGetMySellOrders: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_MY_SELL_ORDERS),  // 获取我的出售订单
+  yyypProcessOfferButton: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_PROCESS_OFFER_BUTTON),  // 处理报价按钮操作
   yyypOffShelf: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_OFF_SHELF),
   yyypCancelSublease: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_CANCEL_SUBLEASE),
   yyypChangePrice: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_CHANGE_PRICE),  // 售卖商品改价
