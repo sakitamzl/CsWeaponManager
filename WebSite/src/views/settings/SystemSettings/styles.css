@@ -1,0 +1,82 @@
+.settings-container {
+  width: 100%;
+  padding: clamp(1rem, 3vw, 1.5rem);
+}
+
+.settings-section {
+  padding: clamp(1rem, 3vw, 1.25rem) 0;
+}
+
+.settings-section h3 {
+  margin-bottom: clamp(1rem, 3vw, 1.25rem);
+  color: #fff;
+  font-size: clamp(1.125rem, 2vw, 1.25rem);
+}
+
+.save-actions {
+  margin-top: clamp(1.5rem, 4vw, 1.875rem);
+  text-align: center;
+  padding-top: clamp(1rem, 3vw, 1.25rem);
+  border-top: 1px solid #333;
+}
+
+:deep(.el-form-item__label) {
+  color: #ccc;
+  font-size: clamp(0.75rem, 1.2vw, 0.875rem);
+}
+
+:deep(.el-input__inner) {
+  background-color: #2a2a2a;
+  border-color: #333;
+  color: #fff;
+  font-size: clamp(0.75rem, 1.2vw, 0.875rem);
+}
+
+:deep(.el-select .el-input__inner) {
+  background-color: #2a2a2a;
+  border-color: #333;
+  color: #fff;
+}
+
+:deep(.el-button) {
+  font-size: clamp(0.625rem, 1vw, 0.75rem);
+  padding: clamp(0.375rem, 1vw, 0.5rem) clamp(0.75rem, 2vw, 1rem);
+}
+
+:deep(.el-form-item) {
+  margin-bottom: clamp(1rem, 2.5vw, 1.125rem);
+}
+
+.form-tip {
+  margin-top: 0.5rem;
+  font-size: clamp(0.625rem, 1vw, 0.75rem);
+  color: #999;
+  line-height: 1.5;
+}
+
+:deep(.el-switch__label) {
+  color: #ccc;
+  font-size: clamp(0.75rem, 1.2vw, 0.875rem);
+}
+
+:deep(.el-switch__label.is-active) {
+  color: #4CAF50;
+}
+
+@media (max-width: 768px) {
+  :deep(.el-button) {
+    width: 100%;
+    font-size: 0.75rem;
+    padding: 0.5rem;
+  }
+  
+  :deep(.el-form-item__label) {
+    font-size: 0.75rem;
+  }
+  
+  :deep(.el-input__inner) {
+    font-size: 0.875rem;
+  }
+}
+</style>
+

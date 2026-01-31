@@ -1,0 +1,131 @@
+.automate-management {
+  padding: 24px;
+  background: transparent;
+}
+
+.config-section {
+  background: rgba(26, 26, 26, 0.6);
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(58, 58, 58, 0.8);
+}
+
+.task-list-section,
+.history-section {
+  background: rgba(26, 26, 26, 0.6);
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(58, 58, 58, 0.8);
+}
+
+.task-list-section h3 {
+  font-size: 18px;
+  color: #e8e8e8;
+  margin: 0 0 16px 0;
+  font-weight: 600;
+}
+
+.task-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.task-list-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.empty-placeholder {
+  padding: 20px 0;
+}
+
+.custom-interval-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-top: 1px solid rgba(58, 58, 58, 0.8);
+}
+
+.custom-interval-footer span {
+  color: #e8e8e8;
+  font-size: 12px;
+}
+
+/* Element Plus 表单样式调整 */
+:deep(.el-form-item__label) {
+  color: #e8e8e8;
+}
+
+:deep(.el-select) {
+  width: 100%;
+}
+
+:deep(.el-input__wrapper) {
+  background-color: rgba(35, 35, 35, 0.8);
+  border-color: rgba(58, 58, 58, 0.8);
+}
+
+:deep(.el-input__inner) {
+  color: #e8e8e8;
+}
+
+:deep(.el-select-dropdown) {
+  background-color: rgba(26, 26, 26, 0.98);
+  border-color: rgba(58, 58, 58, 0.8);
+}
+
+:deep(.el-select-dropdown__item) {
+  color: #e8e8e8;
+}
+
+:deep(.el-select-dropdown__item:hover) {
+  background-color: rgba(64, 158, 255, 0.2);
+}
+
+:deep(.el-table) {
+  background-color: transparent;
+  color: #e8e8e8;
+}
+
+:deep(.el-table th.el-table__cell) {
+  background-color: rgba(35, 35, 35, 0.8);
+  color: #e8e8e8;
+  border-color: rgba(58, 58, 58, 0.8);
+}
+
+:deep(.el-table tr) {
+  background-color: transparent;
+}
+
+:deep(.el-table td.el-table__cell) {
+  border-color: rgba(58, 58, 58, 0.8);
+}
+
+:deep(.el-table__body tr:hover > td) {
+  background-color: rgba(64, 158, 255, 0.1) !important;
+}
+
+:deep(.el-input-number) {
+  width: 100%;
+}
+
+:deep(.el-input-number .el-input__wrapper) {
+  background-color: rgba(35, 35, 35, 0.8);
+  border-color: rgba(58, 58, 58, 0.8);
+}
+
+:deep(.el-empty) {
+  padding: 20px 0;
+}
+
+:deep(.el-empty__description) {
+  color: #909399;
+}
+</style>

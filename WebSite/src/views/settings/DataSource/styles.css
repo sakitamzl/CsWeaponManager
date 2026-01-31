@@ -1,0 +1,660 @@
+.data-source-container {
+  width: 100%;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.data-sources-list {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1rem, 2.5vw, 1.5rem);
+  margin-bottom: clamp(1.5rem, 4vw, 1.875rem);
+}
+
+.steam-group-box {
+  width: 100%;
+}
+
+.steam-group-box .card {
+  background-color: #1e1e1e;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  border: 1px solid #333;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.additional-box {
+  margin-bottom: clamp(1.5rem, 4vw, 1.875rem);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.additional-box .card {
+  background-color: #1e1e1e;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  border: 1px solid #333;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* 新建SteamID分组卡片 - 整个BOX作为按钮 */
+.new-steam-group-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  height: 120px;
+  cursor: pointer;
+  border: 2px dashed #666 !important;
+  background-color: transparent !important;
+  transition: all 0.3s;
+  padding: 1rem !important;
+}
+
+.new-steam-group-card .el-icon {
+  color: #999;
+  transition: all 0.3s;
+}
+
+.new-steam-group-card span {
+  color: #999;
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.new-steam-group-card:hover {
+  border-color: #4CAF50 !important;
+  background-color: rgba(76, 175, 80, 0.05) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(76, 175, 80, 0.2) !important;
+}
+
+.new-steam-group-card:hover .el-icon {
+  color: #4CAF50;
+  transform: scale(1.1);
+}
+
+.new-steam-group-card:hover span {
+  color: #4CAF50;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: clamp(1rem, 3vw, 1.25rem);
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.source-card {
+  background-color: #2a2a2a;
+  border-radius: 0.5rem;
+  padding: clamp(1rem, 2.5vw, 1.25rem);
+  border: 1px solid #333;
+  transition: all 0.3s;
+  width: 250px;
+  height: fit-content;
+  box-sizing: border-box;
+}
+
+.source-card:hover {
+  border-color: #4CAF50;
+}
+
+.source-card.disabled {
+  opacity: 0.6;
+}
+
+/* 添加数据源卡片样式 */
+.add-source-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  border: 2px dashed #666 !important;
+  background-color: transparent !important;
+  transition: all 0.3s;
+  padding: clamp(1rem, 2.5vw, 1.25rem) !important;
+  min-height: 180px;
+}
+
+.add-source-card:hover {
+  border-color: #4CAF50 !important;
+  background-color: rgba(76, 175, 80, 0.05) !important;
+}
+
+.add-icon-container {
+  color: #666;
+  margin-bottom: 12px;
+  transition: color 0.3s;
+}
+
+.add-source-card:hover .add-icon-container {
+  color: #4CAF50;
+}
+
+.add-text {
+  color: #999;
+  font-size: 14px;
+  margin: 0;
+  transition: color 0.3s;
+}
+
+.add-source-card:hover .add-text {
+  color: #4CAF50;
+}
+
+.source-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: clamp(0.75rem, 2vw, 0.9375rem);
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.source-info h4 {
+  margin-bottom: clamp(0.5rem, 1vw, 0.5rem);
+  color: #fff;
+  font-size: clamp(1rem, 1.8vw, 1.125rem);
+}
+
+.source-details {
+  margin-bottom: clamp(1rem, 3vw, 1.25rem);
+}
+
+.source-details p {
+  margin: clamp(0.5rem, 1vw, 0.5rem) 0;
+  color: #ccc;
+  font-size: clamp(0.75rem, 1.2vw, 0.875rem);
+  line-height: 1.5;
+}
+
+.source-actions {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 1.5vw, 0.625rem);
+  flex-wrap: wrap;
+}
+
+/* 数据源网格布局 - 固定宽度，左对齐 */
+.grid-datasource {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: flex-start;
+  align-items: start;
+}
+
+/* 响应式调整 - flexbox布局无需额外设置 */
+
+/* 确保卡片内容自适应 */
+.source-card .source-header,
+.source-card .source-details,
+.source-card .source-actions {
+  width: 100%;
+  flex-shrink: 1;
+}
+
+.source-card .source-actions {
+  justify-content: flex-start;
+}
+
+/* 文字内容自适应 */
+.source-card h4 {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.source-card p {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+
+:deep(.el-form-item__label) {
+  color: #ccc;
+  font-size: clamp(0.75rem, 1.2vw, 0.875rem);
+}
+
+:deep(.el-input__inner) {
+  background-color: #2a2a2a !important;
+  border-color: #444 !important;
+  color: #ffffff !important;
+  font-size: clamp(0.75rem, 1.2vw, 0.875rem);
+}
+
+:deep(.el-select .el-input__inner) {
+  background-color: #2a2a2a !important;
+  border-color: #444 !important;
+  color: #ffffff !important;
+}
+
+
+:deep(.el-switch.is-checked .el-switch__core) {
+  background-color: #4CAF50;
+}
+
+:deep(.el-button) {
+  font-size: clamp(0.625rem, 1vw, 0.75rem);
+  padding: clamp(0.375rem, 1vw, 0.5rem) clamp(0.5rem, 1.5vw, 0.75rem);
+}
+
+:deep(.el-form-item) {
+  margin-bottom: clamp(1rem, 2.5vw, 1.125rem);
+}
+
+@media (max-width: 768px) {
+  .card-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .header-buttons {
+    justify-content: center;
+    margin-top: 10px;
+  }
+  
+  .source-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .source-actions {
+    justify-content: center;
+  }
+  
+  .source-actions .el-button {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.625rem;
+  }
+  
+  :deep(.el-button) {
+    width: 100%;
+    font-size: 0.75rem;
+    padding: 0.5rem;
+  }
+  
+  :deep(.el-form-item__label) {
+    font-size: 0.75rem;
+  }
+  
+  :deep(.el-input__inner) {
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .source-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .source-actions .el-switch {
+    align-self: center;
+  }
+}
+
+/* SteamID分组样式 */
+.steam-group {
+  margin-bottom: 2rem;
+}
+
+.steam-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
+  padding: 1rem 1.5rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  border-left: 4px solid #4CAF50;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.steam-group-header-left {
+  flex: 1;
+}
+
+.steam-group-header-right {
+  margin-left: auto;
+}
+
+.add-source-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: transparent;
+  border: 2px dashed #666;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #999;
+  transition: all 0.3s;
+}
+
+.add-source-button:hover {
+  border-color: #4CAF50;
+  color: #4CAF50;
+  background-color: rgba(76, 175, 80, 0.05);
+}
+
+.steam-group-header h4 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1rem, 1.8vw, 1.125rem);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.steam-group-header .el-icon {
+  color: #4CAF50;
+  font-size: 1.2em;
+}
+
+/* 空状态样式 */
+.empty-state {
+  padding: 4rem 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.empty-actions {
+  margin-top: 1rem;
+}
+
+/* 对话框样式 */
+.dialog-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.dialog-footer-left {
+  flex: 1;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-start;
+}
+
+.dialog-footer-right {
+  display: flex;
+  gap: 10px;
+}
+
+/* 编辑对话框黑暗主题样式 */
+:deep(.el-dialog) {
+  background-color: #1e1e1e !important;
+  border: 1px solid #333 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8) !important;
+}
+
+:deep(.el-dialog__header) {
+  background-color: #1e1e1e !important;
+  border-bottom: 1px solid #333 !important;
+  padding: 20px 20px 15px 20px !important;
+}
+
+:deep(.el-dialog__title) {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+:deep(.el-dialog__headerbtn .el-dialog__close) {
+  color: #cccccc !important;
+}
+
+:deep(.el-dialog__headerbtn .el-dialog__close:hover) {
+  color: #ffffff !important;
+}
+
+:deep(.el-dialog__body) {
+  background-color: #1e1e1e !important;
+  padding: 20px !important;
+}
+
+:deep(.el-dialog__footer) {
+  background-color: #1e1e1e !important;
+  border-top: 1px solid #333 !important;
+  padding: 15px 20px 20px 20px !important;
+}
+
+/* 表单样式 */
+:deep(.el-form-item__label) {
+  color: #cccccc !important;
+  font-size: 14px !important;
+}
+
+/* 输入框包装器 - Element Plus 新版本结构 */
+:deep(.el-input__wrapper) {
+  background-color: #2a2a2a !important;
+  border: 1px solid #444 !important;
+  box-shadow: none !important;
+}
+
+:deep(.el-input__wrapper:hover) {
+  border-color: #666 !important;
+  box-shadow: none !important;
+}
+
+:deep(.el-input__wrapper.is-focus) {
+  border-color: #4CAF50 !important;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2) !important;
+}
+
+:deep(.el-input__inner) {
+  background-color: transparent !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-size: 14px !important;
+}
+
+:deep(.el-input__inner:focus) {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+:deep(.el-input__inner:hover) {
+  border: none !important;
+}
+
+:deep(.el-input.is-disabled .el-input__inner) {
+  background-color: #1a1a1a !important;
+  border-color: #333 !important;
+  color: #888 !important;
+}
+
+:deep(.el-textarea__inner) {
+  background-color: #2a2a2a !important;
+  border-color: #444 !important;
+  color: #ffffff !important;
+  font-size: 14px !important;
+}
+
+:deep(.el-textarea__inner:focus) {
+  border-color: #4CAF50 !important;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2) !important;
+}
+
+/* 下拉框特定样式 */
+:deep(.el-select .el-input__wrapper) {
+  background-color: #2a2a2a !important;
+  border: 1px solid #444 !important;
+  box-shadow: none !important;
+}
+
+:deep(.el-select .el-input__wrapper:hover) {
+  border-color: #666 !important;
+  box-shadow: none !important;
+}
+
+:deep(.el-select .el-input__wrapper.is-focus) {
+  border-color: #4CAF50 !important;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2) !important;
+}
+
+:deep(.el-select .el-input__inner) {
+  background-color: transparent !important;
+  border: none !important;
+  color: #ffffff !important;
+}
+
+:deep(.el-select .el-input.is-focus .el-input__inner) {
+  background-color: transparent !important;
+  border: none !important;
+  color: #ffffff !important;
+}
+
+:deep(.el-select .el-input__inner:hover) {
+  background-color: transparent !important;
+  border: none !important;
+  color: #ffffff !important;
+}
+
+:deep(.el-select-dropdown) {
+  background-color: #2a2a2a !important;
+  border: 1px solid #444 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6) !important;
+}
+
+:deep(.el-option) {
+  background-color: #2a2a2a !important;
+  color: #ffffff !important;
+}
+
+:deep(.el-option:hover) {
+  background-color: #4CAF50 !important;
+}
+
+:deep(.el-option.selected),
+:deep(.el-option.is-selected) {
+  background-color: #3a3a3a !important;
+  color: #4CAF50 !important;
+  font-weight: 500 !important;
+}
+
+/* 数字输入器样式 */
+:deep(.el-input-number) {
+  width: 100% !important;
+}
+
+:deep(.el-input-number .el-input__inner) {
+  background-color: #2a2a2a !important;
+  border-color: #444 !important;
+  color: #ffffff !important;
+}
+
+:deep(.el-input-number__increase),
+:deep(.el-input-number__decrease) {
+  background-color: #333 !important;
+  border-left: 1px solid #444 !important;
+  color: #cccccc !important;
+}
+
+:deep(.el-input-number__increase:hover),
+:deep(.el-input-number__decrease:hover) {
+  background-color: #4CAF50 !important;
+  color: #ffffff !important;
+}
+
+/* 开关样式 */
+:deep(.el-switch__core) {
+  background-color: #444 !important;
+  border-color: #666 !important;
+}
+
+:deep(.el-switch.is-checked .el-switch__core) {
+  background-color: #4CAF50 !important;
+  border-color: #4CAF50 !important;
+}
+
+/* 按钮样式 */
+:deep(.el-button) {
+  font-size: 14px !important;
+  padding: 8px 20px !important;
+  border-radius: 4px !important;
+}
+
+:deep(.el-button--default) {
+  background-color: #2a2a2a !important;
+  border-color: #444 !important;
+  color: #cccccc !important;
+}
+
+:deep(.el-button--default:hover) {
+  background-color: #333 !important;
+  border-color: #666 !important;
+  color: #ffffff !important;
+}
+
+:deep(.el-button--primary) {
+  background-color: #4CAF50 !important;
+  border-color: #4CAF50 !important;
+  color: #ffffff !important;
+}
+
+:deep(.el-button--primary:hover) {
+  background-color: #45a049 !important;
+  border-color: #45a049 !important;
+}
+
+:deep(.el-button.is-loading) {
+  background-color: #666 !important;
+  border-color: #666 !important;
+}
+
+/* 折叠面板样式 */
+:deep(.el-collapse) {
+  border: none;
+  background-color: transparent;
+}
+
+:deep(.el-collapse-item__header) {
+  background-color: #2a2a2a;
+  color: #409EFF;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 0 15px;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+:deep(.el-collapse-item__header:hover) {
+  background-color: #333;
+}
+
+:deep(.el-collapse-item__wrap) {
+  background-color: transparent;
+  border: none;
+}
+
+:deep(.el-collapse-item__content) {
+  padding: 10px 0;
+  color: #ccc;
+}
+
+:deep(.el-collapse-item) {
+  margin-bottom: 10px;
+}
+
+/* 遮罩层样式 */
+:deep(.el-overlay) {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+}
+
+</style>
