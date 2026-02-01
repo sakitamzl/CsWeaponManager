@@ -15,6 +15,11 @@ export default {
     const loading = ref(false)
     const rentedOutItems = ref([])
     const countdownTimers = ref(new Map())
+    const statistics = ref({
+      itemCount: 0,
+      totalValue: '0.00',
+      dailyRent: '0.00'
+    })
 
     // 格式化倒计时显示
     const formatCountdown = (seconds) => {
@@ -33,6 +38,41 @@ export default {
         return `${minutes}分钟 ${secs}秒`
       } else {
         return `${secs}秒`
+      }
+    }
+
+    // 格式化到期时间 - 提取时间部分
+    const formatExpireTime = (expireTimeDesc) => {
+      if (!expireTimeDesc || expireTimeDesc === '-') return '-'
+
+      // 从 "租赁到期2026.02.02 20:04:45" 提取 "2026.02.02 20:04:45"
+      const match = expireTimeDesc.match(/(\d{4}\.\d{2}\.\d{2}\s+\d{2}:\d{2}:\d{2})/)
+      if (match) {
+        return match[1]
+      }
+
+      return expireTimeDesc
+    }
+
+    // 解析统计数据描述
+    const parseStatisticsDesc = (statsDesc) => {
+      if (!statsDesc) {
+        return {
+          itemCount: 0,
+          totalValue: '0.00',
+          dailyRent: '0.00'
+        }
+      }
+
+      // 解析格式: "件数：13｜价值：¥9803.48｜总租金：¥8.24/天"
+      const itemCountMatch = statsDesc.match(/件数：(\d+)/)
+      const totalValueMatch = statsDesc.match(/价值：¥([\d.]+)/)
+      const dailyRentMatch = statsDesc.match(/总租金：¥([\d.]+)\/天/)
+
+      return {
+        itemCount: itemCountMatch ? parseInt(itemCountMatch[1]) : 0,
+        totalValue: totalValueMatch ? parseFloat(totalValueMatch[1]).toFixed(2) : '0.00',
+        dailyRent: dailyRentMatch ? parseFloat(dailyRentMatch[1]).toFixed(2) : '0.00'
       }
     }
 
@@ -102,14 +142,19 @@ export default {
               expire_time: item.leaseEndTimeDesc || item.expireTimeDesc || '-',
               remaining_seconds: item.remaining_seconds,
               order_status_desc: item.orderStatusDesc,
+              lease_transfer_support: item.leaseTransferSupportFlag === 1,
+              lease_transfer_tip: item.leaseTransferUnsupportedTip || '',
               platform: 'yyyp',
               trade_type: 'rented_out'
             }
           })
 
+          // 解析统计数据
+          const statsDesc = response.data.data?.statistics || ''
+          statistics.value = parseStatisticsDesc(statsDesc)
+
           const totalCount = response.data.data?.total_count || rentedOutItems.value.length
-          const statistics = response.data.data?.statistics || ''
-          ElMessage.success(`加载成功，共 ${totalCount} 个已租出物品${statistics ? ' - ' + statistics : ''}`)
+          ElMessage.success(`加载成功，共 ${totalCount} 个已租出物品${statsDesc ? ' - ' + statsDesc : ''}`)
 
           // 为每个有倒计时的项目启动倒计时
           rentedOutItems.value.forEach(item => {
@@ -158,7 +203,9 @@ export default {
     return {
       loading,
       rentedOutItems,
+      statistics,
       formatCountdown,
+      formatExpireTime,
       handleTransfer,
       handleCancelSublease
     }

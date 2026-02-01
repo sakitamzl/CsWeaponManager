@@ -68,10 +68,11 @@ export default {
 
     // 批量改价相关
     const batchChangePriceForm = ref({
-      priceChangeType: 'fixed',  // fixed: 固定价格, percent: 百分比调整
+      priceChangeType: 'individual',  // individual: 分开输入, fixed: 固定价格, percent: 百分比调整
       fixedPrice: '',  // 固定价格值
       percentValue: '',  // 百分比值
-      percentType: 'increase'  // increase: 增加, decrease: 减少
+      percentType: 'increase',  // increase: 增加, decrease: 减少
+      individualPrices: []  // 分开输入时，每个商品的价格
     })
 
     // 格式化租赁改价的 item 数据
@@ -664,8 +665,118 @@ export default {
 
     // 提交租赁改价（此处省略了具体实现，太长了）
     const confirmRentPriceUpdate = async (submitData) => {
-      // 实现代码太长，这里省略...
-      // 具体实现请参考原文件
+      console.log('[租赁改价] 提交数据:', submitData)
+      console.log('[租赁改价] 选中项:', selectedItem.value)
+      console.log('[租赁改价] 批量选中项:', selectedItems.value)
+
+      try {
+        loading.value = true
+
+        // 判断是批量改价还是单个改价
+        const isBatch = selectedItems.value.length > 0 && !selectedItem.value
+
+        // 构建请求数据
+        let requestData
+
+        if (isBatch) {
+          // 批量改价 - 构建每个商品的 rentConfig
+          const rentConfigs = submitData.items.map((formItem, index) => {
+            const originalItem = selectedItems.value[index]
+
+            const config = {
+              CommodityId: parseInt(originalItem.commodity_id || originalItem.id),
+              CompensationType: 7,
+              IsCanLease: true,
+              IsCanSold: submitData.tradeMode === 2,
+              LeaseDeposit: String(formItem.depositPrice),
+              LeaseMaxDays: submitData.rentDays,
+              LeaseUnitPrice: formItem.longRentPrice || formItem.shortRentPrice,
+              NomarlChargePercent: "0.25",
+              OpenLeaseActivity: submitData.services?.rentActivity || false,
+              OriginCompensationType: 7,
+              Remark: "",
+              SupportZeroCD: submitData.services?.zeroCooldown ? 1 : 0,
+              UseDepositSafeguard: 1,
+              VipChargePercent: "0.2",
+              VipSwitchStatus: 1
+            }
+
+            if (submitData.services?.zeroCooldown) {
+              config.ZeroCDConfig = {
+                MinCoefficient: "95",
+                PricingType: 0
+              }
+            }
+
+            return config
+          })
+
+          requestData = {
+            steamId: steamId.value,
+            rentConfigs: rentConfigs
+          }
+        } else {
+          // 单个改价
+          const item = selectedItem.value
+          const priceData = submitData.items[0]
+
+          // 构建 rentConfig 对象（符合悠悠有品API格式）
+          const rentConfig = {
+            CommodityId: parseInt(item.commodity_id || item.id),
+            CompensationType: 7, // 默认赔付类型
+            IsCanLease: true,
+            IsCanSold: submitData.tradeMode === 2, // 2=可租可售, 1=仅租赁
+            LeaseDeposit: String(priceData.depositPrice),
+            LeaseMaxDays: submitData.rentDays,
+            LeaseUnitPrice: priceData.longRentPrice || priceData.shortRentPrice, // 长租价格，如果没有则用短租
+            NomarlChargePercent: "0.25", // 普通服务费率
+            OpenLeaseActivity: submitData.services?.rentActivity || false, // 租送活动
+            OriginCompensationType: 7,
+            Remark: "",
+            SupportZeroCD: submitData.services?.zeroCooldown ? 1 : 0, // 0CD出租
+            UseDepositSafeguard: 1, // 使用押金保障
+            VipChargePercent: "0.2", // VIP服务费率
+            VipSwitchStatus: 1
+          }
+
+          // 如果启用0CD，添加0CD配置
+          if (submitData.services?.zeroCooldown) {
+            rentConfig.ZeroCDConfig = {
+              MinCoefficient: "95",
+              PricingType: 0
+            }
+          }
+
+          requestData = {
+            steamId: steamId.value,
+            commodityId: String(item.commodity_id || item.id),
+            rentConfig: rentConfig
+          }
+        }
+
+        // 批量和单个都使用同一个接口
+        const apiUrl = apiUrls.yyypChangeRentPrice()
+        console.log(`[租赁改价] 调用API: ${apiUrl}`, requestData)
+
+        // 发送改价请求
+        const response = await axios.post(apiUrl, requestData)
+
+        if (response.data && response.data.success) {
+          ElMessage.success(isBatch ? '批量改价成功' : '改价成功')
+          rentPriceDialogVisible.value = false
+          selectedItem.value = null
+          selectedItems.value = []
+          // 重新加载在售数据
+          await loadOnSaleData()
+        } else {
+          ElMessage.error(response.data?.message || '改价失败')
+        }
+      } catch (error) {
+        console.error('[租赁改价] 失败:', error)
+        ElMessage.error('改价失败: ' + (error.response?.data?.message || error.message))
+      } finally {
+        loading.value = false
+      }
     }
 
     // 下架商品
@@ -728,7 +839,67 @@ export default {
 
     // 打开批量改价对话框
     const handleBatchChangePrice = async () => {
-      // 实现代码省略...
+      // 检查是否有选中的项目
+      if (!selectedItems.value || selectedItems.value.length === 0) {
+        ElMessage.warning('请先选择要改价的商品')
+        return
+      }
+
+      // 检查第一个选中项的类型
+      const firstItem = selectedItems.value[0]
+
+      // 判断是否为租赁或转租类型
+      if (firstItem.trade_type === 'lease' || firstItem.trade_type === 'sublease') {
+        // 租赁/转租类型：打开租赁改价对话框
+        try {
+          loading.value = true
+
+          // 获取完整的 Steam ID
+          steamId.value = accountList.value.find(acc => acc.id === selectedAccount.value)?.steam_id || ''
+
+          if (!steamId.value) {
+            ElMessage.error('无法获取Steam ID，请重新选择账号')
+            loading.value = false
+            return
+          }
+
+          // 获取第一个选中项的 steam_hash_name 用于初始化
+          const hashNames = selectedItems.value.map(item => item.steam_hash_name || item.item_name)
+
+          // 获取租赁初始化数据
+          const initResponse = await axios.post(
+            `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/rentInit`,
+            {
+              steamId: steamId.value,
+              steam_hash_name: hashNames
+            }
+          )
+
+          if (initResponse.data && initResponse.data.success) {
+            rentInitData.value = initResponse.data.data
+
+            // 清空 selectedItem，表示这是批量操作
+            selectedItem.value = null
+
+            // 打开租赁改价对话框
+            rentPriceDialogVisible.value = true
+          } else {
+            ElMessage.error(initResponse.data?.message || '获取租赁配置失败')
+          }
+        } catch (error) {
+          console.error('[批量改价] 打开租赁改价对话框失败:', error)
+          ElMessage.error('打开租赁改价对话框失败: ' + error.message)
+        } finally {
+          loading.value = false
+        }
+      } else {
+        // 其他类型：打开简单的批量改价对话框
+        // 初始化 individualPrices 数组，默认填充当前价格
+        batchChangePriceForm.value.individualPrices = selectedItems.value.map(item =>
+          parseFloat(item.sale_price).toFixed(2)
+        )
+        batchChangePriceDialogVisible.value = true
+      }
     }
 
     // 计算新价格（用于预览）
@@ -752,7 +923,80 @@ export default {
 
     // 确认批量改价
     const confirmBatchChangePrice = async () => {
-      // 实现代码省略...
+      try {
+        updating.value = true
+
+        // 根据改价方式计算每个商品的新价格
+        let priceUpdates = []
+
+        if (batchChangePriceForm.value.priceChangeType === 'individual') {
+          // 分开输入模式：使用用户输入的每个价格
+          priceUpdates = selectedItems.value.map((item, index) => {
+            const newPrice = parseFloat(batchChangePriceForm.value.individualPrices[index])
+            if (isNaN(newPrice) || newPrice <= 0) {
+              throw new Error(`第 ${index + 1} 个商品的价格无效`)
+            }
+            return {
+              id: item.id || item.commodity_id,
+              newPrice: newPrice.toFixed(2)
+            }
+          })
+        } else if (batchChangePriceForm.value.priceChangeType === 'fixed') {
+          // 固定价格模式：所有商品使用相同价格
+          const fixedPrice = parseFloat(batchChangePriceForm.value.fixedPrice)
+          if (isNaN(fixedPrice) || fixedPrice <= 0) {
+            throw new Error('请输入有效的固定价格')
+          }
+          priceUpdates = selectedItems.value.map(item => ({
+            id: item.id || item.commodity_id,
+            newPrice: fixedPrice.toFixed(2)
+          }))
+        } else if (batchChangePriceForm.value.priceChangeType === 'percent') {
+          // 百分比调整模式：基于当前价格计算
+          const percentValue = parseFloat(batchChangePriceForm.value.percentValue)
+          if (isNaN(percentValue) || percentValue <= 0) {
+            throw new Error('请输入有效的百分比')
+          }
+
+          priceUpdates = selectedItems.value.map(item => {
+            const currentPrice = parseFloat(item.sale_price)
+            let newPrice
+            if (batchChangePriceForm.value.percentType === 'increase') {
+              newPrice = currentPrice * (1 + percentValue / 100)
+            } else {
+              newPrice = currentPrice * (1 - percentValue / 100)
+            }
+            return {
+              id: item.id || item.commodity_id,
+              newPrice: newPrice.toFixed(2)
+            }
+          })
+        }
+
+        // 调用批量改价API
+        const response = await axios.post(
+          apiUrls.yyypBatchChangePrice(),
+          {
+            steamId: steamId.value,
+            priceUpdates: priceUpdates
+          }
+        )
+
+        if (response.data && response.data.success) {
+          ElMessage.success(`成功改价 ${priceUpdates.length} 件商品`)
+          batchChangePriceDialogVisible.value = false
+          selectedItems.value = []
+          // 重新加载数据
+          await loadOnSaleData()
+        } else {
+          throw new Error(response.data?.message || '批量改价失败')
+        }
+      } catch (error) {
+        console.error('[批量改价] 错误:', error)
+        ElMessage.error('批量改价失败: ' + error.message)
+      } finally {
+        updating.value = false
+      }
     }
 
     // 批量下架商品

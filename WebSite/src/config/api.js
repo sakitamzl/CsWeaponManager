@@ -831,6 +831,7 @@ export const apiUrls = {
   yyypCancelSublease: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_CANCEL_SUBLEASE),
   yyypChangePrice: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_CHANGE_PRICE),  // 售卖商品改价
   yyypChangeRentPrice: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_CHANGE_RENT_PRICE),  // 租赁/转租改价
+  yyypBatchChangeRentPrice: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_BATCH_CHANGE_RENT_PRICE),  // 批量租赁/转租改价
   yyypRentAutoPricing: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_RENT_AUTO_PRICING),
 
 }

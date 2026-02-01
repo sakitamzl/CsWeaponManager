@@ -1,5 +1,23 @@
 <template>
   <div class="rented-out-container">
+    <!-- 统计信息 -->
+    <div class="inventory-stats" v-if="statistics.itemCount > 0">
+      <div class="grid grid-3">
+        <div class="card">
+          <h3>已租出件数</h3>
+          <p class="stat-number">{{ statistics.itemCount }}</p>
+        </div>
+        <div class="card">
+          <h3>物品总价值</h3>
+          <p class="stat-number">¥{{ statistics.totalValue }}</p>
+        </div>
+        <div class="card">
+          <h3>总租金/天</h3>
+          <p class="stat-number">¥{{ statistics.dailyRent }}</p>
+        </div>
+      </div>
+    </div>
+
     <div v-loading="loading" class="card-grid">
       <!-- 卡片显示 -->
       <div
@@ -44,7 +62,7 @@
               </div>
             </div>
             <div class="float-value" v-if="item.abrade">
-              {{ parseFloat(item.abrade).toFixed(4) }}
+              {{ item.abrade }}
             </div>
           </div>
           <div class="card-prices">
@@ -52,21 +70,17 @@
             <div class="price-row">
               <div class="price-group">
                 <span class="price-label">租金:</span>
-                <span class="price-value sale-price">¥{{ item.rent_amount }}</span>
+                <span class="price-value">¥{{ item.rent_amount }}</span>
               </div>
-              <div class="price-group">
-                <span class="price-label">押金:</span>
-                <span class="price-value">¥{{ item.deposit_amount }}</span>
-              </div>
-            </div>
-            <div class="price-row">
               <div class="price-group">
                 <span class="price-label">租期:</span>
                 <span class="price-value">{{ item.lease_days }}天</span>
               </div>
+            </div>
+            <div class="price-row">
               <div class="price-group">
                 <span class="price-label">到期:</span>
-                <span class="price-value" style="font-size: 0.65rem;">{{ item.expire_time }}</span>
+                <span class="price-value" style="font-size: 0.65rem;">{{ formatExpireTime(item.expire_time) }}</span>
               </div>
             </div>
             <div class="price-row" v-if="item.remaining_seconds !== null && item.remaining_seconds !== undefined">
@@ -80,9 +94,20 @@
           </div>
           <div class="card-footer">
             <div class="card-actions">
-              <el-button size="small" type="primary" @click.stop="handleTransfer(item)">
-                上架过户
-              </el-button>
+              <el-tooltip
+                :content="item.lease_transfer_tip || '上架过户'"
+                :disabled="item.lease_transfer_support"
+                placement="top"
+              >
+                <el-button
+                  size="small"
+                  type="primary"
+                  :disabled="!item.lease_transfer_support"
+                  @click.stop="handleTransfer(item)"
+                >
+                  上架过户
+                </el-button>
+              </el-tooltip>
               <el-button size="small" type="warning" @click.stop="handleCancelSublease(item)">
                 取消转租
               </el-button>

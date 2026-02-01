@@ -3,6 +3,34 @@
   margin-top: 1rem;
 }
 
+/* 统计信息样式 */
+.inventory-stats {
+  margin-bottom: 1rem;
+}
+
+.grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.card h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: normal;
+}
+
+.stat-number {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--text-primary);
+}
+
 .card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -39,8 +67,8 @@
 }
 
 .card-image img {
-  max-width: 90%;
-  max-height: 90%;
+  width: 180px;
+  height: 120px;
   object-fit: contain;
 }
 
@@ -226,6 +254,15 @@
   flex: 1;
 }
 
+/* 确保tooltip包裹的按钮也能占满宽度 */
+.card-actions .el-tooltip {
+  flex: 1;
+}
+
+.card-actions .el-tooltip .el-button {
+  width: 100%;
+}
+
 /* 空状态 */
 .empty-state {
   grid-column: 1 / -1;
@@ -237,6 +274,10 @@
 
 /* 响应式设计 */
 @media (max-width: 768px) {
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+
   .card-grid {
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 0.75rem;
@@ -258,5 +299,9 @@
 
   .price-value {
     font-size: 0.7rem;
+  }
+
+  .stat-number {
+    font-size: 1.2rem;
   }
 }

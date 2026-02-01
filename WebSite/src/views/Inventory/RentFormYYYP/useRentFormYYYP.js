@@ -144,14 +144,13 @@ export function useRentFormYYYP(props, { emit }) {
     // 初始化每个饰品的价格表单，自动填充原有数据
     if (props.items && props.items.length > 0) {
       props.items.forEach((item) => {
-        if (!itemFormMap[item.assetid]) {
-          // 自动填充当前的租赁价格数据
-          itemFormMap[item.assetid] = {
-            shortRentPrice: item.currentShortRentPrice || '',
-            longRentPrice: item.currentLongRentPrice || '',
-            depositPrice: item.currentDepositPrice || item.weapon_classID?.yyyp_Price || ''
-          }
-        }
+        // 总是重新初始化，确保使用最新的 props 数据
+        // 自动填充当前的租赁价格数据
+        itemFormMap[item.assetid] = reactive({
+          shortRentPrice: item.currentShortRentPrice || '',
+          longRentPrice: item.currentLongRentPrice || '',
+          depositPrice: item.currentDepositPrice || item.weapon_classID?.yyyp_Price || ''
+        })
       })
     }
   }
@@ -279,6 +278,14 @@ export function useRentFormYYYP(props, { emit }) {
       return
     }
 
+    // 调试：输出当前 itemFormMap 的状态
+    console.log('[DEBUG] handleSubmit - 当前 itemFormMap:', JSON.parse(JSON.stringify(itemFormMap)))
+    console.log('[DEBUG] handleSubmit - props.items:', props.items.map(item => ({
+      assetid: item.assetid,
+      name: item.name,
+      currentShortRentPrice: item.currentShortRentPrice
+    })))
+
     // 准备提交数据（全局配置 + 每个饰品的独立价格）
     const submitData = {
       tradeMode: formData.tradeMode,
@@ -295,6 +302,7 @@ export function useRentFormYYYP(props, { emit }) {
       }))
     }
 
+    console.log('[DEBUG] handleSubmit - 提交数据:', submitData)
     emit('submit', submitData)
   }
 

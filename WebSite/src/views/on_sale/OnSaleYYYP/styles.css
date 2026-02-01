@@ -1074,3 +1074,78 @@
   font-size: 0.9rem;
   margin-top: 0.5rem;
 }
+
+/* 分开输入模式的商品列表样式 */
+.individual-price-list {
+  margin-top: 1rem;
+}
+
+.items-list-container {
+  max-height: 500px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.batch-item-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  margin-bottom: 12px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.batch-item-card:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--el-color-primary);
+  transform: translateX(4px);
+}
+
+.item-info-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.item-thumbnail {
+  width: 80px;
+  height: 60px;
+  object-fit: contain;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.item-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-name-text {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.current-price-text {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.price-input-section {
+  width: 180px;
+  flex-shrink: 0;
+}
+
+.price-input-section .price-input {
+  width: 100%;
+}

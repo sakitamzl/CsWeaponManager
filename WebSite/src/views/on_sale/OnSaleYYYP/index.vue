@@ -98,8 +98,8 @@
       </div>
     </div>
 
-    <!-- 统计信息 -->
-    <div class="inventory-stats" v-if="selectedTradeType !== 'offer' && selectedTradeType !== 'lease' && selectedTradeType !== 'sublease' && selectedTradeType !== 'presale'">
+    <!-- 统计信息 - 仅出售类型显示 -->
+    <div class="inventory-stats" v-if="selectedTradeType === 'sale'">
       <div class="grid grid-4">
         <div class="card">
           <h3>在售数量</h3>
@@ -259,7 +259,7 @@
     <el-dialog
       v-model="batchChangePriceDialogVisible"
       title="批量改价"
-      width="600px"
+      width="800px"
       :close-on-click-modal="false"
       class="batch-change-price-dialog"
     >
@@ -272,10 +272,44 @@
         <el-form :model="batchChangePriceForm" label-width="120px">
           <el-form-item label="改价方式">
             <el-radio-group v-model="batchChangePriceForm.priceChangeType">
+              <el-radio label="individual">分开输入</el-radio>
               <el-radio label="fixed">固定价格</el-radio>
               <el-radio label="percent">百分比调整</el-radio>
             </el-radio-group>
           </el-form-item>
+
+          <!-- 分开输入模式 - 显示所有商品列表 -->
+          <div v-if="batchChangePriceForm.priceChangeType === 'individual'" class="individual-price-list">
+            <div class="items-list-container">
+              <div
+                v-for="(item, index) in selectedItems"
+                :key="item.id || item.assetid"
+                class="batch-item-card"
+              >
+                <div class="item-info-section">
+                  <img
+                    v-if="getWeaponImage(item.steam_hash_name)"
+                    :src="getWeaponImage(item.steam_hash_name)"
+                    :alt="item.item_name"
+                    class="item-thumbnail"
+                  />
+                  <div class="item-details">
+                    <div class="item-name-text">{{ getCardTitle(item) }}</div>
+                    <div class="current-price-text">当前售价: ¥{{ parseFloat(item.sale_price).toFixed(2) }}</div>
+                  </div>
+                </div>
+                <div class="price-input-section">
+                  <el-input
+                    v-model="batchChangePriceForm.individualPrices[index]"
+                    placeholder="请输入新售价"
+                    class="price-input"
+                  >
+                    <template #prepend>¥</template>
+                  </el-input>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <!-- 固定价格模式 -->
           <el-form-item
