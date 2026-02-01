@@ -176,8 +176,8 @@ export default {
     }
   },
   emits: ['update:form'],
-  setup(props, { emit }) {
-    return useSteamForm(props, emit)
+  setup(props, context) {
+    return useSteamForm(props, context)
   }
 }
 </script>

@@ -82,13 +82,16 @@ export default function usePerfectWorldForm(props, { emit }) {
             ElMessage.success('完美世界APP Token 获取成功!')
             perfectWorldTokenStatus.value = 'success'
             perfectWorldTokenLoading.value = false
-            
+
             if (tokenCheckTimer.value) {
               clearInterval(tokenCheckTimer.value)
               tokenCheckTimer.value = null
             }
-            
+
             stopPerfectWorldTokenCollection()
+
+            // 发射令牌获取成功事件，触发自动保存
+            emit('token-success')
           }
         } catch (error) {
           console.error('获取令牌数据失败:', error)

@@ -115,12 +115,12 @@ export function useDataSource() {
     cookies: '',
     steamBaseCookies: '',
     steamInventoryCookies: '',
-    steamCookieMethod: 'manual', // Cookie获取方式：qrcode/password/manual
+    steamCookieMethod: 'qrcode', // Cookie获取方式：qrcode/password/manual，默认扫码登录
     // Steam登录特有字段
     steamUsername: '',
     steamPassword: '',
     steamTwofactorCode: '',
-    steamLoginMethod: 'password', // 编辑时默认账号密码登录
+    steamLoginMethod: 'qrcode', // 默认扫码登录
     steamQRSessionId: '', // 二维码会话ID
     // 完美世界APP特有字段
     appversion: '',
@@ -182,14 +182,14 @@ export function useDataSource() {
     cookies: '',
     steamBaseCookies: '',
     steamInventoryCookies: '',
-    steamCookieMethod: 'manual', // Cookie获取方式：qrcode/password/manual
+    steamCookieMethod: 'qrcode', // Cookie获取方式：qrcode/password/manual，默认扫码登录
     // Steam登录特有字段
     steamUsername: '',
     steamPassword: '',
     steamTwofactorCode: '',
     steamLoginMessage: '',
     steamLoginSuccess: false,
-    steamLoginMethod: 'qrcode', // 默认使用二维码登录
+    steamLoginMethod: 'qrcode', // 默认使用扫码登录
     steamQRSessionId: '', // 二维码会话ID
     // 完美世界APP特有字段
     appversion: '',

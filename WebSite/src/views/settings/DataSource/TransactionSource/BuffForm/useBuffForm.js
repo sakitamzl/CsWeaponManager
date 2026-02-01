@@ -109,13 +109,16 @@ export default function useBuffForm(props, { emit }) {
             ElMessage.success('BUFF Token 获取成功!')
             buffTokenStatus.value = 'success'
             buffTokenLoading.value = false
-            
+
             if (tokenCheckTimer.value) {
               clearInterval(tokenCheckTimer.value)
               tokenCheckTimer.value = null
             }
-            
+
             stopBuffTokenCollection()
+
+            // 发射令牌获取成功事件，触发自动保存
+            emit('token-success')
           }
         } catch (error) {
           console.error('获取令牌数据失败:', error)

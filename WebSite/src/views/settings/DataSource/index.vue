@@ -162,8 +162,9 @@
           :form="editForm"
           :is-edit-mode="true"
           :proxy-address="proxyAddress"
-          @update:form="editForm = $event"
+          @update:form="Object.assign(editForm, $event)"
           @update:proxyAddress="proxyAddress = $event"
+          @token-success="handleEditSubmit"
         />
 
         <!-- BUFF特有配置 -->
@@ -172,8 +173,9 @@
           :form="editForm"
           :is-edit-mode="true"
           :proxy-address="proxyAddress"
-          @update:form="editForm = $event"
+          @update:form="Object.assign(editForm, $event)"
           @update:proxyAddress="proxyAddress = $event"
+          @token-success="handleEditSubmit"
         />
 
         <!-- Steam特有配置 -->
@@ -181,7 +183,7 @@
           v-else-if="editForm.type === 'steam' || editForm.type === 'steam_login'"
           :form="editForm"
           :is-edit-mode="true"
-          @update:form="editForm = $event"
+          @update:form="Object.assign(editForm, $event)"
         />
 
         <!-- 完美世界APP特有配置 -->
@@ -190,8 +192,9 @@
           :form="editForm"
           :is-edit-mode="true"
           :proxy-address="proxyAddress"
-          @update:form="editForm = $event"
+          @update:form="Object.assign(editForm, $event)"
           @update:proxyAddress="proxyAddress = $event"
+          @token-success="handleEditSubmit"
         />
 
         <!-- CsFloat特有配置 -->
@@ -200,8 +203,9 @@
           :form="editForm"
           :is-edit-mode="true"
           :proxy-address="proxyAddress"
-          @update:form="editForm = $event"
+          @update:form="Object.assign(editForm, $event)"
           @update:proxyAddress="proxyAddress = $event"
+          @token-success="handleEditSubmit"
         />
 
         <!-- CSQAQ特有配置 -->
@@ -209,7 +213,7 @@
           v-else-if="editForm.type === 'csqaq'"
           :form="editForm"
           :is-edit-mode="true"
-          @update:form="editForm = $event"
+          @update:form="Object.assign(editForm, $event)"
         />
 
         <!-- SteamDT特有配置 -->
@@ -217,7 +221,7 @@
           v-else-if="editForm.type === 'steamdt'"
           :form="editForm"
           :is-edit-mode="true"
-          @update:form="editForm = $event"
+          @update:form="Object.assign(editForm, $event)"
         />
 
         <!-- 通用配置 -->
@@ -386,8 +390,9 @@
           :form="inputForm"
           :is-edit-mode="false"
           :proxy-address="proxyAddress"
-          @update:form="inputForm = $event"
+          @update:form="Object.assign(inputForm, $event)"
           @update:proxyAddress="proxyAddress = $event"
+          @token-success="handleSubmit"
         />
         
         <!-- BUFF特有配置 (旧代码保留，待删除) -->
@@ -534,7 +539,7 @@
           v-else-if="inputForm.type === 'steam' || inputForm.type === 'steam_login'"
           :form="inputForm"
           :is-edit-mode="false"
-          @update:form="inputForm = $event"
+          @update:form="Object.assign(inputForm, $event)"
         />
         
         <!-- Steam特有配置 (旧代码保留，待删除) -->
@@ -820,8 +825,9 @@
           :form="inputForm"
           :is-edit-mode="false"
           :proxy-address="proxyAddress"
-          @update:form="inputForm = $event"
+          @update:form="Object.assign(inputForm, $event)"
           @update:proxyAddress="proxyAddress = $event"
+          @token-success="handleSubmit"
         />
         
         <!-- 完美世界APP特有配置 (旧代码保留，待删除) -->
@@ -923,8 +929,9 @@
           :form="inputForm"
           :is-edit-mode="false"
           :proxy-address="proxyAddress"
-          @update:form="inputForm = $event"
+          @update:form="Object.assign(inputForm, $event)"
           @update:proxyAddress="proxyAddress = $event"
+          @token-success="handleSubmit"
         />
         
         <!-- CsFloat特有配置 (旧代码保留，待删除) -->
@@ -1024,7 +1031,7 @@
           v-else-if="inputForm.type === 'csqaq'"
           :form="inputForm"
           :is-edit-mode="false"
-          @update:form="inputForm = $event"
+          @update:form="Object.assign(inputForm, $event)"
         />
 
         <!-- SteamDT特有配置 -->
@@ -1032,7 +1039,7 @@
           v-else-if="inputForm.type === 'steamdt'"
           :form="inputForm"
           :is-edit-mode="false"
-          @update:form="inputForm = $event"
+          @update:form="Object.assign(inputForm, $event)"
         />
         
         <!-- 通用配置 -->
@@ -1059,8 +1066,9 @@
           :form="inputForm"
           :is-edit-mode="false"
           :proxy-address="proxyAddress"
-          @update:form="inputForm = $event"
+          @update:form="Object.assign(inputForm, $event)"
           @update:proxyAddress="proxyAddress = $event"
+          @token-success="handleSubmit"
         />
         
         <!-- 悠悠有品特有配置 (旧代码保留，待删除) -->

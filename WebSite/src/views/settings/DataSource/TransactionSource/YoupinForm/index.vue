@@ -249,7 +249,7 @@ export default {
       default: ''
     }
   },
-  emits: ['update:form', 'update:proxyAddress'],
+  emits: ['update:form', 'update:proxyAddress', 'token-success'],
   setup(props, { emit }) {
     return useYoupinForm(props, { emit })
   }

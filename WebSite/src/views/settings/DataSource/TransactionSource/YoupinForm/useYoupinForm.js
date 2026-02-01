@@ -100,13 +100,16 @@ export default function useYoupinForm(props, { emit }) {
             ElMessage.success('悠悠有品 Token 获取成功!')
             yyypTokenStatus.value = 'success'
             yyypTokenLoading.value = false
-            
+
             if (tokenCheckTimer.value) {
               clearInterval(tokenCheckTimer.value)
               tokenCheckTimer.value = null
             }
-            
+
             stopYyypTokenCollection()
+
+            // 发射令牌获取成功事件，触发自动保存
+            emit('token-success')
           }
         } catch (error) {
           console.error('获取令牌数据失败:', error)

@@ -52,7 +52,7 @@ export default function useSteamForm(props, { emit }) {
                 cookies: inventoryCookies,
                 steamID: response.data.data?.steam_id || props.form.steamID,
                 steamLoginSuccess: true,
-                steamLoginMessage: `✅ 扫码登录成功！${response.data.data?.account_name ? '账号: ' + response.data.data.account_name : ''}${response.data.data?.steam_id ? '（SteamID已自动填入）' : ''}`
+                steamLoginMessage: response.data.data?.steam_id ? '✅ 扫码登录成功！SteamID已自动填入' : '✅ 扫码登录成功！'
               })
               
               clearInterval(steamQRCheckTimer.value)
@@ -82,14 +82,14 @@ export default function useSteamForm(props, { emit }) {
 
       try {
         ElMessage.info('正在生成Steam登录二维码...')
-        
+
         const response = await axios.post(apiUrls.steamQRGenerate())
-        
+
         if (response.data.success) {
           steamQRCode.value = response.data.data.qr_code
           steamQRStatus.value = 'waiting'
           updateForm({ steamQRSessionId: response.data.data.session_id })
-          
+
           ElMessage.success('二维码生成成功，请使用Steam APP扫码')
           startQRCodePolling(response.data.data.session_id)
         } else {

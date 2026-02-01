@@ -84,13 +84,16 @@ export default function useCsfloatForm(props, { emit }) {
             ElMessage.success('CsFloat Token 获取成功!')
             csfloatTokenStatus.value = 'success'
             csfloatTokenLoading.value = false
-            
+
             if (tokenCheckTimer.value) {
               clearInterval(tokenCheckTimer.value)
               tokenCheckTimer.value = null
             }
-            
+
             stopCsfloatTokenCollection()
+
+            // 发射令牌获取成功事件，触发自动保存
+            emit('token-success')
           }
         } catch (error) {
           console.error('获取令牌数据失败:', error)
