@@ -131,6 +131,69 @@
   background-color: #f54545;
 }
 
+/* iPad 横屏和大屏平板适配 (769px - 1199px) */
+@media (min-width: 769px) and (max-width: 1199px) {
+  .menu-icon {
+    width: 2rem;
+    margin-right: 0.625rem;
+  }
+
+  .sidebar.collapsed .menu-icon {
+    width: 1.75rem;
+    margin: 0 auto;
+  }
+
+  .sidebar-header h1 {
+    font-size: 1.25rem;
+  }
+
+  .collapsed-title {
+    font-size: 1.25rem;
+  }
+
+  .menu-text {
+    font-size: 0.9rem;
+  }
+
+  .username {
+    font-size: 0.8125rem;
+  }
+
+  .logout-btn {
+    padding: 0.3125rem 0.625rem;
+    font-size: 0.6875rem;
+  }
+}
+
+/* iPad 竖屏适配 (768px - 1024px portrait) */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+  .menu-icon {
+    width: 1.875rem;
+    margin-right: 0.5rem;
+  }
+
+  .sidebar.collapsed .menu-icon {
+    width: 1.5rem;
+    margin: 0 auto;
+  }
+
+  .sidebar-header h1 {
+    font-size: 1.125rem;
+  }
+
+  .collapsed-title {
+    font-size: 1.125rem;
+  }
+
+  .menu-text {
+    font-size: 0.875rem;
+  }
+
+  .username {
+    font-size: 0.8125rem;
+  }
+}
+
 /* 移动端适配 */
 @media (max-width: 768px) {
   .menu-icon {

@@ -43,11 +43,233 @@
   margin: 0;
 }
 
+/* iPad 横屏和大屏平板 (769px - 1199px) */
+@media (min-width: 769px) and (max-width: 1199px) {
+  /* 统计卡片 - 优化为3列布局 */
+  .grid-5 {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+
+  .grid-7 {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+
+  /* 图表容器 - 改为单列布局,让图表垂直排列 */
+  .chart-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  /* 图表卡片 - 全宽 */
+  .chart-card {
+    width: 100%;
+    flex: 0 0 100%;
+    min-width: 0;
+  }
+
+  .chart-card-kline {
+    width: 100%;
+    flex: 0 0 100%;
+    min-width: 0;
+  }
+
+  /* 图表高度优化 - 减小高度以适应单列布局 */
+  .price-chart {
+    height: 300px;
+    min-height: 300px;
+  }
+
+  .kline-chart {
+    min-height: 300px;
+    height: auto;
+  }
+
+  /* 图表控制器优化 */
+  .chart-header {
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .chart-header h3 {
+    font-size: 1.0625rem;
+  }
+
+  .chart-controls {
+    gap: 0.625rem;
+    flex-wrap: wrap;
+  }
+
+  .chart-controls .el-select {
+    width: 150px !important;
+  }
+
+  .chart-controls .el-radio-group {
+    font-size: 0.875rem;
+  }
+
+  .chart-controls .el-button-group {
+    font-size: 0.875rem;
+  }
+
+  .chart-controls .el-button {
+    padding: 0.375rem 0.75rem;
+  }
+
+  /* 统计数字优化 */
+  .stat-number {
+    font-size: 1.125rem;
+  }
+
+  .stat-subtitle {
+    font-size: 0.8125rem;
+  }
+
+  .stat-diff {
+    font-size: 0.9375rem;
+  }
+
+  /* 卡片内边距 */
+  .card {
+    padding: 1.125rem;
+  }
+
+  /* 图表摘要 */
+  .chart-summary {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    gap: 1.25rem;
+  }
+
+  .summary-label {
+    font-size: 0.875rem;
+  }
+
+  .summary-value {
+    font-size: 0.9375rem;
+  }
+}
+
+/* iPad 竖屏 (768px - 1024px portrait) */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+  /* 统计卡片 - 优化为2列布局 */
+  .grid-5 {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .grid-7 {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  /* 图表卡片 - 全宽 */
+  .chart-card {
+    width: 100%;
+    flex: 0 0 100%;
+    min-width: 0;
+  }
+
+  .chart-card-kline {
+    width: 100%;
+    flex: 0 0 100%;
+    min-width: 0;
+  }
+
+  /* 图表高度优化 */
+  .price-chart {
+    height: 360px;
+    min-height: 360px;
+  }
+
+  .kline-chart {
+    min-height: 360px;
+    height: auto;
+  }
+
+  /* 图表标题和控制器 */
+  .chart-header {
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .chart-header h3 {
+    font-size: 1.0625rem;
+    flex-shrink: 0;
+  }
+
+  .chart-controls {
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .chart-controls .el-select {
+    width: 150px !important;
+  }
+
+  /* 统计数字和价格 */
+  .stat-number {
+    font-size: 1.125rem;
+  }
+
+  .stat-subtitle {
+    font-size: 0.8125rem;
+  }
+
+  .stat-price-container {
+    align-items: flex-start;
+    gap: 0.375rem;
+  }
+
+  .stat-diff {
+    font-size: 0.875rem;
+  }
+
+  /* 卡片内边距 */
+  .card {
+    padding: 1.125rem;
+  }
+
+  /* 弹窗优化 */
+  .item-list-dialog {
+    width: 95% !important;
+  }
+
+  .weapon-img {
+    max-width: 85px;
+    max-height: 65px;
+  }
+
+  /* 图表摘要 */
+  .chart-summary {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .summary-item {
+    min-width: 120px;
+  }
+
+  .summary-label {
+    font-size: 0.8125rem;
+  }
+
+  .summary-value {
+    font-size: 0.9375rem;
+  }
+}
+
 @media (max-width: 1200px) {
   .grid-5 {
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   }
-  
+
   .grid-7 {
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   }
@@ -57,7 +279,7 @@
   .grid-5 {
     grid-template-columns: 1fr;
   }
-  
+
   .grid-7 {
     grid-template-columns: 1fr;
   }

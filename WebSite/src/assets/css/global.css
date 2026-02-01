@@ -333,11 +333,81 @@ div, section, article, aside, main, header, footer, nav {
 }
 
 /* 响应式设计 */
+
+/* iPad 横屏和大屏平板 (1024px - 1199px) */
+@media (min-width: 769px) and (max-width: 1199px) {
+    .sidebar {
+        width: 15vw;
+        min-width: 180px;
+        max-width: 220px;
+    }
+
+    .main-content {
+        margin-left: calc(15vw + 20px);
+        margin-right: 10px;
+        width: calc(100vw - 15vw - 30px);
+        padding: 1.25rem;
+    }
+
+    .sidebar.collapsed + .main-content {
+        margin-left: calc(4rem + 20px);
+        width: calc(100vw - 4rem - 30px);
+    }
+
+    .grid-5 {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.8125rem;
+    }
+
+    .card {
+        padding: 1rem;
+    }
+}
+
+/* iPad 竖屏 (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+    .sidebar {
+        width: 200px;
+        min-width: 200px;
+        max-width: 200px;
+    }
+
+    .main-content {
+        margin-left: 220px;
+        margin-right: 10px;
+        width: calc(100vw - 230px);
+        padding: 1.25rem;
+    }
+
+    .sidebar.collapsed + .main-content {
+        margin-left: calc(4rem + 10px);
+        width: calc(100vw - 4rem - 20px);
+    }
+
+    .grid-5 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .grid-3 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .card {
+        padding: 1rem;
+    }
+}
+
+/* 小屏幕移动设备 (最大 768px) */
 @media (max-width: 768px) {
     .container {
         flex-direction: column;
     }
-    
+
     .sidebar {
         position: fixed;
         top: 0;
@@ -351,7 +421,7 @@ div, section, article, aside, main, header, footer, nav {
         border-right: none;
         border-bottom: 1px solid var(--border-default);
     }
-    
+
     .sidebar.collapsed {
         position: fixed;
         top: 0;
@@ -365,7 +435,7 @@ div, section, article, aside, main, header, footer, nav {
         border-right: none;
         border-bottom: 1px solid var(--border-default);
     }
-    
+
     .main-content {
         margin-left: 0;
         margin-right: 10px; /* 移动端也使用10px右边距 */
@@ -373,17 +443,17 @@ div, section, article, aside, main, header, footer, nav {
         width: calc(100vw - 10px);
         padding: 1rem;
     }
-    
+
     .sidebar ul {
         display: flex;
         flex-wrap: wrap;
         gap: 0.5rem;
     }
-    
+
     .sidebar.collapsed ul {
         justify-content: space-around;
     }
-    
+
     .sidebar li {
         margin: 0;
         flex: 1;
@@ -392,17 +462,17 @@ div, section, article, aside, main, header, footer, nav {
         text-align: center;
         font-size: 0.75rem;
     }
-    
+
     .sidebar.collapsed li {
         flex: 0 0 auto;
         min-width: auto;
         width: 2.5rem;
     }
-    
+
     .table-container {
         padding: 0.75rem;
     }
-    
+
     .data-table th,
     .data-table td {
         padding: 0.5rem 0.25rem;

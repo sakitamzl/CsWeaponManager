@@ -61,12 +61,36 @@
   color: #f56c6c;
 }
 
+/* iPad 横屏和大屏平板 (769px - 1199px) */
+@media (min-width: 769px) and (max-width: 1199px) {
+  .login-box {
+    width: 450px;
+    padding: 36px;
+  }
+
+  .login-title {
+    font-size: 22px;
+  }
+}
+
+/* iPad 竖屏 (768px - 1024px portrait) */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+  .login-box {
+    width: 420px;
+    padding: 35px;
+  }
+
+  .login-title {
+    font-size: 21px;
+  }
+}
+
 @media (max-width: 768px) {
   .login-box {
     width: 90%;
     padding: 30px 20px;
   }
-  
+
   .login-title {
     font-size: 20px;
   }

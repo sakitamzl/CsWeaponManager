@@ -2406,3 +2406,87 @@
   display: none;
 }
 
+/* ========== iPad响应式适配 ========== */
+
+/* iPad 横屏和大屏平板 (769px - 1199px) */
+@media (min-width: 769px) and (max-width: 1199px) {
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.875rem;
+  }
+
+  .inventory-card {
+    height: 330px;
+  }
+
+  .card-image {
+    height: 140px;
+  }
+
+  .card-title {
+    font-size: 0.8125rem;
+  }
+
+  .multi-select-actions,
+  .component-selection-banner {
+    min-width: 500px;
+    padding: 0.875rem 1.25rem;
+  }
+
+  .preview-dialog {
+    width: 85% !important;
+  }
+
+  .weapon-image-cell {
+    height: 70px;
+  }
+}
+
+/* iPad 竖屏 (768px - 1024px portrait) */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .inventory-card {
+    height: 320px;
+  }
+
+  .card-image {
+    height: 130px;
+  }
+
+  .multi-select-actions,
+  .component-selection-banner {
+    min-width: 450px;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .selected-items-list-with-inputs {
+    padding: 0.875rem;
+  }
+
+  .items-scroll {
+    height: 60vh;
+    max-height: 60vh;
+  }
+
+  .preview-dialog {
+    width: 90% !important;
+  }
+
+  .preview-main-layout {
+    flex-direction: column;
+  }
+
+  .preview-image-section {
+    height: 250px;
+  }
+
+  .sell-rent-dialog {
+    width: 90% !important;
+  }
+}
+
