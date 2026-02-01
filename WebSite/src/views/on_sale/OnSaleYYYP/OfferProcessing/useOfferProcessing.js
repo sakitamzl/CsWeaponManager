@@ -14,6 +14,7 @@ export default {
   setup(props) {
     const loading = ref(false)
     const sellOrders = ref([])
+    const buyOrders = ref([])
     const countdownTimers = ref(new Map())
 
     // 格式化倒计时显示
@@ -75,14 +76,12 @@ export default {
       countdownTimers.value.clear()
     }
 
-    // 加载报价订单数据
-    const loadOfferOrders = async () => {
+    // 加载我出售的报价订单数据
+    const loadSellOfferOrders = async () => {
       if (!props.steamId) {
-        ElMessage.warning('请选择账号')
-        return
+        return { success: true, count: 0 }
       }
 
-      loading.value = true
       try {
         const response = await axios.post(apiUrls.yyypGetMySellOrders(), {
           steamId: props.steamId,
@@ -122,17 +121,116 @@ export default {
             }
           })
 
-          const totalCount = response.data.data?.total_count || 0
-          ElMessage.success(`加载成功，共 ${totalCount} 个待确认报价`)
-          
           // 为每个订单启动倒计时
           sellOrders.value.forEach(item => {
             if (item.remaining_seconds) {
               startCountdown(item)
             }
           })
+          return { success: true, count: sellOrders.value.length }
         } else {
-          ElMessage.error(response.data?.message || '加载失败')
+          console.error('加载我出售的订单失败:', response.data?.message)
+          return { success: false, error: response.data?.message || '未知错误' }
+        }
+      } catch (error) {
+        console.error('加载我出售的订单异常:', error)
+        return { success: false, error: error.message }
+      }
+    }
+
+    // 加载我收货的报价订单数据
+    const loadBuyOfferOrders = async () => {
+      if (!props.steamId) {
+        return { success: true, count: 0 }
+      }
+
+      try {
+        const response = await axios.post(apiUrls.yyypGetMyBuyOrders(), {
+          steamId: props.steamId,
+          code: '2',
+          subCode: '2-1',  // 获取全部收货订单
+          whetherDark: true
+        })
+
+        if (response.data && response.data.success) {
+          // 转换报价订单数据格式
+          const orderData = response.data.data?.orders || []
+          buyOrders.value = orderData.map(order => {
+            return {
+              id: order.offer_id,
+              order_no: order.order_no,
+              item_name: order.item_name,
+              steam_hash_name: order.item_hash_name,
+              weapon_type: order.item_type,
+              float_range: order.exterior,
+              platform: 'yyyp',
+              trade_type: 'offer',
+              // 报价特有字段
+              offer_id: order.offer_id,
+              offer_type: order.offer_type,
+              order_status: order.order_status,
+              countdown_desc: order.countdown_desc,
+              countdown_timestamp: order.countdown_timestamp,
+              current_time: order.current_time,
+              surplus_countdown: order.surplus_countdown,
+              remaining_seconds: order.remaining_seconds,  // 剩余秒数
+              end_countdown_desc: order.end_countdown_desc,  // 截止时间描述
+              buttons: order.buttons,
+              icon_url: order.icon_url,
+              rarity: order.rarity,
+              rarity_color: order.rarity_color,
+              exterior_color: order.exterior_color
+            }
+          })
+
+          // 为每个订单启动倒计时
+          buyOrders.value.forEach(item => {
+            if (item.remaining_seconds) {
+              startCountdown(item)
+            }
+          })
+          return { success: true, count: buyOrders.value.length }
+        } else {
+          console.error('加载我收货的订单失败:', response.data?.message)
+          return { success: false, error: response.data?.message || '未知错误' }
+        }
+      } catch (error) {
+        console.error('加载我收货的订单异常:', error)
+        return { success: false, error: error.message }
+      }
+    }
+
+    // 加载所有报价订单数据
+    const loadOfferOrders = async () => {
+      if (!props.steamId) {
+        ElMessage.warning('请选择账号')
+        return
+      }
+
+      loading.value = true
+      try {
+        // 并行加载我出售的和我收货的
+        const [sellResult, buyResult] = await Promise.all([
+          loadSellOfferOrders(),
+          loadBuyOfferOrders()
+        ])
+
+        // 收集错误信息
+        const errors = []
+        if (sellResult && !sellResult.success) {
+          errors.push(`我出售的: ${sellResult.error}`)
+        }
+        if (buyResult && !buyResult.success) {
+          errors.push(`我收货的: ${buyResult.error}`)
+        }
+
+        // 如果有错误，显示错误信息
+        if (errors.length > 0) {
+          ElMessage.error('加载失败: ' + errors.join('; '))
+        } else {
+          // 全部成功，显示成功消息
+          const totalCount = sellOrders.value.length + buyOrders.value.length
+          ElMessage.success(`加载成功，共 ${totalCount} 个待处理报价（出售: ${sellOrders.value.length}, 收货: ${buyOrders.value.length}）`)
         }
       } catch (error) {
         console.error('加载报价订单失败:', error)
@@ -186,6 +284,7 @@ export default {
     return {
       loading,
       sellOrders,
+      buyOrders,
       formatCountdown,
       handleOfferButton
     }

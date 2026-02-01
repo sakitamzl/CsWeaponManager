@@ -4,6 +4,7 @@ import axios from 'axios'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
 import RentFormYYYP from '@/views/Inventory/RentFormYYYP/index.vue'
 import OfferProcessing from './OfferProcessing/index.vue'
+import RentedOut from './RentedOut/index.vue'
 import SaleManagement from './SaleManagement/index.vue'
 import LeaseManagement from './LeaseManagement/index.vue'
 import PresaleManagement from './PresaleManagement/index.vue'
@@ -13,6 +14,7 @@ export default {
   components: {
     RentFormYYYP,
     OfferProcessing,
+    RentedOut,
     SaleManagement,
     LeaseManagement,
     PresaleManagement
@@ -37,6 +39,7 @@ export default {
       { value: 'presale', label: '预售', icon: '⏰' },
       { value: 'transfer', label: '过户', icon: '📝' },
       { value: 'offer', label: '报价处理', icon: '💬' },
+      { value: 'rented_out', label: '已租出', icon: '📦' },
       { value: 'instant', label: '秒到账', icon: '⚡' }
     ])
 
@@ -208,6 +211,11 @@ export default {
     const loadOnSaleData = async () => {
       if (!selectedAccount.value) {
         ElMessage.warning('请选择账号')
+        return
+      }
+
+      // 报价处理和已租出类型由各自组件加载数据，这里不需要处理
+      if (selectedTradeType.value === 'offer' || selectedTradeType.value === 'rented_out') {
         return
       }
 
