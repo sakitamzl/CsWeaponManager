@@ -11,7 +11,8 @@ export default {
       required: true
     }
   },
-  setup(props) {
+  emits: ['update:count'],
+  setup(props, { emit }) {
     const loading = ref(false)
     const rentedOutItems = ref([])
     const countdownTimers = ref(new Map())
@@ -156,6 +157,9 @@ export default {
           const totalCount = response.data.data?.total_count || rentedOutItems.value.length
           ElMessage.success(`加载成功，共 ${totalCount} 个已租出物品${statsDesc ? ' - ' + statsDesc : ''}`)
 
+          // 发送数量给父组件
+          emit('update:count', totalCount)
+
           // 为每个有倒计时的项目启动倒计时
           rentedOutItems.value.forEach(item => {
             if (item.remaining_seconds !== null && item.remaining_seconds !== undefined) {
@@ -164,6 +168,7 @@ export default {
           })
         } else {
           ElMessage.error(response.data?.message || '加载失败')
+          emit('update:count', 0)
         }
       } catch (error) {
         console.error('加载已租出数据失败:', error)

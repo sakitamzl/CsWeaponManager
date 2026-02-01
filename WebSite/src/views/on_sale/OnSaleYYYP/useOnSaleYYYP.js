@@ -32,7 +32,9 @@ export default {
     const weaponTypeFilter = ref('')
     const floatRangeFilter = ref('')
     const displayMode = ref('card')
-    const offerCount = ref(0)  // 报价处理的数量
+    // 报价处理的数量 - 从 localStorage 读取缓存
+    const cachedOfferCount = localStorage.getItem('yyyp_offer_count')
+    const offerCount = ref(cachedOfferCount ? parseInt(cachedOfferCount) : 0)
 
     // 交易类型 - 从localStorage读取上次选择，默认为'sale'
     const savedTradeType = localStorage.getItem('yyyp_selected_trade_type') || 'sale'
@@ -185,21 +187,61 @@ export default {
       return filtered
     })
 
+    // 缓存交易类型数量到 localStorage
+    const cacheTradeTypeCount = (tradeType, count) => {
+      const key = `yyyp_${tradeType}_count`
+      if (count > 0) {
+        localStorage.setItem(key, count.toString())
+      } else {
+        localStorage.removeItem(key)
+      }
+    }
+
+    // 从 localStorage 获取缓存的交易类型数量
+    const getCachedTradeTypeCount = (tradeType) => {
+      const key = `yyyp_${tradeType}_count`
+      const cached = localStorage.getItem(key)
+      return cached ? parseInt(cached) : 0
+    }
+
     // 获取每个交易类型的数量
     const getTradeTypeCount = (tradeType) => {
       // 报价处理使用单独的计数器
       if (tradeType === 'offer') {
         return offerCount.value
       }
-      return onSaleData.value.filter(item => {
-        const itemTradeType = item.trade_type || 'sale'
-        return itemTradeType === tradeType && item.platform === 'yyyp'
-      }).length
+
+      // 如果当前选中的就是这个类型，从 onSaleData 计算实时数量
+      if (selectedTradeType.value === tradeType && onSaleData.value.length > 0) {
+        return onSaleData.value.filter(item => {
+          const itemTradeType = item.trade_type || 'sale'
+          return itemTradeType === tradeType && item.platform === 'yyyp'
+        }).length
+      }
+
+      // 否则从缓存读取
+      return getCachedTradeTypeCount(tradeType)
     }
 
     // 处理报价数量更新
     const handleOfferCountUpdate = (count) => {
       offerCount.value = count
+      // 更新 localStorage 缓存
+      if (count > 0) {
+        localStorage.setItem('yyyp_offer_count', count.toString())
+      } else {
+        localStorage.removeItem('yyyp_offer_count')
+      }
+    }
+
+    // 处理已租出数量更新
+    const handleRentedOutCountUpdate = (count) => {
+      cacheTradeTypeCount('rented_out', count)
+    }
+
+    // 处理秒到账数量更新
+    const handleInstantCountUpdate = (count) => {
+      cacheTradeTypeCount('instant', count)
     }
 
     // 处理交易类型切换
@@ -294,6 +336,8 @@ export default {
                 deposit_amount_desc: item.depositAmountDesc  // 押金描述
               }
             })
+            // 缓存租赁数量
+            cacheTradeTypeCount('lease', onSaleData.value.length)
             ElMessage.success('加载成功')
           } else {
             ElMessage.error(response.data?.message || '加载失败')
@@ -358,6 +402,8 @@ export default {
                 deposit_amount_desc: item.depositAmountDesc  // 押金描述
               }
             })
+            // 缓存转租数量
+            cacheTradeTypeCount('sublease', onSaleData.value.length)
             ElMessage.success('加载成功')
           } else {
             ElMessage.error(response.data?.message || '加载失败')
@@ -418,6 +464,8 @@ export default {
                 paintseed: item.paintseed  // 图案模板
               }
             })
+            // 缓存预售数量
+            cacheTradeTypeCount('presale', onSaleData.value.length)
             ElMessage.success('加载成功')
           } else {
             ElMessage.error(response.data?.message || '加载失败')
@@ -490,6 +538,8 @@ export default {
                 paintseed: item.paintseed  // 图案模板
               }
             })
+            // 缓存出售数量
+            cacheTradeTypeCount('sale', onSaleData.value.length)
             ElMessage.success('加载成功')
           } else {
             ElMessage.error(response.data?.message || '加载失败')
@@ -504,6 +554,8 @@ export default {
 
           if (response.data && response.data.success) {
             onSaleData.value = response.data.data || []
+            // 缓存其他类型数量（transfer等）
+            cacheTradeTypeCount(selectedTradeType.value, onSaleData.value.length)
             ElMessage.success('加载成功')
           } else {
             ElMessage.error(response.data?.message || '加载失败')
@@ -540,44 +592,126 @@ export default {
     // 检查并加载初始数据（同时检查出售和报价处理）
     const checkAndLoadInitialData = async () => {
       try {
+        // 获取 steamId
+        const steamId = accountList.value.find(acc => acc.id === selectedAccount.value)?.steam_id || ''
+
+        // 总是获取报价处理数量（用于显示在 bar 上）
+        const [sellOfferResponse, buyOfferResponse] = await Promise.all([
+          // 获取报价处理数据 - 我出售的
+          axios.post(apiUrls.yyypGetMySellOrders(), {
+            steamId: steamId
+          }).catch(() => null),
+          // 获取报价处理数据 - 我收货的
+          axios.post(apiUrls.yyypGetMyBuyOrders(), {
+            steamId: steamId
+          }).catch(() => null)
+        ])
+
+        // 计算报价处理数量
+        const sellOfferCount = sellOfferResponse?.data?.success && sellOfferResponse.data.data?.orderList?.length > 0
+          ? sellOfferResponse.data.data.orderList.length
+          : 0
+        const buyOfferCount = buyOfferResponse?.data?.success && buyOfferResponse.data.data?.orderList?.length > 0
+          ? buyOfferResponse.data.data.orderList.length
+          : 0
+        const totalOfferCount = sellOfferCount + buyOfferCount
+
+        // 缓存报价处理数量到 localStorage
+        if (totalOfferCount > 0) {
+          localStorage.setItem('yyyp_offer_count', totalOfferCount.toString())
+          offerCount.value = totalOfferCount
+        } else {
+          localStorage.removeItem('yyyp_offer_count')
+          offerCount.value = 0
+        }
+
         // 如果localStorage中保存的不是出售或报价处理，直接加载该类型数据
         if (selectedTradeType.value !== 'sale' && selectedTradeType.value !== 'offer') {
           loadOnSaleData()
           return
         }
 
-        // 并行请求出售和报价处理数据
-        const steamId = accountList.value.find(acc => acc.id === selectedAccount.value)?.steam_id || ''
-
-        const [saleResponse, offerResponse] = await Promise.all([
-          // 获取出售数据
-          axios.post(apiUrls.yyypGetSellList(), {
-            steamId: steamId,
-            page: 1,
-            pageSize: 1000
-          }).catch(() => null),
-          // 获取报价处理数据
-          axios.post(apiUrls.getOnSaleItems(), {
-            platform: 'yyyp',
-            account_id: selectedAccount.value,
-            trade_type: 'offer'
-          }).catch(() => null)
-        ])
-
-        // 检查报价处理数据
-        const hasOfferData = offerResponse?.data?.success &&
-                            offerResponse.data.data?.length > 0
+        // 并行请求出售数据
+        const saleResponse = await axios.post(apiUrls.yyypGetSellList(), {
+          steamId: steamId,
+          page: 1,
+          pageSize: 1000  // 直接获取完整数据，避免后续重复请求
+        }).catch(() => null)
 
         // 如果报价处理有数据，默认显示报价处理
-        if (hasOfferData) {
+        if (totalOfferCount > 0) {
           selectedTradeType.value = 'offer'
+          // 报价处理类型由子组件加载数据，这里不需要处理
         } else {
-          // 否则显示出售数据
+          // 否则显示出售数据，直接使用已获取的数据，避免重复调用
           selectedTradeType.value = 'sale'
-        }
+          if (saleResponse?.data?.success) {
+            // 转换出售数据格式以匹配前端期望
+            const sellData = saleResponse.data.data?.commodityInfoList || []
+            onSaleData.value = sellData.map(item => {
+              // 解析印花数据
+              let stickerData = null
+              if (item.haveSticker && item.stickers && item.stickers.length > 0) {
+                stickerData = JSON.stringify(item.stickers.map(sticker => ({
+                  name: sticker.name,
+                  image: sticker.imageUrl,
+                  abrade: sticker.abradeDesc,
+                  rawIndex: sticker.rawIndex
+                })))
+              }
 
-        // 加载对应数据
-        loadOnSaleData()
+              // 解析挂件数据
+              let pendantData = null
+              if (item.havePendant && item.pendants && item.pendants.length > 0) {
+                const pendant = item.pendants[0]  // 通常只有一个挂件
+                pendantData = JSON.stringify({
+                  name: pendant.name || '',
+                  image: pendant.imageUrl || '',
+                  pattern: pendant.pattern || ''
+                })
+              }
+
+              // 从buyAmountDesc中提取购入价 (格式: "购：¥3890")
+              let buyPrice = null
+              if (item.buyAmountDesc) {
+                const match = item.buyAmountDesc.match(/¥([\d.]+)/)
+                if (match) {
+                  buyPrice = parseFloat(match[1])
+                }
+              }
+
+              return {
+                id: item.id,
+                commodity_id: item.id,  // 商品ID，用于改价等操作
+                item_name: item.name,
+                steam_hash_name: item.commodityHashName,
+                sale_price: parseFloat(item.sellAmount || 0),  // 售价（分为单位，需转换）
+                buy_price: buyPrice,  // 购入价
+                weapon_float: item.abrade,
+                wear_value: item.abrade ? parseFloat(item.abrade) : null,  // 磨损值
+                weapon_type: item.typeName || '',
+                float_range: item.exteriorName || '',
+                sticker: stickerData,  // 印花数据
+                pendant: pendantData,  // 挂件数据
+                rename: item.haveNameTag ? '已改名' : null,  // 改名标记
+                on_sale_time: null,  // 出售没有在售时间
+                platform: 'yyyp',
+                trade_type: 'sale',
+                account_id: selectedAccount.value,
+                // 出售特有字段
+                reference_price: item.referencePrice,  // 市场价（重要！）
+                sell_amount_desc: item.sellAmountDesc,  // 售价描述
+                buy_amount_desc: item.buyAmountDesc,  // 购入价描述
+                paintseed: item.paintseed  // 图案模板
+              }
+            })
+            // 缓存出售数量
+            cacheTradeTypeCount('sale', onSaleData.value.length)
+            ElMessage.success('加载成功')
+          } else {
+            ElMessage.error(saleResponse?.data?.message || '加载失败')
+          }
+        }
       } catch (error) {
         console.error('检查初始数据失败:', error)
         // 如果检查失败，使用默认逻辑
@@ -1468,6 +1602,8 @@ export default {
       getTradeTypeCount,
       handleTradeTypeChange,
       handleOfferCountUpdate,
+      handleRentedOutCountUpdate,
+      handleInstantCountUpdate,
       batchChangePriceDialogVisible,
       batchChangePriceForm,
       autoFillBatchPrices

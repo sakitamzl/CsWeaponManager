@@ -29,39 +29,16 @@ def get_yyyp_accounts():
             data_id = row[0]
             data_name = row[1] if row[1] else f"账号{data_id}"
             steam_id = row[2] if len(row) > 2 else None
-            
+
             if not steam_id:
                 continue
-            
-            # 调用Spider服务获取在售数量
-            item_count = 0
-            try:
-                spider_url = f"{SPIDER_API_ADDRESS}/youping898SpiderV1/getSellList"
-                spider_response = requests.post(
-                    spider_url,
-                    json={
-                        'steamId': steam_id,
-                        'page': 1,
-                        'pageSize': 1  # 只获取第一页来统计数量
-                    },
-                    timeout=10
-                )
-                
-                if spider_response.status_code == 200:
-                    spider_data = spider_response.json()
-                    if spider_data.get('success'):
-                        data = spider_data.get('data', {})
-                        statistical_data = data.get('statisticalData', {})
-                        item_count = statistical_data.get('quantity', 0)
-            except Exception as e:
-                print(f"获取账号 {data_id} 在售数量失败: {str(e)}")
-                item_count = 0
-            
+
+            # 不再自动获取在售数量，由前端缓存管理
+            # 这样可以避免每次获取账号列表时都调用多次Spider API
             accounts.append({
                 'id': data_id,
                 'name': data_name,
-                'steam_id': steam_id,
-                'item_count': item_count
+                'steam_id': steam_id
             })
         
         return jsonify({

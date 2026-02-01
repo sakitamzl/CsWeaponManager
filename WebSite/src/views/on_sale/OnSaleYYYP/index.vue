@@ -13,13 +13,10 @@
           <el-option
             v-for="item in accountList"
             :key="item.id"
-            :label="`${item.name} - ${item.item_count || 0}件`"
+            :label="item.name"
             :value="item.id"
           >
-            <span style="float: left">{{ item.name }}</span>
-            <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">
-              {{ item.item_count || 0 }}件
-            </span>
+            <span>{{ item.name }}</span>
           </el-option>
         </el-select>
         <el-input
@@ -91,7 +88,7 @@
         >
           <span class="trade-type-icon">{{ type.icon }}</span>
           <span class="trade-type-label">{{ type.label }}</span>
-          <span class="trade-type-count" v-if="getTradeTypeCount(type.value) > 0">
+          <span class="trade-type-count">
             {{ getTradeTypeCount(type.value) }}
           </span>
         </div>
@@ -135,6 +132,7 @@
       v-if="selectedTradeType === 'rented_out'"
       :steam-id="accountList.find(acc => acc.id === selectedAccount)?.steam_id || ''"
       :key="selectedAccount"
+      @update:count="handleRentedOutCountUpdate"
     />
 
     <!-- 秒到账列表显示 -->
@@ -142,6 +140,7 @@
       v-if="selectedTradeType === 'instant'"
       :steam-id="accountList.find(acc => acc.id === selectedAccount)?.steam_id || ''"
       :key="selectedAccount"
+      @update:count="handleInstantCountUpdate"
     />
 
     <!-- 租赁管理组件 -->

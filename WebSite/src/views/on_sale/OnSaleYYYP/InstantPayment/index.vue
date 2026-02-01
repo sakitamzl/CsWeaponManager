@@ -136,7 +136,8 @@ export default {
       required: true
     }
   },
-  setup(props) {
+  emits: ['update:count'],
+  setup(props, { emit }) {
     const loading = ref(false)
     const instantPaymentItems = ref([])
 
@@ -207,9 +208,14 @@ export default {
             }
           })
 
-          ElMessage.success('加载成功')
+          const totalCount = instantPaymentItems.value.length
+          ElMessage.success(`加载成功，共 ${totalCount} 个秒到账订单`)
+
+          // 发送数量给父组件
+          emit('update:count', totalCount)
         } else {
           ElMessage.error(response.data?.message || '加载失败')
+          emit('update:count', 0)
         }
       } catch (error) {
         console.error('加载0CD订单失败:', error)
