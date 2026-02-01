@@ -64,9 +64,30 @@
                 </div>
               </div>
             </div>
-            <!-- Token确认信息 - 中间区域 -->
-            <div v-if="getTokenInfo(item.order_no)" class="offer-item-center">
-              <div class="token-info-card" :class="{ 'token-card-rent': item.order_type === 1, 'token-card-sell': item.order_type === 2 }">
+            <!-- Token确认信息 或 批量处理状态 - 中间区域 -->
+            <div v-if="getBatchProcessStatus(item.order_no) || getTokenInfo(item.order_no)" class="offer-item-center">
+              <!-- 批量处理状态卡片 -->
+              <div v-if="getBatchProcessStatus(item.order_no)" class="batch-process-card" :class="{
+                'batch-card-processing': getBatchProcessStatus(item.order_no).status === 'processing',
+                'batch-card-success': getBatchProcessStatus(item.order_no).status === 'success',
+                'batch-card-failed': getBatchProcessStatus(item.order_no).status === 'failed',
+                'batch-card-skipped': getBatchProcessStatus(item.order_no).status === 'skipped'
+              }">
+                <div class="batch-process-body">
+                  <div class="batch-process-icon">
+                    <span v-if="getBatchProcessStatus(item.order_no).status === 'processing'">⏳</span>
+                    <span v-else-if="getBatchProcessStatus(item.order_no).status === 'success'">✅</span>
+                    <span v-else-if="getBatchProcessStatus(item.order_no).status === 'failed'">❌</span>
+                    <span v-else-if="getBatchProcessStatus(item.order_no).status === 'skipped'">⚠️</span>
+                  </div>
+                  <div class="batch-process-details">
+                    <div class="batch-process-progress">{{ getBatchProcessStatus(item.order_no).progress }}</div>
+                    <div class="batch-process-message">{{ getBatchProcessStatus(item.order_no).message }}</div>
+                  </div>
+                </div>
+              </div>
+              <!-- Token确认信息卡片 -->
+              <div v-else-if="getTokenInfo(item.order_no)" class="token-info-card" :class="{ 'token-card-rent': item.order_type === 1, 'token-card-sell': item.order_type === 2 }">
                 <div class="token-info-body">
                   <img
                     v-if="getTokenInfo(item.order_no).avatarfull"
@@ -190,9 +211,30 @@
                 </div>
               </div>
             </div>
-            <!-- Token确认信息 - 中间区域 -->
-            <div v-if="getTokenInfo(item.order_no)" class="offer-item-center">
-              <div class="token-info-card" :class="{ 'token-card-rent': item.order_type === 1, 'token-card-sell': item.order_type === 2 }">
+            <!-- Token确认信息 或 批量处理状态 - 中间区域 -->
+            <div v-if="getBatchProcessStatus(item.order_no) || getTokenInfo(item.order_no)" class="offer-item-center">
+              <!-- 批量处理状态卡片 -->
+              <div v-if="getBatchProcessStatus(item.order_no)" class="batch-process-card" :class="{
+                'batch-card-processing': getBatchProcessStatus(item.order_no).status === 'processing',
+                'batch-card-success': getBatchProcessStatus(item.order_no).status === 'success',
+                'batch-card-failed': getBatchProcessStatus(item.order_no).status === 'failed',
+                'batch-card-skipped': getBatchProcessStatus(item.order_no).status === 'skipped'
+              }">
+                <div class="batch-process-body">
+                  <div class="batch-process-icon">
+                    <span v-if="getBatchProcessStatus(item.order_no).status === 'processing'">⏳</span>
+                    <span v-else-if="getBatchProcessStatus(item.order_no).status === 'success'">✅</span>
+                    <span v-else-if="getBatchProcessStatus(item.order_no).status === 'failed'">❌</span>
+                    <span v-else-if="getBatchProcessStatus(item.order_no).status === 'skipped'">⚠️</span>
+                  </div>
+                  <div class="batch-process-details">
+                    <div class="batch-process-progress">{{ getBatchProcessStatus(item.order_no).progress }}</div>
+                    <div class="batch-process-message">{{ getBatchProcessStatus(item.order_no).message }}</div>
+                  </div>
+                </div>
+              </div>
+              <!-- Token确认信息卡片 -->
+              <div v-else-if="getTokenInfo(item.order_no)" class="token-info-card" :class="{ 'token-card-rent': item.order_type === 1, 'token-card-sell': item.order_type === 2 }">
                 <div class="token-info-body">
                   <img
                     v-if="getTokenInfo(item.order_no).avatarfull"

@@ -320,3 +320,87 @@
   padding-top: 0.25rem;
   border-top: 1px solid rgba(64, 158, 255, 0.15);
 }
+
+/* 批量处理状态卡片 */
+.batch-process-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  min-width: 280px;
+  transition: all 0.3s ease;
+}
+
+/* 处理中 - 蓝色 */
+.batch-process-card.batch-card-processing {
+  background: linear-gradient(135deg, rgba(64, 158, 255, 0.15) 0%, rgba(64, 158, 255, 0.05) 100%);
+  border: 1px solid rgba(64, 158, 255, 0.4);
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.2);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* 成功 - 绿色 */
+.batch-process-card.batch-card-success {
+  background: linear-gradient(135deg, rgba(82, 196, 26, 0.15) 0%, rgba(82, 196, 26, 0.05) 100%);
+  border: 1px solid rgba(82, 196, 26, 0.4);
+  box-shadow: 0 2px 8px rgba(82, 196, 26, 0.2);
+}
+
+/* 失败 - 红色 */
+.batch-process-card.batch-card-failed {
+  background: linear-gradient(135deg, rgba(245, 34, 45, 0.15) 0%, rgba(245, 34, 45, 0.05) 100%);
+  border: 1px solid rgba(245, 34, 45, 0.4);
+  box-shadow: 0 2px 8px rgba(245, 34, 45, 0.2);
+}
+
+/* 跳过 - 橙色 */
+.batch-process-card.batch-card-skipped {
+  background: linear-gradient(135deg, rgba(250, 173, 20, 0.15) 0%, rgba(250, 173, 20, 0.05) 100%);
+  border: 1px solid rgba(250, 173, 20, 0.4);
+  box-shadow: 0 2px 8px rgba(250, 173, 20, 0.2);
+}
+
+.batch-process-body {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.batch-process-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.batch-process-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.batch-process-progress {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  opacity: 0.7;
+}
+
+.batch-process-message {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* 脉冲动画 - 用于处理中状态 */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}

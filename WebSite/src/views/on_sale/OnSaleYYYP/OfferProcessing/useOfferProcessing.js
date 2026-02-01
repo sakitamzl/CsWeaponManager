@@ -1,5 +1,5 @@
 import { ref, watch, onMounted, onUnmounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
 import axios from 'axios'
 import { apiUrls } from '@/config/api.js'
 
@@ -19,6 +19,8 @@ export default {
     const countdownTimers = ref(new Map())
     // 存储每个订单的token信息，key为order_no
     const orderTokenInfo = ref(new Map())
+    // 存储批量处理时每个订单的处理状态 {status: 'processing'|'success'|'failed', message: string, progress: '1/5'}
+    const batchProcessStatus = ref(new Map())
 
     // 格式化倒计时显示
     const formatCountdown = (seconds) => {
@@ -305,7 +307,7 @@ export default {
 
       try {
         await ElMessageBox.confirm(
-          `确定要批量处理 ${sellOrders.value.length} 个出售报价吗？`,
+          `确定要按页面顺序批量处理 ${sellOrders.value.length} 个出售报价吗？`,
           '批量处理确认',
           {
             confirmButtonText: '确定',
@@ -317,13 +319,50 @@ export default {
         loading.value = true
         let successCount = 0
         let failCount = 0
+        const totalCount = sellOrders.value.length
 
-        for (const item of sellOrders.value) {
+        console.log('开始批量处理，总数:', totalCount)
+
+        // 清空之前的处理状态
+        batchProcessStatus.value.clear()
+
+        // 显示开始处理的通知
+        ElNotification({
+          title: '批量处理开始',
+          message: `开始按顺序处理 ${totalCount} 个出售报价...`,
+          type: 'info',
+          duration: 3000,
+          position: 'top-right'
+        })
+
+        // 按页面顺序逐条处理
+        for (let index = 0; index < sellOrders.value.length; index++) {
+          const item = sellOrders.value[index]
+          const currentNum = index + 1
+
           // 找到第一个可操作的按钮（通常是"确认"或"接受"按钮）
           const confirmButton = item.buttons?.find(btn => btn.action === 'confirm' || btn.action === 'accept')
 
           if (confirmButton) {
             try {
+              console.log(`[${currentNum}/${totalCount}] 开始处理:`, item.item_name)
+
+              // 更新卡片状态为"处理中"
+              batchProcessStatus.value.set(confirmButton.order_no, {
+                status: 'processing',
+                message: '正在处理...',
+                progress: `${currentNum}/${totalCount}`
+              })
+
+              // 显示当前处理的订单信息
+              ElNotification({
+                title: `处理中 (${currentNum}/${totalCount})`,
+                message: `正在处理: ${item.item_name || '未知物品'}\n订单号: ${confirmButton.order_no}`,
+                type: 'info',
+                duration: 2000,
+                position: 'top-right'
+              })
+
               const response = await axios.post(apiUrls.yyypProcessOfferButton(), {
                 steamId: props.steamId,
                 action: confirmButton.action,
@@ -336,24 +375,125 @@ export default {
 
               if (response.data && response.data.success) {
                 successCount++
+                console.log(`[${currentNum}/${totalCount}] ✅ 处理成功:`, item.item_name)
+
+                // 如果返回了token信息，保存并显示
+                if (response.data.data && response.data.data.token_info) {
+                  const tokenInfo = response.data.data.token_info
+                  console.log(`[${currentNum}/${totalCount}] Token信息:`, tokenInfo)
+
+                  // 将token信息存储到Map中，使用order_no作为key
+                  orderTokenInfo.value.set(confirmButton.order_no, {
+                    ...tokenInfo,
+                    timestamp: Date.now()
+                  })
+
+                  // 清除该订单的批量处理状态，让token信息卡片显示
+                  batchProcessStatus.value.delete(confirmButton.order_no)
+                } else {
+                  // 如果没有token信息，显示成功状态
+                  batchProcessStatus.value.set(confirmButton.order_no, {
+                    status: 'success',
+                    message: '✅ 处理成功',
+                    progress: `${currentNum}/${totalCount}`
+                  })
+                }
+
+                ElNotification({
+                  title: `✅ 处理成功 (${currentNum}/${totalCount})`,
+                  message: `${item.item_name || '未知物品'} 已成功处理`,
+                  type: 'success',
+                  duration: 2000,
+                  position: 'top-right'
+                })
               } else {
                 failCount++
+                console.log(`[${currentNum}/${totalCount}] ❌ 处理失败:`, item.item_name, response.data?.message)
+
+                // 更新卡片状态为"失败"
+                batchProcessStatus.value.set(confirmButton.order_no, {
+                  status: 'failed',
+                  message: `❌ ${response.data?.message || '处理失败'}`,
+                  progress: `${currentNum}/${totalCount}`
+                })
+
+                ElNotification({
+                  title: `❌ 处理失败 (${currentNum}/${totalCount})`,
+                  message: `${item.item_name || '未知物品'}\n原因: ${response.data?.message || '未知错误'}`,
+                  type: 'error',
+                  duration: 3000,
+                  position: 'top-right'
+                })
               }
             } catch (error) {
-              console.error('处理单个报价失败:', error)
+              console.error(`[${currentNum}/${totalCount}] 处理异常:`, error)
               failCount++
+
+              // 更新卡片状态为"失败"
+              batchProcessStatus.value.set(confirmButton.order_no, {
+                status: 'failed',
+                message: `❌ ${error.message || '网络异常'}`,
+                progress: `${currentNum}/${totalCount}`
+              })
+
+              ElNotification({
+                title: `❌ 处理异常 (${currentNum}/${totalCount})`,
+                message: `${item.item_name || '未知物品'}\n错误: ${error.message || '网络异常'}`,
+                type: 'error',
+                duration: 3000,
+                position: 'top-right'
+              })
             }
+          } else {
+            console.log(`[${currentNum}/${totalCount}] ⚠️ 跳过:`, item.item_name, '无可操作按钮')
+
+            // 对于没有按钮的订单，也记录状态
+            const orderNo = item.buttons?.[0]?.order_no || item.order_no || `skip_${index}`
+            batchProcessStatus.value.set(orderNo, {
+              status: 'skipped',
+              message: '⚠️ 无可操作按钮',
+              progress: `${currentNum}/${totalCount}`
+            })
+
+            // 没有可操作的按钮
+            ElNotification({
+              title: `⚠️ 跳过 (${currentNum}/${totalCount})`,
+              message: `${item.item_name || '未知物品'} 没有可操作的按钮`,
+              type: 'warning',
+              duration: 2000,
+              position: 'top-right'
+            })
+          }
+
+          // 每处理一条后暂停500ms，避免请求过快
+          if (index < sellOrders.value.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 500))
           }
         }
 
         loading.value = false
 
+        console.log('【出售】批量处理完成，成功:', successCount, '失败:', failCount)
+
+        // 显示最终统计结果
         if (successCount > 0) {
-          ElMessage.success(`批量处理完成：成功 ${successCount} 个${failCount > 0 ? `，失败 ${failCount} 个` : ''}`)
+          ElNotification({
+            title: '批量处理完成',
+            message: `✅ 成功: ${successCount} 个\n${failCount > 0 ? `❌ 失败: ${failCount} 个` : ''}`,
+            type: 'success',
+            duration: 5000,
+            position: 'top-right'
+          })
           // 重新加载数据
           await loadOfferOrders()
         } else {
-          ElMessage.error('批量处理失败')
+          ElNotification({
+            title: '批量处理完成',
+            message: `所有报价处理失败 (${failCount} 个)`,
+            type: 'error',
+            duration: 5000,
+            position: 'top-right'
+          })
         }
       } catch (error) {
         if (error !== 'cancel') {
@@ -373,7 +513,7 @@ export default {
 
       try {
         await ElMessageBox.confirm(
-          `确定要批量处理 ${buyOrders.value.length} 个收货报价吗？`,
+          `确定要按页面顺序批量处理 ${buyOrders.value.length} 个收货报价吗？`,
           '批量处理确认',
           {
             confirmButtonText: '确定',
@@ -385,13 +525,47 @@ export default {
         loading.value = true
         let successCount = 0
         let failCount = 0
+        const totalCount = buyOrders.value.length
 
-        for (const item of buyOrders.value) {
+        console.log('【收货】开始批量处理，总数:', totalCount)
+
+        // 显示开始处理的通知
+        ElNotification({
+          title: '批量处理开始',
+          message: `开始按顺序处理 ${totalCount} 个收货报价...`,
+          type: 'info',
+          duration: 3000,
+          position: 'top-right'
+        })
+
+        // 按页面顺序逐条处理
+        for (let index = 0; index < buyOrders.value.length; index++) {
+          const item = buyOrders.value[index]
+          const currentNum = index + 1
+
           // 找到第一个可操作的按钮（通常是"确认"或"接受"按钮）
           const confirmButton = item.buttons?.find(btn => btn.action === 'confirm' || btn.action === 'accept')
 
           if (confirmButton) {
             try {
+              console.log(`[${currentNum}/${totalCount}] 开始处理:`, item.item_name)
+
+              // 设置处理中状态
+              batchProcessStatus.value.set(confirmButton.order_no, {
+                status: 'processing',
+                message: '⏳ 处理中...',
+                progress: `${currentNum}/${totalCount}`
+              })
+
+              // 显示当前处理的订单信息
+              ElNotification({
+                title: `处理中 (${currentNum}/${totalCount})`,
+                message: `正在处理: ${item.item_name || '未知物品'}\n订单号: ${confirmButton.order_no}`,
+                type: 'info',
+                duration: 2000,
+                position: 'top-right'
+              })
+
               const response = await axios.post(apiUrls.yyypProcessOfferButton(), {
                 steamId: props.steamId,
                 action: confirmButton.action,
@@ -404,24 +578,123 @@ export default {
 
               if (response.data && response.data.success) {
                 successCount++
+                console.log(`[${currentNum}/${totalCount}] ✅ 处理成功:`, item.item_name)
+
+                // 如果返回了token信息，保存并显示
+                if (response.data.data && response.data.data.token_info) {
+                  const tokenInfo = response.data.data.token_info
+                  console.log(`[${currentNum}/${totalCount}] Token信息:`, tokenInfo)
+
+                  // 将token信息存储到Map中，使用order_no作为key
+                  orderTokenInfo.value.set(confirmButton.order_no, {
+                    ...tokenInfo,
+                    timestamp: Date.now()
+                  })
+
+                  // 清除该订单的批量处理状态，让token信息卡片显示
+                  batchProcessStatus.value.delete(confirmButton.order_no)
+                } else {
+                  // 如果没有token信息，显示成功状态
+                  batchProcessStatus.value.set(confirmButton.order_no, {
+                    status: 'success',
+                    message: '✅ 处理成功',
+                    progress: `${currentNum}/${totalCount}`
+                  })
+                }
+
+                ElNotification({
+                  title: `✅ 处理成功 (${currentNum}/${totalCount})`,
+                  message: `${item.item_name || '未知物品'} 已成功处理`,
+                  type: 'success',
+                  duration: 2000,
+                  position: 'top-right'
+                })
               } else {
                 failCount++
+                console.log(`[${currentNum}/${totalCount}] ❌ 处理失败:`, item.item_name, response.data?.message)
+
+                batchProcessStatus.value.set(confirmButton.order_no, {
+                  status: 'failed',
+                  message: `❌ ${response.data?.message || '处理失败'}`,
+                  progress: `${currentNum}/${totalCount}`
+                })
+
+                ElNotification({
+                  title: `❌ 处理失败 (${currentNum}/${totalCount})`,
+                  message: `${item.item_name || '未知物品'}\n原因: ${response.data?.message || '未知错误'}`,
+                  type: 'error',
+                  duration: 3000,
+                  position: 'top-right'
+                })
               }
             } catch (error) {
-              console.error('处理单个报价失败:', error)
+              console.error(`[${currentNum}/${totalCount}] 处理异常:`, error)
               failCount++
+
+              batchProcessStatus.value.set(confirmButton.order_no, {
+                status: 'failed',
+                message: `❌ ${error.message || '处理异常'}`,
+                progress: `${currentNum}/${totalCount}`
+              })
+
+              ElNotification({
+                title: `❌ 处理异常 (${currentNum}/${totalCount})`,
+                message: `${item.item_name || '未知物品'}\n错误: ${error.message || '网络异常'}`,
+                type: 'error',
+                duration: 3000,
+                position: 'top-right'
+              })
             }
+          } else {
+            console.log(`[${currentNum}/${totalCount}] ⚠️ 跳过:`, item.item_name, '无可操作按钮')
+
+            // 没有可操作的按钮，设置跳过状态
+            if (item.order_no) {
+              batchProcessStatus.value.set(item.order_no, {
+                status: 'skipped',
+                message: '⚠️ 无可操作按钮',
+                progress: `${currentNum}/${totalCount}`
+              })
+            }
+
+            ElNotification({
+              title: `⚠️ 跳过 (${currentNum}/${totalCount})`,
+              message: `${item.item_name || '未知物品'} 没有可操作的按钮`,
+              type: 'warning',
+              duration: 2000,
+              position: 'top-right'
+            })
+          }
+
+          // 每处理一条后暂停500ms，避免请求过快
+          if (index < buyOrders.value.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 500))
           }
         }
 
         loading.value = false
 
+        console.log('【收货】批量处理完成，成功:', successCount, '失败:', failCount)
+
+        // 显示最终统计结果
         if (successCount > 0) {
-          ElMessage.success(`批量处理完成：成功 ${successCount} 个${failCount > 0 ? `，失败 ${failCount} 个` : ''}`)
+          ElNotification({
+            title: '批量处理完成',
+            message: `✅ 成功: ${successCount} 个\n${failCount > 0 ? `❌ 失败: ${failCount} 个` : ''}`,
+            type: 'success',
+            duration: 5000,
+            position: 'top-right'
+          })
           // 重新加载数据
           await loadOfferOrders()
         } else {
-          ElMessage.error('批量处理失败')
+          ElNotification({
+            title: '批量处理完成',
+            message: `所有报价处理失败 (${failCount} 个)`,
+            type: 'error',
+            duration: 5000,
+            position: 'top-right'
+          })
         }
       } catch (error) {
         if (error !== 'cancel') {
@@ -491,6 +764,11 @@ export default {
       return orderTokenInfo.value.get(orderNo)
     }
 
+    // 获取订单的批量处理状态
+    const getBatchProcessStatus = (orderNo) => {
+      return batchProcessStatus.value.get(orderNo)
+    }
+
     return {
       loading,
       sellOrders,
@@ -502,7 +780,9 @@ export default {
       getOrderTypeLabel,
       getSortedButtons,
       orderTokenInfo,
-      getTokenInfo
+      getTokenInfo,
+      batchProcessStatus,
+      getBatchProcessStatus
     }
   }
 }
