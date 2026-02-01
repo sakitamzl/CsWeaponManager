@@ -823,6 +823,7 @@ export const apiUrls = {
   yyypGetLeaseList: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_LEASE_LIST),
   yyypGetSubleaseList: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_SUBLEASE_LIST),
   yyypGetPresaleList: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_PRESALE_LIST),
+  yyypGetSellList: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_SELL_LIST),
   getRentedOutList: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_RENTED_OUT_LIST),
   yyypGetMySellOrders: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_MY_SELL_ORDERS),  // 获取我的出售订单
   yyypGetMyBuyOrders: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_MY_BUY_ORDERS),  // 获取我的收货订单

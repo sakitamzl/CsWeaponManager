@@ -152,19 +152,30 @@
 
               <!-- 出售类型：显示售价和购入价 -->
               <template v-else>
+                <!-- 第一行：售价 购入 -->
                 <div class="price-row">
                   <div class="price-group">
                     <span class="price-label">售价:</span>
-                    <span class="price-value sale-price">¥{{ parseFloat(item.sale_price).toFixed(2) }}</span>
+                    <span
+                      class="price-value"
+                      :class="getSalePriceClass(item.sale_price, item.buy_price)"
+                    >
+                      ¥{{ parseFloat(item.sale_price).toFixed(2) }}
+                    </span>
                   </div>
                   <div class="price-group" v-if="item.buy_price">
                     <span class="price-label">购入:</span>
                     <span class="price-value">¥{{ parseFloat(item.buy_price).toFixed(2) }}</span>
                   </div>
                 </div>
-                <div class="price-row" v-if="item.buy_price">
-                  <div class="price-group">
-                    <span class="price-label">预期收益:</span>
+                <!-- 第二行：市价 收益 -->
+                <div class="price-row">
+                  <div class="price-group" v-if="item.reference_price">
+                    <span class="price-label">市价:</span>
+                    <span class="price-value">{{ item.reference_price }}</span>
+                  </div>
+                  <div class="price-group" v-if="item.buy_price">
+                    <span class="price-label">收益:</span>
                     <span
                       class="price-value"
                       :class="getPriceDiffClass(item.sale_price, item.buy_price)"
@@ -305,7 +316,7 @@
               <span v-else style="color: #888;">-</span>
             </template>
           </el-table-column>
-          <el-table-column label="预期收益" width="150">
+          <el-table-column label="收益" width="150">
             <template #default="scope">
               <span
                 v-if="scope.row.buy_price"

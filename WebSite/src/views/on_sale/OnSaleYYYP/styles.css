@@ -589,9 +589,45 @@
   margin-bottom: 0.5rem;
 }
 
+.price-info-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
 .current-price {
   font-size: 0.9rem;
   color: var(--text-secondary);
+}
+
+.market-price {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.wear-info-single {
+  margin-top: 0.5rem;
+}
+
+.price-input-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.price-input-single {
+  flex: 1;
+}
+
+.auto-price-button {
+  flex-shrink: 0;
+}
+
+.dialog-footer-simple {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
 
 /* 预览弹窗样式 */
@@ -1086,6 +1122,23 @@
   padding-right: 8px;
 }
 
+/* 批量改价对话框底部按钮布局 */
+.dialog-footer-custom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.footer-left {
+  flex: 0 0 auto;
+}
+
+.footer-right {
+  display: flex;
+  gap: 8px;
+}
+
 .batch-item-card {
   display: flex;
   align-items: center;
@@ -1139,6 +1192,15 @@
 .current-price-text {
   font-size: 0.85rem;
   color: var(--text-secondary);
+}
+
+.reference-price-inline {
+  margin-left: 12px;
+  color: var(--text-secondary);
+}
+
+.wear-info {
+  margin-top: 6px;
 }
 
 .price-input-section {

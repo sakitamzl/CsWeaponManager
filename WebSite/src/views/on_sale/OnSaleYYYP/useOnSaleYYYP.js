@@ -1,4 +1,4 @@
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
@@ -22,6 +22,7 @@ export default {
   setup() {
     const loading = ref(false)
     const updating = ref(false)
+    const autoFillLoading = ref(false)
     const onSaleData = ref([])
     const accountList = ref([])
     const selectedAccount = ref('')
@@ -29,9 +30,11 @@ export default {
     const weaponTypeFilter = ref('')
     const floatRangeFilter = ref('')
     const displayMode = ref('card')
+    const offerCount = ref(0)  // 报价处理的数量
 
-    // 交易类型
-    const selectedTradeType = ref('sale') // 默认选择"出售"
+    // 交易类型 - 从localStorage读取上次选择，默认为'sale'
+    const savedTradeType = localStorage.getItem('yyyp_selected_trade_type') || 'sale'
+    const selectedTradeType = ref(savedTradeType)
     const tradeTypes = ref([
       { value: 'sale', label: '出售', icon: '💰' },
       { value: 'lease', label: '租赁', icon: '🔄' },
@@ -68,11 +71,7 @@ export default {
 
     // 批量改价相关
     const batchChangePriceForm = ref({
-      priceChangeType: 'individual',  // individual: 分开输入, fixed: 固定价格, percent: 百分比调整
-      fixedPrice: '',  // 固定价格值
-      percentValue: '',  // 百分比值
-      percentType: 'increase',  // increase: 增加, decrease: 减少
-      individualPrices: []  // 分开输入时，每个商品的价格
+      individualPrices: []  // 每个商品的价格
     })
 
     // 格式化租赁改价的 item 数据
@@ -186,10 +185,19 @@ export default {
 
     // 获取每个交易类型的数量
     const getTradeTypeCount = (tradeType) => {
+      // 报价处理使用单独的计数器
+      if (tradeType === 'offer') {
+        return offerCount.value
+      }
       return onSaleData.value.filter(item => {
         const itemTradeType = item.trade_type || 'sale'
         return itemTradeType === tradeType && item.platform === 'yyyp'
       }).length
+    }
+
+    // 处理报价数量更新
+    const handleOfferCountUpdate = (count) => {
+      offerCount.value = count
     }
 
     // 处理交易类型切换
@@ -412,6 +420,78 @@ export default {
           } else {
             ElMessage.error(response.data?.message || '加载失败')
           }
+        } else if (selectedTradeType.value === 'sale') {
+          // 出售类型：直接调用Spider API获取原始数据并解析
+          response = await axios.post(apiUrls.yyypGetSellList(), {
+            steamId: accountList.value.find(acc => acc.id === selectedAccount.value)?.steam_id || '',
+            page: 1,
+            pageSize: 1000
+          })
+
+          if (response.data && response.data.success) {
+            // 转换出售数据格式以匹配前端期望
+            const sellData = response.data.data?.commodityInfoList || []
+            onSaleData.value = sellData.map(item => {
+              // 解析印花数据
+              let stickerData = null
+              if (item.haveSticker && item.stickers && item.stickers.length > 0) {
+                stickerData = JSON.stringify(item.stickers.map(sticker => ({
+                  name: sticker.name,
+                  image: sticker.imageUrl,
+                  abrade: sticker.abradeDesc,
+                  rawIndex: sticker.rawIndex
+                })))
+              }
+
+              // 解析挂件数据
+              let pendantData = null
+              if (item.havePendant && item.pendants && item.pendants.length > 0) {
+                const pendant = item.pendants[0]  // 通常只有一个挂件
+                pendantData = JSON.stringify({
+                  name: pendant.name || '',
+                  image: pendant.imageUrl || '',
+                  pattern: pendant.pattern || ''
+                })
+              }
+
+              // 从buyAmountDesc中提取购入价 (格式: "购：¥3890")
+              let buyPrice = null
+              if (item.buyAmountDesc) {
+                const match = item.buyAmountDesc.match(/¥([\d.]+)/)
+                if (match) {
+                  buyPrice = parseFloat(match[1])
+                }
+              }
+
+              return {
+                id: item.id,
+                commodity_id: item.id,  // 商品ID，用于改价等操作
+                item_name: item.name,
+                steam_hash_name: item.commodityHashName,
+                sale_price: parseFloat(item.sellAmount || 0),  // 售价（分为单位，需转换）
+                buy_price: buyPrice,  // 购入价
+                weapon_float: item.abrade,
+                wear_value: item.abrade ? parseFloat(item.abrade) : null,  // 磨损值
+                weapon_type: item.typeName || '',
+                float_range: item.exteriorName || '',
+                sticker: stickerData,  // 印花数据
+                pendant: pendantData,  // 挂件数据
+                rename: item.haveNameTag ? '已改名' : null,  // 改名标记
+                on_sale_time: null,  // 出售没有在售时间
+                platform: 'yyyp',
+                trade_type: 'sale',
+                account_id: selectedAccount.value,
+                // 出售特有字段
+                reference_price: item.referencePrice,  // 市场价（重要！）
+                sell_amount_desc: item.sellAmountDesc,  // 售价描述
+                buy_amount_desc: item.buyAmountDesc,  // 购入价描述
+                paintseed: item.paintseed  // 图案模板
+              }
+            })
+            ElMessage.success('加载成功')
+          } else {
+            ElMessage.error(response.data?.message || '加载失败')
+          }
         } else {
           // 其他类型：调用原有的在售商品API
           response = await axios.post(apiUrls.getOnSaleItems(), {
@@ -443,8 +523,8 @@ export default {
           accountList.value = response.data.data || []
           if (accountList.value.length > 0) {
             selectedAccount.value = accountList.value[0].id
-            // 默认查询第一个账号的数据
-            loadOnSaleData()
+            // 同时检查出售和报价处理数据
+            await checkAndLoadInitialData()
           } else {
             ElMessage.warning('没有找到悠悠有品账号')
           }
@@ -452,6 +532,54 @@ export default {
       } catch (error) {
         console.error('加载账号列表失败:', error)
         ElMessage.error('加载账号列表失败: ' + error.message)
+      }
+    }
+
+    // 检查并加载初始数据（同时检查出售和报价处理）
+    const checkAndLoadInitialData = async () => {
+      try {
+        // 如果localStorage中保存的不是出售或报价处理，直接加载该类型数据
+        if (selectedTradeType.value !== 'sale' && selectedTradeType.value !== 'offer') {
+          loadOnSaleData()
+          return
+        }
+
+        // 并行请求出售和报价处理数据
+        const steamId = accountList.value.find(acc => acc.id === selectedAccount.value)?.steam_id || ''
+
+        const [saleResponse, offerResponse] = await Promise.all([
+          // 获取出售数据
+          axios.post(apiUrls.yyypGetSellList(), {
+            steamId: steamId,
+            page: 1,
+            pageSize: 1000
+          }).catch(() => null),
+          // 获取报价处理数据
+          axios.post(apiUrls.getOnSaleItems(), {
+            platform: 'yyyp',
+            account_id: selectedAccount.value,
+            trade_type: 'offer'
+          }).catch(() => null)
+        ])
+
+        // 检查报价处理数据
+        const hasOfferData = offerResponse?.data?.success &&
+                            offerResponse.data.data?.length > 0
+
+        // 如果报价处理有数据，默认显示报价处理
+        if (hasOfferData) {
+          selectedTradeType.value = 'offer'
+        } else {
+          // 否则显示出售数据
+          selectedTradeType.value = 'sale'
+        }
+
+        // 加载对应数据
+        loadOnSaleData()
+      } catch (error) {
+        console.error('检查初始数据失败:', error)
+        // 如果检查失败，使用默认逻辑
+        loadOnSaleData()
       }
     }
 
@@ -515,6 +643,25 @@ export default {
       }
 
       updatePriceForm.value.newPrice = value
+    }
+
+    // 一键定价（市价-0.01）
+    const setMarketPrice = () => {
+      if (!selectedItem.value || !selectedItem.value.reference_price) {
+        ElMessage.warning('该商品没有市价信息')
+        return
+      }
+
+      // 从 reference_price 中提取数字（格式如 "¥239"）
+      const match = selectedItem.value.reference_price.match(/[\d.]+/)
+      if (match) {
+        const referencePrice = parseFloat(match[0])
+        const newPrice = Math.max(0.01, referencePrice - 0.01)
+        updatePriceForm.value.newPrice = newPrice.toFixed(2)
+        ElMessage.success(`已设置为市价-0.01: ¥${newPrice.toFixed(2)}`)
+      } else {
+        ElMessage.warning('无法解析市价信息')
+      }
     }
 
     // 确认改价
@@ -926,52 +1073,17 @@ export default {
       try {
         updating.value = true
 
-        // 根据改价方式计算每个商品的新价格
-        let priceUpdates = []
-
-        if (batchChangePriceForm.value.priceChangeType === 'individual') {
-          // 分开输入模式：使用用户输入的每个价格
-          priceUpdates = selectedItems.value.map((item, index) => {
-            const newPrice = parseFloat(batchChangePriceForm.value.individualPrices[index])
-            if (isNaN(newPrice) || newPrice <= 0) {
-              throw new Error(`第 ${index + 1} 个商品的价格无效`)
-            }
-            return {
-              id: item.id || item.commodity_id,
-              newPrice: newPrice.toFixed(2)
-            }
-          })
-        } else if (batchChangePriceForm.value.priceChangeType === 'fixed') {
-          // 固定价格模式：所有商品使用相同价格
-          const fixedPrice = parseFloat(batchChangePriceForm.value.fixedPrice)
-          if (isNaN(fixedPrice) || fixedPrice <= 0) {
-            throw new Error('请输入有效的固定价格')
+        // 使用用户输入的每个价格
+        const priceUpdates = selectedItems.value.map((item, index) => {
+          const newPrice = parseFloat(batchChangePriceForm.value.individualPrices[index])
+          if (isNaN(newPrice) || newPrice <= 0) {
+            throw new Error(`第 ${index + 1} 个商品的价格无效`)
           }
-          priceUpdates = selectedItems.value.map(item => ({
+          return {
             id: item.id || item.commodity_id,
-            newPrice: fixedPrice.toFixed(2)
-          }))
-        } else if (batchChangePriceForm.value.priceChangeType === 'percent') {
-          // 百分比调整模式：基于当前价格计算
-          const percentValue = parseFloat(batchChangePriceForm.value.percentValue)
-          if (isNaN(percentValue) || percentValue <= 0) {
-            throw new Error('请输入有效的百分比')
+            newPrice: newPrice.toFixed(2)
           }
-
-          priceUpdates = selectedItems.value.map(item => {
-            const currentPrice = parseFloat(item.sale_price)
-            let newPrice
-            if (batchChangePriceForm.value.percentType === 'increase') {
-              newPrice = currentPrice * (1 + percentValue / 100)
-            } else {
-              newPrice = currentPrice * (1 - percentValue / 100)
-            }
-            return {
-              id: item.id || item.commodity_id,
-              newPrice: newPrice.toFixed(2)
-            }
-          })
-        }
+        })
 
         // 调用批量改价API
         const response = await axios.post(
@@ -996,6 +1108,46 @@ export default {
         ElMessage.error('批量改价失败: ' + error.message)
       } finally {
         updating.value = false
+      }
+    }
+
+    // 自动填充批量改价价格（使用市价-0.01）
+    const autoFillBatchPrices = async () => {
+      try {
+        autoFillLoading.value = true
+        let filledCount = 0
+        let noDataCount = 0
+
+        // 遍历每个选中的商品，使用 reference_price 填充价格
+        selectedItems.value.forEach((item, index) => {
+          if (item.reference_price) {
+            // 从 reference_price 中提取数字（格式如 "¥239"）
+            const match = item.reference_price.match(/[\d.]+/)
+            if (match) {
+              const referencePrice = parseFloat(match[0])
+              // 市价减0.01
+              const fillPrice = Math.max(0.01, referencePrice - 0.01)
+              batchChangePriceForm.value.individualPrices[index] = fillPrice.toFixed(2)
+              filledCount++
+            } else {
+              noDataCount++
+            }
+          } else {
+            noDataCount++
+          }
+        })
+
+        if (filledCount > 0) {
+          ElMessage.success(`已自动填充 ${filledCount} 件物品的价格（市价-0.01）`)
+        }
+        if (noDataCount > 0) {
+          ElMessage.warning(`有 ${noDataCount} 件物品没有市价数据`)
+        }
+      } catch (error) {
+        console.error('[自动填充价格] 错误:', error)
+        ElMessage.error('自动填充价格失败: ' + error.message)
+      } finally {
+        autoFillLoading.value = false
       }
     }
 
@@ -1161,6 +1313,11 @@ export default {
       return diff > 0 ? 'price-profit' : 'price-loss'
     }
 
+    // 监听交易类型变化，保存到localStorage
+    watch(selectedTradeType, (newValue) => {
+      localStorage.setItem('yyyp_selected_trade_type', newValue)
+    })
+
     onMounted(() => {
       loadAccountList()
     })
@@ -1168,6 +1325,7 @@ export default {
     return {
       loading,
       updating,
+      autoFillLoading,
       onSaleData,
       accountList,
       selectedAccount,
@@ -1196,6 +1354,7 @@ export default {
       handleReset,
       handleUpdatePrice,
       validatePriceInput,
+      setMarketPrice,
       confirmUpdatePrice,
       confirmRentPriceUpdate,
       handleRemoveFromSale,
@@ -1221,8 +1380,10 @@ export default {
       getPriceDiffClass,
       getTradeTypeCount,
       handleTradeTypeChange,
+      handleOfferCountUpdate,
       batchChangePriceDialogVisible,
-      batchChangePriceForm
+      batchChangePriceForm,
+      autoFillBatchPrices
     }
   }
 }

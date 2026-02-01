@@ -5,6 +5,14 @@
       <div class="offer-list-section">
         <div class="offer-list-header">
           <h3>我出售的</h3>
+          <el-button
+            v-if="sellOrders.length > 0"
+            type="primary"
+            size="small"
+            @click="handleBatchProcessSell"
+          >
+            批量处理
+          </el-button>
         </div>
         <div class="offer-list-content" v-loading="loading">
           <div
@@ -43,12 +51,14 @@
                   <el-tag v-if="item.weapon_type" size="small" type="info">
                     {{ item.weapon_type }}
                   </el-tag>
+                  <el-tag v-if="item.order_type" size="small" type="warning">
+                    {{ getOrderTypeLabel(item.order_type) }}
+                  </el-tag>
                 </div>
               </div>
             </div>
             <div class="offer-item-right">
               <div class="offer-countdown">
-                <div class="countdown-label">剩余时间</div>
                 <div class="countdown-value" :class="{ 'countdown-expired': item.remaining_seconds <= 0 }">
                   {{ formatCountdown(item.remaining_seconds) }}
                 </div>
@@ -56,10 +66,11 @@
               </div>
               <div class="offer-buttons">
                 <el-button
-                  v-for="button in item.buttons"
+                  v-for="button in getSortedButtons(item.buttons)"
                   :key="button.type"
                   :type="button.action === 'confirm' ? 'success' : 'primary'"
                   size="small"
+                  :disabled="button.name === '手动确认'"
                   @click.stop="handleOfferButton(item, button)"
                   :style="{
                     backgroundColor: button.fill_color || undefined,
@@ -81,6 +92,14 @@
       <div class="offer-list-section">
         <div class="offer-list-header">
           <h3>我收货的</h3>
+          <el-button
+            v-if="buyOrders.length > 0"
+            type="primary"
+            size="small"
+            @click="handleBatchProcessBuy"
+          >
+            批量处理
+          </el-button>
         </div>
         <div class="offer-list-content" v-loading="loading">
           <div
@@ -119,12 +138,14 @@
                   <el-tag v-if="item.weapon_type" size="small" type="info">
                     {{ item.weapon_type }}
                   </el-tag>
+                  <el-tag v-if="item.order_type" size="small" type="warning">
+                    {{ getOrderTypeLabel(item.order_type) }}
+                  </el-tag>
                 </div>
               </div>
             </div>
             <div class="offer-item-right">
               <div class="offer-countdown">
-                <div class="countdown-label">剩余时间</div>
                 <div class="countdown-value" :class="{ 'countdown-expired': item.remaining_seconds <= 0 }">
                   {{ formatCountdown(item.remaining_seconds) }}
                 </div>
@@ -132,10 +153,11 @@
               </div>
               <div class="offer-buttons">
                 <el-button
-                  v-for="button in item.buttons"
+                  v-for="button in getSortedButtons(item.buttons)"
                   :key="button.type"
                   :type="button.action === 'confirm' ? 'success' : 'primary'"
                   size="small"
+                  :disabled="button.name === '手动确认'"
                   @click.stop="handleOfferButton(item, button)"
                   :style="{
                     backgroundColor: button.fill_color || undefined,

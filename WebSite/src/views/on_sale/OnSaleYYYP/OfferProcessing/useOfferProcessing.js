@@ -1,5 +1,5 @@
 import { ref, watch, onMounted, onUnmounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
 import { apiUrls } from '@/config/api.js'
 
@@ -11,7 +11,8 @@ export default {
       required: true
     }
   },
-  setup(props) {
+  emits: ['update:count'],
+  setup(props, { emit }) {
     const loading = ref(false)
     const sellOrders = ref([])
     const buyOrders = ref([])
@@ -106,6 +107,7 @@ export default {
               // 报价特有字段
               offer_id: order.offer_id,
               offer_type: order.offer_type,
+              order_type: order.order_type,  // 交易类型 (1=出租, 2=出售)
               order_status: order.order_status,
               countdown_desc: order.countdown_desc,
               countdown_timestamp: order.countdown_timestamp,
@@ -168,6 +170,7 @@ export default {
               // 报价特有字段
               offer_id: order.offer_id,
               offer_type: order.offer_type,
+              order_type: order.order_type,  // 交易类型 (1=出租, 2=出售)
               order_status: order.order_status,
               countdown_desc: order.countdown_desc,
               countdown_timestamp: order.countdown_timestamp,
@@ -232,9 +235,14 @@ export default {
           const totalCount = sellOrders.value.length + buyOrders.value.length
           ElMessage.success(`加载成功，共 ${totalCount} 个待处理报价（出售: ${sellOrders.value.length}, 收货: ${buyOrders.value.length}）`)
         }
+
+        // 发送总数量给父组件
+        const totalCount = sellOrders.value.length + buyOrders.value.length
+        emit('update:count', totalCount)
       } catch (error) {
         console.error('加载报价订单失败:', error)
         ElMessage.error('加载失败: ' + error.message)
+        emit('update:count', 0)
       } finally {
         loading.value = false
       }
@@ -268,6 +276,177 @@ export default {
       }
     }
 
+    // 批量处理我出售的报价
+    const handleBatchProcessSell = async () => {
+      if (sellOrders.value.length === 0) {
+        ElMessage.warning('没有待处理的出售报价')
+        return
+      }
+
+      try {
+        await ElMessageBox.confirm(
+          `确定要批量处理 ${sellOrders.value.length} 个出售报价吗？`,
+          '批量处理确认',
+          {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        )
+
+        loading.value = true
+        let successCount = 0
+        let failCount = 0
+
+        for (const item of sellOrders.value) {
+          // 找到第一个可操作的按钮（通常是"确认"或"接受"按钮）
+          const confirmButton = item.buttons?.find(btn => btn.action === 'confirm' || btn.action === 'accept')
+
+          if (confirmButton) {
+            try {
+              const response = await axios.post(apiUrls.yyypProcessOfferButton(), {
+                steamId: props.steamId,
+                action: confirmButton.action,
+                offerId: confirmButton.offer_id,
+                orderNo: confirmButton.order_no
+              })
+
+              if (response.data && response.data.success) {
+                successCount++
+              } else {
+                failCount++
+              }
+            } catch (error) {
+              console.error('处理单个报价失败:', error)
+              failCount++
+            }
+          }
+        }
+
+        loading.value = false
+
+        if (successCount > 0) {
+          ElMessage.success(`批量处理完成：成功 ${successCount} 个${failCount > 0 ? `，失败 ${failCount} 个` : ''}`)
+          // 重新加载数据
+          await loadOfferOrders()
+        } else {
+          ElMessage.error('批量处理失败')
+        }
+      } catch (error) {
+        if (error !== 'cancel') {
+          console.error('批量处理失败:', error)
+          ElMessage.error('批量处理失败: ' + error.message)
+        }
+        loading.value = false
+      }
+    }
+
+    // 批量处理我收货的报价
+    const handleBatchProcessBuy = async () => {
+      if (buyOrders.value.length === 0) {
+        ElMessage.warning('没有待处理的收货报价')
+        return
+      }
+
+      try {
+        await ElMessageBox.confirm(
+          `确定要批量处理 ${buyOrders.value.length} 个收货报价吗？`,
+          '批量处理确认',
+          {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        )
+
+        loading.value = true
+        let successCount = 0
+        let failCount = 0
+
+        for (const item of buyOrders.value) {
+          // 找到第一个可操作的按钮（通常是"确认"或"接受"按钮）
+          const confirmButton = item.buttons?.find(btn => btn.action === 'confirm' || btn.action === 'accept')
+
+          if (confirmButton) {
+            try {
+              const response = await axios.post(apiUrls.yyypProcessOfferButton(), {
+                steamId: props.steamId,
+                action: confirmButton.action,
+                offerId: confirmButton.offer_id,
+                orderNo: confirmButton.order_no
+              })
+
+              if (response.data && response.data.success) {
+                successCount++
+              } else {
+                failCount++
+              }
+            } catch (error) {
+              console.error('处理单个报价失败:', error)
+              failCount++
+            }
+          }
+        }
+
+        loading.value = false
+
+        if (successCount > 0) {
+          ElMessage.success(`批量处理完成：成功 ${successCount} 个${failCount > 0 ? `，失败 ${failCount} 个` : ''}`)
+          // 重新加载数据
+          await loadOfferOrders()
+        } else {
+          ElMessage.error('批量处理失败')
+        }
+      } catch (error) {
+        if (error !== 'cancel') {
+          console.error('批量处理失败:', error)
+          ElMessage.error('批量处理失败: ' + error.message)
+        }
+        loading.value = false
+      }
+    }
+
+    // 获取交易类型标签
+    const getOrderTypeLabel = (orderType) => {
+      if (orderType === 1) {
+        return '出租'
+      } else if (orderType === 2) {
+        return '出售'
+      } else {
+        // 其他值直接显示
+        return orderType
+      }
+    }
+
+    // 对按钮进行排序，将"确认报价"放在前面，"手动确认"放在后面
+    const getSortedButtons = (buttons) => {
+      if (!buttons || buttons.length === 0) {
+        return []
+      }
+
+      // 复制数组以避免修改原数组
+      const sortedButtons = [...buttons]
+
+      // 排序规则：
+      // 1. "确认报价" 或 action === 'confirm' 的按钮排在前面
+      // 2. "手动确认" 按钮排在后面
+      // 3. 其他按钮保持原有顺序
+      sortedButtons.sort((a, b) => {
+        const aIsConfirm = a.name === '确认报价' || a.action === 'confirm'
+        const bIsConfirm = b.name === '确认报价' || b.action === 'confirm'
+        const aIsManual = a.name === '手动确认'
+        const bIsManual = b.name === '手动确认'
+
+        if (aIsConfirm && !bIsConfirm) return -1
+        if (!aIsConfirm && bIsConfirm) return 1
+        if (aIsManual && !bIsManual) return 1
+        if (!aIsManual && bIsManual) return -1
+        return 0
+      })
+
+      return sortedButtons
+    }
+
     // 监听 steamId 变化，重新加载数据
     watch(() => props.steamId, (newSteamId) => {
       if (newSteamId) {
@@ -286,7 +465,11 @@ export default {
       sellOrders,
       buyOrders,
       formatCountdown,
-      handleOfferButton
+      handleOfferButton,
+      handleBatchProcessSell,
+      handleBatchProcessBuy,
+      getOrderTypeLabel,
+      getSortedButtons
     }
   }
 }

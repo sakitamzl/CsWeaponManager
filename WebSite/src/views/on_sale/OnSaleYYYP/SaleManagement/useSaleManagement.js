@@ -140,6 +140,15 @@ export default {
       return diff > 0 ? 'price-profit' : 'price-loss'
     }
 
+    // 获取售价的颜色类：比购入大显示红色，小显示绿色，相等白色
+    const getSalePriceClass = (salePrice, buyPrice) => {
+      if (!salePrice || !buyPrice) return ''
+      const sale = parseFloat(salePrice)
+      const buy = parseFloat(buyPrice)
+      if (sale === buy) return 'price-equal'
+      return sale > buy ? 'price-loss' : 'price-profit'
+    }
+
     // 多选相关
     const isItemSelected = (itemId) => {
       return props.selectedItems.some(item => item.id === itemId)
@@ -186,6 +195,7 @@ export default {
       getPlatformTagType,
       formatOnSaleTime,
       getPriceDiffClass,
+      getSalePriceClass,
       isItemSelected,
       handleCardClick,
       handleUpdatePrice,

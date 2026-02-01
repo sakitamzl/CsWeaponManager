@@ -114,7 +114,7 @@
           <p class="stat-number">¥{{ onSaleStats.avgPrice }}</p>
         </div>
         <div class="card">
-          <h3>预期收益</h3>
+          <h3>收益</h3>
           <p class="stat-number" :class="onSaleStats.expectedProfit >= 0 ? 'price-profit' : 'price-loss'">
             {{ onSaleStats.expectedProfit >= 0 ? '+' : '' }}¥{{ onSaleStats.expectedProfit }}
           </p>
@@ -127,6 +127,7 @@
       v-if="selectedTradeType === 'offer'"
       :steam-id="accountList.find(acc => acc.id === selectedAccount)?.steam_id || ''"
       :key="selectedAccount"
+      @update:count="handleOfferCountUpdate"
     />
 
     <!-- 已租出列表显示 -->
@@ -208,27 +209,51 @@
           />
           <div class="item-info">
             <div class="item-name">{{ getCardTitle(selectedItem) }}</div>
-            <div class="current-price">当前售价: ¥{{ parseFloat(selectedItem.sale_price).toFixed(2) }}</div>
+            <div class="price-info-row">
+              <span class="current-price">当前售价: ¥{{ parseFloat(selectedItem.sale_price).toFixed(2) }}</span>
+              <span class="market-price" v-if="selectedItem.reference_price">市价: {{ selectedItem.reference_price }}</span>
+            </div>
+            <div class="wear-info-single" v-if="selectedItem.wear_value !== null && selectedItem.wear_value !== undefined">
+              <div class="float-bar">
+                <div class="float-segment fn" title="崭新出厂 (0.00 - 0.07)"></div>
+                <div class="float-segment mw" title="略有磨损 (0.07 - 0.15)"></div>
+                <div class="float-segment ft" title="久经沙场 (0.15 - 0.38)"></div>
+                <div class="float-segment ww" title="破损不堪 (0.38 - 0.45)"></div>
+                <div class="float-segment bs" title="战痕累累 (0.45 - 1.00)"></div>
+                <div
+                  class="float-pointer"
+                  :style="{ left: `${parseFloat(selectedItem.wear_value) * 100}%` }"
+                  :title="`磨损值: ${selectedItem.wear_value}`"
+                ></div>
+              </div>
+              <div class="float-value">{{ selectedItem.wear_value }}</div>
+            </div>
           </div>
         </div>
-        <el-form :model="updatePriceForm" label-width="80px">
-          <el-form-item label="新售价">
-            <el-input
-              v-model="updatePriceForm.newPrice"
-              placeholder="请输入新的售价（如：200.11）"
-              @input="validatePriceInput"
-            >
-              <template #prepend>¥</template>
-            </el-input>
-            <div style="color: #909399; font-size: 12px; margin-top: 4px;">
-              请输入正数，最多保留两位小数
-            </div>
-          </el-form-item>
-        </el-form>
+        <div class="price-input-row">
+          <el-input
+            v-model="updatePriceForm.newPrice"
+            placeholder="请输入新的售价（如：200.11）"
+            @input="validatePriceInput"
+            class="price-input-single"
+          >
+            <template #prepend>¥</template>
+          </el-input>
+          <el-button
+            v-if="selectedItem && selectedItem.reference_price"
+            type="success"
+            @click="setMarketPrice"
+            class="auto-price-button"
+          >
+            一键定价
+          </el-button>
+        </div>
       </div>
       <template #footer>
-        <el-button @click="updatePriceDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmUpdatePrice" :loading="updating">确定</el-button>
+        <div class="dialog-footer-simple">
+          <el-button @click="updatePriceDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="confirmUpdatePrice" :loading="updating">确定</el-button>
+        </div>
       </template>
     </el-dialog>
 
@@ -258,118 +283,81 @@
     <!-- 批量改价弹窗 -->
     <el-dialog
       v-model="batchChangePriceDialogVisible"
-      title="批量改价"
       width="800px"
       :close-on-click-modal="false"
       class="batch-change-price-dialog"
     >
       <div class="batch-change-price-content">
-        <div class="selected-items-summary">
-          <p>已选择 <strong>{{ selectedItems.length }}</strong> 件物品</p>
-          <p class="hint-text">交易类型: {{ selectedItems[0]?.trade_type === 'sale' ? '售卖' : (selectedItems[0]?.trade_type === 'lease' ? '租赁' : '转租') }}</p>
-        </div>
-
-        <el-form :model="batchChangePriceForm" label-width="120px">
-          <el-form-item label="改价方式">
-            <el-radio-group v-model="batchChangePriceForm.priceChangeType">
-              <el-radio label="individual">分开输入</el-radio>
-              <el-radio label="fixed">固定价格</el-radio>
-              <el-radio label="percent">百分比调整</el-radio>
-            </el-radio-group>
-          </el-form-item>
-
-          <!-- 分开输入模式 - 显示所有商品列表 -->
-          <div v-if="batchChangePriceForm.priceChangeType === 'individual'" class="individual-price-list">
-            <div class="items-list-container">
-              <div
-                v-for="(item, index) in selectedItems"
-                :key="item.id || item.assetid"
-                class="batch-item-card"
-              >
-                <div class="item-info-section">
-                  <img
-                    v-if="getWeaponImage(item.steam_hash_name)"
-                    :src="getWeaponImage(item.steam_hash_name)"
-                    :alt="item.item_name"
-                    class="item-thumbnail"
-                  />
-                  <div class="item-details">
-                    <div class="item-name-text">{{ getCardTitle(item) }}</div>
-                    <div class="current-price-text">当前售价: ¥{{ parseFloat(item.sale_price).toFixed(2) }}</div>
+        <!-- 商品列表 -->
+        <div class="individual-price-list">
+          <div class="items-list-container">
+            <div
+              v-for="(item, index) in selectedItems"
+              :key="item.id || item.assetid"
+              class="batch-item-card"
+            >
+              <div class="item-info-section">
+                <img
+                  v-if="getWeaponImage(item.steam_hash_name)"
+                  :src="getWeaponImage(item.steam_hash_name)"
+                  :alt="item.item_name"
+                  class="item-thumbnail"
+                />
+                <div class="item-details">
+                  <div class="item-name-text">{{ getCardTitle(item) }}</div>
+                  <div class="current-price-text">
+                    当前售价: ¥{{ parseFloat(item.sale_price).toFixed(2) }}
+                    <span class="reference-price-inline" v-if="item.reference_price">市价: {{ item.reference_price }}</span>
+                  </div>
+                  <div class="wear-info" v-if="item.wear_value !== null && item.wear_value !== undefined">
+                    <div class="float-bar">
+                      <div class="float-segment fn" title="崭新出厂 (0.00 - 0.07)"></div>
+                      <div class="float-segment mw" title="略有磨损 (0.07 - 0.15)"></div>
+                      <div class="float-segment ft" title="久经沙场 (0.15 - 0.38)"></div>
+                      <div class="float-segment ww" title="破损不堪 (0.38 - 0.45)"></div>
+                      <div class="float-segment bs" title="战痕累累 (0.45 - 1.00)"></div>
+                      <div
+                        class="float-pointer"
+                        :style="{ left: `${parseFloat(item.wear_value) * 100}%` }"
+                        :title="`磨损值: ${item.wear_value}`"
+                      ></div>
+                    </div>
+                    <div class="float-value">{{ item.wear_value }}</div>
                   </div>
                 </div>
-                <div class="price-input-section">
-                  <el-input
-                    v-model="batchChangePriceForm.individualPrices[index]"
-                    placeholder="请输入新售价"
-                    class="price-input"
-                  >
-                    <template #prepend>¥</template>
-                  </el-input>
-                </div>
               </div>
-            </div>
-          </div>
-
-          <!-- 固定价格模式 -->
-          <el-form-item
-            v-if="batchChangePriceForm.priceChangeType === 'fixed'"
-            label="统一价格"
-          >
-            <el-input
-              v-model="batchChangePriceForm.fixedPrice"
-              placeholder="请输入新的售价（如：200.11）"
-            >
-              <template #prepend>¥</template>
-            </el-input>
-            <div style="color: #909399; font-size: 12px; margin-top: 4px;">
-              所有选中物品将被设置为相同价格
-            </div>
-          </el-form-item>
-
-          <!-- 百分比调整模式 -->
-          <template v-if="batchChangePriceForm.priceChangeType === 'percent'">
-            <el-form-item label="调整方式">
-              <el-radio-group v-model="batchChangePriceForm.percentType">
-                <el-radio label="increase">价格增加</el-radio>
-                <el-radio label="decrease">价格减少</el-radio>
-              </el-radio-group>
-            </el-form-item>
-            <el-form-item label="调整百分比">
-              <el-input
-                v-model="batchChangePriceForm.percentValue"
-                placeholder="请输入百分比（如：10）"
-              >
-                <template #append>%</template>
-              </el-input>
-              <div style="color: #909399; font-size: 12px; margin-top: 4px;">
-                基于当前价格 {{ batchChangePriceForm.percentType === 'increase' ? '增加' : '减少' }} 指定百分比
+              <div class="price-input-section">
+                <el-input
+                  v-model="batchChangePriceForm.individualPrices[index]"
+                  placeholder="请输入新售价"
+                  class="price-input"
+                >
+                  <template #prepend>¥</template>
+                </el-input>
               </div>
-            </el-form-item>
-          </template>
-        </el-form>
-
-        <!-- 预览价格变化 -->
-        <div class="price-preview" v-if="batchChangePriceForm.priceChangeType === 'percent' && batchChangePriceForm.percentValue">
-          <el-divider>价格预览</el-divider>
-          <div class="preview-list">
-            <div v-for="item in selectedItems.slice(0, 3)" :key="item.id" class="preview-item">
-              <span class="item-name">{{ getCardTitle(item).substring(0, 20) }}...</span>
-              <span class="price-change">
-                ¥{{ item.sale_price }} → ¥{{ calculateNewPrice(item.sale_price) }}
-              </span>
-            </div>
-            <div v-if="selectedItems.length > 3" class="more-items">
-              还有 {{ selectedItems.length - 3 }} 件物品...
             </div>
           </div>
         </div>
       </div>
       <template #footer>
-        <el-button @click="batchChangePriceDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmBatchChangePrice" :loading="updating">
-          确定改价
-        </el-button>
+        <div class="dialog-footer-custom">
+          <div class="footer-left">
+            <el-button
+              size="default"
+              type="success"
+              @click="autoFillBatchPrices"
+              :loading="autoFillLoading"
+            >
+              自动填充
+            </el-button>
+          </div>
+          <div class="footer-right">
+            <el-button @click="batchChangePriceDialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="confirmBatchChangePrice" :loading="updating">
+              确定改价
+            </el-button>
+          </div>
+        </div>
       </template>
     </el-dialog>
 
@@ -425,7 +413,7 @@
                 </div>
                 <div class="preview-price-row" v-if="previewItem.buy_price">
                   <div class="preview-price-item">
-                    <span class="preview-price-label">预期收益:</span>
+                    <span class="preview-price-label">收益:</span>
                     <span
                       class="preview-price-value"
                       :class="getPriceDiffClass(previewItem.sale_price, previewItem.buy_price)"
