@@ -17,6 +17,8 @@ export default {
     const sellOrders = ref([])
     const buyOrders = ref([])
     const countdownTimers = ref(new Map())
+    // 存储每个订单的token信息，key为order_no
+    const orderTokenInfo = ref(new Map())
 
     // 格式化倒计时显示
     const formatCountdown = (seconds) => {
@@ -109,6 +111,7 @@ export default {
               offer_type: order.offer_type,
               order_type: order.order_type,  // 交易类型 (1=出租, 2=出售)
               order_status: order.order_status,
+              order_sub_status: order.order_sub_status,  // 订单子状态
               countdown_desc: order.countdown_desc,
               countdown_timestamp: order.countdown_timestamp,
               current_time: order.current_time,
@@ -172,6 +175,7 @@ export default {
               offer_type: order.offer_type,
               order_type: order.order_type,  // 交易类型 (1=出租, 2=出售)
               order_status: order.order_status,
+              order_sub_status: order.order_sub_status,  // 订单子状态
               countdown_desc: order.countdown_desc,
               countdown_timestamp: order.countdown_timestamp,
               current_time: order.current_time,
@@ -260,11 +264,27 @@ export default {
           steamId: props.steamId,
           action: button.action,
           offerId: button.offer_id,
-          orderNo: button.order_no
+          orderNo: button.order_no,
+          offerType: item.offer_type,
+          orderSubStatus: item.order_sub_status,
+          orderType: item.order_type
         })
 
         if (response.data && response.data.success) {
           ElMessage.success(button.name + '成功')
+
+          // 如果返回了token信息，保存并显示给用户
+          if (response.data.data && response.data.data.token_info) {
+            const tokenInfo = response.data.data.token_info
+            console.log('Token确认信息:', tokenInfo)
+
+            // 将token信息存储到Map中，使用order_no作为key
+            orderTokenInfo.value.set(item.order_no, {
+              ...tokenInfo,
+              timestamp: Date.now()  // 添加时间戳用于显示
+            })
+          }
+
           // 重新加载数据
           await loadOfferOrders()
         } else {
@@ -308,7 +328,10 @@ export default {
                 steamId: props.steamId,
                 action: confirmButton.action,
                 offerId: confirmButton.offer_id,
-                orderNo: confirmButton.order_no
+                orderNo: confirmButton.order_no,
+                offerType: item.offer_type,
+                orderSubStatus: item.order_sub_status,
+                orderType: item.order_type
               })
 
               if (response.data && response.data.success) {
@@ -373,7 +396,10 @@ export default {
                 steamId: props.steamId,
                 action: confirmButton.action,
                 offerId: confirmButton.offer_id,
-                orderNo: confirmButton.order_no
+                orderNo: confirmButton.order_no,
+                offerType: item.offer_type,
+                orderSubStatus: item.order_sub_status,
+                orderType: item.order_type
               })
 
               if (response.data && response.data.success) {
@@ -460,6 +486,11 @@ export default {
       stopAllCountdowns()
     })
 
+    // 获取订单的token信息
+    const getTokenInfo = (orderNo) => {
+      return orderTokenInfo.value.get(orderNo)
+    }
+
     return {
       loading,
       sellOrders,
@@ -469,7 +500,9 @@ export default {
       handleBatchProcessSell,
       handleBatchProcessBuy,
       getOrderTypeLabel,
-      getSortedButtons
+      getSortedButtons,
+      orderTokenInfo,
+      getTokenInfo
     }
   }
 }

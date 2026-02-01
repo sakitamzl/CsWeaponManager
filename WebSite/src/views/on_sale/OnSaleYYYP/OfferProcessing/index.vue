@@ -32,7 +32,17 @@
                 <div v-else class="offer-image-placeholder">无图</div>
               </div>
               <div class="offer-item-info">
-                <div class="offer-item-name">{{ item.item_name }}</div>
+                <div class="offer-item-name">
+                  <el-tag
+                    v-if="item.order_type"
+                    size="small"
+                    class="order-type-tag"
+                    :class="{ 'tag-rent': item.order_type === 1, 'tag-sell': item.order_type === 2 }"
+                  >
+                    {{ getOrderTypeLabel(item.order_type) }}
+                  </el-tag>
+                  {{ item.item_name }}
+                </div>
                 <div class="offer-item-details">
                   <el-tag
                     v-if="item.rarity"
@@ -51,15 +61,44 @@
                   <el-tag v-if="item.weapon_type" size="small" type="info">
                     {{ item.weapon_type }}
                   </el-tag>
-                  <el-tag v-if="item.order_type" size="small" type="warning">
-                    {{ getOrderTypeLabel(item.order_type) }}
-                  </el-tag>
+                </div>
+              </div>
+            </div>
+            <!-- Token确认信息 - 中间区域 -->
+            <div v-if="getTokenInfo(item.order_no)" class="offer-item-center">
+              <div class="token-info-card" :class="{ 'token-card-rent': item.order_type === 1, 'token-card-sell': item.order_type === 2 }">
+                <div class="token-info-body">
+                  <img
+                    v-if="getTokenInfo(item.order_no).avatarfull"
+                    :src="getTokenInfo(item.order_no).avatarfull"
+                    alt="头像"
+                    class="token-avatar"
+                  />
+                  <div class="token-user-details">
+                    <div class="token-username">{{ getTokenInfo(item.order_no).personaName || 'NotTGn' }}</div>
+                    <div class="token-badges">
+                      <div class="token-badge-circle">
+                        <span>{{ getTokenInfo(item.order_no).playerLevel || '9' }}</span>
+                      </div>
+                      <div class="token-badge-square">
+                        <span>{{ getTokenInfo(item.order_no).gameTime || '7' }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="token-join-date">
+                  Steam加入时间：{{ getTokenInfo(item.order_no).joinSteamDate || '2018-12-22' }}
                 </div>
               </div>
             </div>
             <div class="offer-item-right">
               <div class="offer-countdown">
-                <div class="countdown-value" :class="{ 'countdown-expired': item.remaining_seconds <= 0 }">
+                <div class="countdown-value" :class="{
+                  'countdown-danger': item.remaining_seconds > 0 && item.remaining_seconds < 3600,
+                  'countdown-warning': item.remaining_seconds >= 3600 && item.remaining_seconds < 21600,
+                  'countdown-normal': item.remaining_seconds >= 21600,
+                  'countdown-expired': item.remaining_seconds <= 0
+                }">
                   {{ formatCountdown(item.remaining_seconds) }}
                 </div>
                 <div class="countdown-desc">{{ item.end_countdown_desc }}</div>
@@ -119,7 +158,17 @@
                 <div v-else class="offer-image-placeholder">无图</div>
               </div>
               <div class="offer-item-info">
-                <div class="offer-item-name">{{ item.item_name }}</div>
+                <div class="offer-item-name">
+                  <el-tag
+                    v-if="item.order_type"
+                    size="small"
+                    class="order-type-tag"
+                    :class="{ 'tag-rent': item.order_type === 1, 'tag-sell': item.order_type === 2 }"
+                  >
+                    {{ getOrderTypeLabel(item.order_type) }}
+                  </el-tag>
+                  {{ item.item_name }}
+                </div>
                 <div class="offer-item-details">
                   <el-tag
                     v-if="item.rarity"
@@ -138,15 +187,44 @@
                   <el-tag v-if="item.weapon_type" size="small" type="info">
                     {{ item.weapon_type }}
                   </el-tag>
-                  <el-tag v-if="item.order_type" size="small" type="warning">
-                    {{ getOrderTypeLabel(item.order_type) }}
-                  </el-tag>
+                </div>
+              </div>
+            </div>
+            <!-- Token确认信息 - 中间区域 -->
+            <div v-if="getTokenInfo(item.order_no)" class="offer-item-center">
+              <div class="token-info-card" :class="{ 'token-card-rent': item.order_type === 1, 'token-card-sell': item.order_type === 2 }">
+                <div class="token-info-body">
+                  <img
+                    v-if="getTokenInfo(item.order_no).avatarfull"
+                    :src="getTokenInfo(item.order_no).avatarfull"
+                    alt="头像"
+                    class="token-avatar"
+                  />
+                  <div class="token-user-details">
+                    <div class="token-username">{{ getTokenInfo(item.order_no).personaName || 'NotTGn' }}</div>
+                    <div class="token-badges">
+                      <div class="token-badge-circle">
+                        <span>{{ getTokenInfo(item.order_no).playerLevel || '9' }}</span>
+                      </div>
+                      <div class="token-badge-square">
+                        <span>{{ getTokenInfo(item.order_no).gameTime || '7' }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="token-join-date">
+                  Steam加入时间：{{ getTokenInfo(item.order_no).joinSteamDate || '2018-12-22' }}
                 </div>
               </div>
             </div>
             <div class="offer-item-right">
               <div class="offer-countdown">
-                <div class="countdown-value" :class="{ 'countdown-expired': item.remaining_seconds <= 0 }">
+                <div class="countdown-value" :class="{
+                  'countdown-danger': item.remaining_seconds > 0 && item.remaining_seconds < 3600,
+                  'countdown-warning': item.remaining_seconds >= 3600 && item.remaining_seconds < 21600,
+                  'countdown-normal': item.remaining_seconds >= 21600,
+                  'countdown-expired': item.remaining_seconds <= 0
+                }">
                   {{ formatCountdown(item.remaining_seconds) }}
                 </div>
                 <div class="countdown-desc">{{ item.end_countdown_desc }}</div>
