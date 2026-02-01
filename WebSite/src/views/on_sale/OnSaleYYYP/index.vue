@@ -137,6 +137,13 @@
       :key="selectedAccount"
     />
 
+    <!-- 秒到账列表显示 -->
+    <InstantPayment
+      v-if="selectedTradeType === 'instant'"
+      :steam-id="accountList.find(acc => acc.id === selectedAccount)?.steam_id || ''"
+      :key="selectedAccount"
+    />
+
     <!-- 租赁管理组件 -->
     <LeaseManagement
       v-if="selectedTradeType === 'lease' || selectedTradeType === 'sublease'"

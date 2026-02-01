@@ -8,6 +8,7 @@ import RentedOut from './RentedOut/index.vue'
 import SaleManagement from './SaleManagement/index.vue'
 import LeaseManagement from './LeaseManagement/index.vue'
 import PresaleManagement from './PresaleManagement/index.vue'
+import InstantPayment from './InstantPayment/index.vue'
 
 export default {
   name: 'OnSale',
@@ -17,7 +18,8 @@ export default {
     RentedOut,
     SaleManagement,
     LeaseManagement,
-    PresaleManagement
+    PresaleManagement,
+    InstantPayment
   },
   setup() {
     const loading = ref(false)
@@ -223,8 +225,8 @@ export default {
         return
       }
 
-      // 报价处理和已租出类型由各自组件加载数据，这里不需要处理
-      if (selectedTradeType.value === 'offer' || selectedTradeType.value === 'rented_out') {
+      // 报价处理、已租出、秒到账类型由各自组件加载数据，这里不需要处理
+      if (selectedTradeType.value === 'offer' || selectedTradeType.value === 'rented_out' || selectedTradeType.value === 'instant') {
         return
       }
 
@@ -1153,7 +1155,92 @@ export default {
 
     // 批量下架商品
     const handleBatchRemoveFromSale = async () => {
-      // 实现代码省略...
+      if (selectedItems.value.length === 0) {
+        ElMessage.warning('请先选择要下架的物品')
+        return
+      }
+
+      // 判断选中物品的交易类型
+      const firstItem = selectedItems.value[0]
+      const actionText = firstItem.trade_type === 'sublease' ? '取消转租' : '下架'
+
+      try {
+        await ElMessageBox.confirm(
+          `确定要批量${actionText} ${selectedItems.value.length} 件物品吗？`,
+          `批量${actionText}确认`,
+          {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        )
+
+        loading.value = true
+
+        // 根据交易类型选择不同的API
+        let response
+        const steamId = accountList.value.find(acc => acc.id === selectedAccount.value)?.steam_id || ''
+
+        if (firstItem.trade_type === 'sublease') {
+          // 批量取消转租
+          const orderNoList = selectedItems.value.map(item => item.order_no || item.id)
+          response = await axios.post(apiUrls.yyypCancelSublease(), {
+            steamId: steamId,
+            orderNoList: orderNoList
+          })
+        } else if (firstItem.trade_type === 'lease') {
+          // 批量下架租赁物品
+          const ids = selectedItems.value.map(item => item.id)
+          response = await axios.post(apiUrls.yyypOffShelf(), {
+            steamId: steamId,
+            ids: ids
+          })
+        } else {
+          // 批量下架其他类型物品（逐个调用API）
+          let successCount = 0
+          let failCount = 0
+
+          for (const item of selectedItems.value) {
+            try {
+              await axios.post(apiUrls.removeFromSale(), {
+                id: item.id,
+                account_id: selectedAccount.value
+              })
+              successCount++
+            } catch (error) {
+              console.error(`${actionText}失败:`, item.item_name, error)
+              failCount++
+            }
+          }
+
+          loading.value = false
+
+          if (successCount > 0) {
+            ElMessage.success(`批量${actionText}完成：成功 ${successCount} 件${failCount > 0 ? `，失败 ${failCount} 件` : ''}`)
+            selectedItems.value = []
+            await loadOnSaleData(selectedTradeType.value)
+          } else {
+            ElMessage.error(`批量${actionText}失败`)
+          }
+          return
+        }
+
+        // 处理悠悠有品API的响应
+        if (response.data && response.data.success) {
+          ElMessage.success(`批量${actionText}成功`)
+          selectedItems.value = []
+          await loadOnSaleData(selectedTradeType.value)
+        } else {
+          ElMessage.error(response.data?.message || `批量${actionText}失败`)
+        }
+      } catch (error) {
+        if (error !== 'cancel') {
+          console.error(`批量${actionText}失败:`, error)
+          ElMessage.error(`批量${actionText}失败: ` + error.message)
+        }
+      } finally {
+        loading.value = false
+      }
     }
 
     // 打开预览
