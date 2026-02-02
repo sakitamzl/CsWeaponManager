@@ -67,9 +67,19 @@
       <div class="main-content-area">
 
       <!-- 统一的工具区域 -->
-      <div class="unified-tool-section" :class="{ collapsed: isConfigSectionsCollapsed }">
+      <div v-if="showConfigForm" class="unified-tool-section" :class="{ collapsed: isConfigSectionsCollapsed }">
         <div class="tool-section-header" @click="toggleConfigSections">
-          <h2 class="section-title">爬取配置</h2>
+          <div class="section-title-group">
+            <h2 class="section-title">爬取配置</h2>
+            <el-tag
+              v-if="crawlForm.searchMode"
+              :type="crawlForm.searchMode === 'by_weapon_id' ? 'success' : 'warning'"
+              size="small"
+              class="search-mode-tag"
+            >
+              {{ crawlForm.searchMode === 'by_weapon_id' ? '按饰品目录查询' : '按价格区间查询' }}
+            </el-tag>
+          </div>
           <el-button type="text" class="collapse-btn">
             <el-icon :size="20">
               <ArrowUp v-if="!isConfigSectionsCollapsed" />
@@ -84,17 +94,17 @@
         <div class="form-container">
           <el-form :model="crawlForm" label-width="120px" ref="crawlFormRef">
             <div class="form-row">
-              <el-form-item label="配置名称" required class="form-item-quarter">
-                <el-input 
-                  v-model="crawlForm.configName" 
+              <el-form-item label="配置名称" required class="form-item-fifth">
+                <el-input
+                  v-model="crawlForm.configName"
                   placeholder="请输入配置名称"
                   clearable
                 />
               </el-form-item>
 
-              <el-form-item label="平台类型" required class="form-item-quarter">
-                <el-select 
-                  v-model="crawlForm.platformType" 
+              <el-form-item label="平台类型" required class="form-item-fifth">
+                <el-select
+                  v-model="crawlForm.platformType"
                   placeholder="选择平台类型"
                   style="width: 100%;"
                   :disabled="!!selectedConfigId || (weaponIdList && weaponIdList.length > 0)"
@@ -105,33 +115,52 @@
                 </el-select>
               </el-form-item>
 
-              <el-form-item label="爬取账号" required class="form-item-quarter">
-                <el-select 
-                  v-model="crawlForm.crawlAccountId" 
+              <el-form-item label="武器类型" class="form-item-fifth">
+                <el-select
+                  v-model="crawlForm.weaponType"
+                  placeholder="选择武器类型"
+                  style="width: 100%;"
+                  multiple
+                  collapse-tags
+                  collapse-tags-tooltip
+                  clearable
+                >
+                  <el-option
+                    v-for="item in weaponTypeOptions"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  />
+                </el-select>
+              </el-form-item>
+
+              <el-form-item label="爬取账号" required class="form-item-fifth">
+                <el-select
+                  v-model="crawlForm.crawlAccountId"
                   placeholder="选择爬取账号"
                   style="width: 100%;"
                   filterable
                 >
-                  <el-option 
-                    v-for="item in filteredSteamIdList" 
-                    :key="item.steamID || item.steam_id" 
-                    :label="`${item.dataName || '未命名'} (${item.steamID || item.steam_id || '无ID'})`" 
+                  <el-option
+                    v-for="item in filteredSteamIdList"
+                    :key="item.steamID || item.steam_id"
+                    :label="`${item.dataName || '未命名'} (${item.steamID || item.steam_id || '无ID'})`"
                     :value="item.steamID || item.steam_id"
                   />
                 </el-select>
               </el-form-item>
 
-              <el-form-item label="购买账号" required class="form-item-quarter">
-                <el-select 
-                  v-model="crawlForm.steamId" 
+              <el-form-item label="购买账号" required class="form-item-fifth">
+                <el-select
+                  v-model="crawlForm.steamId"
                   placeholder="选择购买账号"
                   style="width: 100%;"
                   filterable
                 >
-                  <el-option 
-                    v-for="item in filteredSteamIdList" 
-                    :key="item.steamID || item.steam_id" 
-                    :label="`${item.dataName || '未命名'} (${item.steamID || item.steam_id || '无ID'})`" 
+                  <el-option
+                    v-for="item in filteredSteamIdList"
+                    :key="item.steamID || item.steam_id"
+                    :label="`${item.dataName || '未命名'} (${item.steamID || item.steam_id || '无ID'})`"
                     :value="item.steamID || item.steam_id"
                   />
                 </el-select>
@@ -216,6 +245,24 @@
                 </div>
 
                 <div class="custom-config-field">
+                  <div class="field-label">高光</div>
+                  <div class="field-control">
+                    <el-select
+                      v-model="customConfigForm['高光']"
+                      placeholder="请选择"
+                      style="width: 100px;"
+                    >
+                      <el-option
+                        v-for="option in booleanOptions"
+                        :key="`highlight-${option.value}`"
+                        :label="option.label"
+                        :value="option.value"
+                      />
+                    </el-select>
+                  </div>
+                </div>
+
+                <div class="custom-config-field">
                   <div class="field-label">收益不少于</div>
                   <div class="field-control no-spinner">
                     <el-input
@@ -229,13 +276,14 @@
               </div>
             </el-form-item>
 
-            <el-form-item>
+            <!-- 按饰品目录查询：显示饰品列表 -->
+            <el-form-item v-if="crawlForm.searchMode === 'by_weapon_id'">
               <template #label>
                 <div class="collapsible-label">
                   <span class="label-text" @click="toggleWeaponList">
                     饰品列表 ({{ weaponIdList.length }})
-                    <el-icon 
-                      class="collapse-icon-inline" 
+                    <el-icon
+                      class="collapse-icon-inline"
                       :class="{ 'is-collapsed': isWeaponListCollapsed }"
                     >
                       <ArrowUp v-if="!isWeaponListCollapsed" />
@@ -257,9 +305,9 @@
                     {{ weapon.name }} (ID: {{ weapon.id }})
                   </el-tag>
                 </div>
-                <el-button 
+                <el-button
                   v-if="weaponIdList && weaponIdList.length > 0"
-                  type="danger" 
+                  type="danger"
                   size="small"
                   @click="clearAllWeaponIds"
                   style="margin-left: 10px;"
@@ -267,6 +315,28 @@
                   <el-icon><Delete /></el-icon>
                   一键清空
                 </el-button>
+              </div>
+            </el-form-item>
+
+            <!-- 按价格区间查询：显示价格区间输入 -->
+            <el-form-item v-if="crawlForm.searchMode === 'by_price_range'" label="价格区间">
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <el-input
+                  v-model.number="crawlForm.priceMin"
+                  type="number"
+                  placeholder="最低价格"
+                  class="price-input"
+                  clearable
+                />
+                <span style="color: #909399;">至</span>
+                <el-input
+                  v-model.number="crawlForm.priceMax"
+                  type="number"
+                  placeholder="最高价格"
+                  class="price-input"
+                  clearable
+                />
+                <span style="color: #909399; font-size: 13px;">元</span>
               </div>
             </el-form-item>
           </el-form>
@@ -314,8 +384,9 @@
         </div>
         </div>
 
-        <!-- 搜索饰品组件 -->
-        <WeaponSearch 
+        <!-- 搜索饰品组件：仅在按饰品目录查询模式下显示 -->
+        <WeaponSearch
+          v-if="crawlForm.searchMode === 'by_weapon_id'"
           :platformType="crawlForm.platformType"
           @add-weapon="handleAddWeaponFromSearch"
           @add-all-weapons="handleAddAllWeaponsFromSearch"
@@ -326,8 +397,8 @@
       </div>
       <!-- 结束 unified-tool-section -->
 
-      <!-- 查询结果区域 -->
-      <div v-if="allCrawlItems && allCrawlItems.length > 0" class="result-section">
+      <!-- 查询结果区域：只在有配置ID时显示 -->
+      <div v-if="selectedConfigId && allCrawlItems && allCrawlItems.length > 0" class="result-section">
         <div class="result-header">
           <h2 class="section-title">查询结果 ({{ allCrawlItems.length }} 件)</h2>
           <el-button 
@@ -473,6 +544,32 @@
       <!-- 结束 main-content-area -->
     </div>
     <!-- 结束 page-layout -->
+
+    <!-- 选择查询模式对话框 -->
+    <el-dialog
+      v-model="showSearchModeDialog"
+      title="选择查询模式"
+      width="420px"
+      :close-on-click-modal="false"
+      class="search-mode-dialog"
+    >
+      <div class="search-mode-selection">
+        <el-radio-group v-model="selectedSearchMode" size="large" class="mode-radio-group">
+          <el-radio label="by_weapon_id" border class="mode-radio-item">
+            <span class="mode-title">按饰品目录查询</span>
+          </el-radio>
+          <el-radio label="by_price_range" border class="mode-radio-item">
+            <span class="mode-title">按价格区间查询</span>
+          </el-radio>
+        </el-radio-group>
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="showSearchModeDialog = false">取消</el-button>
+          <el-button type="primary" @click="confirmSearchMode">确定</el-button>
+        </span>
+      </template>
+    </el-dialog>
 
   </div>
 </template>
@@ -1007,6 +1104,19 @@ export default {
   border-bottom: 2px solid #444;
 }
 
+.section-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.search-mode-tag {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
 .form-container {
   background-color: #2a2a2a;
   padding: 1.5rem;
@@ -1042,6 +1152,11 @@ export default {
 }
 
 .form-item-quarter {
+  flex: 1;
+  margin-bottom: 18px;
+}
+
+.form-item-fifth {
   flex: 1;
   margin-bottom: 18px;
 }
@@ -1105,6 +1220,23 @@ export default {
 .no-spinner :deep(input[type="number"]::-webkit-outer-spin-button) {
   -webkit-appearance: none;
   margin: 0;
+}
+
+/* 价格输入框样式 */
+.price-input {
+  width: 150px;
+}
+
+.price-input :deep(input[type="number"]::-webkit-outer-spin-button),
+.price-input :deep(input[type="number"]::-webkit-inner-spin-button) {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
+.price-input :deep(input[type="number"]) {
+  -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 .result-info {
@@ -1826,6 +1958,111 @@ export default {
   font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.9);
   flex-shrink: 0;
+}
+
+/* 查询模式对话框样式 */
+.search-mode-dialog :deep(.el-dialog) {
+  background-color: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 12px;
+}
+
+.search-mode-dialog :deep(.el-dialog__header) {
+  padding: 20px 24px;
+  border-bottom: 1px solid #2f2f2f;
+}
+
+.search-mode-dialog :deep(.el-dialog__title) {
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.search-mode-dialog :deep(.el-dialog__body) {
+  padding: 24px;
+}
+
+.search-mode-dialog :deep(.el-dialog__footer) {
+  padding: 16px 24px;
+  border-top: 1px solid #2f2f2f;
+}
+
+.search-mode-selection {
+  display: flex;
+  justify-content: center;
+}
+
+.mode-radio-group {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mode-radio-item {
+  width: 100%;
+  margin: 0 !important;
+  padding: 18px 20px !important;
+  background-color: #252525 !important;
+  border: 2px solid #333 !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.mode-radio-item:hover {
+  border-color: #4CAF50 !important;
+  background-color: #2a2a2a !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+}
+
+.mode-radio-item.is-checked {
+  border-color: #4CAF50 !important;
+  background-color: rgba(76, 175, 80, 0.1) !important;
+  box-shadow: 0 0 16px rgba(76, 175, 80, 0.3);
+}
+
+.mode-radio-item :deep(.el-radio__input) {
+  display: none;
+}
+
+.mode-radio-item :deep(.el-radio__label) {
+  padding-left: 0;
+  width: 100%;
+}
+
+.mode-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+
+.mode-radio-item.is-checked .mode-title {
+  color: #4CAF50;
+}
+
+/* 对话框按钮样式 */
+.search-mode-dialog :deep(.el-button) {
+  min-width: 80px;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.search-mode-dialog :deep(.el-button--primary) {
+  background-color: #4CAF50;
+  border-color: #4CAF50;
+}
+
+.search-mode-dialog :deep(.el-button--primary):hover {
+  background-color: #66BB6A;
+  border-color: #66BB6A;
 }
 </style>
 

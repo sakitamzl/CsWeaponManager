@@ -349,6 +349,11 @@ export function useSearchPendant() {
   const isConfigSectionsCollapsed = ref(false)
   const isSearchResultsCollapsed = ref(false)  // 搜索结果列表折叠状态
   const isWeaponListCollapsed = ref(true)  // 饰品列表折叠状态（默认折叠）
+  const showConfigForm = ref(false)  // 控制配置表单显示（默认隐藏）
+
+  // 查询模式选择对话框
+  const showSearchModeDialog = ref(false)
+  const selectedSearchMode = ref('by_weapon_id')  // 默认选择按饰品目录
 
   const createDefaultCustomConfig = () => ({
   '饰品自动查询间隔': 3,
@@ -356,6 +361,7 @@ export function useSearchPendant() {
   '最大差价百分比': 80,
   '最大溢价': 200,
   '印花板': false,
+  '高光': false,
   '收益不少于': 3
 })
 
@@ -372,8 +378,21 @@ const crawlForm = ref({
   steamId: '',         // 购买账号
   crawlAccountId: '',  // 爬取账号
   platformType: '',    // 平台类型：youpin 或 buff
-  weaponId: []         // 改为数组，存储 {id, name} 对象
+  searchMode: 'by_weapon_id',  // 查询模式：by_weapon_id 或 by_price_range
+  weaponType: [],      // 武器类型筛选(多选数组)
+  weaponId: [],        // 改为数组，存储 {id, name} 对象（按饰品目录模式使用）
+  priceMin: null,      // 最低价格（按价格区间模式使用）
+  priceMax: null       // 最高价格（按价格区间模式使用）
 })
+
+// 武器类型列表（按价格区间查询时可用的类型）
+const weaponTypeOptions = ref([
+  { label: '手枪', value: '手枪' },
+  { label: '步枪', value: '步枪' },
+  { label: '冲锋枪', value: '冲锋枪' },
+  { label: '散弹枪', value: '散弹枪' },
+  { label: '机枪', value: '机枪' }
+])
 
 // 计算属性：获取饰品列表
 const weaponIdList = computed(() => {
@@ -386,7 +405,20 @@ const canStartCrawl = computed(() => {
   if (!crawlForm.value.platformType) return false
   if (!crawlForm.value.crawlAccountId) return false
   if (!crawlForm.value.steamId) return false
-  if (!crawlForm.value.weaponId || crawlForm.value.weaponId.length === 0) return false
+
+  // 根据查询模式验证不同的必填项
+  if (crawlForm.value.searchMode === 'by_weapon_id') {
+    // 按饰品目录：需要至少一个饰品ID
+    if (!crawlForm.value.weaponId || crawlForm.value.weaponId.length === 0) return false
+  } else if (crawlForm.value.searchMode === 'by_price_range') {
+    // 按价格区间：需要设置价格范围
+    if (crawlForm.value.priceMin === null && crawlForm.value.priceMax === null) return false
+    // 如果两个都设置了，最低价不能大于最高价
+    if (crawlForm.value.priceMin !== null && crawlForm.value.priceMax !== null) {
+      if (crawlForm.value.priceMin > crawlForm.value.priceMax) return false
+    }
+  }
+
   return true
 })
 
@@ -536,6 +568,10 @@ const buildCustomConfig = () => ({
     customConfigForm.value['印花板'],
     false
   ),
+  '高光': normalizeBooleanValue(
+    customConfigForm.value['高光'],
+    false
+  ),
   '收益不少于': normalizeNumberValue(
     customConfigForm.value['收益不少于'],
     0
@@ -582,6 +618,10 @@ const applyCustomConfig = (config = {}) => {
     '印花板': normalizeBooleanValue(
       config['印花板'],
       defaults['印花板']
+    ),
+    '高光': normalizeBooleanValue(
+      config['高光'],
+      defaults['高光']
     ),
     '收益不少于': normalizeNumberValue(
       config['收益不少于'],
@@ -648,10 +688,24 @@ const startCrawl = async () => {
     ElMessage.warning('请选择购买账号')
     return
   }
-  
-  if (!crawlForm.value.weaponId || crawlForm.value.weaponId.length === 0) {
-    ElMessage.warning('请至少添加一个饰品ID')
-    return
+
+  // 根据查询模式验证不同的必填项
+  if (crawlForm.value.searchMode === 'by_weapon_id') {
+    if (!crawlForm.value.weaponId || crawlForm.value.weaponId.length === 0) {
+      ElMessage.warning('请至少添加一个饰品ID')
+      return
+    }
+  } else if (crawlForm.value.searchMode === 'by_price_range') {
+    if (crawlForm.value.priceMin === null && crawlForm.value.priceMax === null) {
+      ElMessage.warning('请设置价格区间')
+      return
+    }
+    if (crawlForm.value.priceMin !== null && crawlForm.value.priceMax !== null) {
+      if (crawlForm.value.priceMin > crawlForm.value.priceMax) {
+        ElMessage.warning('最低价格不能大于最高价格')
+        return
+      }
+    }
   }
 
   // 验证自定义配置
@@ -669,13 +723,24 @@ const startCrawl = async () => {
     confirmMessage += `爬取账号: ${crawlForm.value.crawlAccountId}\n`
     confirmMessage += `购买账号: ${crawlForm.value.steamId}\n`
     confirmMessage += `平台类型: ${getSourceLabel(crawlForm.value.platformType)}\n`
-    confirmMessage += `监控饰品数量: ${crawlForm.value.weaponId.length} 个`
-    
+
+    // 根据查询模式显示不同信息
+    if (crawlForm.value.searchMode === 'by_weapon_id') {
+      confirmMessage += `查询模式: 按饰品目录\n`
+      confirmMessage += `监控饰品数量: ${crawlForm.value.weaponId.length} 个`
+    } else if (crawlForm.value.searchMode === 'by_price_range') {
+      confirmMessage += `查询模式: 按价格区间\n`
+      const priceMinText = crawlForm.value.priceMin !== null ? `${crawlForm.value.priceMin}元` : '不限'
+      const priceMaxText = crawlForm.value.priceMax !== null ? `${crawlForm.value.priceMax}元` : '不限'
+      confirmMessage += `价格区间: ${priceMinText} ~ ${priceMaxText}`
+    }
+
     confirmMessage += `\n查询间隔: ${customConfig['饰品自动查询间隔']} 秒`
     confirmMessage += `\n自动购买: ${customConfig['是否自动购买'] ? '是' : '否'}`
     confirmMessage += `\n最大差价百分比: ${customConfig['最大差价百分比']}%`
     confirmMessage += `\n最大溢价: ${customConfig['最大溢价']} 元`
     confirmMessage += `\n印花板: ${customConfig['印花板'] ? '是' : '否'}`
+    confirmMessage += `\n高光: ${customConfig['高光'] ? '是' : '否'}`
     confirmMessage += `\n收益不少于: ${customConfig['收益不少于']} 元`
 
     await ElMessageBox.confirm(
@@ -698,15 +763,26 @@ const startCrawl = async () => {
   ElMessage.info('正在启动查询任务...')
 
   try {
+    // 构建基础配置
     const spiderConfig = {
-      weapon_id: crawlForm.value.weaponId,
       steam_id: crawlForm.value.crawlAccountId,
+      search_mode: crawlForm.value.searchMode,  // 查询模式
+      weapon_type: crawlForm.value.weaponType || [],  // 武器类型(多选数组)
       最大差价百分比: customConfig['最大差价百分比'],
       最大溢价: customConfig['最大溢价'],
       饰品自动查询间隔: customConfig['饰品自动查询间隔'],
       是否自动购买: customConfig['是否自动购买'],
       印花板: customConfig['印花板'],
+      高光: customConfig['高光'],
       收益不少于: customConfig['收益不少于']
+    }
+
+    // 根据查询模式添加不同的参数
+    if (crawlForm.value.searchMode === 'by_weapon_id') {
+      spiderConfig.weapon_id = crawlForm.value.weaponId
+    } else if (crawlForm.value.searchMode === 'by_price_range') {
+      spiderConfig.price_min = crawlForm.value.priceMin
+      spiderConfig.price_max = crawlForm.value.priceMax
     }
 
     // 如果有选中的配置ID，传递给后端
@@ -908,7 +984,11 @@ const resetForm = () => {
     steamId: '',
     crawlAccountId: '',
     platformType: '',
-    weaponId: []
+    searchMode: 'by_weapon_id',
+    weaponType: [],
+    weaponId: [],
+    priceMin: null,
+    priceMax: null
   }
   crawlResult.value = null
   resetCustomConfigForm()
@@ -957,7 +1037,7 @@ const loadConfigList = async () => {
 const selectConfig = async (configId) => {
   console.log('=== 开始加载配置 ===')
   console.log('配置ID:', configId)
-  
+
   if (!configId) {
     console.warn('配置ID为空')
     return
@@ -965,7 +1045,10 @@ const selectConfig = async (configId) => {
 
   selectedConfigId.value = configId
   console.log('已设置selectedConfigId:', selectedConfigId.value)
-  
+
+  // 选中配置后显示配置表单
+  showConfigForm.value = true
+
   // 切换配置时，先清空当前结果，避免显示混合数据
   crawlResult.value = { weapons: [] }
 
@@ -991,25 +1074,37 @@ const selectConfig = async (configId) => {
         return
       }
       
-      // 从 value 对象中提取饰品列表和Steam ID
+      // 从 value 对象中提取数据
+      const searchMode = valueObj.search_mode || 'by_weapon_id'  // 默认按饰品目录
+      const weaponType = Array.isArray(valueObj.weapon_type) ? valueObj.weapon_type : (valueObj.weapon_type ? [valueObj.weapon_type] : [])  // 武器类型(多选数组)
       const weaponId = valueObj.weapon_id || []
+      const priceMin = valueObj.price_min !== undefined ? valueObj.price_min : null
+      const priceMax = valueObj.price_max !== undefined ? valueObj.price_max : null
       const steamId = valueObj.steam_id || ''
-      
+
       console.log('提取的数据:')
+      console.log('  - searchMode:', searchMode)
+      console.log('  - weaponType:', weaponType)
       console.log('  - weaponId:', weaponId)
+      console.log('  - priceMin:', priceMin)
+      console.log('  - priceMax:', priceMax)
       console.log('  - steamId:', steamId)
       console.log('  - platformType:', config.platformType)
-      
-      // 移除 weapon_id 和 steam_id，剩余的作为自定义配置
-      const { weapon_id, steam_id, crawl_account_id, ...restConfig } = valueObj
-      
+
+      // 移除已提取的字段，剩余的作为自定义配置
+      const { weapon_id, steam_id, crawl_account_id, search_mode, weapon_type, price_min, price_max, ...restConfig } = valueObj
+
       // 构建新的表单数据
       const newFormData = {
         configName: config.dataName || '',
         steamId: steamId,
         crawlAccountId: crawl_account_id || steamId || '',
         platformType: platformType,
-        weaponId: Array.isArray(weaponId) ? weaponId : []
+        searchMode: searchMode,
+        weaponType: weaponType,
+        weaponId: Array.isArray(weaponId) ? weaponId : [],
+        priceMin: priceMin,
+        priceMax: priceMax
       }
       
       console.log('准备填充的表单数据:', newFormData)
@@ -1045,11 +1140,21 @@ const selectConfig = async (configId) => {
   }
 }
 
-// 创建新配置（清空表单）
+// 创建新配置（显示选择查询模式对话框）
 const createNewConfig = () => {
   selectedConfigId.value = null
+  selectedSearchMode.value = 'by_weapon_id'  // 默认选择按饰品目录
+  showSearchModeDialog.value = true  // 显示对话框
+}
+
+// 确认查询模式选择
+const confirmSearchMode = () => {
+  showSearchModeDialog.value = false
   resetForm()
-  ElMessage.info('已清空表单，可以创建新配置')
+  crawlForm.value.searchMode = selectedSearchMode.value
+  // 创建新配置后显示配置表单
+  showConfigForm.value = true
+  ElMessage.info(`已选择查询模式: ${selectedSearchMode.value === 'by_weapon_id' ? '按饰品目录' : '按价格区间'}`)
 }
 
 // 平台类型改变处理
@@ -1088,10 +1193,19 @@ const autoSaveConfig = async () => {
     }
 
     const valueObj = {
-      weapon_id: crawlForm.value.weaponId,
       steam_id: crawlForm.value.steamId,
       crawl_account_id: crawlForm.value.crawlAccountId,
+      search_mode: crawlForm.value.searchMode,
+      weapon_type: crawlForm.value.weaponType || [],
       ...customConfigResult.config
+    }
+
+    // 根据查询模式添加不同字段
+    if (crawlForm.value.searchMode === 'by_weapon_id') {
+      valueObj.weapon_id = crawlForm.value.weaponId
+    } else if (crawlForm.value.searchMode === 'by_price_range') {
+      valueObj.price_min = crawlForm.value.priceMin
+      valueObj.price_max = crawlForm.value.priceMax
     }
 
     const key2 = crawlForm.value.platformType
@@ -1148,12 +1262,23 @@ const saveConfig = async () => {
 
     // 构建 value 对象
     let valueObj = { ...customConfigResult.config }
-    
-    // 将饰品列表添加到 value 对象中
-    if (crawlForm.value.weaponId && crawlForm.value.weaponId.length > 0) {
-      valueObj.weapon_id = crawlForm.value.weaponId
+
+    // 添加查询模式和武器类型
+    valueObj.search_mode = crawlForm.value.searchMode
+    valueObj.weapon_type = crawlForm.value.weaponType || []
+
+    // 根据查询模式保存不同的字段
+    if (crawlForm.value.searchMode === 'by_weapon_id') {
+      // 将饰品列表添加到 value 对象中
+      if (crawlForm.value.weaponId && crawlForm.value.weaponId.length > 0) {
+        valueObj.weapon_id = crawlForm.value.weaponId
+      }
+    } else if (crawlForm.value.searchMode === 'by_price_range') {
+      // 保存价格区间
+      valueObj.price_min = crawlForm.value.priceMin
+      valueObj.price_max = crawlForm.value.priceMax
     }
-    
+
     // 添加其他必要字段
     if (crawlForm.value.steamId) {
       valueObj.steam_id = crawlForm.value.steamId
@@ -1972,6 +2097,7 @@ const getRarityColor = (rarity) => {
     crawlForm,
     customConfigForm,
     booleanOptions,
+    weaponTypeOptions,
     crawlResult,
     allCrawlItems,
     canStartCrawl,
@@ -2032,5 +2158,11 @@ const getRarityColor = (rarity) => {
     toggleSearchResults,
     isWeaponListCollapsed,
     toggleWeaponList,
+    showConfigForm,
+    // 查询模式选择
+    showSearchModeDialog,
+    selectedSearchMode,
+    confirmSearchMode,
+    handleSidebarAreaClick,
   }
 }

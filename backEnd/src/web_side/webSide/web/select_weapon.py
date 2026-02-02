@@ -566,3 +566,149 @@ def get_reference_prices():
             'data': {}
         }), 500
 
+
+
+@webSelectWeaponV1.route('/queryWeaponsByPriceRange', methods=['GET'])
+def queryWeaponsByPriceRange():
+    """
+    根据价格区间和武器类型查询武器ID列表（用于挂件搜索的按价格区间查询模式）
+
+    参数:
+        price_min - 最低价格（可选，使用yyyp_price字段）
+        price_max - 最高价格（可选，使用yyyp_price字段）
+        weapon_types - 武器类型列表，逗号分隔（可选，例如: "手枪,步枪,冲锋枪"）
+
+    返回:
+        {
+            "success": true,
+            "data": [
+                {"id": "61490", "name": "AK-47 | 红线 (久经沙场)"},
+                ...
+            ],
+            "total": 100
+        }
+
+    逻辑：
+        1. 根据price_min和price_max过滤yyyp_price字段
+        2. 根据weapon_types过滤weapon_type字段（手枪、步枪、冲锋枪、散弹枪、机枪）
+        3. 自动过滤：价格 >= 1 且在售数量 >= 10
+        4. 返回 yyyp_id 和 market_listing_item_name
+    """
+    try:
+        price_min = request.args.get('price_min', '')
+        price_max = request.args.get('price_max', '')
+        weapon_types_str = request.args.get('weapon_types', '')
+
+        # 构建查询条件
+        where_clauses = []
+        params = []
+
+        # 武器类型过滤（多选）
+        if weapon_types_str and len(weapon_types_str.strip()) > 0:
+            weapon_types_list = [wt.strip() for wt in weapon_types_str.split(',') if wt.strip()]
+            if weapon_types_list:
+                placeholders = ','.join(['?' for _ in weapon_types_list])
+                where_clauses.append(f"[weapon_type] IN ({placeholders})")
+                params.extend(weapon_types_list)
+
+        # 组合查询条件
+        where_clause = " AND ".join(where_clauses) if where_clauses else None
+
+        logger.write_log(
+            f"[queryWeaponsByPriceRange] 开始查询 - "
+            f"price_min={price_min}, price_max={price_max}, "
+            f"weapon_types={weapon_types_str}",
+            'INFO'
+        )
+
+        # 查询数据库
+        records = WeaponClassIDModel.find_all(
+            where=where_clause,
+            params=tuple(params) if params else None,
+            order_by="CAST([yyyp_Price] AS REAL) ASC"  # 按价格升序
+        )
+
+        logger.write_log(f"[queryWeaponsByPriceRange] 初步查询到 {len(records)} 条记录", 'INFO')
+
+        # 价格区间过滤和自动过滤
+        filtered_records = []
+        for record in records:
+            # 1. 自动过滤：价格 >= 1
+            price_str = record.yyyp_Price
+            if price_str:
+                try:
+                    price = float(price_str)
+                    if price < 1:
+                        continue
+                except (ValueError, TypeError):
+                    continue
+            else:
+                continue
+
+            # 2. 用户指定的价格区间过滤
+            if price_min:
+                try:
+                    if price < float(price_min):
+                        continue
+                except (ValueError, TypeError):
+                    pass
+
+            if price_max:
+                try:
+                    if price > float(price_max):
+                        continue
+                except (ValueError, TypeError):
+                    pass
+
+            # 3. 自动过滤：在售数量 >= 10
+            on_sale_count_str = record.yyyp_OnSaleCount
+            if on_sale_count_str:
+                try:
+                    on_sale_count = int(on_sale_count_str)
+                    if on_sale_count < 10:
+                        continue
+                except (ValueError, TypeError):
+                    continue
+            else:
+                continue
+
+            # 4. 必须有yyyp_id
+            if not record.yyyp_id:
+                continue
+
+            filtered_records.append(record)
+
+        logger.write_log(
+            f"[queryWeaponsByPriceRange] 过滤后剩余 {len(filtered_records)} 条记录",
+            'INFO'
+        )
+
+        # 构建返回数据
+        results = []
+        for record in filtered_records:
+            results.append({
+                'id': str(record.yyyp_id),
+                'name': record.market_listing_item_name or record.weapon_name or '未知饰品'
+            })
+
+        logger.write_log(
+            f"[queryWeaponsByPriceRange] 查询成功 - 返回 {len(results)} 个饰品",
+            'INFO'
+        )
+
+        return jsonify({
+            "success": True,
+            "data": results,
+            "total": len(results)
+        }), 200
+
+    except Exception as e:
+        logger.write_log(f"[queryWeaponsByPriceRange] 查询失败: {e}", 'ERROR')
+        import traceback
+        logger.write_log(f"错误堆栈: {traceback.format_exc()}", 'ERROR')
+        return jsonify({
+            "success": False,
+            "message": f"查询失败: {str(e)}",
+            "data": [],
+            "total": 0
+        }), 500
