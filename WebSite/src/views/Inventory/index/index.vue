@@ -153,8 +153,10 @@
       </div>
     </div>
 
-    <!-- 列表显示 -->
-    <div class="table-container" v-if="displayMode === 'list'">
+    <!-- 列表/卡片统一使用外层容器（与 /stock-components 一致） -->
+    <div class="table-container">
+      <!-- 列表显示 -->
+      <div v-if="displayMode === 'list'" class="table-wrapper">
       <el-table
         ref="tableRef"
         :data="currentDisplayData"
@@ -163,7 +165,6 @@
         style="width: 100%"
         :row-style="getRowStyle"
         :header-row-style="{ backgroundColor: 'var(--bg-tertiary)' }"
-        height="calc(100vh - 400px)"
         :default-sort="{ prop: 'buy_price', order: 'descending' }"
         @sort-change="handleSortChange"
         @row-click="handleRowClick"
@@ -562,7 +563,7 @@
       </div>
       <!-- 滚动触发元素 -->
       <div id="load-more-trigger" style="height: 1px;"></div>
-    </div>
+      </div>
 
     <!-- 多选模式下的操作按钮 -->
     <div v-if="isMultiSelectMode && selectedItems.length > 0 && !isSelectingComponent" class="multi-select-actions">
@@ -766,6 +767,8 @@
       </div>
       <!-- 滚动触发元素 -->
       <div id="load-more-trigger-card" style="height: 1px;"></div>
+    </div>
+
     </div>
 
     <!-- 备注弹窗 -->

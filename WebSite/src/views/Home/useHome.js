@@ -691,6 +691,7 @@ export function useHome() {
         }
       },
       legend: {
+        show: window.innerWidth > 1366,
         orient: 'vertical',
         right: '5%',
         top: 'center',
@@ -698,10 +699,13 @@ export function useHome() {
           color: '#fff',
           fontSize: 12
         },
+        itemWidth: 25,
+        itemHeight: 14,
+        itemGap: 10,
         formatter: (name) => {
           const item = chartData.find(d => d.name === name)
           if (item) {
-            return isValueMode 
+            return isValueMode
               ? `${name}\n${item.count}件 ¥${item.totalValue.toFixed(0)}`
               : `${name}\n${item.count}件`
           }
@@ -712,8 +716,8 @@ export function useHome() {
         {
           name: isValueMode ? '价格区间分布' : '数量区间分布',
           type: 'pie',
-          radius: ['40%', '70%'],
-          center: ['40%', '50%'],
+          radius: window.innerWidth > 1366 ? ['40%', '70%'] : ['35%', '65%'],
+          center: window.innerWidth > 1366 ? ['40%', '50%'] : ['50%', '50%'],
           avoidLabelOverlap: false,
           itemStyle: {
             borderRadius: 10,
@@ -846,6 +850,7 @@ export function useHome() {
         }
       },
       legend: {
+        show: window.innerWidth > 1366,
         orient: 'vertical',
         right: '5%',
         top: 'center',
@@ -853,10 +858,13 @@ export function useHome() {
           color: '#fff',
           fontSize: 12
         },
+        itemWidth: 25,
+        itemHeight: 14,
+        itemGap: 10,
         formatter: (name) => {
           const item = chartData.find(d => d.name === name)
           if (item) {
-            return isValueMode 
+            return isValueMode
               ? `${name}\n${item.count}件 ¥${item.totalValue.toFixed(0)}`
               : `${name}\n${item.count}件`
           }
@@ -867,8 +875,8 @@ export function useHome() {
         {
           name: isValueMode ? '价格区间分布' : '数量区间分布',
           type: 'pie',
-          radius: ['40%', '70%'],
-          center: ['40%', '50%'],
+          radius: window.innerWidth > 1366 ? ['40%', '70%'] : ['35%', '65%'],
+          center: window.innerWidth > 1366 ? ['40%', '50%'] : ['50%', '50%'],
           avoidLabelOverlap: false,
           itemStyle: {
             borderRadius: 10,
@@ -1001,6 +1009,7 @@ export function useHome() {
         }
       },
       legend: {
+        show: window.innerWidth > 1366,
         orient: 'vertical',
         right: '5%',
         top: 'center',
@@ -1008,10 +1017,13 @@ export function useHome() {
           color: '#fff',
           fontSize: 12
         },
+        itemWidth: 25,
+        itemHeight: 14,
+        itemGap: 10,
         formatter: (name) => {
           const item = chartData.find(d => d.name === name)
           if (item) {
-            return isValueMode 
+            return isValueMode
               ? `${name}\n${item.count}件 ¥${item.totalValue.toFixed(0)}`
               : `${name}\n${item.count}件`
           }
@@ -1022,8 +1034,8 @@ export function useHome() {
         {
           name: isValueMode ? '价格区间分布' : '数量区间分布',
           type: 'pie',
-          radius: ['40%', '70%'],
-          center: ['40%', '50%'],
+          radius: window.innerWidth > 1366 ? ['40%', '70%'] : ['35%', '65%'],
+          center: window.innerWidth > 1366 ? ['40%', '50%'] : ['50%', '50%'],
           avoidLabelOverlap: false,
           itemStyle: {
             borderRadius: 10,
@@ -1156,6 +1168,7 @@ export function useHome() {
         }
       },
       legend: {
+        show: window.innerWidth > 1366,
         orient: 'vertical',
         right: '5%',
         top: 'center',
@@ -1163,10 +1176,13 @@ export function useHome() {
           color: '#fff',
           fontSize: 12
         },
+        itemWidth: 25,
+        itemHeight: 14,
+        itemGap: 10,
         formatter: (name) => {
           const item = chartData.find(d => d.name === name)
           if (item) {
-            return isValueMode 
+            return isValueMode
               ? `${name}\n${item.count}件 ¥${item.totalValue.toFixed(0)}`
               : `${name}\n${item.count}件`
           }
@@ -1177,8 +1193,8 @@ export function useHome() {
         {
           name: isValueMode ? '价格区间分布' : '数量区间分布',
           type: 'pie',
-          radius: ['40%', '70%'],
-          center: ['40%', '50%'],
+          radius: window.innerWidth > 1366 ? ['40%', '70%'] : ['35%', '65%'],
+          center: window.innerWidth > 1366 ? ['40%', '50%'] : ['50%', '50%'],
           avoidLabelOverlap: false,
           itemStyle: {
             borderRadius: 10,

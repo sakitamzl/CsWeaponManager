@@ -4,6 +4,27 @@ import axios from 'axios'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
 
 export function useStockComponents() {
+  const STORAGE_KEYS = {
+    displayMode: 'stock-components:displayMode',
+    groupMode: 'stock-components:groupMode',
+  }
+
+  const safeGetLocalStorage = (key) => {
+    try {
+      return localStorage.getItem(key)
+    } catch (e) {
+      return null
+    }
+  }
+
+  const safeSetLocalStorage = (key, value) => {
+    try {
+      localStorage.setItem(key, value)
+    } catch (e) {
+      // ignore
+    }
+  }
+
   const loading = ref(false)
   const updateLoading = ref(false)
   const updateAllLoading = ref(false)
@@ -11,8 +32,21 @@ export function useStockComponents() {
   const autoFillLoading = ref(false)
   const platformPriceLoading = ref(false)
   const searchText = ref('')
-  const groupMode = ref(true)
-  const displayMode = ref('list')
+
+  // 视图模式持久化：默认卡片；如果本地保存了选择则恢复
+  const persistedDisplayMode = safeGetLocalStorage(STORAGE_KEYS.displayMode)
+  const initialDisplayMode = persistedDisplayMode === 'list' || persistedDisplayMode === 'card'
+    ? persistedDisplayMode
+    : 'card'
+  const displayMode = ref(initialDisplayMode)
+
+  // 组合模式只在列表模式下生效：默认 true；如果本地保存了选择则恢复
+  const persistedGroupMode = safeGetLocalStorage(STORAGE_KEYS.groupMode)
+  const initialGroupMode = persistedGroupMode === 'true'
+    ? true
+    : (persistedGroupMode === 'false' ? false : true)
+  const groupMode = ref(displayMode.value === 'list' ? initialGroupMode : false)
+
   const showPriceDiff = ref(true)
   const componentData = ref([])
   const groupedData = ref([])
@@ -552,8 +586,11 @@ export function useStockComponents() {
       if (response.data.success) {
         groupedData.value = (response.data.data || []).map(item => ({
           ...item,
-          // 复用表格字段，便于直接展示
-          weapon_float: item.item_count,           // 用数量占位
+          // weapon_float 必须保持“磨损值”含义，避免列表磨损值列读错
+          // 组合模式下如果只有 1 件物品，优先取 weapon_floats[0] 作为该行磨损值展示
+          weapon_float: (Array.isArray(item.weapon_floats) && item.weapon_floats.length === 1)
+            ? item.weapon_floats[0]
+            : (item.weapon_float || ''),
           buy_price: item.total_buy_price,
           yyyp_price: item.total_yyyp_price,
           buff_price: item.total_buff_price,
@@ -847,6 +884,9 @@ export function useStockComponents() {
 
   // 监听显示模式变化
   watch(displayMode, (newMode, oldMode) => {
+    // 持久化用户选择
+    safeSetLocalStorage(STORAGE_KEYS.displayMode, newMode)
+
     if (newMode === 'card' && groupMode.value) {
       // 切换到卡片模式，关闭组合模式
       groupMode.value = false
@@ -854,10 +894,18 @@ export function useStockComponents() {
       loadComponentData()
       // setupScrollObserver 会在 loadComponentData 完成后自动调用
     } else if (newMode === 'list' && oldMode === 'card') {
-      // 从卡片模式切换回列表模式，恢复组合模式
-      groupMode.value = true
+      // 从卡片模式切换回列表模式：恢复上次的组合/明细选择（默认组合）
+      const saved = safeGetLocalStorage(STORAGE_KEYS.groupMode)
+      groupMode.value = saved === 'false' ? false : true
       currentPage.value = 1
       loadGroupedData()
+    }
+  })
+
+  // 监听组合模式变化并持久化（仅列表模式）
+  watch(groupMode, (val) => {
+    if (displayMode.value === 'list') {
+      safeSetLocalStorage(STORAGE_KEYS.groupMode, val ? 'true' : 'false')
     }
   })
 

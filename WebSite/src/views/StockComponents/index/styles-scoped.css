@@ -10,6 +10,92 @@
   padding: 1rem;
 }
 
+/* iPad / 平板：一行显示 6 个卡片
+ * - 覆盖 iPad Pro 横屏 1366×1024
+ * - 加 min-height 避免影响常见 1366×768 笔记本
+ */
+@media (min-width: 768px) and (max-width: 1366px) and (min-height: 900px) {
+  /* 顶部统计区域：缩小占位与字号，匹配 6 列卡片的密度 */
+  .stats-summary {
+    margin-bottom: 12px;
+  }
+
+  .inventory-stats {
+    margin-bottom: 12px;
+  }
+
+  .stats-summary .grid-stats-custom {
+    gap: 12px;
+  }
+
+  .stats-summary .card {
+    padding: 12px;
+  }
+
+  .stats-summary .card h3 {
+    font-size: 12px;
+    margin: 0;
+  }
+
+  .stat-number {
+    font-size: 18px;
+    margin-top: 8px;
+  }
+
+  .stat-price-container {
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  .stat-diff-right {
+    font-size: 16px;
+  }
+
+  .card-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  /* iPad 6列时按比例缩小卡片内容字号（px） */
+  .card-image {
+    height: 120px;
+  }
+
+  .card-content {
+    padding: 10px;
+    gap: 6px;
+  }
+
+  .card-title {
+    font-size: 12px;
+    line-height: 1.25;
+    min-height: 30px;
+  }
+
+  .card-info {
+    font-size: 11px;
+  }
+
+  .float-value {
+    font-size: 11px;
+  }
+
+  .price-row {
+    font-size: 11px;
+  }
+
+  .price-label {
+    font-size: 10px;
+  }
+
+  .price-value {
+    font-size: 11px;
+  }
+
+  .rename-tag {
+    font-size: 10px;
+  }
+}
+
 .inventory-card {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
