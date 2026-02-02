@@ -169,7 +169,13 @@ class AutoSearchWeaponModel(BaseModel):
                 'default': None,
                 'comment': '收益百分比'
             },
-            
+            'total_count': {
+                'type': 'INTEGER',
+                'not_null': False,
+                'default': None,
+                'comment': '该饰品的在售数量'
+            },
+
             # 状态和时间
             'status': {
                 'type': 'TEXT',
@@ -255,7 +261,8 @@ class AutoSearchWeaponModel(BaseModel):
         pendant_details: List[Dict[str, Any]] = None,
         pendant_count: int = None,
         pendant_total_price: float = None,
-        price_diff_percentage: float = None
+        price_diff_percentage: float = None,
+        total_count: int = None
     ) -> 'AutoSearchWeaponModel':
         """
         从搜索结果数据创建记录
@@ -312,6 +319,7 @@ class AutoSearchWeaponModel(BaseModel):
             pendant_count=pendant_count if pendant_count is not None else (len(pendant_details) if pendant_details else 0),
             pendant_total_price=pendant_total_price or item_data.get('pendantTotalPrice'),
             price_diff_percentage=price_diff_percentage or item_data.get('priceDiffPercentage'),
+            total_count=total_count or item_data.get('totalCount'),
             pendant_details=json.dumps(pendant_details, ensure_ascii=False) if pendant_details else (json.dumps(item_data.get('pendants'), ensure_ascii=False) if item_data.get('pendants') else None),
             status='active',
             created_at=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -377,6 +385,7 @@ class AutoSearchWeaponModel(BaseModel):
             'pendantCount': self.pendant_count or 0,
             'pendantTotalPrice': self.pendant_total_price or 0,
             'priceDiffPercentage': self.price_diff_percentage or 0,
+            'totalCount': self.total_count or 0,
             'pendants': pendants,
             'status': self.status,
             'createdAt': self.created_at,

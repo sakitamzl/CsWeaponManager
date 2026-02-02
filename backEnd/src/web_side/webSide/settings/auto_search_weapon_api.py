@@ -35,6 +35,7 @@ def add_item():
         pendant_count = data.get('pendantCount')
         pendant_total_price = data.get('pendantTotalPrice')
         price_diff_percentage = data.get('priceDiffPercentage')
+        total_count = data.get('totalCount')
         
         if not all([steam_id, weapon_id, weapon_name, item_data]):
             return jsonify({
@@ -60,7 +61,8 @@ def add_item():
             pendant_details=pendants,
             pendant_count=pendant_count,
             pendant_total_price=pendant_total_price,
-            price_diff_percentage=price_diff_percentage
+            price_diff_percentage=price_diff_percentage,
+            total_count=total_count
         )
         
         if record.save():

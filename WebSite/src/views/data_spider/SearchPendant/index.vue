@@ -44,16 +44,34 @@
             <div class="config-item-header">
               <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
                 <span class="config-name">{{ config.dataName }}</span>
-                <el-tag 
-                  :type="config.platformType === 'buff' ? 'warning' : (config.platformType === 'youpin' ? 'success' : 'info')" 
+                <el-tag
+                  :type="config.platformType === 'buff' ? 'warning' : (config.platformType === 'youpin' ? 'success' : 'info')"
                   size="small"
                 >
                   {{ getSourceLabel(config.platformType) }}
+                </el-tag>
+                <!-- 显示查询进度 -->
+                <el-tag
+                  v-if="config.crawlProgress && config.crawlProgress.total > 0"
+                  :type="config.crawlProgress.isCompleted ? 'success' : 'primary'"
+                  size="small"
+                >
+                  {{ config.crawlProgress.isCompleted ? '已完成' : `${config.crawlProgress.percentage}%` }}
                 </el-tag>
               </div>
             </div>
             <div v-if="config.description" class="config-description">
               {{ config.description }}
+            </div>
+            <!-- 显示详细进度 -->
+            <div v-if="config.crawlProgress && config.crawlProgress.total > 0" class="config-progress">
+              <el-progress
+                :percentage="config.crawlProgress.percentage"
+                :status="config.crawlProgress.isCompleted ? 'success' : undefined"
+                :stroke-width="4"
+                :show-text="false"
+              />
+              <span class="progress-text">{{ config.crawlProgress.current }} / {{ config.crawlProgress.total }}</span>
             </div>
           </div>
 
@@ -383,37 +401,6 @@
           </el-button>
         </div>
 
-        <!-- 查询进度显示 -->
-        <div v-if="crawlProgress.show" class="crawl-progress-section">
-          <div class="progress-header">
-            <span class="progress-title">查询进度</span>
-            <el-tag :type="isCrawling ? 'primary' : 'success'" size="small">
-              {{ isCrawling ? '进行中' : '已完成' }}
-            </el-tag>
-          </div>
-          <div class="progress-content">
-            <div class="progress-stats">
-              <div class="stat-item">
-                <span class="stat-label">已查询:</span>
-                <span class="stat-value">{{ crawlProgress.current }} / {{ crawlProgress.total }}</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">进度:</span>
-                <span class="stat-value">{{ crawlProgress.percentage }}%</span>
-              </div>
-            </div>
-            <el-progress
-              :percentage="crawlProgress.percentage"
-              :status="isCrawling ? undefined : 'success'"
-              :stroke-width="12"
-            />
-            <div v-if="crawlProgress.currentWeapon" class="current-weapon">
-              <span class="current-label">当前查询:</span>
-              <span class="current-name">{{ crawlProgress.currentWeapon }}</span>
-            </div>
-          </div>
-        </div>
-
         </div>
 
         <!-- 搜索饰品组件：仅在按饰品目录查询模式下显示 -->
@@ -428,6 +415,32 @@
         <!-- 结束 tool-section-content -->
       </div>
       <!-- 结束 unified-tool-section -->
+
+      <!-- 查询进度显示：独立区域，不受配置区域收缩影响 -->
+      <div v-if="showConfigForm && crawlProgress.show" class="crawl-progress-section">
+        <div class="progress-single-line">
+          <span v-if="crawlProgress.currentWeapon" class="current-weapon-inline">
+            <span class="current-label">当前查询:</span>
+            <span class="current-name">{{ crawlProgress.currentWeapon }}</span>
+          </span>
+          <span class="progress-stats-inline">
+            <span class="stat-label">进度:</span>
+            <span class="stat-value">{{ crawlProgress.percentage.toFixed(2) }}%</span>
+          </span>
+          <div class="progress-bar-inline">
+            <el-progress
+              :percentage="crawlProgress.percentage"
+              :status="isCrawling ? undefined : 'success'"
+              :stroke-width="12"
+              :show-text="false"
+            />
+          </div>
+          <span class="progress-stats-inline">
+            <span class="stat-label">已查询:</span>
+            <span class="stat-value">{{ crawlProgress.current }} / {{ crawlProgress.total }}</span>
+          </span>
+        </div>
+      </div>
 
       <!-- 查询结果区域：只在有配置ID时显示 -->
       <div v-if="selectedConfigId && allCrawlItems && allCrawlItems.length > 0" class="result-section">
@@ -481,7 +494,13 @@
                 <span class="price">¥{{ scope.row.price }}</span>
               </template>
             </el-table-column>
-            
+
+            <el-table-column label="在售数量" width="100" align="center">
+              <template #default="scope">
+                <span>{{ scope.row.totalCount || 0 }}</span>
+              </template>
+            </el-table-column>
+
             <el-table-column label="溢价" width="100">
               <template #default="scope">
                 <el-tag type="danger" size="small">
@@ -824,6 +843,19 @@ export default {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
+}
+
+.config-progress {
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.config-progress .progress-text {
+  font-size: 0.75rem;
+  color: #999;
+  white-space: nowrap;
   -webkit-box-orient: vertical;
   padding-left: 0.25rem;
 }
@@ -1149,74 +1181,94 @@ export default {
   border-radius: 4px;
 }
 
-/* 查询进度样式 */
+/* 查询进度样式 - 单行显示 */
 .crawl-progress-section {
   background-color: #2a2a2a;
   border-radius: 8px;
-  padding: 1.5rem;
+  padding: 1rem 1.5rem;
   margin-top: 1.5rem;
   border: 1px solid #333;
 }
 
-.progress-header {
+.progress-single-line {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  gap: 1.5rem;
 }
 
 .progress-title {
   font-size: 1rem;
   font-weight: 600;
   color: #fff;
+  white-space: nowrap;
 }
 
-.progress-content {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+.progress-status-tag {
+  flex-shrink: 0;
 }
 
-.progress-stats {
-  display: flex;
-  gap: 2rem;
-}
-
-.stat-item {
+.progress-stats-inline {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  white-space: nowrap;
 }
 
 .stat-label {
   color: #999;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 
 .stat-value {
   color: #4CAF50;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
 }
 
-.current-weapon {
+.progress-bar-inline {
+  flex: 1;
+  min-width: 200px;
+}
+
+.current-weapon-inline {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem;
+  padding: 0.5rem 1rem;
   background-color: rgba(76, 175, 80, 0.1);
   border-radius: 6px;
   border-left: 3px solid #4CAF50;
+  width: 350px;
+  min-width: 350px;
+  max-width: 350px;
+  overflow: hidden;
+}
+
+.current-weapon-inline .current-label {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.current-weapon-inline .current-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
 }
 
 .current-label {
   color: #999;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 
 .current-name {
   color: #fff;
   font-weight: 500;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .form-container {

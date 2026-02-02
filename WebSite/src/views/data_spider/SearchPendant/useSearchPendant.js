@@ -113,7 +113,8 @@ export function useSearchPendant() {
     priceDiff: parseFloat(item.priceDiff) || 0,
     pendants: parsePendants(item.pendants),
     pendantTotalPrice: parseFloat(item.pendantTotalPrice) || 0,
-    priceDiffPercentage: parseFloat(item.priceDiffPercentage) || 0
+    priceDiffPercentage: parseFloat(item.priceDiffPercentage) || 0,
+    totalCount: parseInt(item.totalCount) || 0  // 添加在售数量
   }))
   }
 
@@ -351,14 +352,69 @@ export function useSearchPendant() {
   const isWeaponListCollapsed = ref(true)  // 饰品列表折叠状态（默认折叠）
   const showConfigForm = ref(false)  // 控制配置表单显示（默认隐藏）
 
-  // 查询进度状态
-  const crawlProgress = ref({
-    show: false,           // 是否显示进度
-    total: 0,              // 总数
-    current: 0,            // 当前已查询数量
-    percentage: 0,         // 百分比
-    currentWeapon: ''      // 当前正在查询的武器名称
+  // 查询进度状态 - 使用 Map 管理多个配置的进度
+  // key: configId, value: ProgressData
+  const activeProgresses = ref(new Map())
+
+  // 活跃的查询任务控制器
+  // key: configId, value: AbortController
+  const activeCrawlers = ref(new Map())
+
+  // 当前选中配置的进度（计算属性）
+  const crawlProgress = computed(() => {
+    if (!selectedConfigId.value) {
+      return {
+        show: false,
+        total: 0,
+        current: 0,
+        percentage: 0,
+        currentWeapon: '',
+        isCompleted: false
+      }
+    }
+    return activeProgresses.value.get(selectedConfigId.value) || {
+      show: false,
+      total: 0,
+      current: 0,
+      percentage: 0,
+      currentWeapon: '',
+      isCompleted: false
+    }
   })
+
+  // 辅助函数：更新指定配置的进度
+  const updateProgress = (configId, progressData) => {
+    activeProgresses.value.set(configId, {
+      show: true,
+      ...progressData
+    })
+    // 同时更新配置列表中的进度数据
+    const config = savedConfigs.value.find(c => c.id === configId)
+    if (config) {
+      config.crawlProgress = progressData
+    }
+  }
+
+  // 辅助函数：获取指定配置的进度
+  const getProgress = (configId) => {
+    return activeProgresses.value.get(configId) || {
+      show: false,
+      total: 0,
+      current: 0,
+      percentage: 0,
+      currentWeapon: '',
+      isCompleted: false
+    }
+  }
+
+  // 辅助函数：清除指定配置的进度
+  const clearProgress = (configId) => {
+    activeProgresses.value.delete(configId)
+    const config = savedConfigs.value.find(c => c.id === configId)
+    if (config) {
+      config.crawlProgress = null
+    }
+  }
 
   // 查询模式选择对话框
   const showSearchModeDialog = ref(false)
@@ -853,59 +909,46 @@ const startCrawl = async () => {
               case 'start':
                 ElMessage.info(`开始搜索 ${eventData.total} 个饰品`)
                 // 初始化进度
-                crawlProgress.value = {
-                  show: true,
-                  total: eventData.total || 0,
-                  current: 0,
-                  percentage: 0,
-                  currentWeapon: ''
+                if (selectedConfigId.value) {
+                  updateProgress(selectedConfigId.value, {
+                    total: eventData.total || 0,
+                    current: 0,
+                    percentage: 0,
+                    currentWeapon: '',
+                    isCompleted: false,
+                    timestamp: Date.now()
+                  })
+                  // 保存进度到数据库
+                  saveProgressToStorage(selectedConfigId.value)
                 }
-                // 保存进度到localStorage
-                saveProgressToStorage()
                 break
 
               case 'processing':
                 console.log(`[${eventData.current}/${eventData.total}] 处理: ${eventData.weapon_name}`)
                 // 更新进度
-                crawlProgress.value.current = eventData.current || 0
-                crawlProgress.value.total = eventData.total || crawlProgress.value.total
-                crawlProgress.value.currentWeapon = eventData.weapon_name || ''
-                crawlProgress.value.percentage = crawlProgress.value.total > 0
-                  ? Math.floor((crawlProgress.value.current / crawlProgress.value.total) * 100)
-                  : 0
-                // 保存进度到localStorage
-                saveProgressToStorage()
+                if (selectedConfigId.value) {
+                  const currentProgress = getProgress(selectedConfigId.value)
+                  const total = eventData.total || currentProgress.total
+                  const current = eventData.current || 0
+                  const percentage = total > 0 ? parseFloat(((current / total) * 100).toFixed(2)) : 0
+
+                  updateProgress(selectedConfigId.value, {
+                    total,
+                    current,
+                    percentage,
+                    currentWeapon: eventData.weapon_name || '',
+                    isCompleted: false,
+                    timestamp: Date.now()
+                  })
+                  // 保存进度到数据库
+                  saveProgressToStorage(selectedConfigId.value)
+                }
                 break
 
               case 'item':
-                // 添加商品到列表
-                if (!crawlResult.value.weapons) {
-                  crawlResult.value.weapons = []
-                }
-
-                const weaponName = eventData.weapon_name || '未知饰品'
-                let weapon = crawlResult.value.weapons.find(w => w.weapon_name === weaponName)
-
-                if (!weapon) {
-                  weapon = {
-                    weapon_name: weaponName,
-                    weapon_id: eventData.weapon_id,
-                    items: []
-                  }
-                  crawlResult.value.weapons.push(weapon)
-                }
-
-                weapon.items.push({
-                  ...eventData.item,
-                  weapon_name: weaponName
-                })
-
-                ElNotification({
-                  title: '找到商品',
-                  message: `${weaponName} - ¥${eventData.item.price}`,
-                  type: 'success',
-                  duration: 3000
-                })
+                // 不再处理 item 事件，数据通过轮询从数据库获取
+                // 后端已修改为只存储到数据库，前端通过 fetchResults 轮询获取
+                console.log('[挂件SSE] 收到 item 事件（已废弃，数据通过轮询获取）')
                 break
 
               case 'weapon_complete':
@@ -915,28 +958,47 @@ const startCrawl = async () => {
               case 'stopped':
                 ElMessage.warning(eventData.message)
                 isCrawling.value = false
-                // 完成进度
-                crawlProgress.value.percentage = 100
-                crawlProgress.value.currentWeapon = ''
-                saveProgressToStorage()
+                // 标记为已完成
+                if (selectedConfigId.value) {
+                  const currentProgress = getProgress(selectedConfigId.value)
+                  updateProgress(selectedConfigId.value, {
+                    total: currentProgress.total,
+                    current: currentProgress.current,
+                    percentage: 100,
+                    currentWeapon: '',
+                    isCompleted: true,
+                    timestamp: Date.now()
+                  })
+                  saveProgressToStorage(selectedConfigId.value)
+                }
                 break
 
               case 'complete':
                 ElMessage.success(`搜索完成！共找到 ${eventData.total_found} 件商品`)
                 isCrawling.value = false
-                // 完成进度
-                crawlProgress.value.current = crawlProgress.value.total
-                crawlProgress.value.percentage = 100
-                crawlProgress.value.currentWeapon = ''
-                saveProgressToStorage()
+                // 标记为已完成
+                if (selectedConfigId.value) {
+                  const currentProgress = getProgress(selectedConfigId.value)
+                  updateProgress(selectedConfigId.value, {
+                    total: currentProgress.total,
+                    current: currentProgress.total,
+                    percentage: 100,
+                    currentWeapon: '',
+                    isCompleted: true,
+                    timestamp: Date.now()
+                  })
+                  saveProgressToStorage(selectedConfigId.value)
+                }
                 break
 
               case 'unauthorized':
                 ElMessage.error(eventData.message)
                 isCrawling.value = false
                 // 清除进度
-                crawlProgress.value.show = false
-                clearProgressFromStorage()
+                if (selectedConfigId.value) {
+                  clearProgress(selectedConfigId.value)
+                  clearProgressFromStorage(selectedConfigId.value)
+                }
                 break
             }
           } catch (e) {
@@ -1055,19 +1117,22 @@ const loadConfigList = async () => {
         key1: 'spider_pendant'
       }
     })
-    
+
     console.log('配置列表响应:', response.data)
-    
+
     // 保存平台类型
     savedConfigs.value = (response.data.data || []).map(config => ({
       ...config,
       platformType: config.key2 || ''
     }))
-    
+
     // 按ID降序排序
     savedConfigs.value.sort((a, b) => b.id - a.id)
-    
+
     console.log('加载的配置列表:', savedConfigs.value)
+
+    // 恢复所有配置的进度
+    loadAllProgresses()
   } catch (error) {
     console.error('加载配置列表失败:', error)
   }
@@ -2100,69 +2165,144 @@ const getBuyButtonType = (item) => {
   return 'success'    // 高收益：绿色
 }
 
-// 保存进度到localStorage
-const saveProgressToStorage = () => {
-  if (!selectedConfigId.value) return
+// 保存进度到config
+const saveProgressToStorage = async (configId) => {
+  if (!configId) return
 
-  const progressKey = `crawl_progress_${selectedConfigId.value}`
-  const progressData = {
-    ...crawlProgress.value,
-    configId: selectedConfigId.value,
-    timestamp: Date.now(),
-    isCrawling: isCrawling.value
-  }
-  localStorage.setItem(progressKey, JSON.stringify(progressData))
-}
-
-// 从localStorage恢复进度
-const loadProgressFromStorage = () => {
-  if (!selectedConfigId.value) return
-
-  const progressKey = `crawl_progress_${selectedConfigId.value}`
-  const savedProgress = localStorage.getItem(progressKey)
-
-  if (savedProgress) {
-    try {
-      const progressData = JSON.parse(savedProgress)
-
-      // 检查是否是当前配置的进度
-      if (progressData.configId === selectedConfigId.value) {
-        // 检查时间戳，如果超过24小时则清除
-        const now = Date.now()
-        const elapsed = now - (progressData.timestamp || 0)
-        const maxAge = 24 * 60 * 60 * 1000 // 24小时
-
-        if (elapsed < maxAge) {
-          crawlProgress.value = {
-            show: progressData.show,
-            total: progressData.total,
-            current: progressData.current,
-            percentage: progressData.percentage,
-            currentWeapon: progressData.currentWeapon || ''
-          }
-
-          // 如果之前正在爬取但现在不是，说明可能是刷新了页面
-          if (progressData.isCrawling && !isCrawling.value) {
-            console.log('[进度恢复] 检测到未完成的任务，已恢复进度显示')
-          }
-        } else {
-          // 过期，清除
-          clearProgressFromStorage()
-        }
-      }
-    } catch (e) {
-      console.error('[进度恢复] 解析失败:', e)
-      clearProgressFromStorage()
+  try {
+    const progress = getProgress(configId)
+    const progressData = {
+      total: progress.total,
+      current: progress.current,
+      percentage: progress.percentage,
+      currentWeapon: progress.currentWeapon,
+      isCompleted: progress.isCompleted,
+      timestamp: progress.timestamp || Date.now(),
+      isCrawling: isCrawling.value
     }
+
+    // 查找配置
+    const config = savedConfigs.value.find(c => c.id === configId)
+    if (!config) return
+
+    // 更新配置中的进度数据
+    const updatedConfig = {
+      ...config,
+      crawlProgress: progressData
+    }
+
+    // 调用后端API保存配置
+    const response = await fetch(`${API_CONFIG.BACKEND_BASE_URL}/searchPendantConfigV1/saveConfig`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(updatedConfig)
+    })
+
+    if (!response.ok) {
+      console.error('[进度保存] 保存失败:', response.statusText)
+    }
+  } catch (error) {
+    console.error('[进度保存] 保存异常:', error)
   }
 }
 
-// 清除localStorage中的进度
-const clearProgressFromStorage = () => {
-  if (!selectedConfigId.value) return
+// 从config恢复进度（单个配置）
+const loadProgressFromStorage = (configId) => {
+  if (!configId) configId = selectedConfigId.value
+  if (!configId) return
 
-  const progressKey = `crawl_progress_${selectedConfigId.value}`
-  localStorage.removeItem(progressKey)
+  try {
+    // 查找配置
+    const config = savedConfigs.value.find(c => c.id === configId)
+    if (!config || !config.crawlProgress) {
+      console.log(`[进度恢复] 配置${configId}没有找到进度数据`)
+      return
+    }
+
+    const progressData = config.crawlProgress
+
+    // 检查时间戳，如果超过24小时则清除
+    const now = Date.now()
+    const elapsed = now - (progressData.timestamp || 0)
+    const maxAge = 24 * 60 * 60 * 1000 // 24小时
+
+    if (elapsed < maxAge) {
+      // 如果任务已完成，强制显示100%
+      if (progressData.isCompleted) {
+        updateProgress(configId, {
+          total: progressData.total,
+          current: progressData.total,  // 已完成，设置为总数
+          percentage: 100,               // 已完成，设置为100%
+          currentWeapon: '',
+          isCompleted: true,
+          timestamp: progressData.timestamp
+        })
+        console.log(`[进度恢复] 配置${configId}任务已完成，显示100%`)
+      } else {
+        // 任务未完成，清除进度（因为SSE已断开，无法恢复）
+        console.log(`[进度恢复] 配置${configId}任务未完成，清除进度`)
+        clearProgress(configId)
+        clearProgressFromStorage(configId)
+      }
+    } else {
+      // 过期，清除
+      console.log(`[进度恢复] 配置${configId}进度数据已过期`)
+      clearProgress(configId)
+      clearProgressFromStorage(configId)
+    }
+  } catch (e) {
+    console.error('[进度恢复] 恢复失败:', e)
+  }
+}
+
+// 恢复所有配置的进度
+const loadAllProgresses = () => {
+  console.log('[进度恢复] 开始恢复所有配置的进度')
+  savedConfigs.value.forEach(config => {
+    if (config.id && config.crawlProgress) {
+      loadProgressFromStorage(config.id)
+    }
+  })
+}
+
+// 清除config中的进度
+const clearProgressFromStorage = async (configId) => {
+  if (!configId) configId = selectedConfigId.value
+  if (!configId) return
+
+  try {
+    // 查找配置
+    const config = savedConfigs.value.find(c => c.id === configId)
+    if (!config) return
+
+    // 更新配置，移除进度数据
+    const updatedConfig = {
+      ...config,
+      crawlProgress: null
+    }
+
+    // 调用后端API保存配置
+    const response = await fetch(`${API_CONFIG.BACKEND_BASE_URL}/searchPendantConfigV1/saveConfig`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(updatedConfig)
+    })
+
+    if (response.ok) {
+      console.log(`[进度清除] 配置${configId}进度数据已清除`)
+      // 同时更新本地配置列表
+      const configIndex = savedConfigs.value.findIndex(c => c.id === configId)
+      if (configIndex !== -1) {
+        savedConfigs.value[configIndex].crawlProgress = null
+      }
+    }
+  } catch (error) {
+    console.error('[进度清除] 清除异常:', error)
+  }
 }
 
 // 获取稀有度颜色样式（与ItemSearch保持一致）
