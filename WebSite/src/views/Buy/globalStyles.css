@@ -1,0 +1,54 @@
+/* 全局日历面板样式 - 无scoped以确保最高优先级 */
+.el-picker-panel,
+.el-date-picker,
+.el-date-range-picker,
+.el-popper {
+  background-color: #1a1a1a !important;
+  border-color: #333 !important;
+}
+
+.el-picker-panel .el-picker-panel__content,
+.el-picker-panel .el-picker-panel__body,
+.el-date-picker .el-picker-panel__content {
+  background-color: #1a1a1a !important;
+}
+
+.el-date-picker__header,
+.el-date-picker__time-header {
+  background-color: #1a1a1a !important;
+  border-bottom-color: #333 !important;
+}
+
+.el-date-table th,
+.el-date-table td,
+.el-month-table td,
+.el-year-table td {
+  background-color: #1a1a1a !important;
+  color: #fff !important;
+}
+
+.el-date-table th {
+  color: #ccc !important;
+}
+
+.el-picker-panel__footer {
+  background-color: #1a1a1a !important;
+  border-top-color: #333 !important;
+}
+
+/* 修复加载遮罩白色背景问题 */
+.el-loading-mask {
+  background-color: rgba(26, 26, 26, 0.8) !important;
+}
+
+.el-loading-spinner {
+  color: #409eff !important;
+}
+
+.el-loading-text {
+  color: #fff !important;
+}
+
+.el-loading-spinner .circular {
+  color: #409eff !important;
+}
