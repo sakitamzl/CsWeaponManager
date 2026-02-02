@@ -226,6 +226,87 @@ const {
 }
 
 /* 响应式设计 */
+/* iPad Pro 横屏 (1024px - 1366px) */
+@media (min-width: 1024px) and (max-width: 1366px) {
+  .secondary-sidebar {
+    width: 200px;
+    left: var(--main-sidebar-width, max(calc(15rem - 50px), min(18vw, calc(20rem - 50px))));
+  }
+
+  .data-spider-container.main-sidebar-collapsed .secondary-sidebar {
+    left: 4rem;
+  }
+
+  .toggle-button {
+    left: calc(var(--main-sidebar-width, max(calc(15rem - 50px), min(18vw, calc(20rem - 50px)))) + 200px + 2px);
+  }
+
+  .data-spider-container.main-sidebar-collapsed .toggle-button {
+    left: calc(4rem + 200px + 2px);
+  }
+
+  .data-spider-container.main-sidebar-collapsed .toggle-button.collapsed {
+    left: 4rem;
+  }
+
+  .main-wrapper {
+    margin-left: 200px;
+  }
+
+  .main-wrapper.expanded {
+    margin-left: 0;
+  }
+
+  .category-list li {
+    padding: 0.875rem 1.25rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* iPad 竖屏 / 小屏幕平板 (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .secondary-sidebar {
+    width: 180px;
+    left: var(--main-sidebar-width, max(calc(15rem - 50px), min(18vw, calc(20rem - 50px))));
+  }
+
+  .data-spider-container.main-sidebar-collapsed .secondary-sidebar {
+    left: 4rem;
+  }
+
+  .toggle-button {
+    left: calc(var(--main-sidebar-width, max(calc(15rem - 50px), min(18vw, calc(20rem - 50px)))) + 180px + 2px);
+    width: 32px;
+    height: 70px;
+  }
+
+  .data-spider-container.main-sidebar-collapsed .toggle-button {
+    left: calc(4rem + 180px + 2px);
+  }
+
+  .data-spider-container.main-sidebar-collapsed .toggle-button.collapsed {
+    left: 4rem;
+  }
+
+  .main-wrapper {
+    margin-left: 180px;
+  }
+
+  .main-wrapper.expanded {
+    margin-left: 0;
+  }
+
+  .category-list li {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  .category-list li .el-icon {
+    font-size: 16px;
+  }
+}
+
+/* 小屏幕手机 */
 @media (max-width: 768px) {
   .secondary-sidebar {
     width: 180px;

@@ -460,6 +460,8 @@ export default {
 </script>
 
 <style scoped>
+@import './styles.css';
+
 .spider-pendant-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
@@ -501,7 +503,15 @@ export default {
 }
 
 .sidebar-header {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-header-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #4CAF50;
+  white-space: nowrap;
+  margin-bottom: 0.5rem;
 }
 
 .sidebar-header-row {
@@ -544,45 +554,87 @@ export default {
   overflow-y: auto;
   margin-bottom: 1rem;
   padding-right: 0.5rem;
+  padding-left: 0.25rem;
+}
+
+/* 优化配置列表中的标签显示 */
+.config-item :deep(.el-tag) {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  height: auto;
+  line-height: 1.4;
+  border-radius: 4px;
+  font-weight: 500;
 }
 
 .config-item {
   background-color: #252525;
   border: 1px solid #333;
   border-radius: 0.5rem;
-  padding: 1rem;
-  margin-bottom: 0.75rem;
+  padding: 0.875rem;
+  margin-bottom: 0.625rem;
   cursor: pointer;
   transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.config-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-color: transparent;
+  transition: background-color 0.3s ease;
 }
 
 .config-item:hover {
   border-color: #4CAF50;
   background-color: #2a2a2a;
+  transform: translateX(2px);
+}
+
+.config-item:hover::before {
+  background-color: #4CAF50;
 }
 
 .config-item.active {
   border-color: #4CAF50;
-  background-color: rgba(76, 175, 80, 0.1);
-  box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+  background-color: rgba(76, 175, 80, 0.15);
+  box-shadow: 0 0 12px rgba(76, 175, 80, 0.4);
+  transform: translateX(0);
+}
+
+.config-item.active::before {
+  background-color: #4CAF50;
+  width: 4px;
 }
 
 .config-item-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.5rem;
+  align-items: flex-start;
+  margin-bottom: 0.375rem;
+  gap: 0.5rem;
 }
 
 .config-name {
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: #fff;
   flex: 1;
-  margin-right: 0.5rem;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.4;
+}
+
+.config-item.active .config-name {
+  color: #4CAF50;
 }
 
 .config-item-meta {
@@ -595,9 +647,9 @@ export default {
 }
 
 .config-description {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: #aaa;
-  margin-top: 0.5rem;
+  margin-top: 0.375rem;
   line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -605,6 +657,11 @@ export default {
   -webkit-line-clamp: 2;
   line-clamp: 2;
   -webkit-box-orient: vertical;
+  padding-left: 0.25rem;
+}
+
+.config-item.active .config-description {
+  color: #bbb;
 }
 
 .empty-config {
@@ -612,6 +669,12 @@ export default {
   align-items: center;
   justify-content: center;
   height: 200px;
+  padding: 2rem 1rem;
+}
+
+.empty-config :deep(.el-empty__description) {
+  color: #888;
+  font-size: 0.9rem;
 }
 
 .sidebar-divider {
@@ -619,6 +682,7 @@ export default {
   background-color: #2f2f2f;
   border-radius: 1px;
   margin-bottom: 1rem;
+  margin-top: 0.5rem;
 }
 
 .sidebar-header-actions {
@@ -821,36 +885,7 @@ export default {
   font-weight: 500;
 }
 
-.weapon-name-cell {
-  color: #409eff;
-  font-weight: 500;
-  font-size: 0.9rem;
-  white-space: normal;
-  word-break: break-word;
-  overflow: visible;
-  line-height: 1.4;
-}
-
-.weapon-icon {
-  width: 60px;
-  height: 60px;
-  object-fit: contain;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 4px;
-  transition: all 0.3s ease;
-}
-
-.weapon-icon:hover {
-  transform: scale(1.1);
-  background: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.3);
-}
-
-.no-icon {
-  color: #666;
-  font-size: 0.875rem;
-}
+/* 武器图标和名称样式已移至 resultSection.css */
 
 .hash-name-text {
   color: #aaa;
@@ -1004,143 +1039,7 @@ export default {
   min-width: 140px;
 }
 
-/* 结果区域 */
-.result-section {
-  background-color: #2a2a2a;
-  padding: 1.5rem;
-  border-radius: 0.75rem;
-  margin-bottom: 1.5rem;
-  overflow-x: auto;
-}
-
-.result-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.result-header .section-title {
-  margin: 0;
-}
-
-.weapon-result-card {
-  background-color: #1e1e1e;
-  border-radius: 0.5rem;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.weapon-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid #3a3a3a;
-}
-
-.weapon-name {
-  color: #fff;
-  font-size: 1.125rem;
-  margin: 0;
-}
-
-.weapon-stats {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.price {
-  font-weight: 600;
-  color: #ffa500;
-}
-
-.commission-fee {
-  font-size: 0.875rem;
-  color: #909399;
-  font-weight: 500;
-}
-
-/* 挂件样式 */
-.pendant-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.pendant-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 6px;
-  transition: all 0.2s;
-}
-
-.pendant-item:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.pendant-img {
-  width: 60px;
-  height: 60px;
-  max-width: 60px;
-  max-height: 60px;
-  min-width: 60px;
-  min-height: 60px;
-  object-fit: contain;
-  background: rgba(0, 0, 0, 0.4);
-  border-radius: 6px;
-  padding: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.pendant-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
-
-.pendant-name {
-  color: #67c23a;
-  font-weight: 600;
-  font-size: 14px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.pendant-details {
-  display: flex;
-  gap: 12px;
-  font-size: 12px;
-  flex-wrap: wrap;
-}
-
-.pendant-price {
-  color: #f56c6c;
-  font-weight: 700;
-  font-size: 13px;
-}
-
-.pendant-pattern {
-  color: #909399;
-  font-size: 12px;
-}
-
-.no-pendant {
-  color: #909399;
-  font-size: 13px;
-  font-style: italic;
-  padding: 8px;
-  text-align: center;
-}
+/* 结果区域样式已移至 resultSection.css */
 
 /* 价格区间提示样式 */
 .price-range-hint {
@@ -1289,8 +1188,354 @@ export default {
   }
 }
 
+/* iPad Pro 横屏 (1024px - 1366px) */
+@media (min-width: 1024px) and (max-width: 1366px) {
+  .spider-pendant-container {
+    padding: 1.5rem;
+  }
+
+  .page-layout {
+    gap: 1rem;
+  }
+
+  .config-sidebar {
+    width: 240px;
+    min-width: 240px;
+    padding: 1.25rem;
+  }
+
+  .unified-tool-section {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .form-container {
+    padding: 1.25rem;
+  }
+
+  .custom-config-grid {
+    gap: 1rem 1.5rem;
+  }
+
+  .custom-config-field {
+    flex: 0 0 calc(33.333% - 1rem);
+    min-width: 200px;
+  }
+
+  .custom-config-field .field-label {
+    min-width: 100px;
+    font-size: 0.85rem;
+  }
+
+  .form-row {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .form-item-quarter {
+    flex: 0 0 calc(50% - 0.375rem);
+    min-width: 0;
+  }
+
+  .action-buttons {
+    gap: 0.75rem;
+  }
+
+  .action-buttons .el-button {
+    min-width: 120px;
+    font-size: 0.9rem;
+  }
+
+  /* 表格优化 */
+  .result-section {
+    padding: 1.25rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .result-section :deep(.el-table) {
+    font-size: 0.875rem;
+    min-width: 1200px;
+  }
+
+  .result-section :deep(.el-table th),
+  .result-section :deep(.el-table td) {
+    padding: 8px 6px;
+  }
+
+  .result-section :deep(.el-table__header-wrapper),
+  .result-section :deep(.el-table__body-wrapper) {
+    overflow-x: auto;
+  }
+
+  .weapon-icon {
+    width: 50px;
+    height: 50px;
+  }
+
+  .pendant-img {
+    width: 50px;
+    height: 50px;
+    max-width: 50px;
+    max-height: 50px;
+    min-width: 50px;
+    min-height: 50px;
+  }
+
+  .pendant-name {
+    font-size: 13px;
+  }
+
+  .pendant-details {
+    font-size: 11px;
+    gap: 8px;
+  }
+
+  .section-title {
+    font-size: 1.3rem;
+  }
+
+  .tool-section-header .section-title {
+    font-size: 1.1rem;
+  }
+
+  /* 优化按钮大小 */
+  .result-section :deep(.el-button--small) {
+    padding: 5px 10px;
+    font-size: 0.8rem;
+  }
+
+  /* 触摸优化 */
+  .config-item,
+  .action-buttons .el-button,
+  .result-section :deep(.el-button) {
+    -webkit-tap-highlight-color: rgba(76, 175, 80, 0.2);
+    touch-action: manipulation;
+  }
+
+  /* 优化输入框在 iPad 上的显示 */
+  .form-container :deep(.el-input),
+  .form-container :deep(.el-select) {
+    font-size: 0.9rem;
+  }
+
+  /* 优化标签间距 */
+  .weapon-id-tags {
+    gap: 6px;
+  }
+
+  .weapon-id-tags :deep(.el-tag) {
+    margin: 0;
+    font-size: 0.85rem;
+    padding: 4px 8px;
+  }
+
+  /* 配置管理优化 */
+  .config-item {
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .config-name {
+    font-size: 0.9rem;
+  }
+
+  .config-item :deep(.el-tag) {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+  }
+
+  .config-description {
+    font-size: 0.75rem;
+  }
+}
+
+/* iPad 竖屏 / 小屏幕平板 (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .spider-pendant-container {
+    padding: 1rem;
+  }
+
+  .page-layout {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .config-sidebar {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    max-height: 350px;
+    position: static;
+    margin-bottom: 0;
+  }
+
+  .config-list {
+    max-height: 200px;
+  }
+
+  .unified-tool-section {
+    padding: 1rem 1.25rem;
+  }
+
+  .form-container {
+    padding: 1rem;
+  }
+
+  .custom-config-grid {
+    gap: 0.75rem 1rem;
+  }
+
+  .custom-config-field {
+    flex: 0 0 calc(50% - 0.5rem);
+    min-width: 180px;
+  }
+
+  .custom-config-field .field-label {
+    min-width: 90px;
+    font-size: 0.8rem;
+  }
+
+  .form-row {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .form-item-quarter {
+    flex: 0 0 calc(50% - 0.25rem);
+    min-width: 0;
+  }
+
+  .action-buttons {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .action-buttons .el-button {
+    flex: 1 1 calc(50% - 0.25rem);
+    min-width: 140px;
+  }
+
+  /* 表格优化 */
+  .result-section {
+    padding: 1rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .result-section :deep(.el-table) {
+    font-size: 0.85rem;
+    min-width: 1200px;
+  }
+
+  .result-section :deep(.el-table th),
+  .result-section :deep(.el-table td) {
+    padding: 6px 4px;
+  }
+
+  .result-section :deep(.el-table__header-wrapper),
+  .result-section :deep(.el-table__body-wrapper) {
+    overflow-x: auto;
+  }
+
+  .weapon-icon {
+    width: 45px;
+    height: 45px;
+  }
+
+  .pendant-img {
+    width: 45px;
+    height: 45px;
+    max-width: 45px;
+    max-height: 45px;
+    min-width: 45px;
+    min-height: 45px;
+  }
+
+  .pendant-name {
+    font-size: 12px;
+  }
+
+  .pendant-details {
+    font-size: 10px;
+    gap: 6px;
+  }
+
+  /* 优化按钮大小 */
+  .result-section :deep(.el-button--small) {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+  }
+
+  /* 优化标签显示 */
+  .result-section :deep(.el-tag) {
+    font-size: 0.75rem;
+    padding: 2px 6px;
+  }
+
+  /* 触摸优化 */
+  .config-item,
+  .action-buttons .el-button,
+  .result-section :deep(.el-button) {
+    -webkit-tap-highlight-color: rgba(76, 175, 80, 0.2);
+    touch-action: manipulation;
+    min-height: 36px;
+  }
+
+  /* 优化输入框在 iPad 上的显示 */
+  .form-container :deep(.el-input),
+  .form-container :deep(.el-select) {
+    font-size: 0.85rem;
+  }
+
+  /* 优化标签间距 */
+  .weapon-id-tags {
+    gap: 6px;
+  }
+
+  .weapon-id-tags :deep(.el-tag) {
+    margin: 0;
+    font-size: 0.8rem;
+    padding: 3px 6px;
+  }
+
+  /* 配置管理优化 */
+  .config-item {
+    padding: 0.625rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .config-name {
+    font-size: 0.85rem;
+  }
+
+  .config-item :deep(.el-tag) {
+    font-size: 0.65rem;
+    padding: 1px 5px;
+  }
+
+  .config-description {
+    font-size: 0.7rem;
+  }
+
+  .config-list {
+    padding-right: 0.25rem;
+  }
+
+  .sidebar-header-actions {
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .sidebar-header-actions .el-button {
+    width: 100%;
+    min-width: auto;
+    font-size: 0.8rem;
+    padding: 6px 12px;
+  }
+}
+
 /* 中等屏幕 */
-@media (max-width: 1440px) {
+@media (max-width: 1440px) and (min-width: 1367px) {
   .config-sidebar {
     width: 260px;
     min-width: 260px;

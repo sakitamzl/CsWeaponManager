@@ -1,0 +1,419 @@
+/* 查询结果区域样式 */
+.result-section {
+  background-color: #2a2a2a;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.result-header .section-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #fff;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #444;
+}
+
+/* 表格容器优化 */
+.result-section :deep(.el-table) {
+  background-color: transparent;
+  color: #fff;
+}
+
+.result-section :deep(.el-table__header-wrapper),
+.result-section :deep(.el-table__body-wrapper) {
+  overflow-x: auto;
+}
+
+.result-section :deep(.el-table th) {
+  background-color: #1e1e1e;
+  color: #fff;
+  border-bottom: 1px solid #444;
+  font-weight: 600;
+}
+
+.result-section :deep(.el-table td) {
+  background-color: #252525;
+  color: #fff;
+  border-bottom: 1px solid #333;
+}
+
+.result-section :deep(.el-table tr:hover > td) {
+  background-color: rgba(76, 175, 80, 0.1) !important;
+}
+
+.result-section :deep(.el-table--striped .el-table__body tr.el-table__row--striped td) {
+  background-color: #2a2a2a;
+}
+
+.result-section :deep(.el-table--striped .el-table__body tr.el-table__row--striped:hover > td) {
+  background-color: rgba(76, 175, 80, 0.15) !important;
+}
+
+/* 武器图标样式 */
+.weapon-icon {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 4px;
+  transition: all 0.3s ease;
+}
+
+.weapon-icon:hover {
+  transform: scale(1.1);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.3);
+}
+
+.icon-link {
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.icon-link:hover {
+  transform: scale(1.05);
+}
+
+.no-icon {
+  color: #666;
+  font-size: 0.875rem;
+}
+
+/* 武器名称单元格 */
+.weapon-name-cell {
+  color: #409eff;
+  font-weight: 500;
+  font-size: 0.9rem;
+  white-space: normal;
+  word-break: break-word;
+  overflow: visible;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.weapon-name-cell:hover {
+  color: #66b1ff;
+  text-decoration: underline;
+}
+
+/* 价格样式 */
+.price {
+  font-weight: 600;
+  color: #ffa500;
+  font-size: 0.95rem;
+}
+
+.commission-fee {
+  font-size: 0.875rem;
+  color: #909399;
+  font-weight: 500;
+}
+
+.reference-price {
+  color: #67c23a;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+/* 挂件列表样式 */
+.pendant-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 4px;
+}
+
+.pendant-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.pendant-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateX(2px);
+}
+
+.pendant-img {
+  width: 60px;
+  height: 60px;
+  max-width: 60px;
+  max-height: 60px;
+  min-width: 60px;
+  min-height: 60px;
+  object-fit: contain;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 6px;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.pendant-img:hover {
+  border-color: rgba(76, 175, 80, 0.5);
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
+}
+
+.pendant-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pendant-name {
+  color: #67c23a;
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pendant-details {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+.pendant-price {
+  color: #f56c6c;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.pendant-pattern {
+  color: #909399;
+  font-size: 12px;
+}
+
+.no-pendant {
+  color: #909399;
+  font-size: 13px;
+  font-style: italic;
+  padding: 8px;
+  text-align: center;
+}
+
+/* 操作按钮优化 */
+.result-section :deep(.el-button--small) {
+  padding: 5px 12px;
+  font-size: 0.85rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.result-section :deep(.el-button--small:hover) {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 标签样式优化 */
+.result-section :deep(.el-tag) {
+  border-radius: 4px;
+  font-weight: 500;
+  padding: 2px 8px;
+}
+
+/* 滚动条样式 */
+.result-section::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.result-section::-webkit-scrollbar-track {
+  background: #1a1a1a;
+  border-radius: 4px;
+}
+
+.result-section::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.result-section::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.pendant-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.pendant-list::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.pendant-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.pendant-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* iPad Pro 横屏适配 (1024px - 1366px) */
+@media (min-width: 1024px) and (max-width: 1366px) {
+  .result-section {
+    padding: 1.25rem;
+  }
+
+  .result-header .section-title {
+    font-size: 1.3rem;
+  }
+
+  .result-section :deep(.el-table) {
+    font-size: 0.875rem;
+    min-width: 1200px;
+  }
+
+  .result-section :deep(.el-table th),
+  .result-section :deep(.el-table td) {
+    padding: 8px 6px;
+  }
+
+  .weapon-icon {
+    width: 50px;
+    height: 50px;
+  }
+
+  .pendant-img {
+    width: 50px;
+    height: 50px;
+    max-width: 50px;
+    max-height: 50px;
+    min-width: 50px;
+    min-height: 50px;
+  }
+
+  .pendant-name {
+    font-size: 13px;
+  }
+
+  .pendant-details {
+    font-size: 11px;
+    gap: 8px;
+  }
+
+  .result-section :deep(.el-button--small) {
+    padding: 5px 10px;
+    font-size: 0.8rem;
+  }
+
+  .weapon-name-cell {
+    font-size: 0.85rem;
+  }
+
+  .price {
+    font-size: 0.9rem;
+  }
+}
+
+/* iPad 竖屏适配 (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .result-section {
+    padding: 1rem;
+  }
+
+  .result-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .result-header .section-title {
+    font-size: 1.2rem;
+    width: 100%;
+  }
+
+  .result-section :deep(.el-table) {
+    font-size: 0.85rem;
+    min-width: 1200px;
+  }
+
+  .result-section :deep(.el-table th),
+  .result-section :deep(.el-table td) {
+    padding: 6px 4px;
+  }
+
+  .weapon-icon {
+    width: 45px;
+    height: 45px;
+  }
+
+  .pendant-img {
+    width: 45px;
+    height: 45px;
+    max-width: 45px;
+    max-height: 45px;
+    min-width: 45px;
+    min-height: 45px;
+  }
+
+  .pendant-name {
+    font-size: 12px;
+  }
+
+  .pendant-details {
+    font-size: 10px;
+    gap: 6px;
+  }
+
+  .result-section :deep(.el-button--small) {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+  }
+
+  .result-section :deep(.el-tag) {
+    font-size: 0.75rem;
+    padding: 2px 6px;
+  }
+
+  .weapon-name-cell {
+    font-size: 0.8rem;
+  }
+
+  .price {
+    font-size: 0.85rem;
+  }
+}
+
+/* 触摸优化 */
+@media (hover: none) and (pointer: coarse) {
+  .weapon-icon,
+  .icon-link,
+  .pendant-item,
+  .result-section :deep(.el-button) {
+    -webkit-tap-highlight-color: rgba(76, 175, 80, 0.2);
+    touch-action: manipulation;
+  }
+
+  .weapon-name-cell {
+    -webkit-tap-highlight-color: rgba(64, 158, 255, 0.2);
+  }
+}
