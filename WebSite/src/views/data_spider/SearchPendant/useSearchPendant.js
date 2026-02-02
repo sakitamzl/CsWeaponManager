@@ -351,6 +351,15 @@ export function useSearchPendant() {
   const isWeaponListCollapsed = ref(true)  // 饰品列表折叠状态（默认折叠）
   const showConfigForm = ref(false)  // 控制配置表单显示（默认隐藏）
 
+  // 查询进度状态
+  const crawlProgress = ref({
+    show: false,           // 是否显示进度
+    total: 0,              // 总数
+    current: 0,            // 当前已查询数量
+    percentage: 0,         // 百分比
+    currentWeapon: ''      // 当前正在查询的武器名称
+  })
+
   // 查询模式选择对话框
   const showSearchModeDialog = ref(false)
   const selectedSearchMode = ref('by_weapon_id')  // 默认选择按饰品目录
@@ -843,10 +852,29 @@ const startCrawl = async () => {
             switch (eventData.type) {
               case 'start':
                 ElMessage.info(`开始搜索 ${eventData.total} 个饰品`)
+                // 初始化进度
+                crawlProgress.value = {
+                  show: true,
+                  total: eventData.total || 0,
+                  current: 0,
+                  percentage: 0,
+                  currentWeapon: ''
+                }
+                // 保存进度到localStorage
+                saveProgressToStorage()
                 break
 
               case 'processing':
                 console.log(`[${eventData.current}/${eventData.total}] 处理: ${eventData.weapon_name}`)
+                // 更新进度
+                crawlProgress.value.current = eventData.current || 0
+                crawlProgress.value.total = eventData.total || crawlProgress.value.total
+                crawlProgress.value.currentWeapon = eventData.weapon_name || ''
+                crawlProgress.value.percentage = crawlProgress.value.total > 0
+                  ? Math.floor((crawlProgress.value.current / crawlProgress.value.total) * 100)
+                  : 0
+                // 保存进度到localStorage
+                saveProgressToStorage()
                 break
 
               case 'item':
@@ -887,16 +915,28 @@ const startCrawl = async () => {
               case 'stopped':
                 ElMessage.warning(eventData.message)
                 isCrawling.value = false
+                // 完成进度
+                crawlProgress.value.percentage = 100
+                crawlProgress.value.currentWeapon = ''
+                saveProgressToStorage()
                 break
 
               case 'complete':
                 ElMessage.success(`搜索完成！共找到 ${eventData.total_found} 件商品`)
                 isCrawling.value = false
+                // 完成进度
+                crawlProgress.value.current = crawlProgress.value.total
+                crawlProgress.value.percentage = 100
+                crawlProgress.value.currentWeapon = ''
+                saveProgressToStorage()
                 break
 
               case 'unauthorized':
                 ElMessage.error(eventData.message)
                 isCrawling.value = false
+                // 清除进度
+                crawlProgress.value.show = false
+                clearProgressFromStorage()
                 break
             }
           } catch (e) {
@@ -1051,6 +1091,9 @@ const selectConfig = async (configId) => {
 
   // 切换配置时，先清空当前结果，避免显示混合数据
   crawlResult.value = { weapons: [] }
+
+  // 尝试恢复进度
+  loadProgressFromStorage()
 
   try {
     const config = savedConfigs.value.find(c => c.id === configId)
@@ -2057,6 +2100,71 @@ const getBuyButtonType = (item) => {
   return 'success'    // 高收益：绿色
 }
 
+// 保存进度到localStorage
+const saveProgressToStorage = () => {
+  if (!selectedConfigId.value) return
+
+  const progressKey = `crawl_progress_${selectedConfigId.value}`
+  const progressData = {
+    ...crawlProgress.value,
+    configId: selectedConfigId.value,
+    timestamp: Date.now(),
+    isCrawling: isCrawling.value
+  }
+  localStorage.setItem(progressKey, JSON.stringify(progressData))
+}
+
+// 从localStorage恢复进度
+const loadProgressFromStorage = () => {
+  if (!selectedConfigId.value) return
+
+  const progressKey = `crawl_progress_${selectedConfigId.value}`
+  const savedProgress = localStorage.getItem(progressKey)
+
+  if (savedProgress) {
+    try {
+      const progressData = JSON.parse(savedProgress)
+
+      // 检查是否是当前配置的进度
+      if (progressData.configId === selectedConfigId.value) {
+        // 检查时间戳，如果超过24小时则清除
+        const now = Date.now()
+        const elapsed = now - (progressData.timestamp || 0)
+        const maxAge = 24 * 60 * 60 * 1000 // 24小时
+
+        if (elapsed < maxAge) {
+          crawlProgress.value = {
+            show: progressData.show,
+            total: progressData.total,
+            current: progressData.current,
+            percentage: progressData.percentage,
+            currentWeapon: progressData.currentWeapon || ''
+          }
+
+          // 如果之前正在爬取但现在不是，说明可能是刷新了页面
+          if (progressData.isCrawling && !isCrawling.value) {
+            console.log('[进度恢复] 检测到未完成的任务，已恢复进度显示')
+          }
+        } else {
+          // 过期，清除
+          clearProgressFromStorage()
+        }
+      }
+    } catch (e) {
+      console.error('[进度恢复] 解析失败:', e)
+      clearProgressFromStorage()
+    }
+  }
+}
+
+// 清除localStorage中的进度
+const clearProgressFromStorage = () => {
+  if (!selectedConfigId.value) return
+
+  const progressKey = `crawl_progress_${selectedConfigId.value}`
+  localStorage.removeItem(progressKey)
+}
+
 // 获取稀有度颜色样式（与ItemSearch保持一致）
 const getRarityColor = (rarity) => {
   if (!rarity) return ''
@@ -2101,6 +2209,7 @@ const getRarityColor = (rarity) => {
     crawlResult,
     allCrawlItems,
     canStartCrawl,
+    crawlProgress,
     startCrawl,
     stopCrawl,
     resetForm,

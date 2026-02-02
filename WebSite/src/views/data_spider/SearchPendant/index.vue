@@ -382,6 +382,38 @@
             停止搜索
           </el-button>
         </div>
+
+        <!-- 查询进度显示 -->
+        <div v-if="crawlProgress.show" class="crawl-progress-section">
+          <div class="progress-header">
+            <span class="progress-title">查询进度</span>
+            <el-tag :type="isCrawling ? 'primary' : 'success'" size="small">
+              {{ isCrawling ? '进行中' : '已完成' }}
+            </el-tag>
+          </div>
+          <div class="progress-content">
+            <div class="progress-stats">
+              <div class="stat-item">
+                <span class="stat-label">已查询:</span>
+                <span class="stat-value">{{ crawlProgress.current }} / {{ crawlProgress.total }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">进度:</span>
+                <span class="stat-value">{{ crawlProgress.percentage }}%</span>
+              </div>
+            </div>
+            <el-progress
+              :percentage="crawlProgress.percentage"
+              :status="isCrawling ? undefined : 'success'"
+              :stroke-width="12"
+            />
+            <div v-if="crawlProgress.currentWeapon" class="current-weapon">
+              <span class="current-label">当前查询:</span>
+              <span class="current-name">{{ crawlProgress.currentWeapon }}</span>
+            </div>
+          </div>
+        </div>
+
         </div>
 
         <!-- 搜索饰品组件：仅在按饰品目录查询模式下显示 -->
@@ -1115,6 +1147,76 @@ export default {
   font-weight: 500;
   padding: 4px 10px;
   border-radius: 4px;
+}
+
+/* 查询进度样式 */
+.crawl-progress-section {
+  background-color: #2a2a2a;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+  border: 1px solid #333;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.progress-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.progress-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.progress-stats {
+  display: flex;
+  gap: 2rem;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stat-label {
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.stat-value {
+  color: #4CAF50;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.current-weapon {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background-color: rgba(76, 175, 80, 0.1);
+  border-radius: 6px;
+  border-left: 3px solid #4CAF50;
+}
+
+.current-label {
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.current-name {
+  color: #fff;
+  font-weight: 500;
 }
 
 .form-container {
