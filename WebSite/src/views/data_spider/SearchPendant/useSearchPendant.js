@@ -704,6 +704,7 @@ const startCrawl = async () => {
       最大差价百分比: customConfig['最大差价百分比'],
       最大溢价: customConfig['最大溢价'],
       饰品自动查询间隔: customConfig['饰品自动查询间隔'],
+      是否自动购买: customConfig['是否自动购买'],
       印花板: customConfig['印花板'],
       收益不少于: customConfig['收益不少于']
     }

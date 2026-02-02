@@ -30,11 +30,38 @@
 .result-section :deep(.el-table) {
   background-color: transparent;
   color: #fff;
+  overflow: visible !important;
 }
 
+/* 禁用表格所有内部容器的滚动，只使用外层 .result-section 的滚动 */
 .result-section :deep(.el-table__header-wrapper),
-.result-section :deep(.el-table__body-wrapper) {
-  overflow-x: auto;
+.result-section :deep(.el-table__body-wrapper),
+.result-section :deep(.el-table__inner-wrapper),
+.result-section :deep(.el-scrollbar),
+.result-section :deep(.el-scrollbar__wrap) {
+  overflow: visible !important;
+}
+
+/* 完全隐藏表格内部所有可能的滚动条 */
+.result-section :deep(.el-table)::-webkit-scrollbar,
+.result-section :deep(.el-table__header-wrapper)::-webkit-scrollbar,
+.result-section :deep(.el-table__body-wrapper)::-webkit-scrollbar,
+.result-section :deep(.el-table__inner-wrapper)::-webkit-scrollbar,
+.result-section :deep(.el-scrollbar)::-webkit-scrollbar,
+.result-section :deep(.el-scrollbar__wrap)::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.result-section :deep(.el-table),
+.result-section :deep(.el-table__header-wrapper),
+.result-section :deep(.el-table__body-wrapper),
+.result-section :deep(.el-table__inner-wrapper),
+.result-section :deep(.el-scrollbar),
+.result-section :deep(.el-scrollbar__wrap) {
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE and Edge */
 }
 
 .result-section :deep(.el-table th) {

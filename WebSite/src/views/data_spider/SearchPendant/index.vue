@@ -347,7 +347,7 @@
           style="width: 100%; min-width: max(1200px, 100%);"
           stripe
         >
-          <el-table-column label="图标" width="80" fixed="left" align="center">
+          <el-table-column label="图标" width="80" align="center">
             <template #default="scope">
               <template v-if="getItemIconUrl(scope.row)">
                 <img
@@ -360,11 +360,11 @@
               <span v-else class="no-icon">-</span>
             </template>
           </el-table-column>
-          
-          <el-table-column label="武器名称" min-width="260" fixed="left">
+
+          <el-table-column label="武器名称" min-width="260">
             <template #default="scope">
-              <el-tooltip 
-                :content="scope.row.weapon_name" 
+              <el-tooltip
+                :content="scope.row.weapon_name"
                 placement="top"
                 :disabled="!scope.row.weapon_name || scope.row.weapon_name.length <= 20"
               >
@@ -453,9 +453,9 @@
               </template>
             </el-table-column>
             
-            <el-table-column label="操作" width="100" fixed="right">
+            <el-table-column label="操作" width="100">
               <template #default="scope">
-                <el-button 
+                <el-button
                   :type="getBuyButtonType(scope.row)"
                   size="small"
                   @click="handleBuyWeapon(scope.row)"
@@ -1296,6 +1296,7 @@ export default {
   .result-section :deep(.el-table) {
     font-size: 0.875rem;
     min-width: 1200px;
+    overflow: visible !important;
   }
 
   .result-section :deep(.el-table th),
@@ -1303,9 +1304,35 @@ export default {
     padding: 8px 6px;
   }
 
+  /* 禁用表格所有内部容器的滚动 */
   .result-section :deep(.el-table__header-wrapper),
-  .result-section :deep(.el-table__body-wrapper) {
-    overflow-x: auto;
+  .result-section :deep(.el-table__body-wrapper),
+  .result-section :deep(.el-table__inner-wrapper),
+  .result-section :deep(.el-scrollbar),
+  .result-section :deep(.el-scrollbar__wrap) {
+    overflow: visible !important;
+  }
+
+  /* 隐藏表格内部的所有滚动条 */
+  .result-section :deep(.el-table)::-webkit-scrollbar,
+  .result-section :deep(.el-table__header-wrapper)::-webkit-scrollbar,
+  .result-section :deep(.el-table__body-wrapper)::-webkit-scrollbar,
+  .result-section :deep(.el-table__inner-wrapper)::-webkit-scrollbar,
+  .result-section :deep(.el-scrollbar)::-webkit-scrollbar,
+  .result-section :deep(.el-scrollbar__wrap)::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  .result-section :deep(.el-table),
+  .result-section :deep(.el-table__header-wrapper),
+  .result-section :deep(.el-table__body-wrapper),
+  .result-section :deep(.el-table__inner-wrapper),
+  .result-section :deep(.el-scrollbar),
+  .result-section :deep(.el-scrollbar__wrap) {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
   }
 
   .weapon-icon {
@@ -1466,6 +1493,7 @@ export default {
   .result-section :deep(.el-table) {
     font-size: 0.85rem;
     min-width: 1200px;
+    overflow: visible !important;
   }
 
   .result-section :deep(.el-table th),
@@ -1473,9 +1501,35 @@ export default {
     padding: 6px 4px;
   }
 
+  /* 禁用表格所有内部容器的滚动 */
   .result-section :deep(.el-table__header-wrapper),
-  .result-section :deep(.el-table__body-wrapper) {
-    overflow-x: auto;
+  .result-section :deep(.el-table__body-wrapper),
+  .result-section :deep(.el-table__inner-wrapper),
+  .result-section :deep(.el-scrollbar),
+  .result-section :deep(.el-scrollbar__wrap) {
+    overflow: visible !important;
+  }
+
+  /* 隐藏表格内部的所有滚动条 */
+  .result-section :deep(.el-table)::-webkit-scrollbar,
+  .result-section :deep(.el-table__header-wrapper)::-webkit-scrollbar,
+  .result-section :deep(.el-table__body-wrapper)::-webkit-scrollbar,
+  .result-section :deep(.el-table__inner-wrapper)::-webkit-scrollbar,
+  .result-section :deep(.el-scrollbar)::-webkit-scrollbar,
+  .result-section :deep(.el-scrollbar__wrap)::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  .result-section :deep(.el-table),
+  .result-section :deep(.el-table__header-wrapper),
+  .result-section :deep(.el-table__body-wrapper),
+  .result-section :deep(.el-table__inner-wrapper),
+  .result-section :deep(.el-scrollbar),
+  .result-section :deep(.el-scrollbar__wrap) {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
   }
 
   .weapon-icon {
