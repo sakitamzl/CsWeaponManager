@@ -28,20 +28,40 @@ export default defineConfig({
         ws: true,
         rewrite: (path) => path.replace(/^\/spider/, ''),
         configure: (proxy) => {
-          proxy.on('proxyReq', (proxyReq) => {
-            proxyReq.setHeader('Connection', 'keep-alive')
-            proxyReq.setHeader('Cache-Control', 'no-cache')
-            proxyReq.setHeader('X-Accel-Buffering', 'no')
-            proxyReq.setHeader('Accept', 'text/event-stream')
+          proxy.on('proxyReq', (proxyReq, req) => {
+            // 只对流式端点设置 SSE 相关的请求头
+            const isStreamEndpoint = req.url && (
+              req.url.includes('/auto_buy_weapon_stream') ||
+              req.url.includes('/search_pendant_weapon_stream') ||
+              req.url.includes('/auto_buy_pendant_weapon_stream')
+            )
+
+            if (isStreamEndpoint) {
+              proxyReq.setHeader('Connection', 'keep-alive')
+              proxyReq.setHeader('Cache-Control', 'no-cache')
+              proxyReq.setHeader('X-Accel-Buffering', 'no')
+              proxyReq.setHeader('Accept', 'text/event-stream')
+            }
           })
-          proxy.on('proxyRes', (proxyRes) => {
+          proxy.on('proxyRes', (proxyRes, req) => {
+            // 只对流式端点设置 SSE 相关的响应头
+            const isStreamEndpoint = req.url && (
+              req.url.includes('/auto_buy_weapon_stream') ||
+              req.url.includes('/search_pendant_weapon_stream') ||
+              req.url.includes('/auto_buy_pendant_weapon_stream')
+            )
+
             if (proxyRes.headers) {
-              proxyRes.headers['cache-control'] = 'no-cache'
-              proxyRes.headers['x-accel-buffering'] = 'no'
-              proxyRes.headers['connection'] = 'keep-alive'
-              if (!proxyRes.headers['content-type'] || !proxyRes.headers['content-type'].includes('text/event-stream')) {
-                proxyRes.headers['content-type'] = 'text/event-stream; charset=utf-8'
+              if (isStreamEndpoint) {
+                // 流式端点：强制使用 SSE headers
+                proxyRes.headers['cache-control'] = 'no-cache'
+                proxyRes.headers['x-accel-buffering'] = 'no'
+                proxyRes.headers['connection'] = 'keep-alive'
+                if (!proxyRes.headers['content-type'] || !proxyRes.headers['content-type'].includes('text/event-stream')) {
+                  proxyRes.headers['content-type'] = 'text/event-stream; charset=utf-8'
+                }
               }
+              // 非流式端点：保留原始响应头（包括 application/json）
             }
           })
         }

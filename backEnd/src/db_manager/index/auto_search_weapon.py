@@ -137,17 +137,11 @@ class AutoSearchWeaponModel(BaseModel):
                 'default': None,
                 'comment': 'Steam资产ID'
             },
-            'icon_url': {
-                'type': 'TEXT',
-                'not_null': False,
-                'default': None,
-                'comment': '图标URL'
-            },
             'steam_hash_name': {
                 'type': 'TEXT',
                 'not_null': False,
                 'default': None,
-                'comment': 'Steam Market Hash Name'
+                'comment': 'Steam Market Hash Name（用于本地图片获取）'
             },
             
             # 计算字段
@@ -312,8 +306,7 @@ class AutoSearchWeaponModel(BaseModel):
             name_tag=name_tag,
             seller_name=item_data.get('userNickName'),
             asset_id=item_data.get('assetId'),
-            icon_url=item_data.get('iconUrl'),
-            steam_hash_name=item_data.get('steam_hash_name'),
+            steam_hash_name=item_data.get('steamHashName') or item_data.get('steam_hash_name'),  # 支持 steamHashName 和 steam_hash_name，用于本地图片获取
             commission_fee=commission_fee if data_type == 'rename' else item_data.get('commissionFee', commission_fee),
             price_diff=item_data.get('priceDiff', price_diff),
             pendant_count=pendant_count if pendant_count is not None else (len(pendant_details) if pendant_details else 0),
@@ -377,7 +370,6 @@ class AutoSearchWeaponModel(BaseModel):
             'nameTag': self.name_tag,
             'sellerName': self.seller_name,
             'assetId': self.asset_id,
-            'iconUrl': self.icon_url,
             'steamHashName': self.steam_hash_name,
             'steam_hash_name': self.steam_hash_name,  # 兼容下划线命名
             'commissionFee': self.commission_fee,

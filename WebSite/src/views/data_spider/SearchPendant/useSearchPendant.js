@@ -25,17 +25,42 @@ export function useSearchPendant() {
 
   const getItemIconUrl = (item) => {
     if (!item) return ''
-    const raw = item.iconUrl ?? item.icon_url
-    if (!raw) return ''
-    const url = typeof raw === 'string' ? raw.trim() : ''
-    if (!url) return ''
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url
+
+    // 使用本地资源（通过 steam_hash_name 或 steamHashName）
+    const steamHashName = item.steamHashName || item.steam_hash_name
+    if (!steamHashName) {
+      console.warn('[武器图标] 缺少 steamHashName:', item)
+      return ''
     }
-    if (url.startsWith('//')) {
-      return `https:${url}`
+
+    // 使用本地资源路径，按照 Inventory 页面的命名规则
+    // 例如: "AK-47 | Neon Revolution (Factory New)" -> "AK-47___Neon_Revolution_(Factory_New).png"
+    const imageName = steamHashName
+      .replace(/\s*\|\s*/g, '___')  // " | " -> "___" (竖线及其两侧空格替换为三个下划线)
+      .replace(/\s/g, '_')          // 剩余所有空格 -> "_"
+      + '.png'
+
+    return apiUrls.weaponImage(imageName)
+  }
+
+  const getPendantIconUrl = (pendant) => {
+    if (!pendant) return ''
+
+    // 使用 steamHashName 或 hashName
+    const steamHashName = pendant.steamHashName || pendant.hashName
+    if (!steamHashName) {
+      console.warn('[挂件图标] 缺少 steamHashName:', pendant)
+      return ''
     }
-    return url
+
+    // 使用本地资源路径，按照 Inventory 页面的命名规则
+    // 例如: "AK-47 | Neon Revolution (Factory New)" -> "AK-47___Neon_Revolution_(Factory_New).png"
+    const imageName = steamHashName
+      .replace(/\s*\|\s*/g, '___')  // " | " -> "___" (竖线及其两侧空格替换为三个下划线)
+      .replace(/\s/g, '_')          // 剩余所有空格 -> "_"
+      + '.png'
+
+    return apiUrls.weaponImage(imageName)
   }
 
   const parsePendants = (rawPendants) => {
@@ -43,12 +68,22 @@ export function useSearchPendant() {
       return []
     }
     if (Array.isArray(rawPendants)) {
-      return rawPendants
+      // 为每个挂件添加本地图标URL
+      return rawPendants.map(pendant => ({
+        ...pendant,
+        img: getPendantIconUrl(pendant)
+      }))
     }
     if (typeof rawPendants === 'string') {
       try {
         const parsed = JSON.parse(rawPendants)
-        return Array.isArray(parsed) ? parsed : []
+        if (Array.isArray(parsed)) {
+          return parsed.map(pendant => ({
+            ...pendant,
+            img: getPendantIconUrl(pendant)
+          }))
+        }
+        return []
       } catch (error) {
         console.warn('[挂件] 无法解析 pendants 字段:', rawPendants, error)
         return []
@@ -69,7 +104,8 @@ export function useSearchPendant() {
     nameTag: item.nameTag,
     userNickName: item.sellerName,
     assetId: item.assetId,
-    iconUrl: item.iconUrl || item.icon_url,
+    steamHashName: item.steamHashName || item.steam_hash_name,
+    steam_hash_name: item.steam_hash_name || item.steamHashName,
     weapon_name: item.weaponName,
     weaponName: item.weaponName,
     weaponId: item.weaponId,
@@ -585,6 +621,9 @@ const handleSidebarAreaClick = (event) => {
 
 // 开始爬取（流式接收）
 const startCrawl = async () => {
+  console.log('[挂件搜索] startCrawl 被调用')
+  console.log('[挂件搜索] crawlForm:', JSON.stringify(crawlForm.value, null, 2))
+
   // 开始搜索时自动折叠工具与配置区域
   isConfigSectionsCollapsed.value = true
   // 清空已购买记录
@@ -657,18 +696,18 @@ const startCrawl = async () => {
   crawlResult.value = { weapons: [] }
   noDataCount.value = 0
   ElMessage.info('正在启动查询任务...')
-  startPolling()
-  pollSearchResults()
 
   try {
     const spiderConfig = {
       weapon_id: crawlForm.value.weaponId,
       steam_id: crawlForm.value.crawlAccountId,
-      最大差价: 5,
-      饰品自动查询间隔: 3,
-      ...customConfig
+      最大差价百分比: customConfig['最大差价百分比'],
+      最大溢价: customConfig['最大溢价'],
+      饰品自动查询间隔: customConfig['饰品自动查询间隔'],
+      印花板: customConfig['印花板'],
+      收益不少于: customConfig['收益不少于']
     }
-    
+
     // 如果有选中的配置ID，传递给后端
     if (selectedConfigId.value) {
       spiderConfig.config_id = selectedConfigId.value
@@ -679,8 +718,13 @@ const startCrawl = async () => {
       spider_config: spiderConfig
     }
 
-    fetch(
-      `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/auto_buy_pendant_weapon`,
+    console.log('[挂件搜索] 准备发送SSE请求')
+    console.log('[挂件搜索] 请求URL:', `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/auto_buy_pendant_weapon_stream`)
+    console.log('[挂件搜索] 请求数据:', JSON.stringify(requestData, null, 2))
+
+    // 使用SSE流式接口
+    const response = await fetch(
+      `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/auto_buy_pendant_weapon_stream`,
       {
         method: 'POST',
         headers: {
@@ -688,34 +732,106 @@ const startCrawl = async () => {
         },
         body: JSON.stringify(requestData)
       }
-    ).then(async response => {
-      let result = null
-      try {
-        result = await response.json()
-      } catch (parseError) {
-        console.warn('[挂件] 响应解析失败:', parseError)
+    )
+
+    console.log('[挂件搜索] 收到响应:', response.status, response.statusText)
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+
+    // 处理SSE流
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    while (true) {
+      const { done, value } = await reader.read()
+
+      if (done) {
+        console.log('[挂件SSE] 流结束')
+        break
       }
 
-      if (!response.ok || !result?.success) {
-        const errMsg = result?.message || `HTTP ${response.status}`
-        throw new Error(errMsg)
-      }
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
 
-      console.log('[挂件] 搜索任务响应:', result)
-    }).catch(error => {
-      console.error('[挂件] 搜索任务启动失败:', error)
-      ElMessage.error(`启动搜索失败: ${error.message}`)
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const eventData = JSON.parse(line.substring(6))
+            console.log('[挂件SSE] 收到事件:', eventData)
+
+            switch (eventData.type) {
+              case 'start':
+                ElMessage.info(`开始搜索 ${eventData.total} 个饰品`)
+                break
+
+              case 'processing':
+                console.log(`[${eventData.current}/${eventData.total}] 处理: ${eventData.weapon_name}`)
+                break
+
+              case 'item':
+                // 添加商品到列表
+                if (!crawlResult.value.weapons) {
+                  crawlResult.value.weapons = []
+                }
+
+                const weaponName = eventData.weapon_name || '未知饰品'
+                let weapon = crawlResult.value.weapons.find(w => w.weapon_name === weaponName)
+
+                if (!weapon) {
+                  weapon = {
+                    weapon_name: weaponName,
+                    weapon_id: eventData.weapon_id,
+                    items: []
+                  }
+                  crawlResult.value.weapons.push(weapon)
+                }
+
+                weapon.items.push({
+                  ...eventData.item,
+                  weapon_name: weaponName
+                })
+
+                ElNotification({
+                  title: '找到商品',
+                  message: `${weaponName} - ¥${eventData.item.price}`,
+                  type: 'success',
+                  duration: 3000
+                })
+                break
+
+              case 'weapon_complete':
+                console.log(`饰品完成: ${eventData.weapon_name}, 找到 ${eventData.items_found} 件`)
+                break
+
+              case 'stopped':
+                ElMessage.warning(eventData.message)
+                isCrawling.value = false
+                break
+
+              case 'complete':
+                ElMessage.success(`搜索完成！共找到 ${eventData.total_found} 件商品`)
+                isCrawling.value = false
+                break
+
+              case 'unauthorized':
+                ElMessage.error(eventData.message)
+                isCrawling.value = false
+                break
+            }
+          } catch (e) {
+            console.error('[挂件SSE] 解析事件失败:', e, line)
+          }
+        }
+      }
+    }
+
+    if (isCrawling.value) {
       isCrawling.value = false
-    })
-
-    setTimeout(() => {
-      if (isCrawling.value) {
-        console.log('[挂件] 搜索超时，结束搜索状态')
-        isCrawling.value = false
-        const totalItems = crawlResult.value?.weapons?.flatMap(w => w.items).length || 0
-        ElMessage.warning(`搜索已超时结束，找到 ${totalItems} 个商品`)
-      }
-    }, 5 * 60 * 1000)
+    }
 
   } catch (error) {
     console.error('搜索失败:', error)
@@ -739,20 +855,33 @@ const stopCrawl = async () => {
   try {
     ElMessage.info('正在停止搜索...')
 
-    const response = await fetch(
-      `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/stop_pendant_search`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          config_id: selectedConfigId.value
-        })
-      }
-    )
+    const url = `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/stop_pendant_search`
+    console.log('[停止搜索] 请求URL:', url)
+    console.log('[停止搜索] config_id:', selectedConfigId.value)
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        config_id: selectedConfigId.value
+      })
+    })
+
+    console.log('[停止搜索] HTTP状态:', response.status)
+    console.log('[停止搜索] Content-Type:', response.headers.get('content-type'))
+
+    // 检查响应类型
+    const contentType = response.headers.get('content-type')
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text()
+      console.error('[停止搜索] 收到非JSON响应:', text.substring(0, 200))
+      throw new Error(`服务器返回了非JSON响应 (${response.status})`)
+    }
 
     const result = await response.json()
+    console.log('[停止搜索] 响应结果:', result)
 
     if (!response.ok || !result?.success) {
       throw new Error(result?.message || `HTTP ${response.status}`)
@@ -765,7 +894,7 @@ const stopCrawl = async () => {
     }, 500)
 
   } catch (error) {
-    console.error('停止搜索失败:', error)
+    console.error('[停止搜索] 失败:', error)
     ElMessage.error(`停止失败: ${error.message}`)
   }
 }

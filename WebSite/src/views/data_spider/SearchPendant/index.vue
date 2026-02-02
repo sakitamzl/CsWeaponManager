@@ -350,19 +350,12 @@
           <el-table-column label="图标" width="80" fixed="left" align="center">
             <template #default="scope">
               <template v-if="getItemIconUrl(scope.row)">
-                <a 
-                  :href="getItemIconUrl(scope.row)" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  class="icon-link"
-                >
-                  <img 
-                    :src="getItemIconUrl(scope.row)" 
-                    class="weapon-icon"
-                    :alt="scope.row.weapon_name || 'icon'"
-                    referrerpolicy="no-referrer"
-                  />
-                </a>
+                <img
+                  :src="getItemIconUrl(scope.row)"
+                  class="weapon-icon"
+                  :alt="scope.row.weapon_name || 'icon'"
+                  referrerpolicy="no-referrer"
+                />
               </template>
               <span v-else class="no-icon">-</span>
             </template>
@@ -413,7 +406,22 @@
             
             <el-table-column label="磨损" width="240">
               <template #default="scope">
-                {{ scope.row.abrade }}
+                <div class="float-cell-vertical" v-if="scope.row.abrade">
+                  <div class="float-value">{{ scope.row.abrade }}</div>
+                  <div class="float-bar-mini">
+                    <div class="float-segment fn" title="崭新出厂 (0.00 - 0.07)"></div>
+                    <div class="float-segment mw" title="略有磨损 (0.07 - 0.15)"></div>
+                    <div class="float-segment ft" title="久经沙场 (0.15 - 0.38)"></div>
+                    <div class="float-segment ww" title="破损不堪 (0.38 - 0.45)"></div>
+                    <div class="float-segment bs" title="战痕累累 (0.45 - 1.00)"></div>
+                    <div
+                      class="float-pointer"
+                      :style="{ left: `${parseFloat(scope.row.abrade) * 100}%` }"
+                      :title="`磨损值: ${scope.row.abrade}`"
+                    ></div>
+                  </div>
+                </div>
+                <span v-else>-</span>
               </template>
             </el-table-column>
             
@@ -1670,6 +1678,100 @@ export default {
 
 .config-list::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+/* 磨损值显示 */
+.float-cell-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  align-items: flex-start;
+}
+
+.float-bar-mini {
+  position: relative;
+  height: 4px;
+  display: flex;
+  border-radius: 2px;
+  overflow: hidden;
+  width: 120px;
+  max-width: 120px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.float-bar-mini .float-segment {
+  height: 100%;
+}
+
+/* CS2 标准磨损等级颜色 */
+.float-bar-mini .float-segment.fn {
+  flex: 7;  /* 0.00 - 0.07 */
+  background: linear-gradient(to right, #4CAF50, #66BB6A);
+}
+
+.float-bar-mini .float-segment.mw {
+  flex: 8;  /* 0.07 - 0.15 */
+  background: linear-gradient(to right, #8BC34A, #9CCC65);
+}
+
+.float-bar-mini .float-segment.ft {
+  flex: 23; /* 0.15 - 0.38 */
+  background: linear-gradient(to right, #FFC107, #FFB300);
+}
+
+.float-bar-mini .float-segment.ww {
+  flex: 7;  /* 0.38 - 0.45 */
+  background: linear-gradient(to right, #FF9800, #FB8C00);
+}
+
+.float-bar-mini .float-segment.bs {
+  flex: 55; /* 0.45 - 1.00 */
+  background: linear-gradient(to right, #F44336, #E53935);
+}
+
+.float-bar-mini .float-pointer {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 8px;
+  background: #fff;
+  border-radius: 1px;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.5), 0 0 6px rgba(255, 255, 255, 0.8);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.float-bar-mini .float-pointer::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 2px solid transparent;
+  border-right: 2px solid transparent;
+  border-top: 2.5px solid #fff;
+}
+
+.float-bar-mini .float-pointer::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 2px solid transparent;
+  border-right: 2px solid transparent;
+  border-bottom: 2.5px solid #fff;
+}
+
+.float-value {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.9);
+  flex-shrink: 0;
 }
 </style>
 
