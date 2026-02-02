@@ -1,23 +1,16 @@
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, unref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Document, ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import axios from 'axios'
 import { API_CONFIG } from '@/config/api'
 
-// Props
+/**
+ * Weapon search composable for `views/Units/weapon_search/index.vue`.
+ * Note: this is a plain JS module, so it MUST NOT use `<script setup>` macros like `defineProps/defineEmits/defineExpose`.
+ */
+export function useWeaponSearch(options = {}) {
+  const platformTypeRef = options.platformTypeRef
+  const emit = options.emit
 
-export function useWeaponSearch() {
-  const props = defineProps({
-    platformType: {
-      type: String,
-      required: true,
-      default: 'youpin'
-    }
-  })
-  
-  // Emits
-  const emit = defineEmits(['add-weapon', 'add-all-weapons'])
-  
   // 搜索相关状态
   const keyword = ref('')
   const searchResults = ref([])
@@ -135,8 +128,9 @@ export function useWeaponSearch() {
         limit: pageSize.value
       }
       
-      // 使用传入的平台类型
-      params.platformType = props.platformType
+      // 使用传入的平台类型（ref 或 string）
+      const platformType = platformTypeRef ? unref(platformTypeRef) : undefined
+      params.platformType = platformType || 'youpin'
       
       // 添加关键词（如果有）
       if (keyword.value && keyword.value.trim()) {
@@ -263,7 +257,9 @@ export function useWeaponSearch() {
       return
     }
     
-    emit('add-weapon', { id: id.toString(), name })
+    if (typeof emit === 'function') {
+      emit('add-weapon', { id: id.toString(), name })
+    }
   }
   
   // 一键添加全部饰品ID
@@ -284,7 +280,9 @@ export function useWeaponSearch() {
     })
     
     if (weaponsToAdd.length > 0) {
-      emit('add-all-weapons', weaponsToAdd)
+      if (typeof emit === 'function') {
+        emit('add-all-weapons', weaponsToAdd)
+      }
     } else {
       ElMessage.warning('没有可添加的饰品ID')
     }
@@ -292,10 +290,11 @@ export function useWeaponSearch() {
   
   // 根据平台类型获取对应的饰品ID
   const getWeaponIdByPlatform = (row) => {
-    if (props.platformType === 'buff') {
+    const platformType = platformTypeRef ? unref(platformTypeRef) : undefined
+    if (platformType === 'buff') {
       return row.buff_id
     } else {
-      if (props.platformType === 'steam') {
+      if (platformType === 'steam') {
         return row.steam_hash_name || row.steamHashName || row.en_weapon_name
       }
       return row.yyyp_id
@@ -383,10 +382,27 @@ export function useWeaponSearch() {
     }
   })
   
-  // 暴露方法给父组件
-  defineExpose({
-    handleClear,
+  return {
+    keyword,
+    searchResults,
+    isSearching,
+    filters,
+    weaponNameList,
+    isLoadingWeaponNames,
+    isCollapsed,
+    hasMore,
+    isLoadingMore,
+    toggleResults,
+    handleWeaponTypeChange,
+    loadWeaponNames,
+    loadWeaponNamesIfNeeded,
     handleSearch,
-    searchResults
-  })
+    loadMoreWeapons,
+    handleClear,
+    handleAddWeapon,
+    handleAddAll,
+    getWeaponIdByPlatform,
+    getRarityColor,
+    getRowClassName
+  }
 }

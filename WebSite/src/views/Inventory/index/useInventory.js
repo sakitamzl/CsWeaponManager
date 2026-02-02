@@ -656,27 +656,16 @@ export function useInventory() {
         if (trigger._observer) {
           trigger._observer.disconnect()
         }
-        
-        // 找到滚动容器
-        let scrollContainer = null
-        if (displayMode.value === 'card') {
-          scrollContainer = trigger.closest('.card-container')
-        } else {
-          // 对于 el-table，找到表格的滚动容器
-          const tableWrapper = trigger.closest('.table-container')
-          if (tableWrapper) {
-            scrollContainer = tableWrapper.querySelector('.el-table__body-wrapper')
-          }
-        }
-        
-          const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-              if (entry.isIntersecting && hasMore.value && !loadingMore.value && !loading.value) {
-                loadMoreData()
-              }
-            })
-          }, {
-          root: scrollContainer,
+
+        // 使用最外层页面滚动条（root=null），避免内层容器产生独立滚动条时的触发问题
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting && hasMore.value && !loadingMore.value && !loading.value) {
+              loadMoreData()
+            }
+          })
+        }, {
+          root: null,
           rootMargin: '100px'
         })
         

@@ -319,7 +319,8 @@ export function useSearchPendant() {
   '是否自动购买': false,
   '最大差价百分比': 80,
   '最大溢价': 200,
-  '是否全部返回': false
+  '印花板': false,
+  '收益不少于': 3
 })
 
 const booleanOptions = [
@@ -495,9 +496,13 @@ const buildCustomConfig = () => ({
     customConfigForm.value['最大溢价'],
     200
   ),
-  '是否全部返回': normalizeBooleanValue(
-    customConfigForm.value['是否全部返回'],
+  '印花板': normalizeBooleanValue(
+    customConfigForm.value['印花板'],
     false
+  ),
+  '收益不少于': normalizeNumberValue(
+    customConfigForm.value['收益不少于'],
+    0
   ),
   '是否授权': true
 })
@@ -506,7 +511,7 @@ const validateCustomConfig = () => {
   const config = buildCustomConfig()
 
   if (config['饰品自动查询间隔'] <= 0) {
-    return { valid: false, message: '饰品自动查询间隔必须大于 0 秒' }
+    return { valid: false, message: '查询间隔必须大于 0 秒' }
   }
   if (config['最大差价百分比'] < 0) {
     return { valid: false, message: '最大差价百分比不能为负数' }
@@ -538,9 +543,13 @@ const applyCustomConfig = (config = {}) => {
       config['最大溢价'],
       defaults['最大溢价']
     ),
-    '是否全部返回': normalizeBooleanValue(
-      config['是否全部返回'],
-      defaults['是否全部返回']
+    '印花板': normalizeBooleanValue(
+      config['印花板'],
+      defaults['印花板']
+    ),
+    '收益不少于': normalizeNumberValue(
+      config['收益不少于'],
+      defaults['收益不少于']
     )
   }
   nextTick(() => {
@@ -624,10 +633,11 @@ const startCrawl = async () => {
     confirmMessage += `监控饰品数量: ${crawlForm.value.weaponId.length} 个`
     
     confirmMessage += `\n查询间隔: ${customConfig['饰品自动查询间隔']} 秒`
-    confirmMessage += `\n是否自动购买: ${customConfig['是否自动购买'] ? '是' : '否'}`
+    confirmMessage += `\n自动购买: ${customConfig['是否自动购买'] ? '是' : '否'}`
     confirmMessage += `\n最大差价百分比: ${customConfig['最大差价百分比']}%`
     confirmMessage += `\n最大溢价: ${customConfig['最大溢价']} 元`
-    confirmMessage += `\n是否全部返回: ${customConfig['是否全部返回'] ? '是' : '否'}`
+    confirmMessage += `\n印花板: ${customConfig['印花板'] ? '是' : '否'}`
+    confirmMessage += `\n收益不少于: ${customConfig['收益不少于']} 元`
 
     await ElMessageBox.confirm(
       confirmMessage,
@@ -711,6 +721,52 @@ const startCrawl = async () => {
     console.error('搜索失败:', error)
     ElMessage.error(error.message || '搜索失败')
     isCrawling.value = false
+  }
+}
+
+// 停止搜索
+const stopCrawl = async () => {
+  if (!isCrawling.value) {
+    ElMessage.warning('当前没有正在进行的搜索任务')
+    return
+  }
+
+  if (!selectedConfigId.value) {
+    ElMessage.error('无法停止：未找到配置ID')
+    return
+  }
+
+  try {
+    ElMessage.info('正在停止搜索...')
+
+    const response = await fetch(
+      `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/stop_pendant_search`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          config_id: selectedConfigId.value
+        })
+      }
+    )
+
+    const result = await response.json()
+
+    if (!response.ok || !result?.success) {
+      throw new Error(result?.message || `HTTP ${response.status}`)
+    }
+
+    ElMessage.success('停止信号已发送')
+    // 延迟一下再设置状态，等待后端响应
+    setTimeout(() => {
+      isCrawling.value = false
+    }, 500)
+
+  } catch (error) {
+    console.error('停止搜索失败:', error)
+    ElMessage.error(`停止失败: ${error.message}`)
   }
 }
 
@@ -1790,6 +1846,7 @@ const getRarityColor = (rarity) => {
     allCrawlItems,
     canStartCrawl,
     startCrawl,
+    stopCrawl,
     resetForm,
     // 配置管理
     savedConfigs,

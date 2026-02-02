@@ -141,7 +141,7 @@
             <el-form-item>
               <div class="custom-config-grid">
                 <div class="custom-config-field">
-                  <div class="field-label">饰品自动查询间隔 (秒)</div>
+                  <div class="field-label">查询间隔</div>
                   <div class="field-control no-spinner">
                     <el-input
                       v-model.number="customConfigForm['饰品自动查询间隔']"
@@ -167,7 +167,7 @@
                 </div>
 
                 <div class="custom-config-field">
-                  <div class="field-label">最大溢价 (元)</div>
+                  <div class="field-label">最大溢价</div>
                   <div class="field-control no-spinner">
                     <el-input
                       v-model.number="customConfigForm['最大溢价']"
@@ -180,7 +180,7 @@
                 </div>
 
                 <div class="custom-config-field">
-                  <div class="field-label">是否自动购买</div>
+                  <div class="field-label">自动购买</div>
                   <div class="field-control">
                     <el-select
                       v-model="customConfigForm['是否自动购买']"
@@ -198,20 +198,32 @@
                 </div>
 
                 <div class="custom-config-field">
-                  <div class="field-label">是否全部返回</div>
+                  <div class="field-label">印花板</div>
                   <div class="field-control">
                     <el-select
-                      v-model="customConfigForm['是否全部返回']"
+                      v-model="customConfigForm['印花板']"
                       placeholder="请选择"
                       style="width: 100px;"
                     >
                       <el-option
                         v-for="option in booleanOptions"
-                        :key="`return-all-${option.value}`"
+                        :key="`sticker-${option.value}`"
                         :label="option.label"
                         :value="option.value"
                       />
                     </el-select>
+                  </div>
+                </div>
+
+                <div class="custom-config-field">
+                  <div class="field-label">收益不少于</div>
+                  <div class="field-control no-spinner">
+                    <el-input
+                      v-model.number="customConfigForm['收益不少于']"
+                      type="number"
+                      placeholder="例如 3"
+                      style="width: 100px;"
+                    />
                   </div>
                 </div>
               </div>
@@ -281,14 +293,23 @@
             删除当前配置
           </el-button>
 
-          <el-button 
-            type="primary" 
+          <el-button
+            type="primary"
             size="large"
             @click="startCrawl"
             :disabled="isCrawling || !canStartCrawl"
             :loading="isCrawling"
           >
             {{ isCrawling ? '搜索中...' : '开始搜索' }}
+          </el-button>
+
+          <el-button
+            type="danger"
+            size="large"
+            @click="stopCrawl"
+            :disabled="!isCrawling"
+          >
+            停止搜索
           </el-button>
         </div>
         </div>
@@ -450,9 +471,19 @@
 
 <script>
 import { useSearchPendant } from './useSearchPendant.js'
+import { Refresh, Document, Delete, ArrowUp, ArrowDown } from '@element-plus/icons-vue'
+import WeaponSearch from '@/views/Units/weapon_search/index.vue'
 
 export default {
   name: 'SearchPendant',
+  components: {
+    WeaponSearch,
+    Refresh,
+    Document,
+    Delete,
+    ArrowUp,
+    ArrowDown
+  },
   setup() {
     return useSearchPendant()
   }
@@ -1169,9 +1200,11 @@ export default {
 }
 
 .custom-config-field .field-label {
-  min-width: 120px;
+  min-width: auto;
   font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .custom-config-field .field-control {

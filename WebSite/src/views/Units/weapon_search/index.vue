@@ -268,19 +268,47 @@
 
 
 <script setup>
+import { toRef } from 'vue'
+import { Document, ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import { useWeaponSearch } from './useWeaponSearch.js'
 
+const props = defineProps({
+  platformType: {
+    type: String,
+    default: 'youpin'
+  }
+})
+
+const emit = defineEmits(['add-weapon', 'add-all-weapons'])
+
 const {
-  loading,
   keyword,
-  weaponType,
-  rarity,
-  weaponResults,
-  hasSearched,
+  searchResults,
+  isSearching,
+  filters,
+  weaponNameList,
+  isLoadingWeaponNames,
+  isCollapsed,
+  hasMore,
+  isLoadingMore,
+  toggleResults,
+  handleWeaponTypeChange,
+  loadWeaponNamesIfNeeded,
   handleSearch,
-  clearSearch,
-  getRarityColor
-} = useWeaponSearch()
+  loadMoreWeapons,
+  handleClear,
+  handleAddWeapon,
+  handleAddAll,
+  getWeaponIdByPlatform,
+  getRarityColor,
+  getRowClassName
+} = useWeaponSearch({ platformTypeRef: toRef(props, 'platformType'), emit })
+
+defineExpose({
+  handleClear,
+  handleSearch,
+  searchResults
+})
 </script>
 
 <style scoped src="./styles.css"></style>
