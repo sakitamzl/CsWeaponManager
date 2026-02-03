@@ -1,5 +1,6 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Loading } from '@element-plus/icons-vue'
 import axios from 'axios'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
 import RentFormYYYP from '@/views/Inventory/RentFormYYYP/index.vue'
@@ -13,6 +14,7 @@ import InstantPayment from './InstantPayment/index.vue'
 export default {
   name: 'OnSale',
   components: {
+    Loading,
     RentFormYYYP,
     OfferProcessing,
     RentedOut,

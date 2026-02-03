@@ -2126,6 +2126,8 @@ export function useHome() {
     buyStats,
     sellStats,
     inventoryStats,
+    componentStats,
+    totalInventoryCount,
     steamIdList,
     selectedSteamId,
     selectedInventorySteamId,

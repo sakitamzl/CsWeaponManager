@@ -985,9 +985,16 @@
 
 <script>
 import { useItemSearch } from './useItemSearch.js'
+import { CaretRight, CaretBottom, Check, Loading } from '@element-plus/icons-vue'
 
 export default {
   name: 'ItemSearch',
+  components: {
+    CaretRight,
+    CaretBottom,
+    Check,
+    Loading
+  },
   setup() {
     return useItemSearch()
   }

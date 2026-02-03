@@ -1362,6 +1362,7 @@
 
 
 <script>
+import { InfoFilled, Loading, ArrowDown } from '@element-plus/icons-vue'
 import PlatformSelectDialog from '../PlatformSelectDialog/index.vue'
 import RentFormYYYP from '../RentFormYYYP/index.vue'
 import { useInventory } from './useInventory.js'
@@ -1369,6 +1370,9 @@ import { useInventory } from './useInventory.js'
 export default {
   name: 'Inventory',
   components: {
+    InfoFilled,
+    Loading,
+    ArrowDown,
     PlatformSelectDialog,
     RentFormYYYP
   },

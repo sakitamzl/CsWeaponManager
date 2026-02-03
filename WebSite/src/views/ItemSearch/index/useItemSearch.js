@@ -1796,6 +1796,13 @@ export function useItemSearch() {
   })
 
   return {
+    // Icons
+    CaretRight,
+    CaretBottom,
+    Refresh,
+    Check,
+    Loading,
+    // 搜索与分页
     searchKeyword,
     searchResults,
     isSearching,
