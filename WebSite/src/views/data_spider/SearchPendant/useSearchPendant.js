@@ -423,7 +423,7 @@ export function useSearchPendant() {
   const createDefaultCustomConfig = () => ({
   '饰品自动查询间隔': 3,
   '是否自动购买': false,
-  '最大差价百分比': 80,
+  '自动购买阈值': 50,
   '最大溢价': 200,
   '印花板': false,
   '高光': false,
@@ -621,9 +621,9 @@ const buildCustomConfig = () => ({
     customConfigForm.value['是否自动购买'],
     false
   ),
-  '最大差价百分比': normalizeNumberValue(
-    customConfigForm.value['最大差价百分比'],
-    80
+  '自动购买阈值': normalizeNumberValue(
+    customConfigForm.value['自动购买阈值'],
+    50
   ),
   '最大溢价': normalizeNumberValue(
     customConfigForm.value['最大溢价'],
@@ -650,11 +650,11 @@ const validateCustomConfig = () => {
   if (config['饰品自动查询间隔'] <= 0) {
     return { valid: false, message: '查询间隔必须大于 0 秒' }
   }
-  if (config['最大差价百分比'] < 0) {
-    return { valid: false, message: '最大差价百分比不能为负数' }
-  }
   if (config['最大溢价'] < 0) {
     return { valid: false, message: '最大溢价不能为负数' }
+  }
+  if (config['自动购买阈值'] < 0) {
+    return { valid: false, message: '自动购买阈值不能为负数' }
   }
 
   return { valid: true, config }
@@ -672,9 +672,9 @@ const applyCustomConfig = (config = {}) => {
       config['是否自动购买'],
       defaults['是否自动购买']
     ),
-    '最大差价百分比': normalizeNumberValue(
-      config['最大差价百分比'],
-      defaults['最大差价百分比']
+    '自动购买阈值': normalizeNumberValue(
+      config['自动购买阈值'],
+      defaults['自动购买阈值']
     ),
     '最大溢价': normalizeNumberValue(
       config['最大溢价'],
@@ -783,30 +783,42 @@ const startCrawl = async () => {
 
   // 确认对话框
   try {
-    let confirmMessage = `确定要开始查询带挂件饰品吗？\n\n`
-    confirmMessage += `配置名称: ${crawlForm.value.configName}\n`
-    confirmMessage += `爬取账号: ${crawlForm.value.crawlAccountId}\n`
-    confirmMessage += `购买账号: ${crawlForm.value.steamId}\n`
-    confirmMessage += `平台类型: ${getSourceLabel(crawlForm.value.platformType)}\n`
+    // 获取账号昵称
+    const crawlAccount = filteredSteamIdList.value.find(item =>
+      (item.steamID || item.steam_id) === crawlForm.value.crawlAccountId
+    )
+    const buyAccount = filteredSteamIdList.value.find(item =>
+      (item.steamID || item.steam_id) === crawlForm.value.steamId
+    )
+    const crawlAccountName = crawlAccount ? `${crawlAccount.dataName || '未命名'} (${crawlForm.value.crawlAccountId})` : crawlForm.value.crawlAccountId
+    const buyAccountName = buyAccount ? `${buyAccount.dataName || '未命名'} (${crawlForm.value.steamId})` : crawlForm.value.steamId
+
+    let confirmMessage = `<div style="text-align: left; line-height: 1.8;">确定要开始查询带挂件饰品吗？<br><br>`
+    confirmMessage += `配置名称:&nbsp;&nbsp;${crawlForm.value.configName}<br>`
+    confirmMessage += `爬取账号:&nbsp;&nbsp;${crawlAccountName}<br>`
+    confirmMessage += `购买账号:&nbsp;&nbsp;${buyAccountName}<br>`
+    confirmMessage += `平台类型:&nbsp;&nbsp;${getSourceLabel(crawlForm.value.platformType)}<br>`
 
     // 根据查询模式显示不同信息
     if (crawlForm.value.searchMode === 'by_weapon_id') {
-      confirmMessage += `查询模式: 按饰品目录\n`
-      confirmMessage += `监控饰品数量: ${crawlForm.value.weaponId.length} 个`
+      confirmMessage += `查询模式:&nbsp;&nbsp;按饰品目录<br>`
+      confirmMessage += `监控饰品数量:&nbsp;&nbsp;${crawlForm.value.weaponId.length} 个<br>`
     } else if (crawlForm.value.searchMode === 'by_price_range') {
-      confirmMessage += `查询模式: 按价格区间\n`
+      confirmMessage += `查询模式:&nbsp;&nbsp;按价格区间<br>`
       const priceMinText = crawlForm.value.priceMin !== null ? `${crawlForm.value.priceMin}元` : '不限'
       const priceMaxText = crawlForm.value.priceMax !== null ? `${crawlForm.value.priceMax}元` : '不限'
-      confirmMessage += `价格区间: ${priceMinText} ~ ${priceMaxText}`
+      confirmMessage += `价格区间:&nbsp;&nbsp;${priceMinText} ~ ${priceMaxText}<br>`
     }
 
-    confirmMessage += `\n查询间隔: ${customConfig['饰品自动查询间隔']} 秒`
-    confirmMessage += `\n自动购买: ${customConfig['是否自动购买'] ? '是' : '否'}`
-    confirmMessage += `\n最大差价百分比: ${customConfig['最大差价百分比']}%`
-    confirmMessage += `\n最大溢价: ${customConfig['最大溢价']} 元`
-    confirmMessage += `\n印花板: ${customConfig['印花板'] ? '是' : '否'}`
-    confirmMessage += `\n高光: ${customConfig['高光'] ? '是' : '否'}`
-    confirmMessage += `\n收益不少于: ${customConfig['收益不少于']} 元`
+    confirmMessage += `查询间隔:&nbsp;&nbsp;${customConfig['饰品自动查询间隔']} 秒<br>`
+    confirmMessage += `自动购买:&nbsp;&nbsp;${customConfig['是否自动购买'] ? '是' : '否'}<br>`
+    if (customConfig['是否自动购买']) {
+      confirmMessage += `自动购买阈值:&nbsp;&nbsp;${customConfig['自动购买阈值']} 元<br>`
+    }
+    confirmMessage += `最大溢价:&nbsp;&nbsp;${customConfig['最大溢价']} 元<br>`
+    confirmMessage += `印花板:&nbsp;&nbsp;${customConfig['印花板'] ? '是' : '否'}<br>`
+    confirmMessage += `高光:&nbsp;&nbsp;${customConfig['高光'] ? '是' : '否'}<br>`
+    confirmMessage += `收益不少于:&nbsp;&nbsp;${customConfig['收益不少于']} 元</div>`
 
     await ElMessageBox.confirm(
       confirmMessage,
@@ -814,7 +826,8 @@ const startCrawl = async () => {
       {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
-        type: 'warning'
+        type: 'warning',
+        dangerouslyUseHTMLString: true
       }
     )
   } catch {
@@ -2241,10 +2254,21 @@ const loadProgressFromStorage = (configId) => {
         })
         console.log(`[进度恢复] 配置${configId}任务已完成，显示100%`)
       } else {
-        // 任务未完成，清除进度（因为SSE已断开，无法恢复）
-        console.log(`[进度恢复] 配置${configId}任务未完成，清除进度`)
-        clearProgress(configId)
-        clearProgressFromStorage(configId)
+        // 任务未完成，保留进度显示（通过轮询数据库继续更新）
+        console.log(`[进度恢复] 配置${configId}任务未完成，保留进度显示`)
+        updateProgress(configId, {
+          total: progressData.total,
+          current: progressData.current,
+          percentage: progressData.percentage,
+          currentWeapon: progressData.currentWeapon || '',
+          isCompleted: false,
+          timestamp: progressData.timestamp
+        })
+        // 如果是当前选中的配置，设置爬取状态为true并启动轮询
+        if (configId === selectedConfigId.value) {
+          isCrawling.value = true
+          startPolling()
+        }
       }
     } else {
       // 过期，清除
