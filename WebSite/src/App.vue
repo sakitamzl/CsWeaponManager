@@ -18,6 +18,7 @@ export default {
   overflow: auto;
 }
 
+
 html, body {
   background-color: #0d1117 !important;
   color: #000000 !important;
