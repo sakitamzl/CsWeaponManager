@@ -32,8 +32,7 @@ export default defineConfig({
             // 只对流式端点设置 SSE 相关的请求头
             const isStreamEndpoint = req.url && (
               req.url.includes('/auto_buy_weapon_stream') ||
-              req.url.includes('/search_pendant_weapon_stream') ||
-              req.url.includes('/auto_buy_pendant_weapon_stream')
+              req.url.includes('/search_pendant_weapon_stream')
             )
 
             if (isStreamEndpoint) {
@@ -47,8 +46,7 @@ export default defineConfig({
             // 只对流式端点设置 SSE 相关的响应头
             const isStreamEndpoint = req.url && (
               req.url.includes('/auto_buy_weapon_stream') ||
-              req.url.includes('/search_pendant_weapon_stream') ||
-              req.url.includes('/auto_buy_pendant_weapon_stream')
+              req.url.includes('/search_pendant_weapon_stream')
             )
 
             if (proxyRes.headers) {
