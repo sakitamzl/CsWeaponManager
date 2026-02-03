@@ -2174,7 +2174,7 @@ const getBuyButtonType = (item) => {
   return 'success'    // 高收益：绿色
 }
 
-// 保存进度到config
+// 保存进度到config（同时写入后端配置表，以便后续恢复）
 const saveProgressToStorage = async (configId) => {
   if (!configId) return
 
@@ -2194,23 +2194,35 @@ const saveProgressToStorage = async (configId) => {
     const config = savedConfigs.value.find(c => c.id === configId)
     if (!config) return
 
-    // 更新配置中的进度数据
+    // 更新配置中的进度数据（本地内存中）
     const updatedConfig = {
       ...config,
       crawlProgress: progressData
     }
 
-    // 调用后端API保存配置
-    const response = await fetch(`${API_CONFIG.BACKEND_BASE_URL}/searchPendantConfigV1/saveConfig`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(updatedConfig)
-    })
+    const idx = savedConfigs.value.findIndex(c => c.id === configId)
+    if (idx !== -1) {
+      savedConfigs.value[idx] = updatedConfig
+    }
 
-    if (!response.ok) {
-      console.error('[进度保存] 保存失败:', response.statusText)
+    // 同步保存到后端（使用独立的挂件配置进度API）
+    try {
+      const response = await fetch(`${API_CONFIG.BACKEND_BASE_URL}/searchPendantConfigV1/saveConfig`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          id: configId,
+          crawlProgress: progressData
+        })
+      })
+
+      if (!response.ok) {
+        console.error('[进度保存] 后端保存失败:', response.status, response.statusText)
+      }
+    } catch (err) {
+      console.error('[进度保存] 后端保存异常:', err)
     }
   } catch (error) {
     console.error('[进度保存] 保存异常:', error)
@@ -2303,22 +2315,32 @@ const clearProgressFromStorage = async (configId) => {
       crawlProgress: null
     }
 
-    // 调用后端API保存配置
-    const response = await fetch(`${API_CONFIG.BACKEND_BASE_URL}/searchPendantConfigV1/saveConfig`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(updatedConfig)
-    })
+    // 同时更新本地配置列表
+    const configIndex = savedConfigs.value.findIndex(c => c.id === configId)
+    if (configIndex !== -1) {
+      savedConfigs.value[configIndex] = updatedConfig
+    }
 
-    if (response.ok) {
-      console.log(`[进度清除] 配置${configId}进度数据已清除`)
-      // 同时更新本地配置列表
-      const configIndex = savedConfigs.value.findIndex(c => c.id === configId)
-      if (configIndex !== -1) {
-        savedConfigs.value[configIndex].crawlProgress = null
+    // 通知后端清除该配置的进度（保存为空对象）
+    try {
+      const response = await fetch(`${API_CONFIG.BACKEND_BASE_URL}/searchPendantConfigV1/saveConfig`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          id: configId,
+          crawlProgress: null
+        })
+      })
+
+      if (response.ok) {
+        console.log(`[进度清除] 配置${configId}进度数据已清除`)
+      } else {
+        console.error('[进度清除] 后端清除失败:', response.status, response.statusText)
       }
+    } catch (err) {
+      console.error('[进度清除] 后端清除异常:', err)
     }
   } catch (error) {
     console.error('[进度清除] 清除异常:', error)

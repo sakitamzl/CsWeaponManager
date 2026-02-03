@@ -5,6 +5,9 @@ export const API_CONFIG = {
   // API 基础地址（通过代理访问）
   BASE_URL: '/api',
 
+  // 业务后端地址（Flask backEnd，通常由前端代理到 9001 端口）
+  BACKEND_BASE_URL: '/api',
+
   
 
   // 爬虫服务器地址（通过代理访问）
