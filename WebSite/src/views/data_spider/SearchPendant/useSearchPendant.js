@@ -182,7 +182,123 @@ export function useSearchPendant() {
   const pollSearchResults = async () => {
   try {
     lastPollingTime.value = Date.now()
-    // 获取所有数据，根据选中的配置ID过滤
+
+    // 1. 轮询进度数据（如果有选中的配置且正在爬取）
+    if (selectedConfigId.value && isCrawling.value) {
+      try {
+        const progressResponse = await fetch(
+          `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/get_pendant_search_progress`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              config_id: selectedConfigId.value
+            })
+          }
+        )
+
+        if (progressResponse.ok) {
+          const progressResult = await progressResponse.json()
+          console.log('[进度轮询] 收到进度数据:', progressResult)
+
+          if (progressResult.success && progressResult.data) {
+            const progressData = progressResult.data
+
+            // 处理不同类型的进度事件
+            switch (progressData.type) {
+              case 'start':
+                updateProgress(selectedConfigId.value, {
+                  total: progressData.total || 0,
+                  current: progressData.current || 0,
+                  percentage: 0,
+                  currentWeapon: '',
+                  isCompleted: false,
+                  timestamp: Date.now()
+                })
+                saveProgressToStorage(selectedConfigId.value)
+                break
+
+              case 'processing':
+                const total = progressData.total || 0
+                const current = progressData.current || 0
+                const percentage = total > 0 ? parseFloat(((current / total) * 100).toFixed(2)) : 0
+                updateProgress(selectedConfigId.value, {
+                  total,
+                  current,
+                  percentage,
+                  currentWeapon: progressData.weapon_name || '',
+                  isCompleted: false,
+                  timestamp: Date.now()
+                })
+                saveProgressToStorage(selectedConfigId.value)
+                break
+
+              case 'weapon_complete':
+                // 武器完成，仅更新进度
+                const totalW = progressData.total || 0
+                const currentW = progressData.current || 0
+                const percentageW = totalW > 0 ? parseFloat(((currentW / totalW) * 100).toFixed(2)) : 0
+                updateProgress(selectedConfigId.value, {
+                  total: totalW,
+                  current: currentW,
+                  percentage: percentageW,
+                  currentWeapon: progressData.weapon_name || '',
+                  isCompleted: false,
+                  timestamp: Date.now()
+                })
+                saveProgressToStorage(selectedConfigId.value)
+                break
+
+              case 'stopped':
+                ElMessage.warning(progressData.message || '搜索已停止')
+                isCrawling.value = false
+                const currentProgress = getProgress(selectedConfigId.value)
+                updateProgress(selectedConfigId.value, {
+                  total: currentProgress.total,
+                  current: currentProgress.current,
+                  percentage: 100,
+                  currentWeapon: '',
+                  isCompleted: true,
+                  timestamp: Date.now()
+                })
+                saveProgressToStorage(selectedConfigId.value)
+                stopPolling()
+                break
+
+              case 'complete':
+                ElMessage.success(progressData.message || '搜索完成')
+                isCrawling.value = false
+                const completedProgress = getProgress(selectedConfigId.value)
+                updateProgress(selectedConfigId.value, {
+                  total: completedProgress.total,
+                  current: completedProgress.total,
+                  percentage: 100,
+                  currentWeapon: '',
+                  isCompleted: true,
+                  timestamp: Date.now()
+                })
+                saveProgressToStorage(selectedConfigId.value)
+                stopPolling()
+                break
+
+              case 'error':
+                ElMessage.error(progressData.message || '搜索发生错误')
+                isCrawling.value = false
+                clearProgress(selectedConfigId.value)
+                clearProgressFromStorage(selectedConfigId.value)
+                stopPolling()
+                break
+            }
+          }
+        }
+      } catch (progressError) {
+        console.error('[进度轮询] 获取进度失败:', progressError)
+      }
+    }
+
+    // 2. 轮询搜索结果数据
     const params = new URLSearchParams({
       dataType: 'pendant'
     })
@@ -196,12 +312,12 @@ export function useSearchPendant() {
       return
     }
     const result = await response.json()
-    
+
     // 如果没有查询到数据，直接返回，不进行其他操作
     if (!result.success || !Array.isArray(result.items) || result.items.length === 0) {
       return
     }
-    
+
     if (result.items.length > 0) {
       const mappedItems = normalizeApiItems(result.items)
       updateCrawlResultWithItems(mappedItems)
@@ -873,13 +989,13 @@ const startCrawl = async () => {
       spider_config: spiderConfig
     }
 
-    console.log('[挂件搜索] 准备发送SSE请求')
-    console.log('[挂件搜索] 请求URL:', `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/auto_buy_pendant_weapon_stream`)
+    console.log('[挂件搜索] 准备发送请求（数据库轮询模式）')
+    console.log('[挂件搜索] 请求URL:', `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/auto_buy_pendant_weapon`)
     console.log('[挂件搜索] 请求数据:', JSON.stringify(requestData, null, 2))
 
-    // 使用SSE流式接口
+    // 使用普通POST接口启动任务
     const response = await fetch(
-      `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/auto_buy_pendant_weapon_stream`,
+      `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/auto_buy_pendant_weapon`,
       {
         method: 'POST',
         headers: {
@@ -895,135 +1011,16 @@ const startCrawl = async () => {
       throw new Error(`HTTP ${response.status}`)
     }
 
-    // 处理SSE流
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
-    let buffer = ''
+    const result = await response.json()
+    console.log('[挂件搜索] 响应结果:', result)
 
-    while (true) {
-      const { done, value } = await reader.read()
-
-      if (done) {
-        console.log('[挂件SSE] 流结束')
-        break
-      }
-
-      buffer += decoder.decode(value, { stream: true })
-      const lines = buffer.split('\n')
-      buffer = lines.pop() || ''
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          try {
-            const eventData = JSON.parse(line.substring(6))
-            console.log('[挂件SSE] 收到事件:', eventData)
-
-            switch (eventData.type) {
-              case 'start':
-                ElMessage.info(`开始搜索 ${eventData.total} 个饰品`)
-                // 初始化进度
-                if (selectedConfigId.value) {
-                  updateProgress(selectedConfigId.value, {
-                    total: eventData.total || 0,
-                    current: 0,
-                    percentage: 0,
-                    currentWeapon: '',
-                    isCompleted: false,
-                    timestamp: Date.now()
-                  })
-                  // 保存进度到数据库
-                  saveProgressToStorage(selectedConfigId.value)
-                }
-                break
-
-              case 'processing':
-                console.log(`[${eventData.current}/${eventData.total}] 处理: ${eventData.weapon_name}`)
-                // 更新进度
-                if (selectedConfigId.value) {
-                  const currentProgress = getProgress(selectedConfigId.value)
-                  const total = eventData.total || currentProgress.total
-                  const current = eventData.current || 0
-                  const percentage = total > 0 ? parseFloat(((current / total) * 100).toFixed(2)) : 0
-
-                  updateProgress(selectedConfigId.value, {
-                    total,
-                    current,
-                    percentage,
-                    currentWeapon: eventData.weapon_name || '',
-                    isCompleted: false,
-                    timestamp: Date.now()
-                  })
-                  // 保存进度到数据库
-                  saveProgressToStorage(selectedConfigId.value)
-                }
-                break
-
-              case 'item':
-                // 不再处理 item 事件，数据通过轮询从数据库获取
-                // 后端已修改为只存储到数据库，前端通过 fetchResults 轮询获取
-                console.log('[挂件SSE] 收到 item 事件（已废弃，数据通过轮询获取）')
-                break
-
-              case 'weapon_complete':
-                console.log(`饰品完成: ${eventData.weapon_name}, 找到 ${eventData.items_found} 件`)
-                break
-
-              case 'stopped':
-                ElMessage.warning(eventData.message)
-                isCrawling.value = false
-                // 标记为已完成
-                if (selectedConfigId.value) {
-                  const currentProgress = getProgress(selectedConfigId.value)
-                  updateProgress(selectedConfigId.value, {
-                    total: currentProgress.total,
-                    current: currentProgress.current,
-                    percentage: 100,
-                    currentWeapon: '',
-                    isCompleted: true,
-                    timestamp: Date.now()
-                  })
-                  saveProgressToStorage(selectedConfigId.value)
-                }
-                break
-
-              case 'complete':
-                ElMessage.success(`搜索完成！共找到 ${eventData.total_found} 件商品`)
-                isCrawling.value = false
-                // 标记为已完成
-                if (selectedConfigId.value) {
-                  const currentProgress = getProgress(selectedConfigId.value)
-                  updateProgress(selectedConfigId.value, {
-                    total: currentProgress.total,
-                    current: currentProgress.total,
-                    percentage: 100,
-                    currentWeapon: '',
-                    isCompleted: true,
-                    timestamp: Date.now()
-                  })
-                  saveProgressToStorage(selectedConfigId.value)
-                }
-                break
-
-              case 'unauthorized':
-                ElMessage.error(eventData.message)
-                isCrawling.value = false
-                // 清除进度
-                if (selectedConfigId.value) {
-                  clearProgress(selectedConfigId.value)
-                  clearProgressFromStorage(selectedConfigId.value)
-                }
-                break
-            }
-          } catch (e) {
-            console.error('[挂件SSE] 解析事件失败:', e, line)
-          }
-        }
-      }
+    if (!result.success) {
+      throw new Error(result.message || '启动搜索失败')
     }
 
-    if (isCrawling.value) {
-      isCrawling.value = false
-    }
+    // 任务已启动，开始轮询进度
+    ElMessage.success('搜索任务已启动')
+    startPolling()
 
   } catch (error) {
     console.error('搜索失败:', error)
