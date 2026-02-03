@@ -110,82 +110,107 @@
         <div class="tool-section">
         
         <div class="form-container">
-          <el-form :model="crawlForm" label-width="120px" ref="crawlFormRef">
-            <div class="form-row">
-              <el-form-item label="配置名称" required class="form-item-fifth">
-                <el-input
-                  v-model="crawlForm.configName"
-                  placeholder="请输入配置名称"
-                  clearable
-                />
-              </el-form-item>
-
-              <el-form-item label="平台类型" required class="form-item-fifth">
-                <el-select
-                  v-model="crawlForm.platformType"
-                  placeholder="选择平台类型"
-                  style="width: 100%;"
-                  :disabled="!!selectedConfigId || (weaponIdList && weaponIdList.length > 0)"
-                  @change="handlePlatformTypeChange"
-                >
-                  <el-option label="悠悠有品" value="youpin" />
-                  <el-option label="BUFF" value="buff" />
-                </el-select>
-              </el-form-item>
-
-              <el-form-item label="武器类型" class="form-item-fifth">
-                <el-select
-                  v-model="crawlForm.weaponType"
-                  placeholder="选择武器类型"
-                  style="width: 100%;"
-                  multiple
-                  collapse-tags
-                  collapse-tags-tooltip
-                  clearable
-                >
-                  <el-option
-                    v-for="item in weaponTypeOptions"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value"
-                  />
-                </el-select>
-              </el-form-item>
-
-              <el-form-item label="爬取账号" required class="form-item-fifth">
-                <el-select
-                  v-model="crawlForm.crawlAccountId"
-                  placeholder="选择爬取账号"
-                  style="width: 100%;"
-                  filterable
-                >
-                  <el-option
-                    v-for="item in filteredSteamIdList"
-                    :key="item.steamID || item.steam_id"
-                    :label="`${item.dataName || '未命名'} (${item.steamID || item.steam_id || '无ID'})`"
-                    :value="item.steamID || item.steam_id"
-                  />
-                </el-select>
-              </el-form-item>
-
-              <el-form-item label="购买账号" required class="form-item-fifth">
-                <el-select
-                  v-model="crawlForm.steamId"
-                  placeholder="选择购买账号"
-                  style="width: 100%;"
-                  filterable
-                >
-                  <el-option
-                    v-for="item in filteredSteamIdList"
-                    :key="item.steamID || item.steam_id"
-                    :label="`${item.dataName || '未命名'} (${item.steamID || item.steam_id || '无ID'})`"
-                    :value="item.steamID || item.steam_id"
-                  />
-                </el-select>
-              </el-form-item>
-            </div>
-
+          <el-form :model="crawlForm" label-width="0" ref="crawlFormRef">
             <el-form-item>
+              <div class="custom-config-grid">
+                <div class="custom-config-field" style="flex: 0 1 auto; min-width: 200px;">
+                  <div class="field-label">
+                    <span style="color: #f56c6c; margin-right: 4px;">*</span>配置名称
+                  </div>
+                  <div class="field-control" style="width: auto; min-width: 150px;">
+                    <el-input
+                      v-model="crawlForm.configName"
+                      placeholder="请输入配置名称"
+                      clearable
+                    />
+                  </div>
+                </div>
+
+                <div class="custom-config-field" style="flex: 0 1 auto; min-width: 150px;">
+                  <div class="field-label">
+                    <span style="color: #f56c6c; margin-right: 4px;">*</span>平台类型
+                  </div>
+                  <div class="field-control" style="width: auto; min-width: 120px;">
+                    <el-select
+                      v-model="crawlForm.platformType"
+                      placeholder="选择平台类型"
+                      style="width: 100%;"
+                      :disabled="!!selectedConfigId || (weaponIdList && weaponIdList.length > 0)"
+                      @change="handlePlatformTypeChange"
+                    >
+                      <el-option label="悠悠有品" value="youpin" />
+                      <el-option label="BUFF" value="buff" />
+                    </el-select>
+                  </div>
+                </div>
+
+                <div class="custom-config-field" style="flex: 0 1 auto; min-width: 150px;">
+                  <div class="field-label">武器类型</div>
+                  <div class="field-control" style="width: auto; min-width: 120px;">
+                    <el-select
+                      v-model="crawlForm.weaponType"
+                      placeholder="选择武器类型"
+                      style="width: 100%;"
+                      multiple
+                      collapse-tags
+                      collapse-tags-tooltip
+                      clearable
+                    >
+                      <el-option
+                        v-for="item in weaponTypeOptions"
+                        :key="item.value"
+                        :label="item.label"
+                        :value="item.value"
+                      />
+                    </el-select>
+                  </div>
+                </div>
+
+                <div class="custom-config-field" style="flex: 0 1 auto; min-width: 250px;">
+                  <div class="field-label">
+                    <span style="color: #f56c6c; margin-right: 4px;">*</span>爬取账号
+                  </div>
+                  <div class="field-control" style="width: auto; min-width: 180px;">
+                    <el-select
+                      v-model="crawlForm.crawlAccountId"
+                      placeholder="选择爬取账号"
+                      style="width: 100%;"
+                      filterable
+                    >
+                      <el-option
+                        v-for="item in filteredSteamIdList"
+                        :key="item.steamID || item.steam_id"
+                        :label="`${item.dataName || '未命名'} (${item.steamID || item.steam_id || '无ID'})`"
+                        :value="item.steamID || item.steam_id"
+                      />
+                    </el-select>
+                  </div>
+                </div>
+
+                <div class="custom-config-field" style="flex: 0 1 auto; min-width: 250px;">
+                  <div class="field-label">
+                    <span style="color: #f56c6c; margin-right: 4px;">*</span>购买账号
+                  </div>
+                  <div class="field-control" style="width: auto; min-width: 180px;">
+                    <el-select
+                      v-model="crawlForm.steamId"
+                      placeholder="选择购买账号"
+                      style="width: 100%;"
+                      filterable
+                    >
+                      <el-option
+                        v-for="item in filteredSteamIdList"
+                        :key="item.steamID || item.steam_id"
+                        :label="`${item.dataName || '未命名'} (${item.steamID || item.steam_id || '无ID'})`"
+                        :value="item.steamID || item.steam_id"
+                      />
+                    </el-select>
+                  </div>
+                </div>
+              </div>
+            </el-form-item>
+
+            <el-form-item label-width="0">
               <div class="custom-config-grid">
                 <div class="custom-config-field">
                   <div class="field-label">查询间隔</div>
@@ -195,19 +220,6 @@
                       type="number"
                       placeholder="例如 3"
                       min="1"
-                      style="width: 100px;"
-                    />
-                  </div>
-                </div>
-
-                <div class="custom-config-field">
-                  <div class="field-label">最大差价百分比 (%)</div>
-                  <div class="field-control no-spinner">
-                    <el-input
-                      v-model.number="customConfigForm['最大差价百分比']"
-                      type="number"
-                      placeholder="例如 80"
-                      min="0"
                       style="width: 100px;"
                     />
                   </div>
@@ -241,6 +253,19 @@
                         :value="option.value"
                       />
                     </el-select>
+                  </div>
+                </div>
+
+                <div class="custom-config-field" v-if="customConfigForm['是否自动购买']">
+                  <div class="field-label">自动购买阈值</div>
+                  <div class="field-control no-spinner">
+                    <el-input
+                      v-model.number="customConfigForm['自动购买阈值']"
+                      type="number"
+                      placeholder="例如 10"
+                      min="0"
+                      style="width: 100px;"
+                    />
                   </div>
                 </div>
 
@@ -291,6 +316,29 @@
                     />
                   </div>
                 </div>
+
+                <!-- 按价格区间查询：显示价格区间输入 -->
+                <div class="custom-config-field price-range-field" v-if="crawlForm.searchMode === 'by_price_range'">
+                  <div class="field-label">价格区间</div>
+                  <div class="field-control" style="display: flex; gap: 10px; align-items: center; width: auto;">
+                    <el-input
+                      v-model.number="crawlForm.priceMin"
+                      type="number"
+                      placeholder="最低价格"
+                      style="width: 100px;"
+                      clearable
+                    />
+                    <span style="color: #909399;">至</span>
+                    <el-input
+                      v-model.number="crawlForm.priceMax"
+                      type="number"
+                      placeholder="最高价格"
+                      style="width: 100px;"
+                      clearable
+                    />
+                    <span style="color: #909399; font-size: 13px;">元</span>
+                  </div>
+                </div>
               </div>
             </el-form-item>
 
@@ -333,28 +381,6 @@
                   <el-icon><Delete /></el-icon>
                   一键清空
                 </el-button>
-              </div>
-            </el-form-item>
-
-            <!-- 按价格区间查询：显示价格区间输入 -->
-            <el-form-item v-if="crawlForm.searchMode === 'by_price_range'" label="价格区间">
-              <div style="display: flex; gap: 10px; align-items: center;">
-                <el-input
-                  v-model.number="crawlForm.priceMin"
-                  type="number"
-                  placeholder="最低价格"
-                  class="price-input"
-                  clearable
-                />
-                <span style="color: #909399;">至</span>
-                <el-input
-                  v-model.number="crawlForm.priceMax"
-                  type="number"
-                  placeholder="最高价格"
-                  class="price-input"
-                  clearable
-                />
-                <span style="color: #909399; font-size: 13px;">元</span>
               </div>
             </el-form-item>
           </el-form>

@@ -423,7 +423,7 @@ export function useSearchPendant() {
   const createDefaultCustomConfig = () => ({
   '饰品自动查询间隔': 3,
   '是否自动购买': false,
-  '最大差价百分比': 80,
+  '自动购买阈值': 50,
   '最大溢价': 200,
   '印花板': false,
   '高光': false,
@@ -621,9 +621,9 @@ const buildCustomConfig = () => ({
     customConfigForm.value['是否自动购买'],
     false
   ),
-  '最大差价百分比': normalizeNumberValue(
-    customConfigForm.value['最大差价百分比'],
-    80
+  '自动购买阈值': normalizeNumberValue(
+    customConfigForm.value['自动购买阈值'],
+    50
   ),
   '最大溢价': normalizeNumberValue(
     customConfigForm.value['最大溢价'],
@@ -650,11 +650,11 @@ const validateCustomConfig = () => {
   if (config['饰品自动查询间隔'] <= 0) {
     return { valid: false, message: '查询间隔必须大于 0 秒' }
   }
-  if (config['最大差价百分比'] < 0) {
-    return { valid: false, message: '最大差价百分比不能为负数' }
-  }
   if (config['最大溢价'] < 0) {
     return { valid: false, message: '最大溢价不能为负数' }
+  }
+  if (config['自动购买阈值'] < 0) {
+    return { valid: false, message: '自动购买阈值不能为负数' }
   }
 
   return { valid: true, config }
@@ -672,9 +672,9 @@ const applyCustomConfig = (config = {}) => {
       config['是否自动购买'],
       defaults['是否自动购买']
     ),
-    '最大差价百分比': normalizeNumberValue(
-      config['最大差价百分比'],
-      defaults['最大差价百分比']
+    '自动购买阈值': normalizeNumberValue(
+      config['自动购买阈值'],
+      defaults['自动购买阈值']
     ),
     '最大溢价': normalizeNumberValue(
       config['最大溢价'],
@@ -800,13 +800,15 @@ const startCrawl = async () => {
       confirmMessage += `价格区间: ${priceMinText} ~ ${priceMaxText}`
     }
 
-    confirmMessage += `\n查询间隔: ${customConfig['饰品自动查询间隔']} 秒`
-    confirmMessage += `\n自动购买: ${customConfig['是否自动购买'] ? '是' : '否'}`
-    confirmMessage += `\n最大差价百分比: ${customConfig['最大差价百分比']}%`
-    confirmMessage += `\n最大溢价: ${customConfig['最大溢价']} 元`
-    confirmMessage += `\n印花板: ${customConfig['印花板'] ? '是' : '否'}`
-    confirmMessage += `\n高光: ${customConfig['高光'] ? '是' : '否'}`
-    confirmMessage += `\n收益不少于: ${customConfig['收益不少于']} 元`
+    confirmMessage += `\n\n查询间隔: ${customConfig['饰品自动查询间隔']} 秒`
+    confirmMessage += `\n\n自动购买: ${customConfig['是否自动购买'] ? '是' : '否'}`
+    if (customConfig['是否自动购买']) {
+      confirmMessage += `\n\n自动购买阈值: ${customConfig['自动购买阈值']} 元`
+    }
+    confirmMessage += `\n\n最大溢价: ${customConfig['最大溢价']} 元`
+    confirmMessage += `\n\n印花板: ${customConfig['印花板'] ? '是' : '否'}`
+    confirmMessage += `\n\n高光: ${customConfig['高光'] ? '是' : '否'}`
+    confirmMessage += `\n\n收益不少于: ${customConfig['收益不少于']} 元`
 
     await ElMessageBox.confirm(
       confirmMessage,
