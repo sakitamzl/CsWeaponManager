@@ -3,12 +3,16 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
 
-export default {
-
 export function useOnSaleIGXE() {
+  // 状态管理
+  const loading = ref(false)
+  const updating = ref(false)
+  const onSaleData = ref([])
+  const searchText = ref('')
+  const weaponTypeFilter = ref('')
   const floatRangeFilter = ref('')
   const displayMode = ref('card')
-  
+
   // 弹窗相关
   const updatePriceDialogVisible = ref(false)
   const previewVisible = ref(false)
@@ -45,7 +49,7 @@ export function useOnSaleIGXE() {
     // 搜索过滤
     if (searchText.value) {
       const search = searchText.value.toLowerCase()
-      filtered = filtered.filter(item => 
+      filtered = filtered.filter(item =>
         item.item_name?.toLowerCase().includes(search) ||
         item.steam_hash_name?.toLowerCase().includes(search)
       )
@@ -243,7 +247,7 @@ export function useOnSaleIGXE() {
     const now = new Date()
     const diff = now - date
     const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-    
+
     if (days === 0) return '今天上架'
     if (days === 1) return '昨天上架'
     if (days < 7) return `${days}天前`
@@ -286,6 +290,4 @@ export function useOnSaleIGXE() {
     getPlatformTagType,
     formatOnSaleTime
   }
-  }
-}
 }
