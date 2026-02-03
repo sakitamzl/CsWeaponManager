@@ -27,12 +27,27 @@ window.ResizeObserver = class ResizeObserver extends _ResizeObserver {
 
 // 全局错误处理
 window.addEventListener('error', (e) => {
-  if (e.message.includes('ResizeObserver loop completed with undelivered notifications') ||
-      e.message.includes('ResizeObserver loop limit exceeded')) {
+  const msg = e.message || ''
+
+  // 忽略 ResizeObserver 相关噪音错误
+  if (
+    msg.includes('ResizeObserver loop completed with undelivered notifications') ||
+    msg.includes('ResizeObserver loop limit exceeded')
+  ) {
     e.stopImmediatePropagation()
     return false
   }
-  if (e.message && e.message.includes('getBoundingClientRect')) {
+
+  // 忽略 getBoundingClientRect 相关错误
+  if (msg.includes('getBoundingClientRect')) {
+    e.stopImmediatePropagation()
+    e.preventDefault()
+    return false
+  }
+
+  // 忽略 ElementPlus 内部触发的 getComputedStyle 类型错误
+  // 典型信息: Failed to execute 'getComputedStyle' on 'Window': parameter 1 is not of type 'Element'.
+  if (msg.includes('getComputedStyle')) {
     e.stopImmediatePropagation()
     e.preventDefault()
     return false
@@ -42,11 +57,17 @@ window.addEventListener('error', (e) => {
 const app = createApp(App)
 
 app.config.errorHandler = (err, vm, info) => {
-  if (err && err.message) {
-    if (err.message.includes('ResizeObserver') || err.message.includes('getBoundingClientRect')) {
-      return
-    }
+  const msg = err && err.message ? err.message : ''
+
+  // 忽略部分已知的 UI 噪音错误
+  if (
+    msg.includes('ResizeObserver') ||
+    msg.includes('getBoundingClientRect') ||
+    msg.includes('getComputedStyle')
+  ) {
+    return
   }
+
   console.error('Vue error:', err, info)
 }
 

@@ -18,7 +18,8 @@ export function useSearchPendant() {
   const crawlResult = ref(null)
 
   const pollingTimer = ref(null)
-  const POLL_INTERVAL = 1000
+  // 轮询间隔（毫秒）：按需求改为 3 秒一次
+  const POLL_INTERVAL = 3000
   const noDataCount = ref(0)
   const MAX_NO_DATA_COUNT = 60
   const lastPollingTime = ref(0)
@@ -1166,8 +1167,8 @@ const selectConfig = async (configId) => {
   // 切换配置时，先清空当前结果，避免显示混合数据
   crawlResult.value = { weapons: [] }
 
-  // 尝试恢复进度
-  loadProgressFromStorage()
+      // 尝试恢复进度（包含从本地配置或后端进度接口恢复）
+      await loadProgressFromStorage()
 
   try {
     const config = savedConfigs.value.find(c => c.id === configId)
@@ -2229,20 +2230,67 @@ const saveProgressToStorage = async (configId) => {
   }
 }
 
-// 从config恢复进度（单个配置）
-const loadProgressFromStorage = (configId) => {
+// 从config或后端进度接口恢复进度（单个配置）
+const loadProgressFromStorage = async (configId) => {
   if (!configId) configId = selectedConfigId.value
   if (!configId) return
 
   try {
     // 查找配置
     const config = savedConfigs.value.find(c => c.id === configId)
-    if (!config || !config.crawlProgress) {
-      console.log(`[进度恢复] 配置${configId}没有找到进度数据`)
+    if (!config) {
+      console.log(`[进度恢复] 配置${configId}不存在`)
       return
     }
 
-    const progressData = config.crawlProgress
+    let progressData = config.crawlProgress
+
+    // 如果本地配置中没有进度数据，尝试从后端进度接口恢复
+    if (!progressData) {
+      try {
+        const resp = await fetch(
+          `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/get_pendant_search_progress`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ config_id: configId })
+          }
+        )
+
+        if (resp.ok) {
+          const result = await resp.json()
+          if (result.success && result.data) {
+            const d = result.data
+            const total = d.total || 0
+            const current = d.current || 0
+            const percentage = total > 0 ? parseFloat(((current / total) * 100).toFixed(2)) : 0
+            progressData = {
+              total,
+              current,
+              percentage,
+              currentWeapon: d.weapon_name || '',
+              isCompleted: d.type === 'complete',
+              timestamp: Date.now(),
+              isCrawling: d.type === 'processing'
+            }
+            console.log(`[进度恢复] 从后端进度接口恢复配置${configId}进度，类型: ${d.type}`)
+          } else {
+            console.log(`[进度恢复] 后端未返回配置${configId}的进度数据`)
+          }
+        } else {
+          console.error(`[进度恢复] 后端进度接口请求失败: HTTP ${resp.status}`)
+        }
+      } catch (err) {
+        console.error('[进度恢复] 从后端进度接口恢复异常:', err)
+      }
+
+      // 如果依然没有进度数据，则直接返回
+      if (!progressData) {
+        console.log(`[进度恢复] 配置${configId}没有找到进度数据`)
+        return
+      }
+    }
+
 
     // 检查时间戳，如果超过24小时则清除
     const now = Date.now()
@@ -2293,7 +2341,8 @@ const loadProgressFromStorage = (configId) => {
 const loadAllProgresses = () => {
   console.log('[进度恢复] 开始恢复所有配置的进度')
   savedConfigs.value.forEach(config => {
-    if (config.id && config.crawlProgress) {
+    if (config.id) {
+      // 异步恢复，每个配置单独处理
       loadProgressFromStorage(config.id)
     }
   })
@@ -2363,13 +2412,14 @@ const getRarityColor = (rarity) => {
   return rarityColorMap[rarity] || '#fff'
 }
 
-  // 组件挂载时加载数据（不自动启动搜索和轮询）
+  // 组件挂载时加载数据，并启动轮询
   onMounted(() => {
     if (crawlForm.value.platformType) {
       loadAccountsForPlatform(crawlForm.value.platformType)
     }
     loadConfigList()
-    // 不再自动加载搜索结果和启动轮询，需要点击配置卡片后才进行搜索
+    // 进入页面后立即启动轮询（进度 + 列表），每 POLL_INTERVAL 轮询一次
+    startPolling()
     // 添加页面滚动监听
     window.addEventListener('scroll', handlePageScroll)
   })
