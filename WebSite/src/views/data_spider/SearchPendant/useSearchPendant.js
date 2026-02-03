@@ -540,6 +540,7 @@ export function useSearchPendant() {
   '饰品自动查询间隔': 3,
   '是否自动购买': false,
   '自动购买阈值': 50,
+  '自动购买阈值': 50,
   '最大溢价': 200,
   '印花板': false,
   '高光': false,
@@ -926,15 +927,13 @@ const startCrawl = async () => {
       confirmMessage += `价格区间:&nbsp;&nbsp;${priceMinText} ~ ${priceMaxText}<br>`
     }
 
-    confirmMessage += `查询间隔:&nbsp;&nbsp;${customConfig['饰品自动查询间隔']} 秒<br>`
-    confirmMessage += `自动购买:&nbsp;&nbsp;${customConfig['是否自动购买'] ? '是' : '否'}<br>`
-    if (customConfig['是否自动购买']) {
-      confirmMessage += `自动购买阈值:&nbsp;&nbsp;${customConfig['自动购买阈值']} 元<br>`
-    }
-    confirmMessage += `最大溢价:&nbsp;&nbsp;${customConfig['最大溢价']} 元<br>`
-    confirmMessage += `印花板:&nbsp;&nbsp;${customConfig['印花板'] ? '是' : '否'}<br>`
-    confirmMessage += `高光:&nbsp;&nbsp;${customConfig['高光'] ? '是' : '否'}<br>`
-    confirmMessage += `收益不少于:&nbsp;&nbsp;${customConfig['收益不少于']} 元</div>`
+    confirmMessage += `\n查询间隔: ${customConfig['饰品自动查询间隔']} 秒`
+    confirmMessage += `\n自动购买: ${customConfig['是否自动购买'] ? '是' : '否'}`
+    confirmMessage += `\n最大差价百分比: ${customConfig['最大差价百分比']}%`
+    confirmMessage += `\n最大溢价: ${customConfig['最大溢价']} 元`
+    confirmMessage += `\n印花板: ${customConfig['印花板'] ? '是' : '否'}`
+    confirmMessage += `\n高光: ${customConfig['高光'] ? '是' : '否'}`
+    confirmMessage += `\n收益不少于: ${customConfig['收益不少于']} 元`
 
     await ElMessageBox.confirm(
       confirmMessage,
