@@ -12,8 +12,6 @@ search_rename_bp = Blueprint('search_rename', __name__, url_prefix='/searchRenam
 
 logger = Log()
 
-print("✅ 改名饰品搜索API蓝图已加载")
-
 
 # ==================== 数据写入 ====================
 

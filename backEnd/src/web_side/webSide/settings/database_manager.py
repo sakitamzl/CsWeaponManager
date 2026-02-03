@@ -27,10 +27,6 @@ def get_base_path():
 
 DB_PATH = os.path.join(get_base_path(), 'csweaponmanager.db')
 
-print("✅ 数据库管理蓝图已加载")
-print(f"📁 数据库路径: {DB_PATH}")
-print(f"🔧 运行模式: {'打包exe' if getattr(sys, 'frozen', False) else '开发环境'}")
-
 
 def get_db_connection():
     """获取数据库连接"""

@@ -48,7 +48,7 @@ class DatabaseManager:
     
     def _setup_database(self):
         """设置数据库配置"""
-        print(f"📁 数据库文件路径: {self.db_path}")
+        # print(f"📁 数据库文件路径: {self.db_path}")
         with self.get_connection() as conn:
             # 启用 WAL 模式以减少锁定问题
             conn.execute('PRAGMA journal_mode=WAL')

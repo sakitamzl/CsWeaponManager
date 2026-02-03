@@ -21,12 +21,6 @@ def get_base_dir():
 # 获取图片文件夹路径
 BASE_DIR = get_base_dir()
 WEAPON_IMGS_DIR = BASE_DIR / 'weapon_imgs'
-
-# 打印调试信息
-print(f"📁 图片目录路径: {WEAPON_IMGS_DIR}")
-print(f"📁 图片目录是否存在: {WEAPON_IMGS_DIR.exists()}")
-
-
 @readImagesV1.route('/weapon_image/<path:image_name>', methods=['GET'])
 def get_weapon_image(image_name):
     """
