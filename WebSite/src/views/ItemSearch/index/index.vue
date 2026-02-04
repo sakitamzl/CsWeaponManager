@@ -175,40 +175,57 @@
               </template>
               <div class="search-platform-selector">
                 <div class="selector-buttons">
-                  <el-button 
-                    type="warning" 
-                    size="small" 
+                  <el-button
+                    type="warning"
+                    size="small"
                     @click="selectPlatform(row, 'yyyp')"
                     :loading="isSearching && searchSource === 'yyyp'"
                   >
                     悠悠有品
                   </el-button>
-                  <el-button 
-                    type="info" 
-                    size="small" 
+                  <el-button
+                    type="info"
+                    size="small"
                     class="buff-button"
                     @click="selectPlatform(row, 'buff')"
                     :loading="isSearching && searchSource === 'buff'"
                   >
                     BUFF
                   </el-button>
-                  <el-button 
-                    type="success" 
-                    size="small" 
+                  <el-button
+                    type="success"
+                    size="small"
                     class="csfloat-button"
                     @click="selectPlatform(row, 'csfloat')"
                     :loading="isSearching && searchSource === 'csfloat'"
                   >
                     CsFloat
                   </el-button>
-                  <el-button 
-                    type="primary" 
-                    size="small" 
+                  <el-button
+                    type="primary"
+                    size="small"
                     class="all-button"
                     @click="selectPlatform(row, 'all')"
                     :loading="isSearching && searchSource === 'all'"
                   >
                     全部搜索
+                  </el-button>
+                </div>
+                <div class="selector-divider"></div>
+                <div class="selector-buttons">
+                  <el-button
+                    type="primary"
+                    size="small"
+                    @click="openCSQAQ(row)"
+                  >
+                    CSQAQ
+                  </el-button>
+                  <el-button
+                    type="success"
+                    size="small"
+                    @click="openSteamDT(row)"
+                  >
+                    SteamDT
                   </el-button>
                 </div>
               </div>
@@ -248,6 +265,27 @@
         <el-table-column prop="buff_id" label="BUFF ID" width="100" align="center">
           <template #default="{ row }">
             <span class="id-text">{{ row.buff_id || '-' }}</span>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="第三方网站" width="120" align="center">
+          <template #default="{ row }">
+            <div class="third-party-links">
+              <el-button
+                type="primary"
+                size="small"
+                @click.stop="openCSQAQ(row)"
+              >
+                CSQAQ
+              </el-button>
+              <el-button
+                type="success"
+                size="small"
+                @click.stop="openSteamDT(row)"
+              >
+                SteamDT
+              </el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -315,6 +353,23 @@
                     <span class="info-label">BUFF ID:</span>
                     <span>{{ item.buff_id || '-' }}</span>
                   </div>
+                </div>
+                <!-- 第三方网站按钮 -->
+                <div class="card-actions">
+                  <el-button
+                    type="primary"
+                    size="small"
+                    @click.stop="openCSQAQ(item)"
+                  >
+                    CSQAQ
+                  </el-button>
+                  <el-button
+                    type="success"
+                    size="small"
+                    @click.stop="openSteamDT(item)"
+                  >
+                    SteamDT
+                  </el-button>
                 </div>
               </div>
             </div>

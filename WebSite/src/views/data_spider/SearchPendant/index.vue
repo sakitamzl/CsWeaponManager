@@ -594,13 +594,34 @@
                 </div>
               </template>
             </el-table-column>
-            
-            <el-table-column label="卖家" min-width="150">
+
+            <el-table-column label="卖家" width="120">
               <template #default="scope">
                 {{ scope.row.userNickName || '未知' }}
               </template>
             </el-table-column>
-            
+
+            <el-table-column label="第三方网站" width="120" align="center">
+              <template #default="scope">
+                <div class="third-party-links">
+                  <el-button
+                    type="primary"
+                    size="small"
+                    @click="openCSQAQ(scope.row)"
+                  >
+                    CSQAQ
+                  </el-button>
+                  <el-button
+                    type="success"
+                    size="small"
+                    @click="openSteamDT(scope.row)"
+                  >
+                    SteamDT
+                  </el-button>
+                </div>
+              </template>
+            </el-table-column>
+
             <el-table-column label="操作" width="100">
               <template #default="scope">
                 <el-button
@@ -2224,6 +2245,195 @@ export default {
 }
 
 .mode-radio-item.is-checked .mode-title {
+  color: #4CAF50;
+}
+
+/* 第三方网站链接样式 */
+.third-party-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.4rem 0;
+  align-items: center;
+  justify-content: center;
+  min-height: 70px;
+}
+
+.third-party-links .el-button {
+  width: 85px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* 价格走势图表占位样式 */
+.price-trend-container {
+  width: 100%;
+  height: 100%;
+  padding: 0.5rem 0;
+}
+
+.price-trend-chart-placeholder {
+  width: 100%;
+  height: 100px;
+  background: linear-gradient(135deg, #1a1a1a 0%, #252525 100%);
+  border: 2px dashed #333;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.price-trend-chart-placeholder:hover {
+  border-color: #4CAF50;
+  background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+  box-shadow: 0 0 12px rgba(76, 175, 80, 0.2);
+}
+
+/* 模拟图表线条 */
+.chart-mock {
+  width: 90%;
+  height: 60px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chart-line {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    transparent 20%,
+    #4CAF50 20%,
+    #66BB6A 40%,
+    #8BC34A 60%,
+    #FFC107 80%,
+    #FF9800 100%
+  );
+  clip-path: polygon(
+    0% 80%,
+    20% 60%,
+    40% 30%,
+    60% 45%,
+    80% 20%,
+    100% 40%,
+    100% 100%,
+    0% 100%
+  );
+  opacity: 0.3;
+}
+
+.chart-line::before {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    #4CAF50 20%,
+    #66BB6A 40%,
+    #8BC34A 60%,
+    #FFC107 80%,
+    #FF9800 100%
+  );
+  top: 0;
+  left: 0;
+  clip-path: polygon(
+    0% 80%,
+    20% 60%,
+    40% 30%,
+    60% 45%,
+    80% 20%,
+    100% 40%
+  );
+  opacity: 0.8;
+  filter: drop-shadow(0 0 4px rgba(76, 175, 80, 0.6));
+}
+
+.chart-dots {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.chart-dots .dot {
+  width: 6px;
+  height: 6px;
+  background: #4CAF50;
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(76, 175, 80, 0.8);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.chart-dots .dot:nth-child(1) {
+  margin-top: 48px;
+}
+
+.chart-dots .dot:nth-child(2) {
+  margin-top: 36px;
+  animation-delay: 0.2s;
+  background: #66BB6A;
+  box-shadow: 0 0 6px rgba(102, 187, 106, 0.8);
+}
+
+.chart-dots .dot:nth-child(3) {
+  margin-top: 18px;
+  animation-delay: 0.4s;
+  background: #8BC34A;
+  box-shadow: 0 0 6px rgba(139, 195, 74, 0.8);
+}
+
+.chart-dots .dot:nth-child(4) {
+  margin-top: 27px;
+  animation-delay: 0.6s;
+  background: #FFC107;
+  box-shadow: 0 0 6px rgba(255, 193, 7, 0.8);
+}
+
+.chart-dots .dot:nth-child(5) {
+  margin-top: 12px;
+  animation-delay: 0.8s;
+  background: #FF9800;
+  box-shadow: 0 0 6px rgba(255, 152, 0, 0.8);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0.7;
+  }
+}
+
+.chart-placeholder-text {
+  font-size: 0.875rem;
+  color: #666;
+  font-weight: 500;
+  text-align: center;
+  letter-spacing: 0.5px;
+  position: relative;
+  z-index: 1;
+  margin-top: 0.25rem;
+}
+
+.price-trend-chart-placeholder:hover .chart-placeholder-text {
   color: #4CAF50;
 }
 

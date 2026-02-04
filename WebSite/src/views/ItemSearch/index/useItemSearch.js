@@ -1790,6 +1790,68 @@ export function useItemSearch() {
     }
   }
 
+  // 打开 CSQAQ 网站
+  const openCSQAQ = async (item) => {
+    try {
+      // 获取武器名称（market_listing_item_name 格式）
+      const weaponName = item.market_listing_item_name
+      if (!weaponName) {
+        ElMessage.warning('无法获取武器名称')
+        return
+      }
+
+      // 调用后端接口查询 csqaq_id
+      const response = await fetch(`${API_CONFIG.BASE_URL}/webSelectWeaponV1/csqaq_id`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          market_listing_item_name: weaponName
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('查询 CSQAQ ID 失败')
+      }
+
+      const result = await response.json()
+
+      if (result.success && result.csqaq_id) {
+        // 组合 URL 并打开新窗口
+        const url = `https://csqaq.com/goods/${result.csqaq_id}`
+        window.open(url, '_blank')
+      } else {
+        ElMessage.warning(result.message || '未找到对应的 CSQAQ ID')
+      }
+    } catch (error) {
+      console.error('打开 CSQAQ 失败:', error)
+      ElMessage.error('打开 CSQAQ 失败')
+    }
+  }
+
+  // 打开 SteamDT 网站
+  const openSteamDT = (item) => {
+    try {
+      // 获取 steam_hash_name
+      const steamHashName = item.steam_hash_name
+      if (!steamHashName) {
+        ElMessage.warning('无法获取 Steam Hash Name')
+        return
+      }
+
+      // 组合 URL（需要对 steamHashName 进行 URL 编码）
+      const encodedName = encodeURIComponent(steamHashName)
+      const url = `https://steamdt.com/cs2/${encodedName}`
+
+      // 打开新窗口
+      window.open(url, '_blank')
+    } catch (error) {
+      console.error('打开 SteamDT 失败:', error)
+      ElMessage.error('打开 SteamDT 失败')
+    }
+  }
+
   // 页面加载时获取Steam ID列表
   onMounted(async () => {
     await loadSteamIdList()
@@ -1914,6 +1976,9 @@ export function useItemSearch() {
     getWearRange,
     getExteriorColor,
     handleSizeChange,
-    handleCurrentChange
+    handleCurrentChange,
+    // 第三方网站跳转
+    openCSQAQ,
+    openSteamDT
   }
 }

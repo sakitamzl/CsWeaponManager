@@ -568,6 +568,67 @@ def get_reference_prices():
 
 
 
+@webSelectWeaponV1.route('/csqaq_id', methods=['POST'])
+def get_csqaq_id():
+    """
+    通过 market_listing_item_name 查询 csqaq_id
+
+    请求体: {"market_listing_item_name": "P2000 | Dispatch (Factory New)"}
+    返回: {
+        "success": true,
+        "csqaq_id": 16550
+    }
+    """
+    try:
+        data = request.get_json() or {}
+        market_listing_item_name = data.get('market_listing_item_name', '').strip()
+
+        if not market_listing_item_name:
+            return jsonify({
+                "success": False,
+                "message": "market_listing_item_name 参数不能为空"
+            }), 400
+
+        # 通过 market_listing_item_name 查询
+        records = WeaponClassIDModel.find_by_market_listing_item_name(market_listing_item_name)
+
+        if not records:
+            logger.write_log(f"[get_csqaq_id] 未找到数据: {market_listing_item_name}", 'WARNING')
+            return jsonify({
+                "success": False,
+                "message": f"未找到数据: {market_listing_item_name}"
+            }), 404
+
+        # 取第一条记录
+        record = records[0]
+
+        if not record.csqaq_id:
+            logger.write_log(f"[get_csqaq_id] 该武器没有 csqaq_id: {market_listing_item_name}", 'WARNING')
+            return jsonify({
+                "success": False,
+                "message": f"该武器没有对应的 CSQAQ ID"
+            }), 404
+
+        logger.write_log(
+            f"[get_csqaq_id] 查询成功: {market_listing_item_name} -> csqaq_id={record.csqaq_id}",
+            'INFO'
+        )
+
+        return jsonify({
+            "success": True,
+            "csqaq_id": record.csqaq_id
+        }), 200
+
+    except Exception as e:
+        logger.write_log(f"获取 csqaq_id 失败: {e}", 'ERROR')
+        import traceback
+        logger.write_log(f"错误堆栈: {traceback.format_exc()}", 'ERROR')
+        return jsonify({
+            "success": False,
+            "message": f"获取 csqaq_id 失败: {str(e)}"
+        }), 500
+
+
 @webSelectWeaponV1.route('/queryWeaponsByPriceRange', methods=['GET'])
 def queryWeaponsByPriceRange():
     """
