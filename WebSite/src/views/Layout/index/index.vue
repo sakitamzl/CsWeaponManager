@@ -9,7 +9,7 @@
         <li
           v-for="item in menuItems"
           :key="item.path"
-          :class="{ active: $route.path === item.path }"
+          :class="{ active: $route.path.startsWith(item.path) }"
           @click.stop="handleMenuClick(item.path)"
           :title="isCollapsed ? item.title : ''"
         >

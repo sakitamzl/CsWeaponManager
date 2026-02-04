@@ -9,6 +9,7 @@ export function useDataSpider() {
   const router = useRouter()
   const sidebarCollapsed = ref(false)
   const isMainSidebarCollapsed = ref(false)
+  const isMounted = ref(false)
 
   const navigateTo = (path) => {
     router.push(path)
@@ -50,6 +51,11 @@ export function useDataSpider() {
         attributeFilter: ['class']
       })
     }
+
+    // 立即标记为已挂载，避免首次渲染时的过渡动画
+    setTimeout(() => {
+      isMounted.value = true
+    }, 0)
   })
 
   onUnmounted(() => {
@@ -61,6 +67,7 @@ export function useDataSpider() {
   return {
     sidebarCollapsed,
     isMainSidebarCollapsed,
+    isMounted,
     navigateTo,
     toggleSidebar,
     handleContentClick

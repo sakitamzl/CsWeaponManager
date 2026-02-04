@@ -1,4 +1,4 @@
-.data-website-container {
+.data-spider-container {
   display: flex;
   min-height: 100vh;
   width: 100%;
@@ -28,12 +28,16 @@
 }
 
 /* 当主侧边栏收缩时，二级侧边栏也跟随调整 */
-.data-website-container.main-sidebar-collapsed .secondary-sidebar {
+.data-spider-container.main-sidebar-collapsed .secondary-sidebar {
   left: 4rem;
 }
 
 .secondary-sidebar.collapsed {
   transform: translateX(-100%);
+}
+
+.secondary-sidebar.no-transition {
+  transition: none !important;
 }
 
 /* 折叠/展开按钮 */
@@ -63,11 +67,11 @@
 }
 
 /* 当主侧边栏收缩时 */
-.data-website-container.main-sidebar-collapsed .toggle-button {
+.data-spider-container.main-sidebar-collapsed .toggle-button {
   left: calc(4rem + 220px + 2px);
 }
 
-.data-website-container.main-sidebar-collapsed .toggle-button.collapsed {
+.data-spider-container.main-sidebar-collapsed .toggle-button.collapsed {
   left: 4rem;
 }
 
@@ -83,6 +87,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.toggle-button.no-transition {
+  transition: none !important;
 }
 
 /* 侧边栏内容 */
@@ -179,7 +187,7 @@
     left: calc(var(--main-sidebar-width, max(calc(15rem - 50px), min(18vw, calc(20rem - 50px)))) + 240px + 2px);
   }
 
-  .data-website-container.main-sidebar-collapsed .toggle-button {
+  .data-spider-container.main-sidebar-collapsed .toggle-button {
     left: calc(4rem + 240px + 2px);
   }
 
@@ -198,7 +206,7 @@
     left: calc(var(--main-sidebar-width, max(calc(15rem - 50px), min(18vw, calc(20rem - 50px)))) + 200px + 2px);
   }
 
-  .data-website-container.main-sidebar-collapsed .toggle-button {
+  .data-spider-container.main-sidebar-collapsed .toggle-button {
     left: calc(4rem + 200px + 2px);
   }
 
