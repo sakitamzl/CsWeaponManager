@@ -386,21 +386,6 @@
                     <span class="preview-price-value buy-price">¥{{ parseFloat(previewItem.price).toFixed(2) }}</span>
                   </div>
                 </div>
-                <!-- 悠悠有品价格信息 -->
-                <div class="preview-yyyp-info" v-if="yyypPriceInfo.yyyp_price">
-                  <div class="preview-info-row">
-                    <div class="preview-info-item">
-                      <span class="preview-info-label">悠悠有品价格:</span>
-                      <span class="preview-info-value yyyp-price">¥{{ yyypPriceInfo.yyyp_price }}</span>
-                    </div>
-                  </div>
-                  <div class="preview-info-row" v-if="yyypPriceInfo.yyyp_on_sale_count">
-                    <div class="preview-info-item">
-                      <span class="preview-info-label">在售数量:</span>
-                      <span class="preview-info-value">{{ yyypPriceInfo.yyyp_on_sale_count }}</span>
-                    </div>
-                  </div>
-                </div>
                 <div class="preview-info-row" v-if="previewItem.order_id">
                   <div class="preview-info-item">
                     <span class="preview-info-label">订单编号:</span>

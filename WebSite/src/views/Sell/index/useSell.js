@@ -1125,9 +1125,12 @@ export function useSell() {
       const parsed = typeof stickersData === 'string' ? JSON.parse(stickersData) : stickersData
       if (!Array.isArray(parsed) || parsed.length === 0) return
 
+      console.log('解析的印花数据:', parsed)
+
       const pricePromises = parsed.map(async (sticker) => {
         const hashName = sticker.hashName || sticker.steam_hash_name || sticker.steamHashName
         const name = sticker.name || '未知贴纸'
+        console.log('印花查询 - name:', name, 'hashName:', hashName)
         if (!hashName) return null
 
         try {
@@ -1203,8 +1206,6 @@ export function useSell() {
   const openPreview = (item) => {
     previewItem.value = item
     previewVisible.value = true
-    // 查询悠悠有品价格信息
-    loadYyypPriceInfo(item.steam_hash_name)
     // 查询印花价格信息
     loadStickersPriceInfo(item.sticker)
     // 查询挂件价格信息
