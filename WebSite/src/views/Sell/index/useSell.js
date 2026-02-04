@@ -28,7 +28,13 @@ export function useSell() {
   // 预览弹窗相关
   const previewVisible = ref(false)
   const previewItem = ref(null)
-  
+  const yyypPriceInfo = ref({
+    yyyp_price: null,
+    yyyp_on_sale_count: null
+  })
+  const stickersPriceInfo = ref([])
+  const pendantPriceInfo = ref(null)
+
   // 高级搜索相关
   const hasAdvancedFilters = computed(() => {
     return (searchText.value && searchText.value.trim()) || 
@@ -1067,9 +1073,142 @@ export function useSell() {
   }
 
   // 打开预览弹窗
+  const loadYyypPriceInfo = async (steamHashName) => {
+    if (!steamHashName) {
+      yyypPriceInfo.value = {
+        yyyp_price: null,
+        yyyp_on_sale_count: null
+      }
+      return
+    }
+
+    try {
+      const response = await fetch(apiUrls.buyYyypPriceInfo(steamHashName), {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+
+      if (result.success && result.data) {
+        // 使用 Object.assign 确保 Vue 的响应式系统能检测到变化
+        Object.assign(yyypPriceInfo.value, {
+          yyyp_price: result.data.yyyp_price,
+          yyyp_on_sale_count: result.data.yyyp_on_sale_count
+        })
+        console.log('成功获取价格信息:', yyypPriceInfo.value)
+        console.log('yyyp_price 值类型:', typeof yyypPriceInfo.value.yyyp_price, '值:', yyypPriceInfo.value.yyyp_price)
+      } else {
+        Object.assign(yyypPriceInfo.value, {
+          yyyp_price: null,
+          yyyp_on_sale_count: null
+        })
+      }
+    } catch (error) {
+      console.error('查询悠悠有品价格信息失败:', error)
+      yyypPriceInfo.value = {
+        yyyp_price: null,
+        yyyp_on_sale_count: null
+      }
+    }
+  }
+
+  const loadStickersPriceInfo = async (stickersData) => {
+    stickersPriceInfo.value = []
+    if (!stickersData) return
+
+    try {
+      const parsed = typeof stickersData === 'string' ? JSON.parse(stickersData) : stickersData
+      if (!Array.isArray(parsed) || parsed.length === 0) return
+
+      const pricePromises = parsed.map(async (sticker) => {
+        const hashName = sticker.hashName || sticker.steam_hash_name || sticker.steamHashName
+        const name = sticker.name || '未知贴纸'
+        if (!hashName) return null
+
+        try {
+          const url = apiUrls.buyYyypPriceInfo(hashName)
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' }
+          })
+
+          if (!response.ok) return null
+
+          const result = await response.json()
+          if (result.success && result.data) {
+            return {
+              name: name,
+              hashName: hashName,
+              yyyp_price: result.data.yyyp_price,
+              yyyp_on_sale_count: result.data.yyyp_on_sale_count,
+              market_listing_item_name: result.data.market_listing_item_name
+            }
+          }
+        } catch (error) {
+          console.error(`查询印花价格失败 (${hashName}):`, error)
+        }
+        return null
+      })
+
+      const results = await Promise.all(pricePromises)
+      stickersPriceInfo.value = results.filter(item => item !== null)
+      console.log('印花价格信息:', stickersPriceInfo.value)
+    } catch (error) {
+      console.error('解析印花价格信息失败:', error)
+    }
+  }
+
+  const loadPendantPriceInfo = async (pendantData) => {
+    pendantPriceInfo.value = null
+    if (!pendantData) return
+
+    try {
+      const parsed = typeof pendantData === 'string' ? JSON.parse(pendantData) : pendantData
+      const pendantObj = Array.isArray(parsed) ? parsed[0] : parsed
+      if (!pendantObj || typeof pendantObj !== 'object') return
+
+      const hashName = pendantObj.hashName || pendantObj.steam_hash_name || pendantObj.steamHashName
+      const name = pendantObj.name || '挂件'
+      if (!hashName) return
+
+      const url = apiUrls.buyYyypPriceInfo(hashName)
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      })
+
+      if (!response.ok) return
+
+      const result = await response.json()
+      if (result.success && result.data) {
+        pendantPriceInfo.value = {
+          name: name,
+          hashName: hashName,
+          yyyp_price: result.data.yyyp_price,
+          yyyp_on_sale_count: result.data.yyyp_on_sale_count,
+          market_listing_item_name: result.data.market_listing_item_name
+        }
+        console.log('挂件价格信息:', pendantPriceInfo.value)
+      }
+    } catch (error) {
+      console.error('查询挂件价格信息失败:', error)
+    }
+  }
+
   const openPreview = (item) => {
     previewItem.value = item
     previewVisible.value = true
+    // 查询悠悠有品价格信息
+    loadYyypPriceInfo(item.steam_hash_name)
+    // 查询印花价格信息
+    loadStickersPriceInfo(item.sticker)
+    // 查询挂件价格信息
+    loadPendantPriceInfo(item.pendant)
   }
 
   onMounted(() => {
@@ -1137,6 +1276,9 @@ export function useSell() {
     getPendantImage,
     previewVisible,
     previewItem,
-    openPreview
+    openPreview,
+    yyypPriceInfo,
+    stickersPriceInfo,
+    pendantPriceInfo
   }
 }

@@ -165,7 +165,9 @@ export const API_CONFIG = {
 
     BUY_STATS_BY_TYPE_WEAR: '/webBuyPageV1/getStatsByTypeAndWear',
 
-    
+    BUY_YYYP_PRICE_INFO: (steamHashName) => `/webBuyV1/getYyypPriceInfo/${encodeURIComponent(steamHashName)}`,
+
+
 
     SELL_WEAPON_TYPES: '/webSellPageV1/getWeaponTypes',
 
@@ -586,7 +588,9 @@ export const apiUrls = {
 
   buyStatsByTypeWear: () => getApiUrl(API_CONFIG.ENDPOINTS.BUY_STATS_BY_TYPE_WEAR),
 
-  
+  buyYyypPriceInfo: (steamHashName) => getApiUrl(API_CONFIG.ENDPOINTS.BUY_YYYP_PRICE_INFO(steamHashName)),
+
+
 
   sellWeaponTypes: () => getApiUrl(API_CONFIG.ENDPOINTS.SELL_WEAPON_TYPES),
 

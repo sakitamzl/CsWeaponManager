@@ -386,6 +386,21 @@
                     <span class="preview-price-value buy-price">¥{{ parseFloat(previewItem.price).toFixed(2) }}</span>
                   </div>
                 </div>
+                <!-- 悠悠有品价格信息 -->
+                <div class="preview-yyyp-info" v-if="yyypPriceInfo.yyyp_price">
+                  <div class="preview-info-row">
+                    <div class="preview-info-item">
+                      <span class="preview-info-label">悠悠有品价格:</span>
+                      <span class="preview-info-value yyyp-price">¥{{ yyypPriceInfo.yyyp_price }}</span>
+                    </div>
+                  </div>
+                  <div class="preview-info-row" v-if="yyypPriceInfo.yyyp_on_sale_count">
+                    <div class="preview-info-item">
+                      <span class="preview-info-label">在售数量:</span>
+                      <span class="preview-info-value">{{ yyypPriceInfo.yyyp_on_sale_count }}</span>
+                    </div>
+                  </div>
+                </div>
                 <div class="preview-info-row" v-if="previewItem.order_id">
                   <div class="preview-info-item">
                     <span class="preview-info-label">订单编号:</span>
@@ -462,7 +477,18 @@
                       <div v-else class="preview-sticker-list-placeholder">?</div>
                     </div>
                   </el-tooltip>
-                  <div class="preview-sticker-list-name">{{ sticker.name || '未知贴纸' }}</div>
+                  <div class="preview-sticker-list-name">
+                    {{ stickersPriceInfo.find(s => s.name === sticker.name)?.market_listing_item_name || sticker.name || '未知贴纸' }}
+                  </div>
+                  <!-- 印花价格信息（显示在名称下方） -->
+                  <div v-if="stickersPriceInfo.find(s => s.name === sticker.name)" class="preview-sticker-price-info">
+                    <div class="sticker-price-text" v-if="stickersPriceInfo.find(s => s.name === sticker.name)?.yyyp_price">
+                      价格: ¥{{ stickersPriceInfo.find(s => s.name === sticker.name).yyyp_price }}
+                    </div>
+                    <div class="sticker-price-text" v-if="stickersPriceInfo.find(s => s.name === sticker.name)?.yyyp_on_sale_count">
+                      在售: {{ stickersPriceInfo.find(s => s.name === sticker.name).yyyp_on_sale_count }}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -483,7 +509,18 @@
                       <div v-else class="preview-pendant-list-placeholder">🎗️</div>
                     </div>
                   </el-tooltip>
-                  <div class="preview-pendant-list-name">{{ parsePendant(previewItem.pendant)?.name || '挂件' }}</div>
+                  <div class="preview-pendant-list-name">
+                    {{ pendantPriceInfo?.market_listing_item_name || parsePendant(previewItem.pendant)?.name || '挂件' }}
+                  </div>
+                  <!-- 挂件价格信息（显示在名称下方） -->
+                  <div v-if="pendantPriceInfo" class="preview-pendant-price-info">
+                    <div class="pendant-price-text" v-if="pendantPriceInfo.yyyp_price">
+                      价格: ¥{{ pendantPriceInfo.yyyp_price }}
+                    </div>
+                    <div class="pendant-price-text" v-if="pendantPriceInfo.yyyp_on_sale_count">
+                      在售: {{ pendantPriceInfo.yyyp_on_sale_count }}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
