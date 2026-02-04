@@ -13,6 +13,7 @@ from .rental import RentalModel
 from .weapon_classID import WeaponClassIDModel
 from .auto_search_weapon import AutoSearchWeaponModel
 from .yyyp_weapon_price_history import YyypWeaponPriceHistoryModel
+from .sys_message import SysMessageModel
 
 __all__ = [
     'ConfigModel',
@@ -24,5 +25,6 @@ __all__ = [
     'RentalModel',
     'WeaponClassIDModel',
     'AutoSearchWeaponModel',
-    'YyypWeaponPriceHistoryModel'
+    'YyypWeaponPriceHistoryModel',
+    'SysMessageModel'
 ]

@@ -35,6 +35,7 @@ from src.web_side.webSide.buy_page import webBuyPageV1
 from src.web_side.webSide.sell_page import webSellPageV1
 from src.web_side.webSide.lent_page import webLentPageV1
 from src.web_side.webSide.message_box_page import webMessageBoxPageV1
+from src.web_side.webSide.sys_message_page import webSysMessagePageV1
 from src.web_side.webSide.inventory_api import webInventoryV1
 from src.web_side.webSide.stock_components import webStockComponentsV1
 from src.web_side.webSide.home.home_charts import webHomeChartsV1
@@ -99,6 +100,7 @@ def blankEndApi():
     app.register_blueprint(webSellPageV1, url_prefix = '/webSellPageV1')
     app.register_blueprint(webLentPageV1, url_prefix = '/webLentPageV1')
     app.register_blueprint(webMessageBoxPageV1, url_prefix = '/webMessageBoxPageV1')
+    app.register_blueprint(webSysMessagePageV1, url_prefix = '/api')
     app.register_blueprint(webInventoryV1, url_prefix = '/webInventoryV1')
     app.register_blueprint(webStockComponentsV1, url_prefix = '/webStockComponentsV1')
     app.register_blueprint(webHomeChartsV1, url_prefix = '/webHomeChartsV1')

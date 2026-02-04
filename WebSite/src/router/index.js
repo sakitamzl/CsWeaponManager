@@ -163,6 +163,12 @@ const routes = [
             name: 'DevTools',
             component: () => import('@/views/settings/DevTool/index.vue'),
             meta: { title: '开荒工具' }
+          },
+          {
+            path: 'sys-message',
+            name: 'SysMessage',
+            component: () => import('@/views/settings/SysMessage/index.vue'),
+            meta: { title: '系统消息' }
           }
         ]
       },

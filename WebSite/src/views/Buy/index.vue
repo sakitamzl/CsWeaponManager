@@ -144,7 +144,6 @@
         <!-- 统计数据 -->
         <div class="stats-container">
           <div class="stats-section">
-            <h3>总数统计</h3>
             <div class="stats-grid-3x2">
               <div class="stat-item">
                 <span class="stat-label">购买:</span>
@@ -173,10 +172,8 @@
             </div>
           </div>
           
-          <div class="stats-divider"></div>
           
-          <div class="stats-section">
-            <h3>当前页面</h3>
+          <!-- <div class="stats-section">
             <div class="stats-grid-3x2">
               <div class="stat-item">
                 <span class="stat-label">数量:</span>
@@ -203,7 +200,7 @@
                 <span class="stat-value">{{ currentPageStats.pendingCount }} 件</span>
               </div>
             </div>
-          </div>
+          </div> -->
         </div>
       </div>
     </div>

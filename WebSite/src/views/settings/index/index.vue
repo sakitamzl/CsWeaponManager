@@ -69,7 +69,7 @@
             </el-icon>
             <span>悠悠有品消息</span>
           </li>
-          <li 
+          <li
             :class="{ active: $route.name === 'BuffMessageBox' }"
             @click="navigateTo('/settings/buff-message-box')"
           >
@@ -78,7 +78,16 @@
             </el-icon>
             <span>BUFF消息</span>
           </li>
-          <li 
+          <li
+            :class="{ active: $route.name === 'SysMessage' }"
+            @click="navigateTo('/settings/sys-message')"
+          >
+            <el-icon :size="18">
+              <BellFilled />
+            </el-icon>
+            <span>系统消息</span>
+          </li>
+          <li
             :class="{ active: $route.name === 'VersionUpdate' }"
             @click="navigateTo('/settings/version-update')"
           >
@@ -108,7 +117,7 @@
 
 
 <script setup>
-import { SetUp, Setting, Box, Timer, DataBoard, ArrowLeft, ArrowRight, ChatLineRound, Refresh } from '@element-plus/icons-vue'
+import { SetUp, Setting, Box, Timer, DataBoard, ArrowLeft, ArrowRight, ChatLineRound, Refresh, BellFilled } from '@element-plus/icons-vue'
 import { useSettings } from './useSettings.js'
 
 const {
