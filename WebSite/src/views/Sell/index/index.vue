@@ -144,10 +144,9 @@
         <!-- 统计数据 -->
         <div class="stats-container">
           <div class="stats-section">
-            <h3>总量统计</h3>
             <div class="stats-grid-3x2">
               <div class="stat-item">
-                <span class="stat-label">数量:</span>
+                <span class="stat-label">出售:</span>
                 <span class="stat-value">{{ totalStats.totalCount }} 件</span>
               </div>
               <div class="stat-item">
@@ -169,38 +168,6 @@
               <div class="stat-item">
                 <span class="stat-label">待收货:</span>
                 <span class="stat-value">{{ totalStats.pendingCount }} 件</span>
-              </div>
-            </div>
-          </div>
-          
-          <div class="stats-divider"></div>
-          
-          <div class="stats-section">
-            <h3>当前页面</h3>
-            <div class="stats-grid-3x2">
-              <div class="stat-item">
-                <span class="stat-label">数量:</span>
-                <span class="stat-value">{{ currentPageStats.totalCount }} 件</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">金额:</span>
-                <span class="stat-value">¥{{ currentPageStats.totalAmount }}</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">平均价格:</span>
-                <span class="stat-value">¥{{ currentPageStats.avgPrice }}</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">完成:</span>
-                <span class="stat-value">{{ currentPageStats.completedCount }} 件</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">取消:</span>
-                <span class="stat-value">{{ currentPageStats.cancelledCount }} 件</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">待收货:</span>
-                <span class="stat-value">{{ currentPageStats.pendingCount }} 件</span>
               </div>
             </div>
           </div>

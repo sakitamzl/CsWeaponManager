@@ -36,6 +36,10 @@
   transform: translateX(-100%);
 }
 
+.secondary-sidebar.no-transition {
+  transition: none !important;
+}
+
 /* 折叠/展开按钮 */
 .toggle-button {
   position: fixed;
@@ -85,6 +89,10 @@
   justify-content: center;
 }
 
+.toggle-button.no-transition {
+  transition: none !important;
+}
+
 /* 侧边栏内容 */
 .sidebar-content {
   flex: 1;
@@ -98,6 +106,13 @@
   padding: 1.5rem 1.5rem 1rem 1.5rem;
   border-bottom: 1px solid #3a3a3a;
   margin-bottom: 0;
+}
+
+.sidebar-header h2 {
+  font-size: 1.125rem;
+  color: #ffffff;
+  margin: 0;
+  font-weight: 600;
 }
 
 .category-list {
@@ -143,6 +158,12 @@
   flex: 1;
 }
 
+.category-list li .menu-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
 /* 主内容区域包装器 */
 .main-wrapper {
   flex: 1;
@@ -156,6 +177,7 @@
 }
 
 /* 响应式设计 */
+/* 大屏幕优化 */
 @media (min-width: 1920px) {
   .secondary-sidebar {
     width: 240px;
@@ -174,6 +196,7 @@
   }
 }
 
+/* 中等屏幕 */
 @media (max-width: 1440px) {
   .secondary-sidebar {
     width: 200px;
@@ -197,6 +220,7 @@
   }
 }
 
+/* 小屏幕 */
 @media (max-width: 768px) {
   .secondary-sidebar {
     width: 180px;
@@ -204,6 +228,10 @@
 
   .secondary-sidebar.collapsed {
     width: 0;
+  }
+
+  .sidebar-header h2 {
+    font-size: 1rem;
   }
 
   .category-list li {
@@ -225,6 +253,26 @@
 
   .main-wrapper.expanded {
     margin-left: 0;
+  }
+}
+
+@media (min-width: 1200px) and (max-width: 1919px) {
+  .toggle-button {
+    left: calc(max(calc(18rem - 50px), 16vw) + 220px - 36px);
+  }
+
+  .secondary-sidebar.collapsed .toggle-button {
+    left: max(calc(18rem - 50px), 16vw);
+  }
+}
+
+@media (min-width: 1600px) and (max-width: 1919px) {
+  .toggle-button {
+    left: calc(max(calc(20rem - 50px), 14vw) + 220px - 36px);
+  }
+
+  .secondary-sidebar.collapsed .toggle-button {
+    left: max(calc(20rem - 50px), 14vw);
   }
 }
 

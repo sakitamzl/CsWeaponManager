@@ -139,14 +139,13 @@
           <!-- 统计数据 -->
           <div class="stats-container">
             <div class="stats-section">
-              <h3>全部借入统计</h3>
               <div class="stats-grid-3x2">
                 <div class="stat-item">
-                  <span class="stat-label">总借入数量:</span>
-                  <span class="stat-value">{{ allDataStats.totalCount }}</span>
+                  <span class="stat-label">借入:</span>
+                  <span class="stat-value">{{ allDataStats.totalCount }} 件</span>
                 </div>
                 <div class="stat-item">
-                  <span class="stat-label">总借入支出:</span>
+                  <span class="stat-label">金额:</span>
                   <span class="stat-value">¥{{ allDataStats.totalAmount }}</span>
                 </div>
                 <div class="stat-item">
@@ -154,7 +153,7 @@
                   <span class="stat-value">¥{{ allDataStats.avgPrice }}</span>
                 </div>
                 <div class="stat-item">
-                  <span class="stat-label">总租赁天数:</span>
+                  <span class="stat-label">总天数:</span>
                   <span class="stat-value">{{ allDataStats.totalLeaseDays }} 天</span>
                 </div>
                 <div class="stat-item">
@@ -162,40 +161,8 @@
                   <span class="stat-value">{{ allDataStats.avgLeaseDays }} 天</span>
                 </div>
                 <div class="stat-item">
-                  <span class="stat-label">租赁中数量:</span>
-                  <span class="stat-value">{{ allDataStats.rentingCount }}</span>
-                </div>
-              </div>
-            </div>
-            
-            <div class="stats-divider"></div>
-            
-            <div class="stats-section">
-              <h3>当前页面统计</h3>
-              <div class="stats-grid-3x2">
-                <div class="stat-item">
-                  <span class="stat-label">当前数量:</span>
-                  <span class="stat-value">{{ currentPageStats.totalCount }}</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">当前收入:</span>
-                  <span class="stat-value">¥{{ currentPageStats.totalAmount }}</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">平均租金:</span>
-                  <span class="stat-value">¥{{ currentPageStats.avgPrice }}</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">当前租赁天数:</span>
-                  <span class="stat-value">{{ currentPageStats.totalLeaseDays }} 天</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">平均租期:</span>
-                  <span class="stat-value">{{ currentPageStats.avgLeaseDays }} 天</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">租赁中数量:</span>
-                  <span class="stat-value">{{ currentPageStats.rentingCount }}</span>
+                  <span class="stat-label">租赁中:</span>
+                  <span class="stat-value">{{ allDataStats.rentingCount }} 件</span>
                 </div>
               </div>
             </div>

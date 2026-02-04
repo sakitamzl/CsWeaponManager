@@ -118,8 +118,7 @@
 
 .stats-grid-3x2 {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(2, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: clamp(0.75rem, 2vw, 1rem);
   align-items: stretch;
 }

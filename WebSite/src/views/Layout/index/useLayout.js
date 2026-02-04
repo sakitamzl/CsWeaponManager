@@ -139,6 +139,24 @@ export function useLayout() {
     })
   }
 
+  // 判断菜单项是否激活
+  const isMenuItemActive = (menuPath) => {
+    const currentPath = route.path
+
+    // 精确匹配：当前路径等于菜单路径
+    if (currentPath === menuPath) {
+      return true
+    }
+
+    // 子路径匹配：当前路径以菜单路径开头，且下一个字符是 '/'
+    // 这样可以避免 /rental 匹配到 /rent 的问题
+    if (currentPath.startsWith(menuPath + '/')) {
+      return true
+    }
+
+    return false
+  }
+
   return {
     isCollapsed,
     isLoggedIn,
@@ -147,6 +165,7 @@ export function useLayout() {
     handleMenuClick,
     handleSidebarClick,
     handleContainerClick,
-    handleLogout
+    handleLogout,
+    isMenuItemActive
   }
 }
