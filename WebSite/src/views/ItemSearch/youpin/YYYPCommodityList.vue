@@ -41,7 +41,7 @@
         <div class="yyyp-filter-buttons">
           <button
             class="filter-btn"
-            :class="{ active: activeFilter === 'on_sale' }"
+            :class="{ active: yyypFilterType === 'on_sale' }"
             @click.stop="handleFilterChange('on_sale')"
           >
             在售
@@ -49,7 +49,7 @@
           <span class="filter-divider">|</span>
           <button
             class="filter-btn"
-            :class="{ active: activeFilter === 'on_lease' }"
+            :class="{ active: yyypFilterType === 'on_lease' }"
             @click.stop="handleFilterChange('on_lease')"
           >
             在租
@@ -57,7 +57,7 @@
           <span class="filter-divider">|</span>
           <button
             class="filter-btn"
-            :class="{ active: activeFilter === 'presale' }"
+            :class="{ active: yyypFilterType === 'presale' }"
             @click.stop="handleFilterChange('presale')"
           >
             预售
@@ -65,7 +65,7 @@
           <span class="filter-divider">|</span>
           <button
             class="filter-btn"
-            :class="{ active: activeFilter === 'wanted' }"
+            :class="{ active: yyypFilterType === 'wanted' }"
             @click.stop="handleFilterChange('wanted')"
           >
             求购
@@ -73,7 +73,7 @@
           <span class="filter-divider">|</span>
           <button
             class="filter-btn"
-            :class="{ active: activeFilter === 'sold' }"
+            :class="{ active: yyypFilterType === 'sold' }"
             @click.stop="handleFilterChange('sold')"
           >
             成交
@@ -81,7 +81,7 @@
           <span class="filter-divider">|</span>
           <button
             class="filter-btn"
-            :class="{ active: activeFilter === 'price_trend' }"
+            :class="{ active: yyypFilterType === 'price_trend' }"
             @click.stop="handleFilterChange('price_trend')"
           >
             价格走势
@@ -195,10 +195,25 @@
           </div>
           <!-- 商品详情信息 -->
           <div class="commodity-card-info">
-            <div class="info-item">
+            <!-- 价格/租金显示 -->
+            <div class="info-item" v-if="!item.isLeaseItem">
               <span class="info-label">价格:</span>
               <span class="info-value price-highlight">¥{{ item.price }}</span>
             </div>
+            <!-- 租赁信息显示 -->
+            <div class="info-item" v-if="item.isLeaseItem && item.leaseUnitPrice">
+              <span class="info-label">租金:</span>
+              <span class="info-value price-highlight">¥{{ item.leaseUnitPrice }}/天</span>
+            </div>
+            <div class="info-item" v-if="item.isLeaseItem && item.leaseDeposit">
+              <span class="info-label">押金:</span>
+              <span class="info-value">¥{{ item.leaseDeposit }}</span>
+            </div>
+            <div class="info-item" v-if="item.isLeaseItem && item.leaseDayDesc">
+              <span class="info-label">租期:</span>
+              <span class="info-value">{{ item.leaseDayDesc }}</span>
+            </div>
+            <!-- 模板信息 -->
             <div class="info-item" v-if="item.paintSeed">
               <span class="info-label">模板:</span>
               <span class="info-value">{{ item.paintSeed }}</span>
@@ -237,15 +252,15 @@
               <span>价格查询中...</span>
             </div>
           </div>
-          <!-- 购买按钮 -->
+          <!-- 购买/租用/供应按钮 -->
           <el-button
             v-if="!isMultiSelectMode"
-            type="success"
+            :type="getButtonType(item)"
             size="small"
             class="card-buy-button"
             @click.stop="handleBuyCommodity(item)"
           >
-            购买
+            {{ getButtonText(item) }}
           </el-button>
         </div>
       </div>
@@ -416,7 +431,8 @@ const props = defineProps({
   yyypCommodities: Array,
   yyypTotalCount: Number,
   yyypLoadingMore: Boolean,
-  yyypHasMore: Boolean
+  yyypHasMore: Boolean,
+  yyypFilterType: String  // 当前筛选类型
 })
 
 // 定义事件
@@ -433,8 +449,7 @@ const emit = defineEmits([
   'advanced-filter'
 ])
 
-// 当前激活的筛选项
-const activeFilter = ref('on_sale')
+// activeFilter 已移除，使用 props.yyypFilterType
 
 // 筛选对话框状态
 const filterDialogVisible = ref(false)
@@ -469,9 +484,31 @@ const handleImageError = (e) => {
   e.target.style.display = 'none'
 }
 
+// 获取按钮文字
+const getButtonText = (item) => {
+  if (item.isPurchaseOrder) {
+    return '供应'
+  } else if (item.isLeaseItem) {
+    return '租用'
+  } else {
+    return '购买'
+  }
+}
+
+// 获取按钮类型
+const getButtonType = (item) => {
+  if (item.isPurchaseOrder) {
+    return 'primary'  // 蓝色 - 供应
+  } else if (item.isLeaseItem) {
+    return 'warning'  // 橙色 - 租用
+  } else {
+    return 'success'  // 绿色 - 购买
+  }
+}
+
 // 筛选相关方法
 const handleFilterChange = (filterType) => {
-  activeFilter.value = filterType
+  // 直接触发事件，由父组件管理状态
   emit('filter-change', filterType)
 }
 

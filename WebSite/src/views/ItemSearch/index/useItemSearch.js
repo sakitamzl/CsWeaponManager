@@ -56,7 +56,8 @@ export function useItemSearch() {
   const yyypPageSize = ref(50)  // 悠悠有品每页显示50条
   const yyypLoadingMore = ref(false)  // 是否正在加载更多
   const yyypHasMore = ref(true)  // 是否还有更多数据
-  
+  const yyypFilterType = ref('on_sale')  // 悠悠有品当前筛选类型
+
   // 多选模式相关
   const isMultiSelectMode = ref(false)  // 是否开启多选模式
   const selectedCommodities = ref([])   // 选中的商品列表
@@ -524,7 +525,8 @@ export function useItemSearch() {
         steamId: selectedSteamId.value || '',
         yyypId: row.yyyp_id,
         pageIndex: 1,
-        pageSize: 50
+        pageSize: 50,
+        filterType: yyypFilterType.value  // 添加筛选类型参数
       }
       
       const apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getCommoditiesByTemplateId`
@@ -609,7 +611,8 @@ export function useItemSearch() {
         steamId: selectedSteamId.value || '',
         yyypId: yyypCurrentWeapon.value.yyyp_id,
         pageIndex: nextPage,
-        pageSize: 50
+        pageSize: 50,
+        filterType: yyypFilterType.value  // 添加筛选类型参数
       }
       
       const apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getCommoditiesByTemplateId`
@@ -1853,16 +1856,68 @@ export function useItemSearch() {
   }
 
   // 悠悠有品筛选处理
-  const handleYYYPFilterChange = (filterType) => {
+  const handleYYYPFilterChange = async (filterType) => {
     console.log('悠悠有品筛选类型:', filterType)
-    ElMessage.info(`筛选功能开发中: ${filterType}`)
-    // TODO: 根据 filterType 调用不同的API
-    // on_sale: 在售
-    // on_lease: 在租
-    // presale: 预售
-    // wanted: 求购
-    // sold: 成交
-    // price_trend: 价格走势
+
+    // 更新筛选类型
+    yyypFilterType.value = filterType
+
+    // 如果当前没有选中的武器，不执行操作
+    if (!yyypCurrentWeapon.value) {
+      ElMessage.warning('请先选择武器')
+      return
+    }
+
+    // 重新加载商品列表
+    try {
+      isSearching.value = true
+
+      const requestData = {
+        steamId: selectedSteamId.value || '',
+        yyypId: yyypCurrentWeapon.value.yyyp_id,
+        pageIndex: 1,
+        pageSize: 50,
+        filterType: filterType
+      }
+
+      const apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getCommoditiesByTemplateId`
+      const response = await axios.post(apiUrl, requestData)
+
+      if (response.data.success) {
+        const parsedData = response.data.data
+        const commodityList = parsedData.commodityList || []
+        const totalCount = parsedData.totalCount || 0
+
+        // 更新商品列表
+        yyypCommodities.value = commodityList
+        yyypTotalCount.value = totalCount
+        yyypCurrentPage.value = 1
+        yyypHasMore.value = commodityList.length < totalCount
+
+        const filterTypeText = {
+          'on_sale': '在售',
+          'on_lease': '在租',
+          'presale': '预售',
+          'wanted': '求购',
+          'sold': '成交',
+          'price_trend': '价格走势'
+        }[filterType] || filterType
+
+        ElMessage.success(`成功获取${filterTypeText}数据: ${commodityList.length} 条，总数: ${totalCount}`)
+
+        // 预加载图片和价格
+        preloadImages(commodityList)
+        fetchStickerPrices(commodityList)
+        fetchAllNameTags(commodityList)
+      } else {
+        ElMessage.error(response.data.message || '获取数据失败')
+      }
+    } catch (error) {
+      console.error('切换筛选类型失败:', error)
+      ElMessage.error(error.response?.data?.message || '切换筛选类型失败')
+    } finally {
+      isSearching.value = false
+    }
   }
 
   const handleYYYPAdvancedFilter = (filterData) => {
@@ -1980,6 +2035,7 @@ export function useItemSearch() {
     yyypPageSize,
     yyypLoadingMore,
     yyypHasMore,
+    yyypFilterType,
     paginatedYYYPCommodities,
     toggleYYYPList,
     handleBuyCommodity,

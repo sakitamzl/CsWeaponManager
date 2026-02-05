@@ -389,6 +389,7 @@
       :yyypTotalCount="yyypTotalCount"
       :yyypLoadingMore="yyypLoadingMore"
       :yyypHasMore="yyypHasMore"
+      :yyypFilterType="yyypFilterType"
       @toggle-yyyp-list="toggleYYYPList"
       @refresh-yyyp="handleRefreshYYYP"
       @toggle-multi-select="toggleMultiSelectMode"
