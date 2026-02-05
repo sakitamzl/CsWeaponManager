@@ -37,6 +37,10 @@ export function useBuy() {
     yyyp_price: null,
     yyyp_on_sale_count: null
   })
+  const buffPriceInfo = ref({
+    buff_price: null,
+    buff_on_sale_count: null
+  })
   const stickersPriceInfo = ref([])
   const pendantPriceInfo = ref(null)
 
@@ -1142,32 +1146,53 @@ export function useBuy() {
       console.log('解析的印花数据:', parsed)
 
       const pricePromises = parsed.map(async (sticker) => {
-        const hashName = sticker.hashName || sticker.steam_hash_name || sticker.steamHashName
+        const rawHashName = sticker.hashName || sticker.steam_hash_name || sticker.steamHashName
         const name = sticker.name || '未知贴纸'
-        console.log('印花查询 - name:', name, 'hashName:', hashName)
+
+        // 印花需要添加 "Sticker | " 前缀
+        const hashName = rawHashName && !rawHashName.startsWith('Sticker | ')
+          ? `Sticker | ${rawHashName}`
+          : rawHashName
+
+        console.log('印花查询 - name:', name, 'rawHashName:', rawHashName, 'hashName:', hashName)
         if (!hashName) return null
 
         try {
           const url = apiUrls.buyYyypPriceInfo(hashName)
+          console.log('请求URL:', url)
+
           const response = await fetch(url, {
             method: 'GET',
-            headers: { 'Accept': 'application/json' }
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            }
           })
 
-          if (!response.ok) return null
+          console.log('响应状态:', response.status, response.statusText)
+
+          if (!response.ok) {
+            console.warn(`请求失败 (${hashName}): ${response.status} ${response.statusText}`)
+            return null
+          }
 
           const result = await response.json()
+          console.log('响应数据:', result)
+
           if (result.success && result.data) {
             return {
               name: name,
               hashName: hashName,
               yyyp_price: result.data.yyyp_price,
               yyyp_on_sale_count: result.data.yyyp_on_sale_count,
+              buff_price: result.data.buff_price,
+              buff_on_sale_count: result.data.buff_on_sale_count,
               market_listing_item_name: result.data.market_listing_item_name
             }
           }
         } catch (error) {
-          console.error(`查询印花价格失败 (${hashName}):`, error)
+          console.error(`查询印花价格失败 (${name} - ${hashName}):`, error.message || error)
+          // 不抛出错误，让其他请求继续执行
         }
         return null
       })
@@ -1177,6 +1202,7 @@ export function useBuy() {
       console.log('印花价格信息:', stickersPriceInfo.value)
     } catch (error) {
       console.error('解析印花价格信息失败:', error)
+      stickersPriceInfo.value = []
     }
   }
 
@@ -1189,37 +1215,120 @@ export function useBuy() {
       const pendantObj = Array.isArray(parsed) ? parsed[0] : parsed
       if (!pendantObj || typeof pendantObj !== 'object') return
 
-      const hashName = pendantObj.hashName || pendantObj.steam_hash_name || pendantObj.steamHashName
+      const rawHashName = pendantObj.hashName || pendantObj.steam_hash_name || pendantObj.steamHashName
       const name = pendantObj.name || '挂件'
+
+      // 挂件需要添加 "Charm | " 前缀
+      const hashName = rawHashName && !rawHashName.startsWith('Charm | ')
+        ? `Charm | ${rawHashName}`
+        : rawHashName
+
       if (!hashName) return
 
       const url = apiUrls.buyYyypPriceInfo(hashName)
+      console.log('挂件请求URL:', url, 'rawHashName:', rawHashName, 'hashName:', hashName)
+
       const response = await fetch(url, {
         method: 'GET',
-        headers: { 'Accept': 'application/json' }
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
       })
 
-      if (!response.ok) return
+      console.log('挂件响应状态:', response.status, response.statusText)
+
+      if (!response.ok) {
+        console.warn(`挂件请求失败 (${hashName}): ${response.status} ${response.statusText}`)
+        return
+      }
 
       const result = await response.json()
+      console.log('挂件响应数据:', result)
+
       if (result.success && result.data) {
         pendantPriceInfo.value = {
           name: name,
           hashName: hashName,
           yyyp_price: result.data.yyyp_price,
           yyyp_on_sale_count: result.data.yyyp_on_sale_count,
+          buff_price: result.data.buff_price,
+          buff_on_sale_count: result.data.buff_on_sale_count,
           market_listing_item_name: result.data.market_listing_item_name
         }
         console.log('挂件价格信息:', pendantPriceInfo.value)
       }
     } catch (error) {
-      console.error('查询挂件价格信息失败:', error)
+      console.error('查询挂件价格信息失败:', error.message || error)
+      pendantPriceInfo.value = null
+    }
+  }
+
+  // 加载武器主体价格信息（包括悠悠有品和BUFF）
+  const loadWeaponPriceInfo = async (steamHashName) => {
+    // 重置价格信息
+    Object.assign(yyypPriceInfo.value, {
+      yyyp_price: null,
+      yyyp_on_sale_count: null,
+      market_listing_item_name: null
+    })
+    Object.assign(buffPriceInfo.value, {
+      buff_price: null,
+      buff_on_sale_count: null
+    })
+
+    if (!steamHashName) {
+      console.log('未提供武器 steam_hash_name，跳过查询')
+      return
+    }
+
+    try {
+      const url = apiUrls.buyYyypPriceInfo(steamHashName)
+      console.log('武器主体请求URL:', url, 'steamHashName:', steamHashName)
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      })
+
+      console.log('武器主体响应状态:', response.status, response.statusText)
+
+      if (!response.ok) {
+        console.warn(`武器主体请求失败 (${steamHashName}): ${response.status} ${response.statusText}`)
+        return
+      }
+
+      const result = await response.json()
+      console.log('武器主体响应数据:', result)
+
+      if (result.success && result.data) {
+        // 更新悠悠有品价格
+        Object.assign(yyypPriceInfo.value, {
+          yyyp_price: result.data.yyyp_price,
+          yyyp_on_sale_count: result.data.yyyp_on_sale_count,
+          market_listing_item_name: result.data.market_listing_item_name
+        })
+        // 更新BUFF价格
+        Object.assign(buffPriceInfo.value, {
+          buff_price: result.data.buff_price,
+          buff_on_sale_count: result.data.buff_on_sale_count
+        })
+        console.log('武器主体价格信息 - 悠悠:', yyypPriceInfo.value)
+        console.log('武器主体价格信息 - BUFF:', buffPriceInfo.value)
+      }
+    } catch (error) {
+      console.error('查询武器主体价格信息失败:', error.message || error)
     }
   }
 
   const openPreview = (item) => {
     previewItem.value = item
     previewVisible.value = true
+    // 查询武器主体价格信息
+    loadWeaponPriceInfo(item.steam_hash_name)
     // 查询印花价格信息
     loadStickersPriceInfo(item.sticker)
     // 查询挂件价格信息
@@ -1302,6 +1411,7 @@ export function useBuy() {
     previewItem,
     openPreview,
     yyypPriceInfo,
+    buffPriceInfo,
     stickersPriceInfo,
     pendantPriceInfo
   }

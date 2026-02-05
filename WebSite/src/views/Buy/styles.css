@@ -37,6 +37,72 @@
   font-size: 0.75rem;
 }
 
+/* 防止布局偏移 - Layout Shift Prevention */
+/* 为关键元素预留空间，避免内容加载时的布局跳动 */
+
+/* 表格头部固定高度 */
+:deep(.el-table th.el-table__cell) {
+  height: 40px; /* 固定表头高度 */
+  min-height: 40px;
+  box-sizing: border-box;
+}
+
+/* 表格列固定宽度，防止内容加载后列宽变化 */
+:deep(.el-table_1_column_3.is-left.is-leaf.el-table__cell) {
+  width: 100px !important;
+  min-width: 100px;
+}
+
+:deep(.el-table_1_column_5.is-leaf.el-table__cell) {
+  width: 120px !important;
+  min-width: 120px;
+}
+
+:deep(.el-table_1_column_6.is-leaf.el-table__cell) {
+  width: 120px !important;
+  min-width: 120px;
+}
+
+:deep(.el-table_1_column_7.is-leaf.is-sortable.el-table__cell) {
+  width: 130px !important;
+  min-width: 130px;
+}
+
+:deep(.el-table_1_column_8.is-leaf.el-table__cell) {
+  width: 100px !important;
+  min-width: 100px;
+}
+
+/* 表格单元格固定高度 */
+:deep(td.el-table_1_column_7.el-table__cell) {
+  height: 90px;
+  min-height: 90px;
+  box-sizing: border-box;
+}
+
+/* 分页器固定高度和最小宽度 */
+.pagination {
+  min-height: 32px; /* 防止分页器加载时跳动 */
+  contain: layout;
+}
+
+:deep(.el-pagination) {
+  min-height: 32px;
+  contain: layout;
+}
+
+/* 日期选择器固定尺寸 */
+:deep(.el-range-separator) {
+  width: 40px;
+  min-width: 40px;
+  flex-shrink: 0;
+}
+
+:deep(.el-range-input) {
+  min-width: 100px;
+  flex: 1;
+}
+
 /* 搜索和筛选区域 */
 .search-input {
   width: 200px;
@@ -463,6 +529,8 @@
   padding: clamp(0.5rem, 1.5vw, 0.75rem);
   background-color: #2a2a2a;
   border-radius: 0.375rem;
+  min-height: 60px; /* 防止内容加载时高度变化 */
+  contain: layout; /* 启用 CSS containment */
 }
 
 .stat-label {
@@ -814,6 +882,7 @@
   color: #fff;
   font-size: 0.9rem;
   flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -899,6 +968,7 @@
   color: #fff;
   font-size: 0.9rem;
   flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

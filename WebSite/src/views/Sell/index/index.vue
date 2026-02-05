@@ -333,7 +333,7 @@
     <el-dialog
       v-model="previewVisible"
       :title="previewItem ? getItemTitle(previewItem) : ''"
-      width="800px"
+      width="900px"
       :close-on-click-modal="true"
       :close-on-press-escape="true"
       class="preview-dialog"
@@ -384,6 +384,28 @@
                   <div class="preview-price-item" v-if="previewItem.price">
                     <span class="preview-price-label">出售价格:</span>
                     <span class="preview-price-value buy-price">¥{{ parseFloat(previewItem.price).toFixed(2) }}</span>
+                  </div>
+                </div>
+                <!-- 武器主体悠悠有品价格信息 -->
+                <div class="preview-price-row" v-if="yyypPriceInfo.yyyp_price || yyypPriceInfo.yyyp_on_sale_count">
+                  <div class="preview-price-item" style="color: #409eff; font-size: 14px; display: flex; gap: 12px;">
+                    <span v-if="yyypPriceInfo.yyyp_price">
+                      悠悠价格: ¥{{ yyypPriceInfo.yyyp_price }}
+                    </span>
+                    <span v-if="yyypPriceInfo.yyyp_on_sale_count">
+                      在售: {{ yyypPriceInfo.yyyp_on_sale_count }}
+                    </span>
+                  </div>
+                </div>
+                <!-- 武器主体BUFF价格信息 -->
+                <div class="preview-price-row" v-if="buffPriceInfo.buff_price || buffPriceInfo.buff_on_sale_count">
+                  <div class="preview-price-item" style="color: #67c23a; font-size: 14px; display: flex; gap: 12px;">
+                    <span v-if="buffPriceInfo.buff_price">
+                      BUFF价格: ¥{{ buffPriceInfo.buff_price }}
+                    </span>
+                    <span v-if="buffPriceInfo.buff_on_sale_count">
+                      在售: {{ buffPriceInfo.buff_on_sale_count }}
+                    </span>
                   </div>
                 </div>
                 <div class="preview-info-row" v-if="previewItem.order_id">
@@ -462,17 +484,27 @@
                       <div v-else class="preview-sticker-list-placeholder">?</div>
                     </div>
                   </el-tooltip>
-                  <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+                  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;">
                     <div class="preview-sticker-list-name">
                       {{ stickersPriceInfo.find(s => s.name === sticker.name)?.market_listing_item_name || sticker.name || '未知贴纸' }}
                     </div>
-                    <!-- 印花价格信息（显示在名称下方，横向排列，蓝色） -->
-                    <div v-if="stickersPriceInfo.find(s => s.name === sticker.name)" class="preview-sticker-price-info" style="color: #409eff; font-size: 12px;">
-                      <span v-if="stickersPriceInfo.find(s => s.name === sticker.name)?.yyyp_price" style="margin-right: 8px;">
-                        悠悠: ¥{{ stickersPriceInfo.find(s => s.name === sticker.name).yyyp_price }}
+                    <!-- 印花价格信息（悠悠蓝色 + BUFF绿色，一行显示） -->
+                    <div v-if="stickersPriceInfo.find(s => s.name === sticker.name)" class="preview-sticker-price-info" style="font-size: 12px; display: flex; gap: 12px; flex-wrap: wrap;">
+                      <span v-if="stickersPriceInfo.find(s => s.name === sticker.name)?.yyyp_price || stickersPriceInfo.find(s => s.name === sticker.name)?.yyyp_on_sale_count" style="color: #409eff;">
+                        <span v-if="stickersPriceInfo.find(s => s.name === sticker.name)?.yyyp_price">
+                          悠悠: ¥{{ stickersPriceInfo.find(s => s.name === sticker.name).yyyp_price }}
+                        </span>
+                        <span v-if="stickersPriceInfo.find(s => s.name === sticker.name)?.yyyp_on_sale_count" style="margin-left: 4px;">
+                          ({{ stickersPriceInfo.find(s => s.name === sticker.name).yyyp_on_sale_count }})
+                        </span>
                       </span>
-                      <span v-if="stickersPriceInfo.find(s => s.name === sticker.name)?.yyyp_on_sale_count">
-                        在售: {{ stickersPriceInfo.find(s => s.name === sticker.name).yyyp_on_sale_count }}
+                      <span v-if="stickersPriceInfo.find(s => s.name === sticker.name)?.buff_price || stickersPriceInfo.find(s => s.name === sticker.name)?.buff_on_sale_count" style="color: #67c23a;">
+                        <span v-if="stickersPriceInfo.find(s => s.name === sticker.name)?.buff_price">
+                          BUFF: ¥{{ stickersPriceInfo.find(s => s.name === sticker.name).buff_price }}
+                        </span>
+                        <span v-if="stickersPriceInfo.find(s => s.name === sticker.name)?.buff_on_sale_count" style="margin-left: 4px;">
+                          ({{ stickersPriceInfo.find(s => s.name === sticker.name).buff_on_sale_count }})
+                        </span>
                       </span>
                     </div>
                   </div>
@@ -496,17 +528,27 @@
                       <div v-else class="preview-pendant-list-placeholder">🎗️</div>
                     </div>
                   </el-tooltip>
-                  <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+                  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;">
                     <div class="preview-pendant-list-name">
                       {{ pendantPriceInfo?.market_listing_item_name || parsePendant(previewItem.pendant)?.name || '挂件' }}
                     </div>
-                    <!-- 挂件价格信息（显示在名称下方，横向排列，蓝色） -->
-                    <div v-if="pendantPriceInfo" class="preview-pendant-price-info" style="color: #409eff; font-size: 12px;">
-                      <span v-if="pendantPriceInfo.yyyp_price" style="margin-right: 8px;">
-                        悠悠: ¥{{ pendantPriceInfo.yyyp_price }}
+                    <!-- 挂件价格信息（悠悠蓝色 + BUFF绿色，一行显示） -->
+                    <div v-if="pendantPriceInfo" class="preview-pendant-price-info" style="font-size: 12px; display: flex; gap: 12px; flex-wrap: wrap;">
+                      <span v-if="pendantPriceInfo.yyyp_price || pendantPriceInfo.yyyp_on_sale_count" style="color: #409eff;">
+                        <span v-if="pendantPriceInfo.yyyp_price">
+                          悠悠: ¥{{ pendantPriceInfo.yyyp_price }}
+                        </span>
+                        <span v-if="pendantPriceInfo.yyyp_on_sale_count" style="margin-left: 4px;">
+                          ({{ pendantPriceInfo.yyyp_on_sale_count }})
+                        </span>
                       </span>
-                      <span v-if="pendantPriceInfo.yyyp_on_sale_count">
-                        在售: {{ pendantPriceInfo.yyyp_on_sale_count }}
+                      <span v-if="pendantPriceInfo.buff_price || pendantPriceInfo.buff_on_sale_count" style="color: #67c23a;">
+                        <span v-if="pendantPriceInfo.buff_price">
+                          BUFF: ¥{{ pendantPriceInfo.buff_price }}
+                        </span>
+                        <span v-if="pendantPriceInfo.buff_on_sale_count" style="margin-left: 4px;">
+                          ({{ pendantPriceInfo.buff_on_sale_count }})
+                        </span>
                       </span>
                     </div>
                   </div>
