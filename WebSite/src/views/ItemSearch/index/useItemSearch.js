@@ -1,14 +1,17 @@
 import { ref, onMounted, computed, provide } from 'vue'
+import { useRoute } from 'vue-router'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { CaretRight, CaretBottom, Refresh, Check, Loading } from '@element-plus/icons-vue'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
 
 export function useItemSearch() {
+  const route = useRoute()
+
   const steamIdList = ref([])
   const selectedSteamId = ref('')
   const selectedExterior = ref('') // 选择的外观筛选
-  const selectedStatTrak = ref('normal') // 选择的StatTrak筛选，默认非StatTrak™
+  const selectedStatTrak = ref('') // 选择的StatTrak筛选，默认全部
   const showSearchResults = ref(false) // 是否展开搜索结果
   const displayMode = ref('card') // 显示模式：'list' 或 'card'，默认卡片模式
   const image404Cache = ref(new Set()) // 图片404缓存
@@ -186,7 +189,7 @@ export function useItemSearch() {
   }
 
   // 搜索武器详情
-  const handleSearchWeapon = async () => {
+  const handleSearchWeapon = async (autoSearchAll = false) => {
     if (!searchKeyword.value.trim()) {
       ElMessage.warning('请输入搜索关键词')
       return
@@ -195,28 +198,39 @@ export function useItemSearch() {
     isSearching.value = true
     searchSource.value = 'weapon'
     currentPage.value = 1
-    
+
     try {
       console.log('搜索武器:', searchKeyword.value)
-      
+
       const response = await axios.get(apiUrls.searchWeaponDetail(searchKeyword.value.trim()))
-      
+
       if (response.data.success) {
         searchResults.value = response.data.data || []
-        
+
         if (searchResults.value.length === 0) {
           ElMessage.info('未找到匹配的武器')
           showSearchResults.value = false
         } else {
           ElMessage.success(`找到 ${searchResults.value.length} 件武器`)
           showSearchResults.value = true  // 搜索成功后自动展开
+
+          // 如果启用自动搜索全部，且只有一个结果，自动触发全部搜索
+          if (autoSearchAll && searchResults.value.length === 1) {
+            const firstResult = searchResults.value[0]
+            console.log('自动触发全部搜索，武器:', firstResult.market_listing_item_name)
+
+            // 延迟500ms执行，确保搜索结果已渲染
+            setTimeout(() => {
+              selectPlatform(firstResult, 'all')
+            }, 500)
+          }
         }
       } else {
         ElMessage.error('搜索失败: ' + (response.data.error || '未知错误'))
         searchResults.value = []
         showSearchResults.value = false
       }
-      
+
     } catch (error) {
       console.error('搜索武器失败:', error)
       ElMessage.error('搜索失败: ' + (error.response?.data?.error || error.message))
@@ -1944,6 +1958,17 @@ export function useItemSearch() {
   // 页面加载时获取Steam ID列表
   onMounted(async () => {
     await loadSteamIdList()
+
+    // 检查 URL 参数中是否有 keyword，如果有则自动搜索
+    const keyword = route.query.keyword
+    if (keyword) {
+      searchKeyword.value = decodeURIComponent(keyword)
+      // 延迟执行搜索，确保页面已完全加载
+      setTimeout(() => {
+        // 从URL参数跳转时，启用自动"全部搜索"功能
+        handleSearchWeapon(true)
+      }, 300)
+    }
   })
 
   return {

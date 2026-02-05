@@ -1234,6 +1234,70 @@ export function useLent() {
     previewVisible.value = true
   }
 
+  // 跳转到商品搜索页面
+  const handleJumpToItemSearch = () => {
+    if (!previewItem.value || !previewItem.value.steam_hash_name) {
+      ElMessage.warning('未找到商品信息')
+      return
+    }
+
+    // 在新标签页打开商品搜索页面
+    const searchUrl = `/item-search?keyword=${encodeURIComponent(previewItem.value.steam_hash_name)}`
+    window.open(searchUrl, '_blank')
+  }
+
+  // 通过印花跳转到商品搜索页面
+  const handleJumpToItemSearchBySticker = (sticker) => {
+    if (!sticker) {
+      ElMessage.warning('未找到印花信息')
+      return
+    }
+
+    // 从印花对象中获取各种可能的字段名
+    const hashName = sticker.hashName || sticker.HashName || sticker.steam_hash_name ||
+                     sticker.steamHashName || sticker.name
+
+    if (!hashName) {
+      console.warn('印花对象:', sticker)
+      ElMessage.warning('该印花没有有效的名称')
+      return
+    }
+
+    // 在新标签页打开商品搜索页面
+    const searchUrl = `/item-search?keyword=${encodeURIComponent(hashName)}`
+    window.open(searchUrl, '_blank')
+  }
+
+  // 通过挂件跳转到商品搜索页面
+  const handleJumpToItemSearchByPendant = (pendant) => {
+    if (!pendant) {
+      ElMessage.warning('未找到挂件信息')
+      return
+    }
+
+    // 解析挂件数据（可能是字符串、对象或数组）
+    let pendantObj = typeof pendant === 'string' ? JSON.parse(pendant) : pendant
+
+    // 如果是数组，取第一个元素
+    if (Array.isArray(pendantObj) && pendantObj.length > 0) {
+      pendantObj = pendantObj[0]
+    }
+
+    // 从挂件对象中获取各种可能的字段名
+    const hashName = pendantObj.steamHashName || pendantObj.hashName || pendantObj.HashName ||
+                     pendantObj.steam_hash_name || pendantObj.name
+
+    if (!hashName) {
+      console.warn('挂件对象:', pendantObj)
+      ElMessage.warning('该挂件没有有效的名称')
+      return
+    }
+
+    // 在新标签页打开商品搜索页面
+    const searchUrl = `/item-search?keyword=${encodeURIComponent(hashName)}`
+    window.open(searchUrl, '_blank')
+  }
+
   // 出租自动定价：以当前列表中的 steam_hash_name 为目标
   const handleRentAutoPricing = async () => {
     if (!lentData.value.length) {
@@ -1410,6 +1474,9 @@ export function useLent() {
     parseStickers,
     parsePendant,
     openPreview,
+    handleJumpToItemSearch,
+    handleJumpToItemSearchBySticker,
+    handleJumpToItemSearchByPendant,
     handleRentAutoPricing
   }
 }

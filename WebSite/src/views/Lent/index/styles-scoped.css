@@ -1063,4 +1063,18 @@
   }
 }
 
+/* 可点击的印花/挂件样式 */
+.preview-sticker-list-item.clickable-item,
+.preview-pendant-list-item.clickable-item {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.preview-sticker-list-item.clickable-item:hover,
+.preview-pendant-list-item.clickable-item:hover {
+  background: rgba(64, 158, 255, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
+}
+
 

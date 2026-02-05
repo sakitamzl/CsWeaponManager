@@ -1439,3 +1439,22 @@
 .table-container::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
+/* 可点击印花和挂件样式 */
+.preview-sticker-list-item.clickable-item,
+.preview-pendant-list-item.clickable-item {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.preview-sticker-list-item.clickable-item:hover,
+.preview-pendant-list-item.clickable-item:hover {
+  background: rgba(64, 158, 255, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
+}
+
+.preview-sticker-list-item.clickable-item:active,
+.preview-pendant-list-item.clickable-item:active {
+  transform: translateY(0);
+}

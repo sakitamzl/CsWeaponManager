@@ -1190,4 +1190,23 @@
   justify-content: center;
 }
 
+/* 可点击的印花/挂件覆盖层样式 */
+.sticker-item-overlay-expand.clickable-overlay,
+.pendant-item-overlay-expand.clickable-overlay,
+.sticker-item-overlay.clickable-overlay,
+.pendant-item-overlay.clickable-overlay {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.sticker-item-overlay-expand.clickable-overlay:hover,
+.pendant-item-overlay-expand.clickable-overlay:hover,
+.sticker-item-overlay.clickable-overlay:hover,
+.pendant-item-overlay.clickable-overlay:hover {
+  transform: scale(1.1);
+  filter: brightness(1.3);
+  z-index: 10;
+}
+
 

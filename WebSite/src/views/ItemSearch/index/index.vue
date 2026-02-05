@@ -311,6 +311,9 @@
                   <el-tag v-if="item.market_listing_item_name && item.market_listing_item_name.includes('纪念品')" size="small" class="badge-item souvenir-badge" :style="{ color: '#FFD700 !important', backgroundColor: 'rgba(0, 0, 0, 0.7)', borderColor: '#FFD700' }">
                     纪念品
                   </el-tag>
+                  <el-tag v-if="item.market_listing_item_name && (item.market_listing_item_name.includes('StatTrak™') || item.market_listing_item_name.includes('（StatTrak™）'))" size="small" class="badge-item stattrak-badge" :style="{ color: '#CF6A32 !important', backgroundColor: 'rgba(0, 0, 0, 0.7)', borderColor: '#CF6A32' }">
+                    ST
+                  </el-tag>
                 </div>
                 
                 <img

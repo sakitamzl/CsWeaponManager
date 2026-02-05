@@ -206,22 +206,22 @@ def getAllPendants():
 @webSelectWeaponV1.route('/searchWeapon', methods=['GET'])
 def searchWeapon():
     """
-    根据market_listing_item_name模糊搜索武器（用于自动完成下拉框）
+    根据market_listing_item_name或steam_hash_name模糊搜索武器（用于自动完成下拉框）
     参数: keyword - 搜索关键词
     返回: 匹配的武器名称列表（仅market_listing_item_name字段，限制20条）
     """
     try:
         keyword = request.args.get('keyword', '')
-        
+
         if not keyword or len(keyword.strip()) == 0:
             return jsonify({
                 "success": True,
                 "data": []
             }), 200
-        
-        # 使用LIKE进行模糊查询
-        where_clause = "[market_listing_item_name] LIKE ?"
-        params = (f"%{keyword}%",)
+
+        # 使用LIKE进行模糊查询，同时搜索 market_listing_item_name 和 steam_hash_name
+        where_clause = "([market_listing_item_name] LIKE ? OR [steam_hash_name] LIKE ?)"
+        params = (f"%{keyword}%", f"%{keyword}%")
         
         # 查询数据库，限制返回20条用于下拉建议
         records = WeaponClassIDModel.find_all(
@@ -339,10 +339,11 @@ def searchWeaponDetail():
         # 构建查询条件
         where_clauses = []
         params = []
-        
-        # 如果提供了关键词
+
+        # 如果提供了关键词，同时搜索 market_listing_item_name 和 steam_hash_name
         if keyword and len(keyword.strip()) > 0:
-            where_clauses.append("[market_listing_item_name] LIKE ?")
+            where_clauses.append("([market_listing_item_name] LIKE ? OR [steam_hash_name] LIKE ?)")
+            params.append(f"%{keyword.strip()}%")
             params.append(f"%{keyword.strip()}%")
         
         # 如果指定了武器类型

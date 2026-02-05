@@ -2,20 +2,15 @@
   <div>
     <!-- 统计数据卡片 -->
     <div class="stats-container">
-      <div class="grid grid-5">
+      <div class="grid grid-4">
         <div class="card">
           <h3>总库存数量</h3>
-          <p class="stat-number">{{ totalInventoryCount }}</p>
-          <p class="stat-subtitle">库存: {{ inventoryStats?.totalCount || 0 }} | 组件: {{ componentStats?.totalCount || 0 }}</p>
-        </div>
-        <div class="card">
-          <h3>总出售金额</h3>
-          <p class="stat-number">¥{{ sellStats?.totalAmount || '0.00' }}</p>
+          <p class="stat-number">{{ inventoryStats?.totalCount || 0 }} | {{ componentStats?.totalCount || 0 }}</p>
         </div>
         <div class="card">
           <h3>悠悠有品最低价</h3>
           <div class="stat-price-container">
-            <p class="stat-number">¥{{ inventoryStats?.yyyp_price || '0.00' }}</p>
+            <p class="stat-number">{{ inventoryStats?.yyyp_price || '0.00' }} | {{ componentStats?.yyyp_price || '0.00' }}</p>
             <p class="stat-diff" :style="{ color: (inventoryStats?.yyyp_diff || 0) >= 0 ? '#f56c6c' : '#4CAF50' }">
               {{ (inventoryStats?.yyyp_diff || 0) >= 0 ? '+' : '' }}¥{{ inventoryStats?.yyyp_diff || '0.00' }}
             </p>
@@ -24,7 +19,7 @@
         <div class="card">
           <h3>BUFF最低价</h3>
           <div class="stat-price-container">
-            <p class="stat-number">¥{{ inventoryStats?.buff_price || '0.00' }}</p>
+            <p class="stat-number">{{ inventoryStats?.buff_price || '0.00' }} | {{ componentStats?.buff_price || '0.00' }}</p>
             <p class="stat-diff" :style="{ color: (inventoryStats?.buff_diff || 0) >= 0 ? '#f56c6c' : '#4CAF50' }">
               {{ (inventoryStats?.buff_diff || 0) >= 0 ? '+' : '' }}¥{{ inventoryStats?.buff_diff || '0.00' }}
             </p>
@@ -33,7 +28,7 @@
         <div class="card">
           <h3>Steam参考价</h3>
           <div class="stat-price-container">
-            <p class="stat-number">¥{{ inventoryStats?.steam_price || '0.00' }}</p>
+            <p class="stat-number">{{ inventoryStats?.steam_price || '0.00' }} | {{ componentStats?.steam_price || '0.00' }}</p>
             <p class="stat-diff" :style="{ color: (inventoryStats?.steam_diff || 0) >= 0 ? '#f56c6c' : '#4CAF50' }">
               {{ (inventoryStats?.steam_diff || 0) >= 0 ? '+' : '' }}¥{{ inventoryStats?.steam_diff || '0.00' }}
             </p>

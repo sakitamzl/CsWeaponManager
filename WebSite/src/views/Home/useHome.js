@@ -24,12 +24,39 @@ export function useHome() {
     steam_diff: '0.00'
   })
   const componentStats = ref({
-    totalCount: 0
+    totalCount: 0,
+    yyyp_price: '0.00',
+    buff_price: '0.00',
+    steam_price: '0.00'
   })
   
   // 计算总库存数量（库存 + 组件）
   const totalInventoryCount = computed(() => {
     return (inventoryStats.value?.totalCount || 0) + (componentStats.value?.totalCount || 0)
+  })
+
+  // 计算总悠悠有品价格（库存 + 组件）
+  const totalYyypPrice = computed(() => {
+    const inventoryPrice = parseFloat(inventoryStats.value?.yyyp_price || 0)
+    const componentPrice = parseFloat(componentStats.value?.yyyp_price || 0)
+    return (inventoryPrice + componentPrice).toFixed(2)
+  })
+
+  // 计算总悠悠有品价差（库存）
+  const totalYyypDiff = computed(() => {
+    return inventoryStats.value?.yyyp_diff || '0.00'
+  })
+
+  // 计算总BUFF价格（库存 + 组件）
+  const totalBuffPrice = computed(() => {
+    const inventoryPrice = parseFloat(inventoryStats.value?.buff_price || 0)
+    const componentPrice = parseFloat(componentStats.value?.buff_price || 0)
+    return (inventoryPrice + componentPrice).toFixed(2)
+  })
+
+  // 计算总BUFF价差（库存）
+  const totalBuffDiff = computed(() => {
+    return inventoryStats.value?.buff_diff || '0.00'
   })
   const steamIdList = ref([])
   const selectedSteamId = ref('')
@@ -277,7 +304,7 @@ export function useHome() {
   const loadComponentsStats = async (steamId = null) => {
     try {
       let componentsData = []
-      
+
       if (!steamId || steamId === 'all') {
         // 使用新的API获取所有数据
         const response = await axios.get(apiUrls.homeComponentsAll())
@@ -300,17 +327,17 @@ export function useHome() {
           componentsData = response.data.data
         }
       }
-      
+
       // 根据选择的Steam ID过滤数据
       if (steamId && steamId !== 'all') {
         componentsData = componentsData.filter(item => item.data_user === steamId)
       }
-      
+
       allComponentsData.value = componentsData // 保存完整数据用于后续筛选
-      
+
       // 加载库存组件价格区间分析图表
       await loadComponentChart(componentsData)
-      
+
       // 计算图表统计数据
       let totalCount = componentsData.length
       let totalValue = 0
@@ -326,11 +353,39 @@ export function useHome() {
         totalCount: totalCount,
         totalValue: totalValue.toFixed(2)
       }
-      
-      // 更新顶部统计卡片的组件数量（仅在加载全部数据时）
+
+      // 更新顶部统计卡片的组件数量和价格（仅在加载全部数据时）
       if (!steamId || steamId === 'all') {
+        let yyyp_total = 0
+        let buff_total = 0
+        let steam_total = 0
+
+        componentsData.forEach(item => {
+          if (item.yyyp_price) {
+            const price = parseFloat(item.yyyp_price)
+            if (!isNaN(price)) {
+              yyyp_total += price
+            }
+          }
+          if (item.buff_price) {
+            const price = parseFloat(item.buff_price)
+            if (!isNaN(price)) {
+              buff_total += price * 0.975 // BUFF 手续费
+            }
+          }
+          if (item.steam_price) {
+            const price = parseFloat(item.steam_price)
+            if (!isNaN(price)) {
+              steam_total += price
+            }
+          }
+        })
+
         componentStats.value = {
-          totalCount: totalCount
+          totalCount: totalCount,
+          yyyp_price: yyyp_total.toFixed(2),
+          buff_price: buff_total.toFixed(2),
+          steam_price: steam_total.toFixed(2)
         }
       }
     } catch (error) {
@@ -338,7 +393,10 @@ export function useHome() {
       // 保持默认值
       if (!steamId || steamId === 'all') {
         componentStats.value = {
-          totalCount: 0
+          totalCount: 0,
+          yyyp_price: '0.00',
+          buff_price: '0.00',
+          steam_price: '0.00'
         }
       }
       componentChartStats.value = {
@@ -2128,6 +2186,10 @@ export function useHome() {
     inventoryStats,
     componentStats,
     totalInventoryCount,
+    totalYyypPrice,
+    totalYyypDiff,
+    totalBuffPrice,
+    totalBuffDiff,
     steamIdList,
     selectedSteamId,
     selectedInventorySteamId,

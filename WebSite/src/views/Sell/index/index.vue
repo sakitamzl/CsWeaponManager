@@ -470,7 +470,8 @@
                 <div
                   v-for="(sticker, index) in parseStickers(previewItem.sticker)"
                   :key="index"
-                  class="preview-sticker-list-item"
+                  class="preview-sticker-list-item clickable-item"
+                  @click="handleJumpToItemSearchBySticker(sticker)"
                 >
                   <el-tooltip :content="sticker.name || '未知贴纸'" placement="left">
                     <div class="preview-sticker-list-img-wrapper">
@@ -515,7 +516,7 @@
             <!-- 挂件信息 -->
             <div v-if="previewItem.pendant" class="preview-pendant-section">
               <div class="preview-pendant-list">
-                <div class="preview-pendant-list-item">
+                <div class="preview-pendant-list-item clickable-item" @click="handleJumpToItemSearchByPendant(previewItem.pendant)">
                   <el-tooltip :content="parsePendant(previewItem.pendant)?.name || '挂件'" placement="left">
                     <div class="preview-pendant-list-img-wrapper">
                       <img
@@ -558,6 +559,14 @@
           </div>
         </div>
       </div>
+
+      <!-- 对话框底部按钮 -->
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button type="primary" @click="handleJumpToItemSearch">跳转商店</el-button>
+          <el-button @click="previewVisible = false">关闭</el-button>
+        </div>
+      </template>
     </el-dialog>
   </div>
 </template>

@@ -259,8 +259,9 @@
                             <div
                               v-for="(sticker, sIdx) in parseStickers(item.sticker)"
                               :key="sIdx"
-                              class="sticker-item-overlay-expand"
+                              class="sticker-item-overlay-expand clickable-overlay"
                               :title="sticker.name || '未知贴纸'"
+                              @click.stop="handleJumpToItemSearchBySticker(sticker)"
                             >
                               <img
                                 v-if="sticker.image"
@@ -272,12 +273,13 @@
                               <div v-else class="sticker-placeholder-overlay">?</div>
                             </div>
                           </div>
-                          
+
                           <!-- 挂件覆盖层 -->
                           <div v-if="item.pendant" class="pendant-overlay-expand">
                             <div
-                              class="pendant-item-overlay-expand"
+                              class="pendant-item-overlay-expand clickable-overlay"
                               :title="parsePendant(item.pendant).name || '挂件'"
+                              @click.stop="handleJumpToItemSearchByPendant(item.pendant)"
                             >
                               <img
                                 v-if="parsePendant(item.pendant).image"
@@ -627,8 +629,9 @@
                 <div
                   v-for="(sticker, index) in parseStickers(item.sticker)"
                   :key="index"
-                  class="sticker-item-overlay"
+                  class="sticker-item-overlay clickable-overlay"
                   :title="sticker.name || '未知贴纸'"
+                  @click.stop="handleJumpToItemSearchBySticker(sticker)"
                 >
                   <img
                     v-if="sticker.image"
@@ -643,8 +646,9 @@
               <!-- 挂件图片覆盖层 - 右上角 -->
               <div v-if="item.pendant" class="pendant-overlay">
                 <div
-                  class="pendant-item-overlay"
+                  class="pendant-item-overlay clickable-overlay"
                   :title="parsePendant(item.pendant).name || '挂件'"
+                  @click.stop="handleJumpToItemSearchByPendant(item.pendant)"
                 >
                   <img
                     v-if="parsePendant(item.pendant).image"
