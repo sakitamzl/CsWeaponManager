@@ -36,7 +36,65 @@
       </div>
       <div class="yyyp-weapon-info">
         <span class="weapon-name">{{ yyypCurrentWeapon?.market_listing_item_name }}</span>
-        <span class="weapon-id">模板ID: {{ yyypCurrentWeapon?.yyyp_id }}</span>
+
+        <!-- 筛选按钮组 -->
+        <div class="yyyp-filter-buttons">
+          <button
+            class="filter-btn"
+            :class="{ active: activeFilter === 'on_sale' }"
+            @click.stop="handleFilterChange('on_sale')"
+          >
+            在售
+          </button>
+          <span class="filter-divider">|</span>
+          <button
+            class="filter-btn"
+            :class="{ active: activeFilter === 'on_lease' }"
+            @click.stop="handleFilterChange('on_lease')"
+          >
+            在租
+          </button>
+          <span class="filter-divider">|</span>
+          <button
+            class="filter-btn"
+            :class="{ active: activeFilter === 'presale' }"
+            @click.stop="handleFilterChange('presale')"
+          >
+            预售
+          </button>
+          <span class="filter-divider">|</span>
+          <button
+            class="filter-btn"
+            :class="{ active: activeFilter === 'wanted' }"
+            @click.stop="handleFilterChange('wanted')"
+          >
+            求购
+          </button>
+          <span class="filter-divider">|</span>
+          <button
+            class="filter-btn"
+            :class="{ active: activeFilter === 'sold' }"
+            @click.stop="handleFilterChange('sold')"
+          >
+            成交
+          </button>
+          <span class="filter-divider">|</span>
+          <button
+            class="filter-btn"
+            :class="{ active: activeFilter === 'price_trend' }"
+            @click.stop="handleFilterChange('price_trend')"
+          >
+            价格走势
+          </button>
+          <span class="filter-divider">|</span>
+          <button
+            class="filter-btn filter-advanced"
+            @click.stop="handleAdvancedFilter"
+          >
+            筛选
+          </button>
+        </div>
+
         <span class="commodity-count">已加载: {{ yyypCommodities.length }} 件</span>
         <span class="total-count">总数: {{ yyypTotalCount }} 件</span>
       </div>
@@ -205,10 +263,146 @@
         </div>
       </div>
     </div>
+
+    <!-- 高级筛选对话框 -->
+    <el-dialog
+      v-model="filterDialogVisible"
+      title="筛选"
+      width="400px"
+      :close-on-click-modal="false"
+      class="yyyp-filter-dialog"
+    >
+      <el-form :model="filterForm" label-position="left" label-width="100px">
+        <!-- 图案模板 -->
+        <el-form-item label="图案模板">
+          <el-input
+            v-model="filterForm.templateId"
+            placeholder="请输入模板编号0-1000"
+            clearable
+          />
+        </el-form-item>
+
+        <!-- 磨损区间 -->
+        <el-form-item label="磨损区间">
+          <div class="wear-range-inputs">
+            <el-input
+              v-model="filterForm.wearMin"
+              placeholder="最小值"
+              style="width: 48%"
+            />
+            <span style="margin: 0 2%">-</span>
+            <el-input
+              v-model="filterForm.wearMax"
+              placeholder="最大值"
+              style="width: 48%"
+            />
+          </div>
+        </el-form-item>
+
+        <!-- 名称标签 -->
+        <el-form-item label="名称标签">
+          <el-select
+            v-model="filterForm.hasNameTag"
+            placeholder="请选择"
+            clearable
+            style="width: 100%"
+          >
+            <el-option label="全部" :value="null" />
+            <el-option label="有名称标签" :value="true" />
+            <el-option label="无名称标签" :value="false" />
+          </el-select>
+        </el-form-item>
+
+        <!-- 名称标签二级菜单 -->
+        <el-form-item label="" v-if="filterForm.hasNameTag === true">
+          <el-input
+            v-model="filterForm.nameTagText"
+            placeholder="输入名称标签内容"
+            clearable
+          />
+        </el-form-item>
+
+        <!-- 印花搜枪 -->
+        <el-form-item label="印花搜枪">
+          <el-select
+            v-model="filterForm.hasStickerFilter"
+            placeholder="请选择"
+            clearable
+            style="width: 100%"
+          >
+            <el-option label="全部" :value="null" />
+            <el-option label="有印花" :value="true" />
+            <el-option label="无印花" :value="false" />
+          </el-select>
+        </el-form-item>
+
+        <!-- 印花搜枪二级菜单 -->
+        <el-form-item label="" v-if="filterForm.hasStickerFilter === true">
+          <el-input
+            v-model="filterForm.stickerName"
+            placeholder="输入印花名称"
+            clearable
+          />
+        </el-form-item>
+
+        <!-- 挂件 -->
+        <el-form-item label="挂件">
+          <el-select
+            v-model="filterForm.hasPendant"
+            placeholder="请选择"
+            clearable
+            style="width: 100%"
+          >
+            <el-option label="全部" :value="null" />
+            <el-option label="有挂件" :value="true" />
+            <el-option label="无挂件" :value="false" />
+          </el-select>
+        </el-form-item>
+
+        <!-- 挂件二级菜单 -->
+        <el-form-item label="" v-if="filterForm.hasPendant === true">
+          <el-input
+            v-model="filterForm.pendantName"
+            placeholder="输入挂件名称"
+            clearable
+          />
+        </el-form-item>
+
+        <!-- 极速发货 -->
+        <el-form-item label="极速发货">
+          <el-switch v-model="filterForm.fastDelivery" />
+        </el-form-item>
+
+        <!-- 出售价格 -->
+        <el-form-item label="出售价格">
+          <div class="price-range-inputs">
+            <el-input
+              v-model="filterForm.priceMin"
+              placeholder="最低价格"
+              style="width: 48%"
+            />
+            <span style="margin: 0 2%">-</span>
+            <el-input
+              v-model="filterForm.priceMax"
+              placeholder="最高价格"
+              style="width: 48%"
+            />
+          </div>
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="handleResetFilter">重置</el-button>
+          <el-button type="primary" @click="handleApplyFilter">确定</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import { CaretRight, CaretBottom, Check, Loading, Refresh } from '@element-plus/icons-vue'
 
 // 接收父组件传递的 props
@@ -234,8 +428,32 @@ const emit = defineEmits([
   'commodity-click',
   'yyyp-scroll',
   'buy-commodity',
-  'fetch-single-nametag'
+  'fetch-single-nametag',
+  'filter-change',
+  'advanced-filter'
 ])
+
+// 当前激活的筛选项
+const activeFilter = ref('on_sale')
+
+// 筛选对话框状态
+const filterDialogVisible = ref(false)
+
+// 筛选表单数据
+const filterForm = ref({
+  templateId: '',           // 图案模板编号
+  wearMin: '',              // 磨损最小值
+  wearMax: '',              // 磨损最大值
+  hasNameTag: null,         // 是否有名称标签 (null=全部, true=有, false=无)
+  nameTagText: '',          // 名称标签内容（二级）
+  hasStickerFilter: null,   // 是否有印花 (null=全部, true=有, false=无)
+  stickerName: '',          // 印花名称（二级）
+  hasPendant: null,         // 是否有挂件 (null=全部, true=有, false=无)
+  pendantName: '',          // 挂件名称（二级）
+  fastDelivery: false,      // 极速发货
+  priceMin: '',             // 最低价格
+  priceMax: ''              // 最高价格
+})
 
 // 方法转发给父组件
 const toggleYYYPList = () => emit('toggle-yyyp-list')
@@ -249,6 +467,41 @@ const fetchSingleNameTag = (item) => emit('fetch-single-nametag', item)
 const handleImageError = (e) => {
   // 图片加载失败处理
   e.target.style.display = 'none'
+}
+
+// 筛选相关方法
+const handleFilterChange = (filterType) => {
+  activeFilter.value = filterType
+  emit('filter-change', filterType)
+}
+
+const handleAdvancedFilter = () => {
+  filterDialogVisible.value = true
+}
+
+// 重置筛选表单
+const handleResetFilter = () => {
+  filterForm.value = {
+    templateId: '',
+    wearMin: '',
+    wearMax: '',
+    hasNameTag: null,
+    nameTagText: '',
+    hasStickerFilter: null,
+    stickerName: '',
+    hasPendant: null,
+    pendantName: '',
+    fastDelivery: false,
+    priceMin: '',
+    priceMax: ''
+  }
+}
+
+// 应用筛选
+const handleApplyFilter = () => {
+  console.log('应用筛选:', filterForm.value)
+  emit('advanced-filter', filterForm.value)
+  filterDialogVisible.value = false
 }
 
 // 从父组件注入的方法

@@ -397,6 +397,8 @@
       @yyyp-scroll="handleYYYPScroll"
       @buy-commodity="handleBuyCommodity"
       @fetch-single-nametag="fetchSingleNameTag"
+      @filter-change="handleYYYPFilterChange"
+      @advanced-filter="handleYYYPAdvancedFilter"
     />
 
     <!-- BUFF商品列表 -->

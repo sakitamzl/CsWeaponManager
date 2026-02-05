@@ -2,3 +2,153 @@
 @import '../index/styles.css';
 
 /* 本文件包含悠悠有品商品列表特有的样式覆盖和扩展 */
+
+/* 筛选按钮组样式 */
+.yyyp-filter-buttons {
+  display: flex;
+  align-items: center;
+  margin: 0 1rem;
+  height: 100%;
+  gap: 0;
+}
+
+.yyyp-filter-buttons .filter-btn {
+  background: transparent;
+  border: none;
+  color: var(--el-text-color-regular);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 0 16px;
+  height: 100%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  outline: none;
+}
+
+.yyyp-filter-buttons .filter-btn:hover {
+  color: var(--el-color-primary);
+  background: rgba(64, 158, 255, 0.1);
+}
+
+.yyyp-filter-buttons .filter-btn.active {
+  color: var(--el-color-primary);
+  font-weight: 600;
+  background: rgba(64, 158, 255, 0.15);
+}
+
+.yyyp-filter-buttons .filter-btn.filter-advanced {
+  color: var(--el-color-info);
+}
+
+.yyyp-filter-buttons .filter-btn.filter-advanced:hover {
+  color: var(--el-color-info);
+  background: rgba(144, 147, 153, 0.1);
+}
+
+.yyyp-filter-buttons .filter-divider {
+  color: var(--el-border-color);
+  font-size: 14px;
+  user-select: none;
+  height: 60%;
+  display: flex;
+  align-items: center;
+}
+
+/* 悠悠有品武器信息区域调整 */
+.yyyp-weapon-info {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.yyyp-weapon-info .weapon-name {
+  font-weight: 600;
+  color: var(--el-color-primary);
+  font-size: 1.1rem;
+  min-width: 200px;
+}
+
+.yyyp-weapon-info .commodity-count,
+.yyyp-weapon-info .total-count {
+  font-size: 0.9rem;
+}
+
+/* 筛选对话框样式 */
+.yyyp-filter-dialog {
+  background: var(--el-bg-color);
+}
+
+.yyyp-filter-dialog :deep(.el-dialog__header) {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+  margin: 0;
+}
+
+.yyyp-filter-dialog :deep(.el-dialog__title) {
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.yyyp-filter-dialog :deep(.el-dialog__headerbtn .el-dialog__close) {
+  color: white;
+  font-size: 20px;
+}
+
+.yyyp-filter-dialog :deep(.el-dialog__body) {
+  padding: 20px;
+  background: var(--el-bg-color);
+}
+
+.yyyp-filter-dialog :deep(.el-form-item) {
+  margin-bottom: 18px;
+}
+
+.yyyp-filter-dialog :deep(.el-form-item__label) {
+  color: var(--el-text-color-primary);
+  font-weight: 500;
+}
+
+/* 二级菜单缩进样式 */
+.yyyp-filter-dialog :deep(.el-form-item:has(+ .el-form-item[label=""])) {
+  margin-bottom: 12px;
+}
+
+.yyyp-filter-dialog :deep(.el-form-item[label=""]) {
+  margin-bottom: 18px;
+  padding-left: 20px;
+  position: relative;
+}
+
+.yyyp-filter-dialog :deep(.el-form-item[label=""]::before) {
+  content: '└';
+  position: absolute;
+  left: 0;
+  top: 12px;
+  color: var(--el-border-color);
+  font-size: 14px;
+}
+
+.yyyp-filter-dialog :deep(.el-input__wrapper) {
+  background-color: var(--el-fill-color-light);
+}
+
+.wear-range-inputs,
+.price-range-inputs {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.wear-range-inputs span,
+.price-range-inputs span {
+  color: var(--el-text-color-secondary);
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}

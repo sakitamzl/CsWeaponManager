@@ -1852,6 +1852,36 @@ export function useItemSearch() {
     }
   }
 
+  // 悠悠有品筛选处理
+  const handleYYYPFilterChange = (filterType) => {
+    console.log('悠悠有品筛选类型:', filterType)
+    ElMessage.info(`筛选功能开发中: ${filterType}`)
+    // TODO: 根据 filterType 调用不同的API
+    // on_sale: 在售
+    // on_lease: 在租
+    // presale: 预售
+    // wanted: 求购
+    // sold: 成交
+    // price_trend: 价格走势
+  }
+
+  const handleYYYPAdvancedFilter = (filterData) => {
+    console.log('应用高级筛选:', filterData)
+    ElMessage.success('筛选条件已应用')
+    // TODO: 根据筛选条件调用API
+    // filterData 包含：
+    // - templateId: 图案模板编号
+    // - wearMin, wearMax: 磨损区间
+    // - hasNameTag: 是否有名称标签 (null=全部, true=有, false=无)
+    // - nameTagText: 名称标签内容（当 hasNameTag=true 时）
+    // - hasStickerFilter: 是否有印花 (null=全部, true=有, false=无)
+    // - stickerName: 印花名称（当 hasStickerFilter=true 时）
+    // - hasPendant: 是否有挂件 (null=全部, true=有, false=无)
+    // - pendantName: 挂件名称（当 hasPendant=true 时）
+    // - fastDelivery: 极速发货
+    // - priceMin, priceMax: 价格区间
+  }
+
   // 向子组件提供共享方法
   provide('isCommoditySelected', isCommoditySelected)
   provide('getWeaponImage', getWeaponImage)
@@ -1983,6 +2013,9 @@ export function useItemSearch() {
     handleCurrentChange,
     // 第三方网站跳转
     openCSQAQ,
-    openSteamDT
+    openSteamDT,
+    // 悠悠有品筛选
+    handleYYYPFilterChange,
+    handleYYYPAdvancedFilter
   }
 }
