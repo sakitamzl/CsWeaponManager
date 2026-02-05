@@ -1,4 +1,4 @@
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, provide } from 'vue'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { CaretRight, CaretBottom, Refresh, Check, Loading } from '@element-plus/icons-vue'
@@ -1851,6 +1851,10 @@ export function useItemSearch() {
       ElMessage.error('打开 SteamDT 失败')
     }
   }
+
+  // 向子组件提供共享方法
+  provide('isCommoditySelected', isCommoditySelected)
+  provide('getWeaponImage', getWeaponImage)
 
   // 页面加载时获取Steam ID列表
   onMounted(async () => {
