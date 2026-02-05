@@ -58,7 +58,6 @@ export default function useYoupinForm(props, { emit }) {
           yyypTokenStatus.value = 'failed'
         }
       } catch (error) {
-        console.error('启动悠悠有品代理失败:', error)
         ElMessage.error('启动悠悠有品代理失败: ' + (error.message || '网络错误'))
         yyypTokenLoading.value = false
         yyypTokenStatus.value = 'failed'
@@ -112,7 +111,7 @@ export default function useYoupinForm(props, { emit }) {
             emit('token-success')
           }
         } catch (error) {
-          console.error('获取令牌数据失败:', error)
+          // 获取令牌数据失败时静默处理或由调用方提示
         }
       }, 3000)
     }
@@ -122,7 +121,7 @@ export default function useYoupinForm(props, { emit }) {
       try {
         await axios.post(apiUrls.getAppTokenStopYyyp())
       } catch (error) {
-        console.error('停止代理服务器失败:', error)
+        // 停止代理服务器失败时静默处理
       }
     }
 
@@ -153,7 +152,6 @@ export default function useYoupinForm(props, { emit }) {
           }
         }, 1000)
       } catch (error) {
-        console.error('发送验证码失败:', error)
         ElMessage.error('发送验证码失败: ' + (error.response?.data?.message || error.message))
       } finally {
         sendingSmsCode.value = false
@@ -189,7 +187,6 @@ export default function useYoupinForm(props, { emit }) {
         basicCollapse.value = ['basic']
         tokenCollapse.value = ['token']
       } catch (error) {
-        console.error('短信登录失败:', error)
         ElMessage.error('登录失败: ' + (error.response?.data?.message || error.message))
         yyypSmsLoginStatus.value = 'failed'
       } finally {
@@ -206,7 +203,6 @@ export default function useYoupinForm(props, { emit }) {
         updateForm({ yyypSessionId: randomSessionId })
         ElMessage.success('SessionID生成成功')
       } catch (error) {
-        console.error('生成SessionID失败:', error)
         ElMessage.error('生成SessionID失败: ' + (error.response?.data?.message || error.message))
       } finally {
         generatingSessionId.value = false
@@ -222,7 +218,6 @@ export default function useYoupinForm(props, { emit }) {
         updateForm({ yyypDeviceId: randomDeviceId })
         ElMessage.success('DeviceID生成成功')
       } catch (error) {
-        console.error('生成DeviceID失败:', error)
         ElMessage.error('生成DeviceID失败: ' + (error.response?.data?.message || error.message))
       } finally {
         generatingDeviceId.value = false

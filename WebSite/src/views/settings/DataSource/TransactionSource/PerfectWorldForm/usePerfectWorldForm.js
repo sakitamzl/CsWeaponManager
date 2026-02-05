@@ -48,7 +48,6 @@ export default function usePerfectWorldForm(props, { emit }) {
           perfectWorldTokenStatus.value = 'failed'
         }
       } catch (error) {
-        console.error('启动完美世界APP代理失败:', error)
         ElMessage.error('启动完美世界APP代理失败: ' + (error.message || '网络错误'))
         perfectWorldTokenLoading.value = false
         perfectWorldTokenStatus.value = 'failed'
@@ -94,7 +93,7 @@ export default function usePerfectWorldForm(props, { emit }) {
             emit('token-success')
           }
         } catch (error) {
-          console.error('获取令牌数据失败:', error)
+          // 获取令牌数据失败时静默处理或由调用方提示
         }
       }, 3000)
     }
@@ -104,7 +103,7 @@ export default function usePerfectWorldForm(props, { emit }) {
       try {
         await axios.post(apiUrls.getAppTokenStopPerfectWorld())
       } catch (error) {
-        console.error('停止代理服务器失败:', error)
+        // 停止代理服务器失败时静默处理
       }
     }
 

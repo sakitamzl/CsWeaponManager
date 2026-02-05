@@ -347,7 +347,6 @@ export function useDataSource() {
   // 更新数据库中的 lastUpdate 时间
   // 注意: 此功能已被禁用，因为后端更新接口已删除
   const updateLastUpdateInDatabase = async (dataID, lastUpdateTime) => {
-    console.log(`[updateLastUpdate] 更新功能已禁用 - dataID=${dataID}, time=${lastUpdateTime}`)
     // 功能已禁用，不再调用后端更新接口
   }
 
@@ -370,9 +369,6 @@ export function useDataSource() {
 
     // BUFF类型的字段校验 - 简化验证，只检查必要字段
     if (inputForm.value.type === 'buff') {
-      console.log('[BUFF验证] cookie:', inputForm.value.cookie)
-      console.log('[BUFF验证] buffAppVersion:', inputForm.value.buffAppVersion)
-      
       if (!inputForm.value.cookie && !inputForm.value.buffAppVersion) {
         ElMessage.error('请先获取BUFF令牌或填写必要信息')
         return
@@ -729,21 +725,17 @@ export function useDataSource() {
         ElMessage.error(result.message || `${action}数据源失败`)
       }
     } catch (error) {
-      console.error('操作数据源失败:', error)
       let errorMessage = '操作失败'
       
       if (error.response) {
         // 服务器返回了错误响应
         errorMessage = error.response.data?.message || `服务器错误 (${error.response.status})`
-        console.error('服务器响应错误:', error.response.data)
       } else if (error.request) {
         // 请求发送了但没有收到响应
         errorMessage = '网络连接失败，请检查API服务器是否运行'
-        console.error('网络请求错误:', error.request)
       } else {
         // 其他错误
         errorMessage = error.message || '未知错误'
-        console.error('其他错误:', error.message)
       }
       
       ElMessage.error(errorMessage)
@@ -782,7 +774,6 @@ export function useDataSource() {
         buffTokenStatus.value = 'failed'
       }
     } catch (error) {
-      console.error('启动BUFF代理失败:', error)
       ElMessage.error('启动BUFF代理失败: ' + (error.message || '网络错误'))
       buffTokenLoading.value = false
       buffTokenStatus.value = 'failed'
@@ -800,11 +791,7 @@ export function useDataSource() {
       try {
         const url = apiUrls.getAppTokenGetBuffData()
         const response = await axios.get(url)
-        
-        console.log('[BUFF轮询] API响应:', response.data)
-        console.log('[BUFF轮询] code:', response.data.code)
-        console.log('[BUFF轮询] data:', response.data.data)
-        
+
         if (response.data.code === 200) {
           // 数据收集完成
           const data = response.data.data
@@ -896,10 +883,9 @@ export function useDataSource() {
           }, 1000)
         } else if (response.data.code === 202) {
           // 数据正在收集中
-          console.log('BUFF Token 收集中...')
         }
       } catch (error) {
-        console.error('获取BUFF数据失败:', error)
+        // 获取BUFF数据失败时仅在界面上提示或静默处理
       }
     }, 3000)
   }
@@ -909,7 +895,7 @@ export function useDataSource() {
       const url = apiUrls.getAppTokenStopBuff()
       await axios.post(url)
     } catch (error) {
-      console.error('停止BUFF代理失败:', error)
+      // 停止BUFF代理失败时静默处理
     }
   }
 
@@ -2952,21 +2938,20 @@ export function useDataSource() {
 
   const loadDataSources = async () => {
     try {
-      console.log('开始请求数据源API...')
+      // console.log('开始请求数据源API...')
       const response = await axios.get(apiUrls.dataSource())
-      console.log('Axios response:', response)
+      // console.log('Axios response:', response)
       
       const result = response.data
-      console.log('API响应结果:', result)
+      // console.log('API响应结果:', result)
       
       if (result.success) {
-        console.log('成功获取数据源，数量:', result.data.length)
-        console.log('[DEBUG] 原始返回数据:', JSON.stringify(result.data, null, 2))
+        // console.log('成功获取数据源，数量:', result.data.length)
         
         dataSources.value = result.data.map(item => {
-          console.log(`[DEBUG] 数据源 ${item.dataName}:`)
-          console.log(`  - 原始steamID值:`, item.steamID)
-          console.log(`  - steamID类型:`, typeof item.steamID)
+          // console.log(`[DEBUG] 数据源 ${item.dataName}:`)
+          // console.log(`  - 原始steamID值:`, item.steamID)
+          // console.log(`  - steamID类型:`, typeof item.steamID)
           
           return {
             id: item.dataID,
@@ -2983,8 +2968,8 @@ export function useDataSource() {
             steamID: item.steamID || ''  // 直接使用config表的steamID字段
           }
         })
-        console.log('处理后的数据源:', dataSources.value)
-        console.log('分组数据:', groupedDataSources.value)
+        // console.log('处理后的数据源:', dataSources.value)
+        // console.log('分组数据:', groupedDataSources.value)
         
         // 注意：全局定时器已在 main.js 中初始化，无需在组件中调用
       } else {

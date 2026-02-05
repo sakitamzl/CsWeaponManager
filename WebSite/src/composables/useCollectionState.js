@@ -30,7 +30,7 @@ function saveCollectingState(collectingIds) {
 // 🔧 页面加载时清除所有采集状态
 function clearCollectingStateOnLoad() {
   try {
-    console.log('🧹 页面刷新，清除所有采集状态')
+    // console.log('🧹 页面刷新，清除所有采集状态')
     localStorage.removeItem(STORAGE_KEY)
   } catch (error) {
     console.error('清除采集状态失败:', error)

@@ -48,7 +48,6 @@ export default function useCsfloatForm(props, { emit }) {
           csfloatTokenStatus.value = 'failed'
         }
       } catch (error) {
-        console.error('启动CsFloat代理失败:', error)
         ElMessage.error('启动CsFloat代理失败: ' + (error.message || '网络错误'))
         csfloatTokenLoading.value = false
         csfloatTokenStatus.value = 'failed'
@@ -96,7 +95,7 @@ export default function useCsfloatForm(props, { emit }) {
             emit('token-success')
           }
         } catch (error) {
-          console.error('获取令牌数据失败:', error)
+          // 获取令牌数据失败时静默处理或由调用方提示
         }
       }, 3000)
     }
@@ -106,7 +105,7 @@ export default function useCsfloatForm(props, { emit }) {
       try {
         await axios.post(apiUrls.getAppTokenStopCsfloat())
       } catch (error) {
-        console.error('停止代理服务器失败:', error)
+        // 停止代理服务器失败时静默处理
       }
     }
 

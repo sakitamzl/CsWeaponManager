@@ -384,6 +384,11 @@ export function useRental() {
         },
       })
 
+      // 检查请求是否已被取消
+      if (statsController.value?.signal.aborted) {
+        return
+      }
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
@@ -454,6 +459,11 @@ export function useRental() {
         'Accept': 'application/json',
       }
     })
+
+    // 检查请求是否已被取消
+    if (dataController.value?.signal.aborted) {
+      return 0 // 返回0表示没有找到数据
+    }
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
@@ -543,13 +553,18 @@ export function useRental() {
           'Accept': 'application/json',
         },
       })
-      
+
+      // 检查请求是否已被取消
+      if (dataController.value?.signal.aborted) {
+        return
+      }
+
       console.log('响应状态:', response.status)
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
-      
+
       const rawData = await response.json()
       console.log('接收到的原始数据:', rawData)
       
@@ -789,11 +804,16 @@ export function useRental() {
           'Accept': 'application/json',
         },
       })
-      
+
+      // 检查请求是否已被取消
+      if (dataController.value?.signal.aborted) {
+        return
+      }
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
-      
+
       const rawData = await response.json()
       console.log('时间搜索结果:', rawData)
 
@@ -869,11 +889,16 @@ export function useRental() {
           'Accept': 'application/json',
         },
       })
-      
+
+      // 检查请求是否已被取消
+      if (statsController.value?.signal.aborted) {
+        return
+      }
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
-      
+
       const statsData = await response.json()
       console.log('获取到的时间范围统计:', statsData)
       

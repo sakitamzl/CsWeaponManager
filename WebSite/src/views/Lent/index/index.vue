@@ -4,7 +4,7 @@
     <div class="stats-summary">
         <div class="card">
         <div class="page-header">
-          <h2>出租数据</h2>
+          <!-- <h2>出租数据</h2>
           <el-button
             type="primary"
             size="small"
@@ -12,7 +12,7 @@
             @click="handleRentAutoPricing"
           >
             自动定价（悠悠有品）
-          </el-button>
+          </el-button> -->
         </div>
 
           <!-- 搜索栏 -->
