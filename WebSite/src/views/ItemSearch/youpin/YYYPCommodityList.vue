@@ -9,35 +9,8 @@
           <CaretBottom v-if="showYYYPTable" />
         </el-icon>
         <span class="yyyp-collapse-title">悠悠有品商品列表</span>
-        <el-button
-          type="primary"
-          size="small"
-          :icon="Refresh"
-          @click.stop="handleRefreshYYYP"
-          :loading="isSearching && searchSource === 'yyyp'"
-        >
-          刷新列表
-        </el-button>
-        <el-button
-          :type="isMultiSelectMode ? 'warning' : 'info'"
-          size="small"
-          @click.stop="toggleMultiSelectMode"
-        >
-          {{ isMultiSelectMode ? '取消多选' : '多选' }}
-        </el-button>
-        <el-button
-          v-if="isMultiSelectMode"
-          type="info"
-          size="small"
-          @click.stop="selectAllCommodities('yyyp')"
-        >
-          全选
-        </el-button>
-      </div>
-      <div class="yyyp-weapon-info">
-        <span class="weapon-name">{{ yyypCurrentWeapon?.market_listing_item_name }}</span>
 
-        <!-- 筛选按钮组 -->
+        <!-- 筛选按钮组 - 移到左侧 -->
         <div class="yyyp-filter-buttons">
           <button
             class="filter-btn"
@@ -81,8 +54,7 @@
           <span class="filter-divider">|</span>
           <button
             class="filter-btn"
-            :class="{ active: yyypFilterType === 'price_trend' }"
-            @click.stop="handleFilterChange('price_trend')"
+            @click.stop="handleOpenPriceTrend"
           >
             价格走势
           </button>
@@ -94,9 +66,37 @@
             筛选
           </button>
         </div>
-
+      </div>
+      <div class="yyyp-weapon-info">
+        <span class="weapon-name">{{ yyypCurrentWeapon?.market_listing_item_name }}</span>
         <span class="commodity-count">已加载: {{ yyypCommodities.length }} 件</span>
         <span class="total-count">总数: {{ yyypTotalCount }} 件</span>
+
+        <!-- 价格追踪按钮 - 移到右侧 -->
+        <el-button
+          type="primary"
+          size="small"
+          :icon="Refresh"
+          @click.stop="handleRefreshYYYP"
+          :loading="isSearching && searchSource === 'yyyp'"
+        >
+          刷新列表
+        </el-button>
+        <el-button
+          :type="isMultiSelectMode ? 'warning' : 'info'"
+          size="small"
+          @click.stop="toggleMultiSelectMode"
+        >
+          {{ isMultiSelectMode ? '取消多选' : '多选' }}
+        </el-button>
+        <el-button
+          v-if="isMultiSelectMode"
+          type="info"
+          size="small"
+          @click.stop="selectAllCommodities('yyyp')"
+        >
+          全选
+        </el-button>
       </div>
     </div>
 
@@ -279,6 +279,48 @@
       </div>
     </div>
 
+    <!-- 价格走势对话框 -->
+    <el-dialog
+      v-model="priceTrendDialogVisible"
+      :title="`价格走势 - ${yyypCurrentWeapon?.market_listing_item_name || ''}`"
+      width="800px"
+      :close-on-click-modal="false"
+      class="yyyp-price-trend-dialog"
+    >
+      <!-- 天数选择器 -->
+      <div class="price-trend-header">
+        <el-radio-group v-model="selectedDays" size="small" @change="loadPriceTrend">
+          <el-radio-button :label="7">7天</el-radio-button>
+          <el-radio-button :label="30">30天</el-radio-button>
+          <el-radio-button :label="90">90天</el-radio-button>
+          <el-radio-button :label="180">180天</el-radio-button>
+        </el-radio-group>
+      </div>
+
+      <!-- 图表容器 -->
+      <div
+        v-loading="priceTrendLoading"
+        element-loading-text="加载中..."
+        class="price-trend-chart-container"
+      >
+        <div ref="priceTrendChart" class="price-trend-chart"></div>
+      </div>
+
+      <!-- 统计信息 -->
+      <div v-if="priceTrendData" class="price-trend-stats">
+        <el-descriptions :column="4" border size="small">
+          <el-descriptions-item label="最高价">¥{{ priceStats.maxPrice }}</el-descriptions-item>
+          <el-descriptions-item label="最低价">¥{{ priceStats.minPrice }}</el-descriptions-item>
+          <el-descriptions-item label="平均价">¥{{ priceStats.avgPrice }}</el-descriptions-item>
+          <el-descriptions-item label="数据点数">{{ priceStats.count }}</el-descriptions-item>
+        </el-descriptions>
+      </div>
+
+      <template #footer>
+        <el-button @click="priceTrendDialogVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 高级筛选对话框 -->
     <el-dialog
       v-model="filterDialogVisible"
@@ -417,8 +459,12 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { CaretRight, CaretBottom, Check, Loading, Refresh } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import * as echarts from 'echarts'
+import axios from 'axios'
+import { API_CONFIG } from '@/config/api.js'
 
 // 接收父组件传递的 props
 const props = defineProps({
@@ -469,6 +515,212 @@ const filterForm = ref({
   priceMin: '',             // 最低价格
   priceMax: ''              // 最高价格
 })
+
+// 价格走势对话框状态
+const priceTrendDialogVisible = ref(false)
+const selectedDays = ref(30)
+const priceTrendData = ref(null)
+const priceTrendLoading = ref(false)
+const priceTrendChart = ref(null)
+let chartInstance = null
+
+// 价格统计计算
+const priceStats = computed(() => {
+  if (!priceTrendData.value || !priceTrendData.value.tradeDataList || priceTrendData.value.tradeDataList.length === 0) {
+    return { maxPrice: '0.00', minPrice: '0.00', avgPrice: '0.00', count: 0 }
+  }
+
+  const prices = priceTrendData.value.tradeDataList.map(item => parseFloat(item.price))
+  return {
+    maxPrice: Math.max(...prices).toFixed(2),
+    minPrice: Math.min(...prices).toFixed(2),
+    avgPrice: (prices.reduce((a, b) => a + b, 0) / prices.length).toFixed(2),
+    count: prices.length
+  }
+})
+
+// 打开价格走势对话框
+const handleOpenPriceTrend = () => {
+  if (!props.yyypCurrentWeapon) {
+    ElMessage.warning('请先选择武器')
+    return
+  }
+  priceTrendDialogVisible.value = true
+  selectedDays.value = 30
+  loadPriceTrend()
+}
+
+// 加载价格走势数据
+const loadPriceTrend = async () => {
+  if (!props.yyypCurrentWeapon || !props.yyypCurrentWeapon.yyyp_id) {
+    ElMessage.error('缺少武器ID信息')
+    return
+  }
+
+  priceTrendLoading.value = true
+
+  try {
+    const url = `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getPriceTrend`
+    const response = await axios.post(url, {
+      yyypId: props.yyypCurrentWeapon.yyyp_id,
+      day: selectedDays.value
+    })
+
+    if (response.data.success) {
+      priceTrendData.value = response.data.data
+      await nextTick()
+      initPriceTrendChart()
+    } else {
+      ElMessage.error(response.data.message || '获取价格走势失败')
+    }
+  } catch (error) {
+    console.error('加载价格走势失败:', error)
+    ElMessage.error('加载价格走势失败: ' + (error.message || '未知错误'))
+  } finally {
+    priceTrendLoading.value = false
+  }
+}
+
+// 初始化价格走势图表
+const initPriceTrendChart = () => {
+  if (!priceTrendChart.value || !priceTrendData.value || !priceTrendData.value.tradeDataList) {
+    return
+  }
+
+  // 销毁已存在的图表实例
+  if (chartInstance) {
+    chartInstance.dispose()
+  }
+
+  // 创建新图表实例
+  chartInstance = echarts.init(priceTrendChart.value)
+
+  // 准备数据
+  const tradeDataList = priceTrendData.value.tradeDataList
+  const dates = tradeDataList.map(item => {
+    // 使用 time 字段（毫秒时间戳）显示具体日期和时间
+    const date = new Date(item.time)
+    const month = date.getMonth() + 1
+    const day = date.getDate()
+    const hours = date.getHours().toString().padStart(2, '0')
+    const minutes = date.getMinutes().toString().padStart(2, '0')
+    return `${month}/${day} ${hours}:${minutes}`
+  })
+  const prices = tradeDataList.map(item => parseFloat(item.price))
+
+  // 计算价格范围，用于聚焦显示
+  const minPrice = Math.min(...prices)
+  const maxPrice = Math.max(...prices)
+  const priceRange = maxPrice - minPrice
+  const padding = priceRange * 0.1 // 上下留10%的空间
+  const yAxisMin = Math.max(0, minPrice - padding)
+  const yAxisMax = maxPrice + padding
+
+  // 图表配置
+  const option = {
+    title: {
+      text: '价格走势',
+      left: 'center',
+      textStyle: {
+        color: '#e0e0e0',
+        fontSize: 16
+      }
+    },
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: 'rgba(50, 50, 50, 0.95)',
+      borderColor: '#555',
+      textStyle: {
+        color: '#e0e0e0'
+      },
+      formatter: (params) => {
+        const param = params[0]
+        return `${param.name}<br/>价格: ¥${param.value}`
+      }
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '15%',  // 增加底部空间，容纳旋转的时间标签
+      top: '15%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      data: dates,
+      boundaryGap: false,
+      axisLine: {
+        lineStyle: {
+          color: '#555'
+        }
+      },
+      axisLabel: {
+        color: '#999',
+        rotate: 45,  // 旋转45度避免重叠
+        interval: 'auto'  // 自动计算显示间隔
+      }
+    },
+    yAxis: {
+      type: 'value',
+      name: '价格 (¥)',
+      min: yAxisMin,
+      max: yAxisMax,
+      nameTextStyle: {
+        color: '#999'
+      },
+      axisLine: {
+        lineStyle: {
+          color: '#555'
+        }
+      },
+      axisLabel: {
+        color: '#999',
+        formatter: '¥{value}'
+      },
+      splitLine: {
+        lineStyle: {
+          color: '#333'
+        }
+      }
+    },
+    series: [
+      {
+        name: '价格',
+        type: 'line',
+        data: prices,
+        smooth: true,
+        lineStyle: {
+          width: 2,
+          color: '#409eff'
+        },
+        itemStyle: {
+          color: '#409eff'
+        },
+        areaStyle: {
+          color: {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              {
+                offset: 0,
+                color: 'rgba(64, 158, 255, 0.3)'
+              },
+              {
+                offset: 1,
+                color: 'rgba(64, 158, 255, 0.05)'
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+
+  chartInstance.setOption(option)
+}
 
 // 方法转发给父组件
 const toggleYYYPList = () => emit('toggle-yyyp-list')
