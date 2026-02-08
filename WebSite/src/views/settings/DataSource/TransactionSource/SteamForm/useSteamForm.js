@@ -54,9 +54,12 @@ export default function useSteamForm(props, { emit }) {
                 steamLoginSuccess: true,
                 steamLoginMessage: response.data.data?.steam_id ? '✅ 扫码登录成功！SteamID已自动填入' : '✅ 扫码登录成功！'
               })
-              
+
               clearInterval(steamQRCheckTimer.value)
               ElMessage.success('Steam扫码登录成功！已填入Cookie与SteamID')
+
+              // 发射令牌获取成功事件，触发自动保存
+              emit('token-success')
             } else if (response.data.status === 'waiting') {
               steamQRStatus.value = 'waiting'
             }
@@ -139,8 +142,11 @@ export default function useSteamForm(props, { emit }) {
               : '✅ Steam登录成功！Cookie已获取，请填写SteamID',
             steamLoginSuccess: true
           })
-          
+
           ElMessage.success(steamIdFromResp ? 'Steam登录成功，已自动填入SteamID' : 'Steam登录成功！请手动输入SteamID')
+
+          // 发射令牌获取成功事件，触发自动保存
+          emit('token-success')
         } else if (result.requires_twofactor) {
           updateForm({ steamLoginMessage: '', steamLoginSuccess: false })
         } else if (result.requires_emailauth) {

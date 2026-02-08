@@ -184,6 +184,7 @@
           :form="editForm"
           :is-edit-mode="true"
           @update:form="Object.assign(editForm, $event)"
+          @token-success="handleEditSubmit"
         />
 
         <!-- 完美世界APP特有配置 -->
@@ -540,6 +541,7 @@
           :form="inputForm"
           :is-edit-mode="false"
           @update:form="Object.assign(inputForm, $event)"
+          @token-success="handleSubmit"
         />
         
         <!-- Steam特有配置 (旧代码保留，待删除) -->

@@ -8,13 +8,6 @@ export default function useYoupinForm(props, { emit }) {
     const yyypTokenLoading = ref(false)
     const yyypTokenStatus = ref('')
     const tokenCheckTimer = ref(null)
-    const yyypSmsLoginLoading = ref(false)
-    const yyypSmsLoginStatus = ref('')
-    const sendingSmsCode = ref(false)
-    const smsCodeCountdown = ref(0)
-    const smsCodeTimer = ref(null)
-    const generatingSessionId = ref(false)
-    const generatingDeviceId = ref(false)
     const basicCollapse = ref([])
     const tokenCollapse = ref([])
     const deviceCollapse = ref([])
@@ -125,111 +118,9 @@ export default function useYoupinForm(props, { emit }) {
       }
     }
 
-    // 发送短信验证码
-    const handleSendSmsCode = async () => {
-      if (!props.form.yyypPhone) {
-        ElMessage.error('请输入手机号')
-        return
-      }
-      
-      const phoneRegex = /^1[3-9]\d{9}$/
-      if (!phoneRegex.test(props.form.yyypPhone)) {
-        ElMessage.error('请输入正确的手机号')
-        return
-      }
-      
-      sendingSmsCode.value = true
-      try {
-        // TODO: 调用后端API发送短信验证码
-        ElMessage.success('验证码已发送，请查收短信')
-        
-        smsCodeCountdown.value = 60
-        smsCodeTimer.value = setInterval(() => {
-          smsCodeCountdown.value--
-          if (smsCodeCountdown.value <= 0) {
-            clearInterval(smsCodeTimer.value)
-            smsCodeTimer.value = null
-          }
-        }, 1000)
-      } catch (error) {
-        ElMessage.error('发送验证码失败: ' + (error.response?.data?.message || error.message))
-      } finally {
-        sendingSmsCode.value = false
-      }
-    }
-
-    // 短信登录
-    const handleYyypSmsLogin = async () => {
-      if (!props.form.yyypSessionId) {
-        ElMessage.error('请先生成或输入Session ID')
-        return
-      }
-      
-      if (!props.form.yyypPhone) {
-        ElMessage.error('请输入手机号')
-        return
-      }
-      
-      if (!props.form.yyypSmsCode) {
-        ElMessage.error('请输入验证码')
-        return
-      }
-      
-      yyypSmsLoginLoading.value = true
-      try {
-        // TODO: 调用后端API进行短信登录
-        ElMessage.success('登录成功！配置信息已自动填充')
-        yyypSmsLoginStatus.value = 'success'
-        
-        updateForm({ sessionid: props.form.yyypSessionId })
-        
-        // 自动展开配置折叠面板
-        basicCollapse.value = ['basic']
-        tokenCollapse.value = ['token']
-      } catch (error) {
-        ElMessage.error('登录失败: ' + (error.response?.data?.message || error.message))
-        yyypSmsLoginStatus.value = 'failed'
-      } finally {
-        yyypSmsLoginLoading.value = false
-      }
-    }
-
-    // 生成SessionID
-    const handleGenerateSessionId = async () => {
-      generatingSessionId.value = true
-      try {
-        // TODO: 调用后端API生成SessionID
-        const randomSessionId = 'SESSION_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
-        updateForm({ yyypSessionId: randomSessionId })
-        ElMessage.success('SessionID生成成功')
-      } catch (error) {
-        ElMessage.error('生成SessionID失败: ' + (error.response?.data?.message || error.message))
-      } finally {
-        generatingSessionId.value = false
-      }
-    }
-
-    // 生成DeviceID
-    const handleGenerateDeviceId = async () => {
-      generatingDeviceId.value = true
-      try {
-        // TODO: 调用后端API生成DeviceID
-        const randomDeviceId = 'DEVICE_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
-        updateForm({ yyypDeviceId: randomDeviceId })
-        ElMessage.success('DeviceID生成成功')
-      } catch (error) {
-        ElMessage.error('生成DeviceID失败: ' + (error.response?.data?.message || error.message))
-      } finally {
-        generatingDeviceId.value = false
-      }
-    }
-
     onBeforeUnmount(() => {
       if (tokenCheckTimer.value) {
         clearInterval(tokenCheckTimer.value)
-      }
-      if (smsCodeTimer.value) {
-        clearInterval(smsCodeTimer.value)
       }
     })
 
@@ -239,20 +130,10 @@ export default function useYoupinForm(props, { emit }) {
       CircleCheck,
       yyypTokenLoading,
       yyypTokenStatus,
-      yyypSmsLoginLoading,
-      yyypSmsLoginStatus,
-      sendingSmsCode,
-      smsCodeCountdown,
-      generatingSessionId,
-      generatingDeviceId,
       basicCollapse,
       tokenCollapse,
       deviceCollapse,
       advancedCollapse,
-      startYyypTokenCollection,
-      handleSendSmsCode,
-      handleYyypSmsLogin,
-      handleGenerateSessionId,
-      handleGenerateDeviceId
+      startYyypTokenCollection
     }
   }

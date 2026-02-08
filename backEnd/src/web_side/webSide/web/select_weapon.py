@@ -340,11 +340,11 @@ def searchWeaponDetail():
         where_clauses = []
         params = []
 
-        # 如果提供了关键词，同时搜索 market_listing_item_name 和 steam_hash_name
+        # 如果提供了关键词，使用精确查询（完全匹配）
         if keyword and len(keyword.strip()) > 0:
-            where_clauses.append("([market_listing_item_name] LIKE ? OR [steam_hash_name] LIKE ?)")
-            params.append(f"%{keyword.strip()}%")
-            params.append(f"%{keyword.strip()}%")
+            where_clauses.append("([market_listing_item_name] = ? OR [steam_hash_name] = ?)")
+            params.append(keyword.strip())
+            params.append(keyword.strip())
         
         # 如果指定了武器类型
         if weapon_type and len(weapon_type.strip()) > 0:

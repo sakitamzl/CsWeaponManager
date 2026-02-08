@@ -175,7 +175,7 @@ export default {
       default: false
     }
   },
-  emits: ['update:form'],
+  emits: ['update:form', 'token-success'],
   setup(props, context) {
     return useSteamForm(props, context)
   }
