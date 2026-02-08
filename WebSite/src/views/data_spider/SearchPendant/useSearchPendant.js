@@ -266,6 +266,8 @@ export function useSearchPendant() {
                 })
                 saveProgressToStorage(selectedConfigId.value)
                 stopPolling()
+                // 保存搜索状态到配置
+                await saveSearchStatusToConfig('stopped', currentProgress)
                 break
 
               case 'complete':
@@ -282,6 +284,8 @@ export function useSearchPendant() {
                 })
                 saveProgressToStorage(selectedConfigId.value)
                 stopPolling()
+                // 保存搜索状态到配置
+                await saveSearchStatusToConfig('complete', completedProgress)
                 break
 
               case 'error':
@@ -1046,14 +1050,20 @@ const startCrawl = async () => {
     // 根据查询模式添加不同的参数
     if (crawlForm.value.searchMode === 'by_weapon_id') {
       spiderConfig.weapon_id = crawlForm.value.weaponId
+      console.log(`[挂件搜索] 使用饰品目录模式，饰品数量: ${crawlForm.value.weaponId.length}`)
     } else if (crawlForm.value.searchMode === 'by_price_range') {
       // 使用筛选后的饰品ID列表
       if (filteredWeaponIds && filteredWeaponIds.length > 0) {
+        // 重要：将查询模式改为 by_weapon_id，这样Spider会使用我们提供的饰品ID列表
+        spiderConfig.search_mode = 'by_weapon_id'
         spiderConfig.weapon_id = filteredWeaponIds
+        console.log(`[挂件搜索] 价格区间模式已筛选出 ${filteredWeaponIds.length} 个饰品，转换为按饰品目录模式`)
+        console.log(`[挂件搜索] 筛选后的饰品ID（前5个）:`, filteredWeaponIds.slice(0, 5))
       } else {
         // 如果没有筛选结果，仍然传递价格区间参数（后端兼容）
         spiderConfig.price_min = crawlForm.value.priceMin
         spiderConfig.price_max = crawlForm.value.priceMax
+        console.log(`[挂件搜索] 使用价格区间模式（未筛选），价格区间: ${spiderConfig.price_min} - ${spiderConfig.price_max}`)
       }
     }
 
@@ -1070,6 +1080,7 @@ const startCrawl = async () => {
     console.log('[挂件搜索] 准备发送请求（数据库轮询模式）')
     console.log('[挂件搜索] 请求URL:', `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/auto_buy_pendant_weapon`)
     console.log('[挂件搜索] 请求数据:', JSON.stringify(requestData, null, 2))
+    console.log('[挂件搜索] weapon_id数组长度:', spiderConfig.weapon_id ? spiderConfig.weapon_id.length : 0)
 
     // 使用普通POST接口启动任务
     const response = await fetch(
@@ -1098,6 +1109,14 @@ const startCrawl = async () => {
 
     // 任务已启动，开始轮询进度
     ElMessage.success('搜索任务已启动')
+
+    // 保存开始搜索的状态
+    await saveSearchStatusToConfig('running', {
+      total: filteredWeaponIds ? filteredWeaponIds.length : 0,
+      current: 0,
+      percentage: 0
+    })
+
     startPolling()
 
   } catch (error) {
@@ -1156,8 +1175,11 @@ const stopCrawl = async () => {
 
     ElMessage.success('停止信号已发送')
     // 延迟一下再设置状态，等待后端响应
-    setTimeout(() => {
+    setTimeout(async () => {
       isCrawling.value = false
+      // 保存停止状态到配置
+      const currentProgress = getProgress(selectedConfigId.value)
+      await saveSearchStatusToConfig('stopped', currentProgress)
     }, 500)
 
   } catch (error) {
@@ -1319,11 +1341,24 @@ const selectConfig = async (configId) => {
       console.log('  - platformType:', crawlForm.value.platformType)
       console.log('  - weaponId:', crawlForm.value.weaponId)
       console.log('=== 配置加载完成 ===')
-      
-      // 选择配置后，启动轮询并立即刷新结果列表（显示该配置的数据）
-      startPolling()
-      await pollSearchResults()
-      
+
+      // 检查搜索状态，判断是否需要轮询
+      const lastSearchStatus = valueObj.last_search_status
+      const isSearching = lastSearchStatus &&
+                         lastSearchStatus.status === 'running' &&
+                         (Date.now() - lastSearchStatus.timestamp < 24 * 60 * 60 * 1000)  // 24小时内
+
+      if (isSearching) {
+        console.log('[配置加载] 检测到正在搜索中，启动轮询')
+        isCrawling.value = true
+        startPolling()
+      } else {
+        console.log('[配置加载] 未检测到搜索任务，只请求一次列表')
+        isCrawling.value = false
+        // 只请求一次结果列表
+        await pollSearchResults()
+      }
+
       ElMessage.success(`已加载配置: ${config.dataName}`)
     } else {
       console.warn('配置缺少value字段:', config)
@@ -1436,6 +1471,64 @@ watch(
   },
   { deep: true }
 )
+
+// 保存搜索状态到配置
+const saveSearchStatusToConfig = async (status, progressInfo) => {
+  if (!selectedConfigId.value) {
+    console.log('[保存状态] 没有选中的配置ID，跳过保存')
+    return
+  }
+
+  try {
+    console.log(`[保存状态] 开始保存状态: ${status}`, progressInfo)
+
+    // 获取当前配置
+    const config = savedConfigs.value.find(c => c.id === selectedConfigId.value)
+    if (!config) {
+      console.error('[保存状态] 未找到配置')
+      return
+    }
+
+    // 解析现有的 value
+    let valueObj = {}
+    try {
+      valueObj = typeof config.value === 'string' ? JSON.parse(config.value) : config.value
+    } catch (e) {
+      console.error('[保存状态] 解析配置失败:', e)
+      valueObj = {}
+    }
+
+    // 添加搜索状态信息
+    valueObj.last_search_status = {
+      status: status,  // 'stopped', 'complete', 'error'
+      timestamp: Date.now(),
+      total: progressInfo?.total || 0,
+      current: progressInfo?.current || 0,
+      percentage: progressInfo?.percentage || 0
+    }
+
+    // 更新配置
+    const configData = {
+      id: selectedConfigId.value,
+      dataName: config.dataName,
+      key1: config.key1,
+      key2: config.key2,
+      value: JSON.stringify(valueObj)
+    }
+
+    const response = await axios.post(`${API_CONFIG.BASE_URL}/configV1/update`, configData)
+
+    if (response.data.success) {
+      console.log('[保存状态] 状态保存成功')
+      // 更新本地配置列表
+      await loadConfigList()
+    } else {
+      console.error('[保存状态] 保存失败:', response.data.message)
+    }
+  } catch (error) {
+    console.error('[保存状态] 保存失败:', error)
+  }
+}
 
 // 保存配置（直接保存，不弹窗）
 const saveConfig = async () => {
