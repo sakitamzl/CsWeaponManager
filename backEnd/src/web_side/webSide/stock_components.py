@@ -203,6 +203,9 @@ def get_components(steam_id):
         weapon_name = request.args.get('weapon_name', '')  # 磨损等级筛选
         weapon_level = request.args.get('weapon_level', '')  # 武器等级筛选
         assetid = request.args.get('assetid', '')  # 组件assetid筛选
+        pendant_filter = request.args.get('pendant_filter', '')  # 挂件筛选
+        sticker_filter = request.args.get('sticker_filter', '')  # 印花筛选
+        rename_filter = request.args.get('rename_filter', '')  # 改名筛选
         order_by = (request.args.get('order_by') or 'unit_price').lower()
         order_dir = (request.args.get('order_dir') or 'desc').lower()
         page = request.args.get('page', 1, type=int)
@@ -242,6 +245,24 @@ def get_components(steam_id):
         if weapon_level:
             where_conditions.append("weapon_level = ?")
             params.append(weapon_level)
+
+        # 挂件筛选
+        if pendant_filter == 'has':
+            where_conditions.append("(pendant IS NOT NULL AND pendant != '' AND pendant != 'None' AND pendant != '[]')")
+        elif pendant_filter == 'none':
+            where_conditions.append("(pendant IS NULL OR pendant = '' OR pendant = 'None' OR pendant = '[]')")
+
+        # 印花筛选
+        if sticker_filter == 'has':
+            where_conditions.append("(sticker IS NOT NULL AND sticker != '' AND sticker != 'None' AND sticker != '[]')")
+        elif sticker_filter == 'none':
+            where_conditions.append("(sticker IS NULL OR sticker = '' OR sticker = 'None' OR sticker = '[]')")
+
+        # 改名筛选
+        if rename_filter == 'has':
+            where_conditions.append("(rename IS NOT NULL AND rename != '' AND rename != 'None')")
+        elif rename_filter == 'none':
+            where_conditions.append("(rename IS NULL OR rename = '' OR rename = 'None')")
 
         where_clause = " AND ".join(where_conditions)
         
@@ -370,6 +391,9 @@ def get_components_stats(steam_id):
         weapon_type = request.args.get('weapon_type', '')
         weapon_name = request.args.get('weapon_name', '')  # 磨损等级筛选
         assetid = request.args.get('assetid', '')  # 组件assetid筛选
+        pendant_filter = request.args.get('pendant_filter', '')  # 挂件筛选
+        sticker_filter = request.args.get('sticker_filter', '')  # 印花筛选
+        rename_filter = request.args.get('rename_filter', '')  # 改名筛选
 
         db = DatabaseManager()
 
@@ -397,6 +421,24 @@ def get_components_stats(steam_id):
         if weapon_name:
             where_conditions.append("weapon_name = ?")
             params.append(weapon_name)
+
+        # 挂件筛选
+        if pendant_filter == 'has':
+            where_conditions.append("(pendant IS NOT NULL AND pendant != '' AND pendant != 'None' AND pendant != '[]')")
+        elif pendant_filter == 'none':
+            where_conditions.append("(pendant IS NULL OR pendant = '' OR pendant = 'None' OR pendant = '[]')")
+
+        # 印花筛选
+        if sticker_filter == 'has':
+            where_conditions.append("(sticker IS NOT NULL AND sticker != '' AND sticker != 'None' AND sticker != '[]')")
+        elif sticker_filter == 'none':
+            where_conditions.append("(sticker IS NULL OR sticker = '' OR sticker = 'None' OR sticker = '[]')")
+
+        # 改名筛选
+        if rename_filter == 'has':
+            where_conditions.append("(rename IS NOT NULL AND rename != '' AND rename != 'None')")
+        elif rename_filter == 'none':
+            where_conditions.append("(rename IS NULL OR rename = '' OR rename = 'None')")
 
         where_clause = " AND ".join(where_conditions)
         
@@ -463,6 +505,9 @@ def get_components_grouped(steam_id):
         weapon_type = request.args.get('weapon_type', '')  # 武器类型筛选
         weapon_name = request.args.get('weapon_name', '')  # 磨损等级筛选
         assetid = request.args.get('assetid', '')  # 组件assetid筛选
+        pendant_filter = request.args.get('pendant_filter', '')  # 挂件筛选
+        sticker_filter = request.args.get('sticker_filter', '')  # 印花筛选
+        rename_filter = request.args.get('rename_filter', '')  # 改名筛选
         page = request.args.get('page', 1, type=int)
         page_size = request.args.get('page_size', 20, type=int)
         order_by = (request.args.get('order_by') or 'unit_price').lower()
@@ -494,6 +539,24 @@ def get_components_grouped(steam_id):
         if weapon_name:
             where_conditions.append("weapon_name = ?")
             params.append(weapon_name)
+
+        # 挂件筛选
+        if pendant_filter == 'has':
+            where_conditions.append("(pendant IS NOT NULL AND pendant != '' AND pendant != 'None' AND pendant != '[]')")
+        elif pendant_filter == 'none':
+            where_conditions.append("(pendant IS NULL OR pendant = '' OR pendant = 'None' OR pendant = '[]')")
+
+        # 印花筛选
+        if sticker_filter == 'has':
+            where_conditions.append("(sticker IS NOT NULL AND sticker != '' AND sticker != 'None' AND sticker != '[]')")
+        elif sticker_filter == 'none':
+            where_conditions.append("(sticker IS NULL OR sticker = '' OR sticker = 'None' OR sticker = '[]')")
+
+        # 改名筛选
+        if rename_filter == 'has':
+            where_conditions.append("(rename IS NOT NULL AND rename != '' AND rename != 'None')")
+        elif rename_filter == 'none':
+            where_conditions.append("(rename IS NULL OR rename = '' OR rename = 'None')")
 
         where_clause = " AND ".join(where_conditions)
 

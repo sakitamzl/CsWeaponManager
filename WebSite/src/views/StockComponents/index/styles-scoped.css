@@ -686,6 +686,10 @@
   width: 200px;
 }
 
+.filter-select {
+  width: 100px;
+}
+
 .search-input {
   min-width: 200px;
   flex: 1;

@@ -77,6 +77,21 @@
             >
               <el-option v-for="name in weaponNames" :key="name" :label="name" :value="name" />
             </el-select>
+            <el-select v-model="pendantFilter" placeholder="挂件" class="filter-select" clearable @change="handleFilterChange">
+              <el-option label="全部" value="" />
+              <el-option label="有挂件" value="has" />
+              <el-option label="无挂件" value="none" />
+            </el-select>
+            <el-select v-model="stickerFilter" placeholder="印花" class="filter-select" clearable @change="handleFilterChange">
+              <el-option label="全部" value="" />
+              <el-option label="有印花" value="has" />
+              <el-option label="无印花" value="none" />
+            </el-select>
+            <el-select v-model="renameFilter" placeholder="改名" class="filter-select" clearable @change="handleFilterChange">
+              <el-option label="全部" value="" />
+              <el-option label="有改名" value="has" />
+              <el-option label="无改名" value="none" />
+            </el-select>
             <el-button type="primary" @click="handleSearch" :loading="loading">
               搜索
             </el-button>

@@ -65,19 +65,29 @@
 
         <!-- 数据源选择 (仅在自动获取数据时显示) - 单选 -->
         <el-form-item v-if="['auto_fetch', 'auto_platform_price'].includes(automateForm.automateType)" label="数据源">
-          <el-select 
-            v-model="automateForm.selectedDataSource" 
+          <el-select
+            v-model="automateForm.selectedDataSource"
             placeholder="请选择数据源"
             style="width: 300px"
             filterable
           >
-            <el-option 
-              v-for="source in filteredDataSources" 
-              :key="source.dataID" 
-              :label="`${source.dataName} (${source.steamID || '无SteamID'})`" 
-              :value="source.dataID" 
+            <el-option
+              v-for="source in filteredDataSources"
+              :key="source.dataID"
+              :label="`${source.dataName} (${source.steamID || '无SteamID'})`"
+              :value="source.dataID"
             />
           </el-select>
+        </el-form-item>
+
+        <!-- 是否同步历史数据 (仅在更新饰品平台映射价格 - 悠悠有品数据采集时显示) -->
+        <el-form-item
+          v-if="automateForm.automateType === 'auto_platform_price' && automateForm.selectedTask === 'platform_youpin_price'"
+          label="同步历史数据"
+        >
+          <el-checkbox v-model="automateForm.syncHistory">
+            是否将价格数据同步到历史表
+          </el-checkbox>
         </el-form-item>
 
         <!-- 搜索配置选择 (仅在自动搜素饰品时显示) -->

@@ -617,29 +617,29 @@ def recordPriceHistory():
     try:
         # 获取当前时间
         current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        
-        # 从weapon_classID表中查询所有有yyyp_Price的记录
+
+        # 从weapon_classID表中查询所有有yyyp_id的记录
         all_weapons = WeaponClassIDModel.find_all()
-        
+
         # 构建价格历史记录列表（包含所有字段）
         price_records = []
         for weapon in all_weapons:
-            # 只记录有steam_hash_name的记录
-            if weapon.steam_hash_name:
+            # 只记录有yyyp_id的记录
+            if hasattr(weapon, 'yyyp_id') and weapon.yyyp_id:
                 price_records.append({
-                    'steam_hash_name': weapon.steam_hash_name,
+                    'yyyp_id': weapon.yyyp_id,
                     'yyyp_price': weapon.yyyp_Price if hasattr(weapon, 'yyyp_Price') else None,
                     'yyyp_rent': weapon.yyyp_Rent if hasattr(weapon, 'yyyp_Rent') else None,
                     'yyyp_on_sale_count': weapon.yyyp_OnSaleCount if hasattr(weapon, 'yyyp_OnSaleCount') else None,
                     'yyyp_on_lease_count': weapon.yyyp_OnLeaseCount if hasattr(weapon, 'yyyp_OnLeaseCount') else None,
                     'record_time': current_time
                 })
-        
+
         # 批量插入价格历史记录
         if price_records:
             history_count = YyypWeaponPriceHistoryModel.batch_insert_price_records(price_records)
             print(f"✅ 成功记录 {history_count} 条价格历史数据（包含价格、租金、在售数量、出租数量）")
-            
+
             return jsonify({
                 'success': True,
                 'message': f'成功记录 {history_count} 条价格历史数据',
@@ -653,7 +653,7 @@ def recordPriceHistory():
                 'message': '没有找到需要记录的价格数据',
                 'count': 0
             }), 200
-            
+
     except Exception as e:
         print(f"记录价格历史失败: {e}")
         import traceback
@@ -664,22 +664,22 @@ def recordPriceHistory():
         }), 500
 
 
-@youpin898SelectWeaponV1.route('/getPriceHistory/<steam_hash_name>', methods=['GET'])
-def getPriceHistory(steam_hash_name):
+@youpin898SelectWeaponV1.route('/getPriceHistory/<int:yyyp_id>', methods=['GET'])
+def getPriceHistory(yyyp_id):
     """获取指定饰品的价格历史"""
     try:
         # 获取查询参数
         limit = request.args.get('limit', type=int)
-        
+
         # 查询价格历史
         if limit:
-            records = YyypWeaponPriceHistoryModel.find_by_steam_hash_name(steam_hash_name, limit=limit)
+            records = YyypWeaponPriceHistoryModel.find_by_yyyp_id(yyyp_id, limit=limit)
         else:
-            records = YyypWeaponPriceHistoryModel.find_by_steam_hash_name(steam_hash_name)
-        
+            records = YyypWeaponPriceHistoryModel.find_by_yyyp_id(yyyp_id)
+
         # 转换为字典列表
         data = [record.to_dict() for record in records]
-        
+
         return jsonify({
             'success': True,
             'data': data,
@@ -736,12 +736,12 @@ def getPriceHistoryByTimeRange():
         }), 500
 
 
-@youpin898SelectWeaponV1.route('/getLatestPrice/<steam_hash_name>', methods=['GET'])
-def getLatestPrice(steam_hash_name):
+@youpin898SelectWeaponV1.route('/getLatestPrice/<int:yyyp_id>', methods=['GET'])
+def getLatestPrice(yyyp_id):
     """获取指定饰品的最新价格记录"""
     try:
-        record = YyypWeaponPriceHistoryModel.get_latest_price(steam_hash_name)
-        
+        record = YyypWeaponPriceHistoryModel.get_latest_price(yyyp_id)
+
         if record:
             return jsonify({
                 'success': True,

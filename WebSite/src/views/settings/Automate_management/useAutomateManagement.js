@@ -13,7 +13,8 @@ export function useAutomateManagement() {
     selectedSteamConfig: '', // Steam配置的dataID
     selectedDataSource: '', // 单选数据源
     selectedSearchConfig: '', // 搜索配置
-    interval: 30
+    interval: 30,
+    syncHistory: true // 是否同步历史数据，默认为true
   })
   
   const customInterval = ref(automateForm.value.interval)
@@ -433,13 +434,13 @@ export function useAutomateManagement() {
         result = await refreshSteamAuth(steamId)
       } else if (automateType === 'auto_platform_price') {
         const selectedSource = dataSources.value.find(s => s.dataID === automateForm.value.selectedDataSource)
-        
+
         if (!selectedSource || !selectedSource.steamID) {
           throw new Error('未找到有效的数据源或缺少 Steam ID')
         }
-        
+
         if (taskType === 'platform_youpin_price') {
-          result = await syncYoupinPriceMapping(selectedSource.steamID)
+          result = await syncYoupinPriceMapping(selectedSource.steamID, automateForm.value.syncHistory)
         } else if (taskType === 'platform_buff_price') {
           result = await syncBuffPriceMapping(selectedSource.steamID)
         }
@@ -636,13 +637,13 @@ export function useAutomateManagement() {
   }
   
   // 更新悠悠有品饰品价格
-  const syncYoupinPriceMapping = async (steamId) => {
+  const syncYoupinPriceMapping = async (steamId, syncHistory = true) => {
     try {
       const response = await axios.post(
         apiUrls.youpinSyncTemplates(),
-        { steamId }
+        { steamId, syncHistory }
       )
-      
+
       if (response.data.success) {
         ElMessage.success(response.data.message || '悠悠有品饰品价格更新成功')
         return { success: true, message: response.data.message || '更新成功' }
@@ -759,7 +760,8 @@ export function useAutomateManagement() {
         selectedSteamConfig: automateForm.value.selectedSteamConfig, // Steam配置的dataID
         selectedDataSource: automateForm.value.selectedDataSource, // 单个数据源
         selectedSearchConfig: automateForm.value.selectedSearchConfig,
-        interval: automateForm.value.interval
+        interval: automateForm.value.interval,
+        syncHistory: automateForm.value.syncHistory // 是否同步历史数据
       }
       
       const response = await axios.post(
@@ -963,7 +965,8 @@ export function useAutomateManagement() {
       selectedSteamConfig: task.config.selectedSteamConfig || '',
       selectedDataSource: task.config.selectedDataSource || '',
       selectedSearchConfig: task.config.selectedSearchConfig || '',
-      interval: task.interval
+      interval: task.interval,
+      syncHistory: task.config.syncHistory !== undefined ? task.config.syncHistory : true
     }
     
     // 设置编辑状态
@@ -1020,7 +1023,8 @@ export function useAutomateManagement() {
           selectedSteamConfig: automateForm.value.selectedSteamConfig,
           selectedDataSource: automateForm.value.selectedDataSource,
           selectedSearchConfig: automateForm.value.selectedSearchConfig,
-          interval: automateForm.value.interval
+          interval: automateForm.value.interval,
+          syncHistory: automateForm.value.syncHistory
         }
       }
       
@@ -1167,9 +1171,10 @@ export function useAutomateManagement() {
       selectedSteamConfig: '',
       selectedDataSource: '',
       selectedSearchConfig: '',
-      interval: 30
+      interval: 30,
+      syncHistory: true
     }
-    
+
     // 清除编辑状态
     isEditing.value = false
     editingTaskId.value = null
@@ -1274,13 +1279,14 @@ export function useAutomateManagement() {
       } else if (automateType === 'auto_platform_price') {
         const dataSourceId = config.selectedDataSource
         const dataSource = dataSources.value.find(s => s.dataID === dataSourceId)
-        
+
         if (!dataSource || !dataSource.steamID) {
           throw new Error('未找到有效的数据源或缺少 Steam ID')
         }
-        
+
         if (taskType === 'platform_youpin_price') {
-          result = await syncYoupinPriceMapping(dataSource.steamID)
+          const syncHistory = config.syncHistory !== undefined ? config.syncHistory : true
+          result = await syncYoupinPriceMapping(dataSource.steamID, syncHistory)
         } else if (taskType === 'platform_buff_price') {
           result = await syncBuffPriceMapping(dataSource.steamID)
         }

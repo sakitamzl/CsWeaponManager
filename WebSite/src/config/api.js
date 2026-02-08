@@ -147,7 +147,7 @@ export const API_CONFIG = {
 
     SEARCH_WEAPON: (keyword) => `/webSelectWeaponV1/searchWeapon?keyword=${encodeURIComponent(keyword)}`,
 
-    SEARCH_WEAPON_DETAIL: (keyword) => `/webSelectWeaponV1/searchWeaponDetail?keyword=${encodeURIComponent(keyword)}`,
+    SEARCH_WEAPON_DETAIL: (keyword, exactMatch = false) => `/webSelectWeaponV1/searchWeaponDetail?keyword=${encodeURIComponent(keyword)}${exactMatch ? '&exactMatch=true' : ''}`,
 
     
 
@@ -640,7 +640,7 @@ export const apiUrls = {
 
   searchWeapon: (keyword) => getApiUrl(API_CONFIG.ENDPOINTS.SEARCH_WEAPON(keyword)),
 
-  searchWeaponDetail: (keyword) => getApiUrl(API_CONFIG.ENDPOINTS.SEARCH_WEAPON_DETAIL(keyword)),
+  searchWeaponDetail: (keyword, exactMatch = false) => getApiUrl(API_CONFIG.ENDPOINTS.SEARCH_WEAPON_DETAIL(keyword, exactMatch)),
 
   
 

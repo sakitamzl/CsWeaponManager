@@ -309,10 +309,11 @@ def getWeaponNames():
 @webSelectWeaponV1.route('/searchWeaponDetail', methods=['GET'])
 def searchWeaponDetail():
     """
-    根据market_listing_item_name模糊搜索武器详细信息（用于表格展示）
-    参数: 
+    根据market_listing_item_name搜索武器详细信息（用于表格展示）
+    参数:
         platformType - 平台类型：youpin 或 buff（必填）
         keyword - 搜索关键词（可选）
+        exactMatch - 是否精确匹配（可选，默认false，true时使用=，false时使用LIKE）
         weaponType - 武器类型筛选（可选）
         weaponName - 武器名称筛选（可选）
         rarity - 稀有度筛选（可选）
@@ -327,6 +328,7 @@ def searchWeaponDetail():
     try:
         platform_type = request.args.get('platformType', 'youpin')
         keyword = request.args.get('keyword', '')
+        exact_match = request.args.get('exactMatch', 'false').lower() == 'true'
         weapon_type = request.args.get('weaponType', '')
         weapon_name = request.args.get('weaponName', '')
         rarity = request.args.get('rarity', '')
@@ -335,16 +337,23 @@ def searchWeaponDetail():
         min_on_sale_count = request.args.get('minOnSaleCount', '')
         page = int(request.args.get('page', 1))
         limit = int(request.args.get('limit', 50))
-        
+
         # 构建查询条件
         where_clauses = []
         params = []
 
-        # 如果提供了关键词，使用精确查询（完全匹配）
+        # 如果提供了关键词，根据 exactMatch 参数选择查询方式
         if keyword and len(keyword.strip()) > 0:
-            where_clauses.append("([market_listing_item_name] = ? OR [steam_hash_name] = ?)")
-            params.append(keyword.strip())
-            params.append(keyword.strip())
+            if exact_match:
+                # 精确匹配（用于URL参数跳转）
+                where_clauses.append("([market_listing_item_name] = ? OR [steam_hash_name] = ?)")
+                params.append(keyword.strip())
+                params.append(keyword.strip())
+            else:
+                # 模糊匹配（用于输入框搜索）
+                where_clauses.append("([market_listing_item_name] LIKE ? OR [steam_hash_name] LIKE ?)")
+                params.append(f"%{keyword.strip()}%")
+                params.append(f"%{keyword.strip()}%")
         
         # 如果指定了武器类型
         if weapon_type and len(weapon_type.strip()) > 0:

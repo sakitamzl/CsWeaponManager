@@ -189,7 +189,7 @@ export function useItemSearch() {
   }
 
   // 搜索武器详情
-  const handleSearchWeapon = async (autoSearchAll = false) => {
+  const handleSearchWeapon = async (autoSearchAll = false, exactMatch = false) => {
     if (!searchKeyword.value.trim()) {
       ElMessage.warning('请输入搜索关键词')
       return
@@ -200,9 +200,9 @@ export function useItemSearch() {
     currentPage.value = 1
 
     try {
-      console.log('搜索武器:', searchKeyword.value)
+      console.log('搜索武器:', searchKeyword.value, '精确匹配:', exactMatch)
 
-      const response = await axios.get(apiUrls.searchWeaponDetail(searchKeyword.value.trim()))
+      const response = await axios.get(apiUrls.searchWeaponDetail(searchKeyword.value.trim(), exactMatch))
 
       if (response.data.success) {
         searchResults.value = response.data.data || []
@@ -1965,8 +1965,8 @@ export function useItemSearch() {
       searchKeyword.value = decodeURIComponent(keyword)
       // 延迟执行搜索，确保页面已完全加载
       setTimeout(() => {
-        // 从URL参数跳转时，启用自动"全部搜索"功能
-        handleSearchWeapon(true)
+        // 从URL参数跳转时，启用自动"全部搜索"功能，并使用精确匹配
+        handleSearchWeapon(true, true)  // autoSearchAll=true, exactMatch=true
       }, 300)
     }
   })

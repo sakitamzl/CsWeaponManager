@@ -32,6 +32,9 @@ export function useStockComponents() {
   const autoFillLoading = ref(false)
   const platformPriceLoading = ref(false)
   const searchText = ref('')
+  const pendantFilter = ref('')
+  const stickerFilter = ref('')
+  const renameFilter = ref('')
 
   // 视图模式持久化：默认卡片；如果本地保存了选择则恢复
   const persistedDisplayMode = safeGetLocalStorage(STORAGE_KEYS.displayMode)
@@ -382,6 +385,22 @@ export function useStockComponents() {
     loadComponentStats()
   }
 
+  const handleFilterChange = () => {
+    console.log('筛选条件已变更')
+    currentPage.value = 1
+    currentOffset.value = 0
+
+    // 根据当前显示模式决定加载哪个数据
+    if (displayMode.value === 'card') {
+      loadComponentData()
+    } else {
+      groupMode.value ? loadGroupedData() : loadComponentData()
+    }
+
+    // 重新加载统计数据
+    loadComponentStats()
+  }
+
   const loadInventoryComponents = async () => {
     if (!selectedSteamId.value) {
       return
@@ -501,6 +520,17 @@ export function useStockComponents() {
         params.weapon_name = weaponNameFilter.value
       }
 
+      // 添加挂件、印花、改名筛选参数
+      if (pendantFilter.value) {
+        params.pendant_filter = pendantFilter.value
+      }
+      if (stickerFilter.value) {
+        params.sticker_filter = stickerFilter.value
+      }
+      if (renameFilter.value) {
+        params.rename_filter = renameFilter.value
+      }
+
       const response = await axios.get(`${API_COMPONENTS}/components/${selectedSteamId.value}`, {
         params: params
       })
@@ -579,6 +609,17 @@ export function useStockComponents() {
         params.weapon_name = weaponNameFilter.value
       }
 
+      // 添加挂件、印花、改名筛选参数
+      if (pendantFilter.value) {
+        params.pendant_filter = pendantFilter.value
+      }
+      if (stickerFilter.value) {
+        params.sticker_filter = stickerFilter.value
+      }
+      if (renameFilter.value) {
+        params.rename_filter = renameFilter.value
+      }
+
       const response = await axios.get(`${API_COMPONENTS_GROUPED}/${selectedSteamId.value}`, {
         params: params
       })
@@ -636,6 +677,17 @@ export function useStockComponents() {
       // 添加磨损等级筛选
       if (weaponNameFilter.value) {
         params.weapon_name = weaponNameFilter.value
+      }
+
+      // 添加挂件、印花、改名筛选参数
+      if (pendantFilter.value) {
+        params.pendant_filter = pendantFilter.value
+      }
+      if (stickerFilter.value) {
+        params.sticker_filter = stickerFilter.value
+      }
+      if (renameFilter.value) {
+        params.rename_filter = renameFilter.value
       }
 
       // 添加组件assetid筛选
@@ -801,6 +853,9 @@ export function useStockComponents() {
     selectedComponent.value = ''
     weaponTypeFilter.value = ''
     weaponNameFilter.value = ''
+    pendantFilter.value = ''
+    stickerFilter.value = ''
+    renameFilter.value = ''
     currentPage.value = 1
     currentOffset.value = 0
 
@@ -1669,6 +1724,9 @@ export function useStockComponents() {
     weaponTypes,
     weaponNameFilter,
     weaponNames,
+    pendantFilter,
+    stickerFilter,
+    renameFilter,
     currentPage,
     pageSize,
     totalItems,
@@ -1713,6 +1771,7 @@ export function useStockComponents() {
     handleClearSearch,
     handleWeaponTypeChange,
     handleWeaponNameChange,
+    handleFilterChange,
     handleSteamIdChange,
     handleComponentSelect,
     handleUpdateComponent,
