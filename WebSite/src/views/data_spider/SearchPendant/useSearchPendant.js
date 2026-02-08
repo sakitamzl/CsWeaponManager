@@ -18,7 +18,7 @@ export function useSearchPendant() {
   const crawlResult = ref(null)
 
   const pollingTimer = ref(null)
-  // 轮询间隔（毫秒）：按需求改为 3 秒一次
+  // 轮询间隔（毫秒）：与后端进度更新保持一致，都是3秒
   const POLL_INTERVAL = 3000
   const noDataCount = ref(0)
   const MAX_NO_DATA_COUNT = 60
@@ -234,6 +234,14 @@ export function useSearchPendant() {
                   timestamp: Date.now()
                 })
                 saveProgressToStorage(selectedConfigId.value)
+                // 定期保存 processing 状态（每10个更新保存一次，避免频繁写入）
+                if (current % 10 === 0) {
+                  await saveSearchStatusToConfig('processing', {
+                    total,
+                    current,
+                    percentage
+                  })
+                }
                 break
 
               case 'weapon_complete':
@@ -1343,10 +1351,45 @@ const selectConfig = async (configId) => {
       console.log('=== 配置加载完成 ===')
 
       // 检查搜索状态，判断是否需要轮询
-      const lastSearchStatus = valueObj.last_search_status
-      const isSearching = lastSearchStatus &&
-                         lastSearchStatus.status === 'running' &&
-                         (Date.now() - lastSearchStatus.timestamp < 24 * 60 * 60 * 1000)  // 24小时内
+      // 首先尝试从后端获取实时状态
+      let isSearching = false
+      try {
+        const progressResp = await fetch(
+          `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/get_pendant_search_progress`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ config_id: configId })
+          }
+        )
+
+        if (progressResp.ok) {
+          const progressResult = await progressResp.json()
+          if (progressResult.success && progressResult.data) {
+            const progressType = progressResult.data.type
+            // 如果后端返回 processing、start 等状态，说明正在搜索
+            if (progressType === 'processing' || progressType === 'start') {
+              isSearching = true
+              console.log(`[配置加载] 后端返回状态: ${progressType}，判定为正在搜索`)
+            } else {
+              console.log(`[配置加载] 后端返回状态: ${progressType}，判定为未在搜索`)
+            }
+          }
+        }
+      } catch (err) {
+        console.log('[配置加载] 获取后端状态失败，使用本地状态判断:', err.message)
+      }
+
+      // 如果后端没有返回搜索中状态，检查本地配置中的状态
+      if (!isSearching) {
+        const lastSearchStatus = valueObj.last_search_status
+        isSearching = lastSearchStatus &&
+                     (lastSearchStatus.status === 'running' || lastSearchStatus.status === 'processing') &&
+                     (Date.now() - lastSearchStatus.timestamp < 24 * 60 * 60 * 1000)  // 24小时内
+        if (isSearching) {
+          console.log('[配置加载] 本地状态判定为正在搜索')
+        }
+      }
 
       if (isSearching) {
         console.log('[配置加载] 检测到正在搜索中，启动轮询')
