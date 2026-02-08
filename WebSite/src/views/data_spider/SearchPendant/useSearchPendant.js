@@ -545,7 +545,8 @@ export function useSearchPendant() {
   '最大溢价': 200,
   '印花板': false,
   '高光': false,
-  '收益不少于': 3
+  '收益不少于': 3,
+  '在售不少于': 100
 })
 
 const booleanOptions = [
@@ -759,6 +760,10 @@ const buildCustomConfig = () => ({
     customConfigForm.value['收益不少于'],
     0
   ),
+  '在售不少于': normalizeNumberValue(
+    customConfigForm.value['在售不少于'],
+    100
+  ),
   '是否授权': true
 })
 
@@ -809,6 +814,10 @@ const applyCustomConfig = (config = {}) => {
     '收益不少于': normalizeNumberValue(
       config['收益不少于'],
       defaults['收益不少于']
+    ),
+    '在售不少于': normalizeNumberValue(
+      config['在售不少于'],
+      defaults['在售不少于']
     )
   }
   nextTick(() => {
@@ -930,11 +939,14 @@ const startCrawl = async () => {
 
     confirmMessage += `\n查询间隔: ${customConfig['饰品自动查询间隔']} 秒`
     confirmMessage += `\n自动购买: ${customConfig['是否自动购买'] ? '是' : '否'}`
-    confirmMessage += `\n最大差价百分比: ${customConfig['最大差价百分比']}%`
+    // confirmMessage += `\n最大差价百分比: ${customConfig['最大差价百分比']}%`  // 已废弃
     confirmMessage += `\n最大溢价: ${customConfig['最大溢价']} 元`
     confirmMessage += `\n印花板: ${customConfig['印花板'] ? '是' : '否'}`
     confirmMessage += `\n高光: ${customConfig['高光'] ? '是' : '否'}`
     confirmMessage += `\n收益不少于: ${customConfig['收益不少于']} 元`
+    if (crawlForm.value.searchMode === 'by_price_range') {
+      confirmMessage += `\n在售不少于: ${customConfig['在售不少于']} 件`
+    }
 
     await ElMessageBox.confirm(
       confirmMessage,
@@ -957,26 +969,92 @@ const startCrawl = async () => {
   ElMessage.info('正在启动查询任务...')
 
   try {
+    // 如果是按价格区间查询，先从数据库筛选符合条件的饰品
+    let filteredWeaponIds = null
+    if (crawlForm.value.searchMode === 'by_price_range') {
+      try {
+        ElMessage.info('正在从数据库筛选符合条件的饰品...')
+
+        // 构建URL参数
+        const params = new URLSearchParams()
+        if (crawlForm.value.priceMin !== null && crawlForm.value.priceMin !== '') {
+          params.append('price_min', crawlForm.value.priceMin)
+        }
+        if (crawlForm.value.priceMax !== null && crawlForm.value.priceMax !== '') {
+          params.append('price_max', crawlForm.value.priceMax)
+        }
+        if (customConfig['在售不少于']) {
+          params.append('min_on_sale_count', customConfig['在售不少于'])
+        }
+        if (crawlForm.value.weaponType && crawlForm.value.weaponType.length > 0) {
+          params.append('weapon_types', crawlForm.value.weaponType.join(','))
+        }
+
+        const url = `${apiUrls.searchWeaponByPriceRange()}?${params.toString()}`
+        console.log('[挂件搜索] 数据库筛选URL:', url)
+
+        const filterResponse = await axios.get(url)
+
+        if (filterResponse.data.success && filterResponse.data.data) {
+          const weapons = filterResponse.data.data
+          console.log(`[挂件搜索] 从数据库筛选出 ${weapons.length} 个符合条件的饰品`)
+
+          if (weapons.length === 0) {
+            ElMessage.warning('数据库中没有符合条件的饰品')
+            isCrawling.value = false
+            return
+          }
+
+          // 后端返回的数据格式已经是 [{id, name}]
+          filteredWeaponIds = weapons.filter(w => w.id)  // 过滤掉没有ID的饰品
+
+          console.log(`[挂件搜索] 筛选后有效饰品数量: ${filteredWeaponIds.length}`)
+
+          if (filteredWeaponIds.length === 0) {
+            ElMessage.warning('筛选后没有有效的饰品ID')
+            isCrawling.value = false
+            return
+          }
+
+          ElMessage.success(`已筛选出 ${filteredWeaponIds.length} 个符合条件的饰品`)
+        } else {
+          throw new Error(filterResponse.data.message || '数据库筛选失败')
+        }
+      } catch (filterError) {
+        console.error('[挂件搜索] 数据库筛选失败:', filterError)
+        ElMessage.error('数据库筛选失败: ' + (filterError.message || '未知错误'))
+        isCrawling.value = false
+        return
+      }
+    }
+
     // 构建基础配置
     const spiderConfig = {
       steam_id: crawlForm.value.crawlAccountId,
       search_mode: crawlForm.value.searchMode,  // 查询模式
       weapon_type: crawlForm.value.weaponType || [],  // 武器类型(多选数组)
-      最大差价百分比: customConfig['最大差价百分比'],
+      // 最大差价百分比: customConfig['最大差价百分比'],  // 已废弃
       最大溢价: customConfig['最大溢价'],
       饰品自动查询间隔: customConfig['饰品自动查询间隔'],
       是否自动购买: customConfig['是否自动购买'],
       印花板: customConfig['印花板'],
       高光: customConfig['高光'],
-      收益不少于: customConfig['收益不少于']
+      收益不少于: customConfig['收益不少于'],
+      在售不少于: customConfig['在售不少于']
     }
 
     // 根据查询模式添加不同的参数
     if (crawlForm.value.searchMode === 'by_weapon_id') {
       spiderConfig.weapon_id = crawlForm.value.weaponId
     } else if (crawlForm.value.searchMode === 'by_price_range') {
-      spiderConfig.price_min = crawlForm.value.priceMin
-      spiderConfig.price_max = crawlForm.value.priceMax
+      // 使用筛选后的饰品ID列表
+      if (filteredWeaponIds && filteredWeaponIds.length > 0) {
+        spiderConfig.weapon_id = filteredWeaponIds
+      } else {
+        // 如果没有筛选结果，仍然传递价格区间参数（后端兼容）
+        spiderConfig.price_min = crawlForm.value.priceMin
+        spiderConfig.price_max = crawlForm.value.priceMax
+      }
     }
 
     // 如果有选中的配置ID，传递给后端

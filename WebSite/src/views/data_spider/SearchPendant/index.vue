@@ -317,6 +317,20 @@
                   </div>
                 </div>
 
+                <!-- 按价格区间查询：显示在售不少于输入 -->
+                <div class="custom-config-field" v-if="crawlForm.searchMode === 'by_price_range'">
+                  <div class="field-label">在售不少于</div>
+                  <div class="field-control no-spinner">
+                    <el-input
+                      v-model.number="customConfigForm['在售不少于']"
+                      type="number"
+                      placeholder="例如 100"
+                      min="0"
+                      style="width: 100px;"
+                    />
+                  </div>
+                </div>
+
                 <!-- 按价格区间查询：显示价格区间输入 -->
                 <div class="custom-config-field price-range-field" v-if="crawlForm.searchMode === 'by_price_range'">
                   <div class="field-label">价格区间</div>

@@ -648,6 +648,7 @@ def queryWeaponsByPriceRange():
         price_min - 最低价格（可选，使用yyyp_price字段）
         price_max - 最高价格（可选，使用yyyp_price字段）
         weapon_types - 武器类型列表，逗号分隔（可选，例如: "手枪,步枪,冲锋枪"）
+        min_on_sale_count - 最小在售数量（可选，默认10）
 
     返回:
         {
@@ -662,13 +663,14 @@ def queryWeaponsByPriceRange():
     逻辑：
         1. 根据price_min和price_max过滤yyyp_price字段
         2. 根据weapon_types过滤weapon_type字段（手枪、步枪、冲锋枪、散弹枪、机枪）
-        3. 自动过滤：价格 >= 1 且在售数量 >= 10
+        3. 自动过滤：价格 >= 1 且在售数量 >= min_on_sale_count（默认10）
         4. 返回 yyyp_id 和 market_listing_item_name
     """
     try:
         price_min = request.args.get('price_min', '')
         price_max = request.args.get('price_max', '')
         weapon_types_str = request.args.get('weapon_types', '')
+        min_on_sale_count_str = request.args.get('min_on_sale_count', '100')
 
         # 构建查询条件
         where_clauses = []
@@ -685,10 +687,16 @@ def queryWeaponsByPriceRange():
         # 组合查询条件
         where_clause = " AND ".join(where_clauses) if where_clauses else None
 
+        # 解析最小在售数量参数
+        try:
+            min_on_sale_count = int(min_on_sale_count_str) if min_on_sale_count_str else 100
+        except (ValueError, TypeError):
+            min_on_sale_count = 100
+
         logger.write_log(
             f"[queryWeaponsByPriceRange] 开始查询 - "
             f"price_min={price_min}, price_max={price_max}, "
-            f"weapon_types={weapon_types_str}",
+            f"weapon_types={weapon_types_str}, min_on_sale_count={min_on_sale_count}",
             'INFO'
         )
 
@@ -731,12 +739,12 @@ def queryWeaponsByPriceRange():
                 except (ValueError, TypeError):
                     pass
 
-            # 3. 自动过滤：在售数量 >= 10
+            # 3. 用户指定的在售数量过滤（最小在售数量）
             on_sale_count_str = record.yyyp_OnSaleCount
             if on_sale_count_str:
                 try:
                     on_sale_count = int(on_sale_count_str)
-                    if on_sale_count < 10:
+                    if on_sale_count < min_on_sale_count:
                         continue
                 except (ValueError, TypeError):
                     continue

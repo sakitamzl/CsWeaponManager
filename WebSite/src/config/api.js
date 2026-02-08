@@ -149,6 +149,8 @@ export const API_CONFIG = {
 
     SEARCH_WEAPON_DETAIL: (keyword, exactMatch = false) => `/webSelectWeaponV1/searchWeaponDetail?keyword=${encodeURIComponent(keyword)}${exactMatch ? '&exactMatch=true' : ''}`,
 
+    SEARCH_WEAPON_BY_PRICE_RANGE: '/webSelectWeaponV1/queryWeaponsByPriceRange',  // 按价格区间查询饰品（带在售数量筛选）
+
     
 
     // 类型和磨损等级搜索相关
@@ -640,6 +642,8 @@ export const apiUrls = {
   searchWeapon: (keyword) => getApiUrl(API_CONFIG.ENDPOINTS.SEARCH_WEAPON(keyword)),
 
   searchWeaponDetail: (keyword, exactMatch = false) => getApiUrl(API_CONFIG.ENDPOINTS.SEARCH_WEAPON_DETAIL(keyword, exactMatch)),
+
+  searchWeaponByPriceRange: () => getApiUrl(API_CONFIG.ENDPOINTS.SEARCH_WEAPON_BY_PRICE_RANGE),
 
   
 
