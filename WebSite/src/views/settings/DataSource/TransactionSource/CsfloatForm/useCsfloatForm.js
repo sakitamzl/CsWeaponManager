@@ -109,10 +109,24 @@ export default function useCsfloatForm(props, { emit }) {
       }
     }
 
-    onBeforeUnmount(() => {
+    // 清理方法 - 用于对话框关闭时调用
+    const cleanup = async () => {
+      // 清除轮询定时器
       if (tokenCheckTimer.value) {
         clearInterval(tokenCheckTimer.value)
+        tokenCheckTimer.value = null
       }
+
+      // 停止SSL代理服务
+      await stopCsfloatTokenCollection()
+
+      // 重置状态
+      csfloatTokenLoading.value = false
+      csfloatTokenStatus.value = ''
+    }
+
+    onBeforeUnmount(() => {
+      cleanup()
     })
 
     return {
@@ -122,6 +136,7 @@ export default function useCsfloatForm(props, { emit }) {
       csfloatTokenLoading,
       csfloatTokenStatus,
       collapseState,
-      startCsfloatTokenCollection
+      startCsfloatTokenCollection,
+      cleanup
     }
   }

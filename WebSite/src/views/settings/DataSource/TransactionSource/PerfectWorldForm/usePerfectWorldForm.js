@@ -107,10 +107,24 @@ export default function usePerfectWorldForm(props, { emit }) {
       }
     }
 
-    onBeforeUnmount(() => {
+    // 清理方法 - 用于对话框关闭时调用
+    const cleanup = async () => {
+      // 清除轮询定时器
       if (tokenCheckTimer.value) {
         clearInterval(tokenCheckTimer.value)
+        tokenCheckTimer.value = null
       }
+
+      // 停止SSL代理服务
+      await stopPerfectWorldTokenCollection()
+
+      // 重置状态
+      perfectWorldTokenLoading.value = false
+      perfectWorldTokenStatus.value = ''
+    }
+
+    onBeforeUnmount(() => {
+      cleanup()
     })
 
     return {
@@ -120,6 +134,7 @@ export default function usePerfectWorldForm(props, { emit }) {
       perfectWorldTokenLoading,
       perfectWorldTokenStatus,
       collapseState,
-      startPerfectWorldTokenCollection
+      startPerfectWorldTokenCollection,
+      cleanup
     }
   }

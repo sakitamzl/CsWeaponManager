@@ -315,6 +315,7 @@ export default {
 
               return {
                 id: item.id,
+                commodity_id: item.commodityId || item.id,  // 商品ID，用于改价等操作
                 item_name: item.name,
                 steam_hash_name: item.commodityHashName,  // 租赁API返回的是commodityHashName
                 sale_price: item.shortLeaseAmount || item.longLeaseAmount || 0,  // 租金（短期或长期）
@@ -380,6 +381,7 @@ export default {
 
               return {
                 id: item.id,
+                commodity_id: item.commodityId || item.id,  // 商品ID，用于改价等操作
                 order_no: item.orderNo || item.id,  // 订单号，用于取消转租
                 item_name: item.name,
                 steam_hash_name: item.commodityHashName,  // 转租API返回的是commodityHashName
@@ -960,86 +962,47 @@ export default {
         // 判断是批量改价还是单个改价
         const isBatch = selectedItems.value.length > 0 && !selectedItem.value
 
-        // 构建请求数据
-        let requestData
+        // 统一使用 Commoditys 数组格式（单个和批量都使用同一个API）
+        const itemsToProcess = isBatch ? selectedItems.value : [selectedItem.value]
 
-        if (isBatch) {
-          // 批量改价 - 构建每个商品的 rentConfig
-          const rentConfigs = submitData.items.map((formItem, index) => {
-            const originalItem = selectedItems.value[index]
+        const Commoditys = submitData.items.map((formItem, index) => {
+          const originalItem = itemsToProcess[index]
 
-            const config = {
-              CommodityId: parseInt(originalItem.commodity_id || originalItem.id),
-              CompensationType: 7,
-              IsCanLease: true,
-              IsCanSold: submitData.tradeMode === 2,
-              LeaseDeposit: String(formItem.depositPrice),
-              LeaseMaxDays: submitData.rentDays,
-              LeaseUnitPrice: formItem.longRentPrice || formItem.shortRentPrice,
-              NomarlChargePercent: "0.25",
-              OpenLeaseActivity: submitData.services?.rentActivity || false,
-              OriginCompensationType: 7,
-              Remark: "",
-              SupportZeroCD: submitData.services?.zeroCooldown ? 1 : 0,
-              UseDepositSafeguard: 1,
-              VipChargePercent: "0.2",
-              VipSwitchStatus: 1
-            }
-
-            if (submitData.services?.zeroCooldown) {
-              config.ZeroCDConfig = {
-                MinCoefficient: "95",
-                PricingType: 0
-              }
-            }
-
-            return config
-          })
-
-          requestData = {
-            steamId: steamId.value,
-            rentConfigs: rentConfigs
-          }
-        } else {
-          // 单个改价
-          const item = selectedItem.value
-          const priceData = submitData.items[0]
-
-          // 构建 rentConfig 对象（符合悠悠有品API格式）
-          const rentConfig = {
-            CommodityId: parseInt(item.commodity_id || item.id),
-            CompensationType: 7, // 默认赔付类型
+          const config = {
+            CommodityId: parseInt(originalItem.commodity_id || originalItem.id),
+            CompensationType: 7,
             IsCanLease: true,
-            IsCanSold: submitData.tradeMode === 2, // 2=可租可售, 1=仅租赁
-            LeaseDeposit: String(priceData.depositPrice),
+            IsCanSold: submitData.tradeMode === 2,
+            LeaseDeposit: String(formItem.depositPrice),
             LeaseMaxDays: submitData.rentDays,
-            LeaseUnitPrice: priceData.longRentPrice || priceData.shortRentPrice, // 长租价格，如果没有则用短租
-            NomarlChargePercent: "0.25", // 普通服务费率
-            OpenLeaseActivity: submitData.services?.rentActivity || false, // 租送活动
+            LeaseUnitPrice: formItem.shortRentPrice,  // 短租单价
+            LongLeaseUnitPrice: formItem.longRentPrice,  // 长租单价
+            NomarlChargePercent: "0.25",
+            OpenLeaseActivity: submitData.services?.rentActivity || false,
             OriginCompensationType: 7,
             Remark: "",
-            SupportZeroCD: submitData.services?.zeroCooldown ? 1 : 0, // 0CD出租
-            UseDepositSafeguard: 1, // 使用押金保障
-            VipChargePercent: "0.2", // VIP服务费率
+            SupportZeroCD: submitData.services?.zeroCooldown ? 1 : 0,
+            UseDepositSafeguard: 1,
+            VipChargePercent: "0.2",
             VipSwitchStatus: 1
           }
 
-          // 如果启用0CD，添加0CD配置
           if (submitData.services?.zeroCooldown) {
-            rentConfig.ZeroCDConfig = {
+            config.ZeroCDConfig = {
               MinCoefficient: "95",
               PricingType: 0
             }
           }
 
-          requestData = {
-            steamId: steamId.value,
-            commodityId: String(item.commodity_id || item.id),
-            rentConfig: rentConfig
-          }
+          return config
+        })
+
+        const requestData = {
+          steamId: steamId.value,
+          commodities: Commoditys
         }
 
-        // 批量和单个都使用同一个接口
+        // 单个和批量都使用同一个API
         const apiUrl = apiUrls.yyypChangeRentPrice()
         console.log(`[租赁改价] 调用API: ${apiUrl}`, requestData)
 

@@ -159,6 +159,7 @@
         <!-- 悠悠有品特有配置 -->
         <YoupinForm
           v-if="editForm.type === 'youpin'"
+          ref="youpinFormRef"
           :form="editForm"
           :is-edit-mode="true"
           :proxy-address="proxyAddress"
@@ -170,6 +171,7 @@
         <!-- BUFF特有配置 -->
         <BuffForm
           v-else-if="editForm.type === 'buff'"
+          ref="buffFormRef"
           :form="editForm"
           :is-edit-mode="true"
           :proxy-address="proxyAddress"
@@ -190,6 +192,7 @@
         <!-- 完美世界APP特有配置 -->
         <PerfectWorldForm
           v-else-if="editForm.type === 'perfectworld'"
+          ref="perfectWorldFormRef"
           :form="editForm"
           :is-edit-mode="true"
           :proxy-address="proxyAddress"
@@ -201,6 +204,7 @@
         <!-- CsFloat特有配置 -->
         <CsfloatForm
           v-else-if="editForm.type === 'csfloat'"
+          ref="csfloatFormRef"
           :form="editForm"
           :is-edit-mode="true"
           :proxy-address="proxyAddress"
@@ -388,6 +392,7 @@
         <!-- BUFF特有配置 -->
         <BuffForm
           v-if="inputForm.type === 'buff'"
+          ref="buffFormRef"
           :form="inputForm"
           :is-edit-mode="false"
           :proxy-address="proxyAddress"
@@ -824,6 +829,7 @@
         <!-- 完美世界APP特有配置 -->
         <PerfectWorldForm
           v-else-if="inputForm.type === 'perfectworld'"
+          ref="perfectWorldFormRef"
           :form="inputForm"
           :is-edit-mode="false"
           :proxy-address="proxyAddress"
@@ -928,6 +934,7 @@
         <!-- CsFloat特有配置 -->
         <CsfloatForm
           v-else-if="inputForm.type === 'csfloat'"
+          ref="csfloatFormRef"
           :form="inputForm"
           :is-edit-mode="false"
           :proxy-address="proxyAddress"
@@ -1065,6 +1072,7 @@
         <!-- 悠悠有品特有配置 -->
         <YoupinForm
           v-if="inputForm.type === 'youpin'"
+          ref="youpinFormRef"
           :form="inputForm"
           :is-edit-mode="false"
           :proxy-address="proxyAddress"

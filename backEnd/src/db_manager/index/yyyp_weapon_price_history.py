@@ -22,11 +22,11 @@ class YyypWeaponPriceHistoryModel(BaseModel):
         字段说明：
         - id: 自增主键
         - yyyp_id: 悠悠有品模板ID（关联weapon_classID表）
-        - yyyp_price: 悠悠有品价格
-        - yyyp_rent: 悠悠有品租金
-        - yyyp_on_sale_count: 悠悠有品在售数量
-        - yyyp_on_lease_count: 悠悠有品出租数量
-        - record_time: 记录时间
+        - yyyp_price: 悠悠有品价格（浮点数）
+        - yyyp_rent: 悠悠有品租金（浮点数）
+        - yyyp_on_sale_count: 悠悠有品在售数量（整数）
+        - yyyp_on_lease_count: 悠悠有品出租数量（整数）
+        - record_time: 记录时间（DATETIME类型）
         """
         return {
             'id': {
@@ -41,27 +41,27 @@ class YyypWeaponPriceHistoryModel(BaseModel):
                 'default': None
             },
             'yyyp_price': {
-                'type': 'TEXT',
+                'type': 'REAL',
                 'not_null': False,
                 'default': None
             },
             'yyyp_rent': {
-                'type': 'TEXT',
+                'type': 'REAL',
                 'not_null': False,
                 'default': None
             },
             'yyyp_on_sale_count': {
-                'type': 'TEXT',
+                'type': 'INTEGER',
                 'not_null': False,
                 'default': None
             },
             'yyyp_on_lease_count': {
-                'type': 'TEXT',
+                'type': 'INTEGER',
                 'not_null': False,
                 'default': None
             },
             'record_time': {
-                'type': 'TEXT',
+                'type': 'DATETIME',
                 'not_null': True,
                 'default': None
             }
@@ -112,6 +112,27 @@ class YyypWeaponPriceHistoryModel(BaseModel):
                 if not yyyp_id or not record_time:
                     print(f"价格记录缺少必要字段，跳过: {record}")
                     continue
+
+                # 类型转换：确保价格和租金为float，数量为int
+                try:
+                    yyyp_price = float(yyyp_price) if yyyp_price is not None and yyyp_price != '' else None
+                except (ValueError, TypeError):
+                    yyyp_price = None
+
+                try:
+                    yyyp_rent = float(yyyp_rent) if yyyp_rent is not None and yyyp_rent != '' else None
+                except (ValueError, TypeError):
+                    yyyp_rent = None
+
+                try:
+                    yyyp_on_sale_count = int(yyyp_on_sale_count) if yyyp_on_sale_count is not None and yyyp_on_sale_count != '' else None
+                except (ValueError, TypeError):
+                    yyyp_on_sale_count = None
+
+                try:
+                    yyyp_on_lease_count = int(yyyp_on_lease_count) if yyyp_on_lease_count is not None and yyyp_on_lease_count != '' else None
+                except (ValueError, TypeError):
+                    yyyp_on_lease_count = None
 
                 sql_insert = f'''INSERT INTO {cls.get_table_name()}
                                 ([yyyp_id], [yyyp_price], [yyyp_rent], [yyyp_on_sale_count],

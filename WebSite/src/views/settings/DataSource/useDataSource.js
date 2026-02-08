@@ -9,7 +9,7 @@ import { useCollectionState } from '@/composables/useCollectionState.js'
 export function useDataSource() {
   // 使用采集状态管理 composable（持久化到 localStorage）
   const { collectingSourceIds, startCollecting, stopCollecting, isCollecting } = useCollectionState()
-  
+
   const submitting = ref(false)
   const testing = ref(false)
   const refreshing = ref(false)
@@ -25,6 +25,12 @@ export function useDataSource() {
   const steamQRStatus = ref('') // 二维码状态: waiting, success, expired
   const steamQRCheckTimer = ref(null) // 二维码状态检查定时器
   const autoRefreshTimer = ref(null) // 数据源列表自动刷新定时器
+
+  // 表单组件引用 - 用于调用子组件的cleanup方法
+  const youpinFormRef = ref(null)
+  const buffFormRef = ref(null)
+  const perfectWorldFormRef = ref(null)
+  const csfloatFormRef = ref(null)
   
   // 注意：全局自动采集定时器在 main.js 中初始化，无需在组件中管理
   
@@ -1960,13 +1966,27 @@ export function useDataSource() {
     editDialogVisible.value = true
   }
 
-  const handleEditDialogClose = () => {
+  const handleEditDialogClose = async () => {
+    // 调用表单组件的cleanup方法停止SSL代理
+    if (youpinFormRef.value?.cleanup) {
+      await youpinFormRef.value.cleanup()
+    }
+    if (buffFormRef.value?.cleanup) {
+      await buffFormRef.value.cleanup()
+    }
+    if (perfectWorldFormRef.value?.cleanup) {
+      await perfectWorldFormRef.value.cleanup()
+    }
+    if (csfloatFormRef.value?.cleanup) {
+      await csfloatFormRef.value.cleanup()
+    }
+
     // 清除 Token 获取定时器
     if (tokenCheckTimer.value) {
       clearInterval(tokenCheckTimer.value)
       tokenCheckTimer.value = null
     }
-    
+
     // 重置 Token 获取状态
     buffTokenStatus.value = ''
     yyypTokenStatus.value = ''
@@ -1976,10 +1996,10 @@ export function useDataSource() {
     yyypTokenLoading.value = false
     perfectWorldTokenLoading.value = false
     csfloatTokenLoading.value = false
-    
+
     // 展开列表
     isListCollapsed.value = false
-    
+
     // 对话框关闭时清理状态
     editingSourceId.value = null
     editForm.value = {
@@ -2099,24 +2119,38 @@ export function useDataSource() {
   }
 
   // 关闭添加数据源对话框
-  const handleAddDialogClose = () => {
+  const handleAddDialogClose = async () => {
+    // 调用表单组件的cleanup方法停止SSL代理
+    if (youpinFormRef.value?.cleanup) {
+      await youpinFormRef.value.cleanup()
+    }
+    if (buffFormRef.value?.cleanup) {
+      await buffFormRef.value.cleanup()
+    }
+    if (perfectWorldFormRef.value?.cleanup) {
+      await perfectWorldFormRef.value.cleanup()
+    }
+    if (csfloatFormRef.value?.cleanup) {
+      await csfloatFormRef.value.cleanup()
+    }
+
     // 清除二维码轮询定时器
     if (steamQRCheckTimer.value) {
       clearInterval(steamQRCheckTimer.value)
       steamQRCheckTimer.value = null
     }
-    
+
     // 清除 Token 获取定时器
     if (tokenCheckTimer.value) {
       clearInterval(tokenCheckTimer.value)
       tokenCheckTimer.value = null
     }
-    
+
     // 重置二维码相关状态
     steamQRCode.value = ''
     steamQRStatus.value = ''
     steamQRLoading.value = false
-    
+
     // 重置 Token 获取状态
     buffTokenStatus.value = ''
     yyypTokenStatus.value = ''
@@ -2126,7 +2160,7 @@ export function useDataSource() {
     yyypTokenLoading.value = false
     perfectWorldTokenLoading.value = false
     csfloatTokenLoading.value = false
-    
+
     resetForm() // 关闭时重置表单
   }
 
@@ -3683,6 +3717,11 @@ export function useDataSource() {
     handleEditDialogClose,
     handleEditSubmit,
     handleEditCollectAll,
+    // 表单组件引用
+    youpinFormRef,
+    buffFormRef,
+    perfectWorldFormRef,
+    csfloatFormRef,
     // GetAppToken 相关
     buffTokenLoading,
     yyypTokenLoading,
