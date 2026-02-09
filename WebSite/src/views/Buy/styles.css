@@ -9,15 +9,15 @@
   margin: 0 auto;
   padding: 4px;
   box-sizing: border-box;
-  background: rgba(0, 0, 0, 0.2);
+  background: transparent;
   border-radius: 4px;
   transition: all 0.2s ease;
   cursor: pointer;
 }
 
 .weapon-image-cell:hover {
-  background: rgba(0, 0, 0, 0.3);
-  transform: scale(1.02);
+  background: transparent;
+  transform: scale(1.05);
 }
 
 .weapon-img {
@@ -775,7 +775,7 @@
   position: relative;
   width: 100%;
   height: 300px;
-  background: var(--bg-tertiary);
+  background: transparent;
   border-radius: 8px;
   overflow: hidden;
   display: flex;
