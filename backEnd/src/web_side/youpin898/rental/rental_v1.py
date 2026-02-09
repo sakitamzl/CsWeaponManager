@@ -7,15 +7,30 @@ import requests
 youpin898RentalV1 = Blueprint('youpin898RentalV1', __name__)
 
 @youpin898RentalV1.route('/getNowRentalList', methods=['get'])
-def getNowRentalList():
-    """获取当前需要更新状态的借入订单列表（未完成且已到达或超过结束时间的订单）"""
+@youpin898RentalV1.route('/getNowRentalList/<data_from>', methods=['get'])
+def getNowRentalList(data_from=None):
+    """获取当前需要更新状态的借入订单列表（已到期且 last_status 不是"完成"的订单）
+
+    Args:
+        data_from: 可选，数据来源过滤（如 'yyyp', 'buff' 等）
+    """
     try:
-        # 查询所有未完成、有结束时间且已到达结束时间的订单
+        # 查询已到期且 last_status 不是"完成"的订单
         current_time = today()
-        # 仅筛选未完成且非"已归还"的订单
+
+        # 构建查询条件：已到期 AND last_status != '完成'
+        if data_from:
+            # 有 from 参数时，添加来源过滤
+            where_clause = "lean_end_time <= ? AND last_status != '完成' AND `from` = ?"
+            params = (current_time, data_from)
+        else:
+            # 没有 from 参数时，查询所有来源
+            where_clause = "lean_end_time <= ? AND last_status != '完成'"
+            params = (current_time,)
+
         records = RentalModel.find_all(
-            where="status IN ('租赁中', '转租中') AND lean_end_time <= ? or lean_end_time is null and status != '已取消'",
-            params=(current_time,)
+            where=where_clause,
+            params=params
         )
         data = [[record.ID] for record in records]
         return jsonify(data), 200
@@ -44,26 +59,42 @@ def getTimeOutRental():
         return jsonify([]), 500
 
 @youpin898RentalV1.route('/selectApexTime/<steamId>', methods=['get'])
-def selectApexTime(steamId):
+@youpin898RentalV1.route('/selectApexTime/<steamId>/<data_from>', methods=['get'])
+def selectApexTime(steamId, data_from=None):
     """
     获取指定steamId的最新借入订单时间
     用于判断是否有新数据需要同步
+
+    Args:
+        steamId: 用户的 Steam ID
+        data_from: 可选，数据来源过滤（如 'yyyp', 'buff' 等）
     """
     try:
         # 直接使用 SQL 查询，按 lean_start_time 降序排列，取第一条
         from src.db_manager.database import DatabaseManager
         db = DatabaseManager()
-        
-        sql = """
-            SELECT lean_start_time 
-            FROM rental 
-            WHERE data_user = ? 
-            ORDER BY lean_start_time DESC 
-            LIMIT 1
-        """
-        
-        result = db.execute_query(sql, (steamId,))
-        
+
+        if data_from:
+            # 有 from 参数时，添加来源过滤
+            sql = """
+                SELECT lean_start_time
+                FROM rental
+                WHERE data_user = ? AND `from` = ?
+                ORDER BY lean_start_time DESC
+                LIMIT 1
+            """
+            result = db.execute_query(sql, (steamId, data_from))
+        else:
+            # 没有 from 参数时，查询所有来源
+            sql = """
+                SELECT lean_start_time
+                FROM rental
+                WHERE data_user = ?
+                ORDER BY lean_start_time DESC
+                LIMIT 1
+            """
+            result = db.execute_query(sql, (steamId,))
+
         if result and len(result) > 0 and result[0][0]:
             apex_time = result[0][0]
             return jsonify({
@@ -87,17 +118,29 @@ def selectApexTime(steamId):
         }), 500
 
 @youpin898RentalV1.route('/getCount/<steamId>', methods=['get'])
-def getCount(steamId):
+@youpin898RentalV1.route('/getCount/<steamId>/<data_from>', methods=['get'])
+def getCount(steamId, data_from=None):
     """
     获取指定steamId的借入订单总数
     用于分页获取历史数据
+
+    Args:
+        steamId: 用户的 Steam ID
+        data_from: 可选，数据来源过滤（如 'yyyp', 'buff' 等）
     """
     try:
-        # 使用模型的 count 方法
-        count = RentalModel.count(
-            where="data_user = ?",
-            params=(steamId,)
-        )
+        if data_from:
+            # 有 from 参数时，添加来源过滤
+            count = RentalModel.count(
+                where="data_user = ? AND `from` = ?",
+                params=(steamId, data_from)
+            )
+        else:
+            # 没有 from 参数时，查询所有来源
+            count = RentalModel.count(
+                where="data_user = ?",
+                params=(steamId,)
+            )
         return jsonify(count), 200
     except Exception as e:
         print(f"查询借入订单数量失败: {e}")
@@ -107,18 +150,24 @@ def getCount(steamId):
 
 @youpin898RentalV1.route('/updateRentalData', methods=['post'])
 def updateRentalData():
-    """更新借入订单状态（完整更新）"""
+    """更新借入订单状态（完整更新）
+
+    字段映射关系：
+    - status: orderSubStatusName（子状态，如"已归还"）
+    - status_sub: orderStatusDesc（状态描述）
+    - last_status: orderStatusName（主状态，如"完成"）
+    """
     try:
         data = request.get_json()
         ID = data['ID']
-        
+
         # 查找现有记录
         rental_record = RentalModel.find_by_id(ID=ID)
         if not rental_record:
             return 'update_error', 404
-        
+
         # 如果只传递了 status 和 from，则只更新 status
-        if 'orderSubStatusName' not in data and 'lean_end_time' not in data:
+        if 'last_status' not in data and 'lean_end_time' not in data:
             status = data.get('status')
             if status:
                 rental_record.status = status
@@ -128,36 +177,55 @@ def updateRentalData():
                     return 'update_error', 500
             else:
                 return 'update_error', 400
-        
+
         # 完整更新逻辑
-        status = data['status']  # orderStatusName -> status
+        status = data['status']  # orderSubStatusName -> status
         status_sub = data.get('status_sub', '')  # orderStatusDesc -> status_sub
-        orderSubStatusName = data['orderSubStatusName']  # orderSubStatusName -> last_status
-        lean_end_time = data['lean_end_time']
-        totalLeaseDays = data['totalLeaseDays']
+        last_status = data.get('last_status')  # orderStatusName -> last_status
+        lean_end_time = data.get('lean_end_time')
+        totalLeaseDays = data.get('totalLeaseDays')
         leaseMaxDays = data.get('leaseMaxDays')  # 可选字段
-        
+
+        # 提取商品信息（如果有）
+        steam_hash_name = data.get('steam_hash_name')
+        sticker = data.get('sticker')
+        pendant = data.get('pendant')
+        rename = data.get('rename')
+
         # 如果当前库状态已是终态，则跳过更新，避免覆盖
         if rental_record.status in ('已归还', '已取消'):
             return 'skip_final_status', 200
 
-        # 更新字段
-        rental_record.status = status  # orderStatusName
+        # 更新状态字段
+        rental_record.status = status  # orderSubStatusName
         rental_record.status_sub = status_sub  # orderStatusDesc
-        rental_record.last_status = orderSubStatusName  # orderSubStatusName
-        rental_record.lean_end_time = lean_end_time
-        rental_record.total_Lease_Days = totalLeaseDays
-        
-        # 如果提供了 leaseMaxDays，则更新
+        if last_status:
+            rental_record.last_status = last_status  # orderStatusName
+
+        # 更新时间和天数
+        if lean_end_time:
+            rental_record.lean_end_time = lean_end_time
+        if totalLeaseDays is not None:
+            rental_record.total_Lease_Days = totalLeaseDays
         if leaseMaxDays is not None:
             rental_record.max_Lease_Days = leaseMaxDays
-        
+
+        # 更新商品信息（如果提供）
+        if steam_hash_name:
+            rental_record.steam_hash_name = steam_hash_name
+        if sticker:
+            rental_record.sticker = sticker
+        if pendant:
+            rental_record.pendant = pendant
+        if rename is not None:
+            rental_record.rename = rename
+
         # 保存更新
         if rental_record.save():
             return 'update_info', 200
         else:
             return 'update_error', 500
-            
+
     except Exception as e:
         print(f"更新借入数据失败: {e}")
         import traceback
@@ -260,3 +328,88 @@ def insert_rental_data():
         import traceback
         print(f"详细错误信息: {traceback.format_exc()}")
         return jsonify({'success': False, 'error': f'服务器错误: {str(e)}'}), 500
+
+
+@youpin898RentalV1.route('/updateMainRentalData', methods=['post'])
+def updateMainRentalData():
+    """更新借入主表数据（与 updateRentalData 相同的逻辑，用于保持兼容性）
+
+    字段映射关系：
+    - status: orderSubStatusName（子状态，如"已归还"）
+    - status_sub: orderStatusDesc（状态描述）
+    - last_status: orderStatusName（主状态，如"完成"）
+    """
+    try:
+        data = request.get_json()
+        ID = data['ID']
+
+        # 查找现有记录
+        rental_record = RentalModel.find_by_id(ID=ID)
+        if not rental_record:
+            return 'update_error', 404
+
+        # 如果只传递了 status 和 from，则只更新 status
+        if 'last_status' not in data and 'lean_end_time' not in data:
+            status = data.get('status')
+            if status:
+                rental_record.status = status
+                if rental_record.save():
+                    return 'update_info', 200
+                else:
+                    return 'update_error', 500
+            else:
+                return 'update_error', 400
+
+        # 完整更新逻辑
+        status = data['status']  # orderSubStatusName -> status
+        status_sub = data.get('status_sub', '')  # orderStatusDesc -> status_sub
+        last_status = data.get('last_status')  # orderStatusName -> last_status
+        lean_end_time = data.get('lean_end_time')
+        totalLeaseDays = data.get('totalLeaseDays')
+        leaseMaxDays = data.get('leaseMaxDays')  # 可选字段
+
+        # 提取商品信息（如果有）
+        steam_hash_name = data.get('steam_hash_name')
+        sticker = data.get('sticker')
+        pendant = data.get('pendant')
+        rename = data.get('rename')
+
+        # 如果当前库状态已是终态，则跳过更新，避免覆盖
+        if rental_record.status in ('已归还', '已取消'):
+            return 'skip_final_status', 200
+
+        # 更新状态字段
+        rental_record.status = status  # orderSubStatusName
+        rental_record.status_sub = status_sub  # orderStatusDesc
+        if last_status:
+            rental_record.last_status = last_status  # orderStatusName
+
+        # 更新时间和天数
+        if lean_end_time:
+            rental_record.lean_end_time = lean_end_time
+        if totalLeaseDays is not None:
+            rental_record.total_Lease_Days = totalLeaseDays
+        if leaseMaxDays is not None:
+            rental_record.max_Lease_Days = leaseMaxDays
+
+        # 更新商品信息（如果提供）
+        if steam_hash_name:
+            rental_record.steam_hash_name = steam_hash_name
+        if sticker:
+            rental_record.sticker = sticker
+        if pendant:
+            rental_record.pendant = pendant
+        if rename is not None:
+            rental_record.rename = rename
+
+        # 保存更新
+        if rental_record.save():
+            return 'update_info', 200
+        else:
+            return 'update_error', 500
+
+    except Exception as e:
+        print(f"更新借入主表数据失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return 'update_error', 500

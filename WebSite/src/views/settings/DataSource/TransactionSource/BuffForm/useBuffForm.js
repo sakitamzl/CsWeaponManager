@@ -72,37 +72,37 @@ export default function useBuffForm(props, { emit }) {
           
           if (response.data.code === 200) {
             const data = response.data.data
-            
+
             updateForm({
               cookie: data.cookie,
-              steamID: data.steamID,
-              buffAppVersion: data['app-version'],
-              buffAppVersionCode: data['app-version-code'],
+              steamID: data.steamid,  // 后端返回的是 steamid (全小写)
+              buffAppVersion: data.app_version,  // 后端返回的是 app_version (下划线)
+              buffAppVersionCode: data.app_version_code,
               buffChannel: data.channel,
-              buffUserAgent: data['user-agent'],
-              buffDeviceId: data['device-id'],
-              buffDeviceIdWeak: data['device-id-weak'],
+              buffUserAgent: data.user_agent,
+              buffDeviceId: data.device_id,
+              buffDeviceIdWeak: data.device_id_weak,
               buffDevicename: data.devicename,
               buffBrand: data.brand,
               buffManufacturer: data.manufacturer,
               buffModel: data.model,
               buffProduct: data.product,
-              buffBuildFingerprint: data['build-fingerprint'],
+              buffBuildFingerprint: data.build_fingerprint,
               buffSeed: data.seed,
-              buffSystemType: data['system-type'],
-              buffSystemVersion: data['system-version'],
+              buffSystemType: data.system_type,
+              buffSystemVersion: data.system_version,
               buffRom: data.rom,
-              buffRomId: data['rom-id'],
+              buffRomId: data.rom_id,
               buffResolution: data.resolution,
-              buffScreenDensity: data['screen-density'],
-              buffScreenSize: data['screen-size'],
+              buffScreenDensity: data.screen_density,
+              buffScreenSize: data.screen_size,
               buffNetwork: data.network,
               buffTimestamp: data.timestamp,
               buffTimezone: data.timezone,
-              buffTimezoneOffset: data['timezone-offset'],
-              buffTimezoneOffsetDst: data['timezone-offset-dst'],
+              buffTimezoneOffset: data.timezone_offset,
+              buffTimezoneOffsetDst: data.timezone_offset_dst,
               buffLocale: data.locale,
-              buffLocaleSupported: data['locale-supported']
+              buffLocaleSupported: data.locale_supported
             })
             
             ElMessage.success('BUFF Token 获取成功!')
