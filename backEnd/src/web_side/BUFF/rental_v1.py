@@ -162,26 +162,39 @@ def getLatestData(data_user):
 
 @buff163RentalV1.route('/selectNotEnd/<data_user>', methods=['GET'])
 def selectNotEnd(data_user):
-    """查询指定用户未结束的BUFF租入订单（状态不是'已完成'和'已取消'）"""
+    """查询指定用户需要更新状态的BUFF租入订单
+
+    查询条件：
+    1. 排除所有终态订单：status NOT IN ('已完成', '已取消', '已归还')
+    2. 已超时的"租赁中"订单：lean_end_time <= 当前时间 AND status = '租赁中'
+    3. 其他非"租赁中"的中间状态订单：status NOT IN ('租赁中')
+    """
     try:
+        current_time = today()
+
         sql = f"""
-        SELECT ID 
-        FROM rental 
-        WHERE data_user = '{data_user}' 
+        SELECT ID
+        FROM rental
+        WHERE data_user = '{data_user}'
             AND \"from\" = 'buff'
-            AND status NOT IN ('已完成', '已取消')
+            AND status NOT IN ('已完成', '已取消', '已归还')
+            AND (
+                (lean_end_time <= '{current_time}' AND status = '租赁中')
+                OR
+                status NOT IN ('租赁中')
+            )
         ORDER BY lean_start_time DESC
         """
         result = Date_base().select(sql)
-        
+
         if result and len(result) == 2:
             flag, data = result
             if flag:
                 order_ids = [row[0] for row in data]
                 return jsonify({"not_end_orders": order_ids}), 200
-        
+
         return jsonify({"not_end_orders": []}), 200
-        
+
     except Exception as e:
         print(f"查询未结束BUFF租入订单失败: {e}")
         import traceback
@@ -196,17 +209,27 @@ def updateOrderStatus():
         data = request.get_json()
         order_id = data.get('order_id', '')  # 使用order_id作为主键
         state = data.get('state', '')
-        state_sub = data.get('state_sub', '')
-        
+        state_sub = data.get('state_sub', None)  # 可选字段
+
         if not order_id:
             return jsonify({"success": False, "error": "订单ID不能为空"}), 400
-        
-        sql = f"""
-        UPDATE rental 
-        SET status = '{state}', last_status = '{state_sub}'
-        WHERE ID = '{order_id}' AND \"from\" = 'buff'
-        """
-        
+
+        # 根据是否提供 state_sub 构建不同的 SQL
+        if state_sub is not None:
+            # 同时更新 status 和 last_status
+            sql = f"""
+            UPDATE rental
+            SET status = '{state}', last_status = '{state_sub}'
+            WHERE ID = '{order_id}' AND \"from\" = 'buff'
+            """
+        else:
+            # 只更新 status，不更新 last_status
+            sql = f"""
+            UPDATE rental
+            SET status = '{state}'
+            WHERE ID = '{order_id}' AND \"from\" = 'buff'
+            """
+
         result = Date_base().update(sql)
         
         if result:
