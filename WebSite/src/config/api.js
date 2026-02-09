@@ -261,7 +261,15 @@ export const API_CONFIG = {
     // 悠悠有品实时查询
 
     YOUPIN_REALTIME_LOWEST_PRICE: '/youping898SpiderV1/getRealTimeLowestPrice',  // 实时查询悠悠在售底价
-    
+
+    // 悠悠有品求购供应
+
+    YOUPIN_GET_SUPPLY_LIST: '/youping898SpiderV1/getSupplyList',  // 获取可供应的库存列表
+
+    YOUPIN_SUBMIT_SUPPLY: '/youping898SpiderV1/submitSupply',  // 提交供应（查询手续费）
+
+    YOUPIN_CONFIRM_SUPPLY: '/youping898SpiderV1/confirmSupply',  // 确认供应
+
     YOUPIN_SELL_INVENTORY_ITEM: '/youping898SpiderV1/sellInventoryItem',  // 上架单个库存饰品
 
     CSQAQ_TASK_RESULT: '/csqaqSpiderV1/getTaskResult',  // CSQAQ获取任务结果
@@ -690,10 +698,18 @@ export const apiUrls = {
   // 悠悠有品实时查询API
 
   youpinRealtimeLowestPrice: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YOUPIN_REALTIME_LOWEST_PRICE),
-  
+
+  // 悠悠有品求购供应API
+
+  youpinGetSupplyList: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YOUPIN_GET_SUPPLY_LIST),
+
+  youpinSubmitSupply: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YOUPIN_SUBMIT_SUPPLY),
+
+  youpinConfirmSupply: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YOUPIN_CONFIRM_SUPPLY),
+
   youpinSellInventoryItem: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YOUPIN_SELL_INVENTORY_ITEM),
 
-  
+
 
   // Steam登录API
 

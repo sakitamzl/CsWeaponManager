@@ -65,7 +65,15 @@ export function useItemSearch() {
   const isMultiSelectMode = ref(false)  // 是否开启多选模式
   const selectedCommodities = ref([])   // 选中的商品列表
   const selectedCommodityType = ref('') // 选中商品的类型 'buff' 或 'yyyp'
-  
+
+  // 供应相关状态
+  const supplyDialogVisible = ref(false)  // 供应对话框是否显示
+  const supplyInventoryList = ref([])  // 可供应的库存列表
+  const selectedSupplyItems = ref([])  // 选中的供应物品
+  const currentPurchaseOrder = ref(null)  // 当前求购订单信息
+  const maxSupplyQuantity = ref(0)  // 最大供应数量
+  const supplyLoading = ref(false)  // 供应加载状态
+
   // 图片缓存 - 存储已加载的图片URL
   const imageCache = new Set()
   
@@ -753,8 +761,18 @@ export function useItemSearch() {
 
   // 购买商品
   const handleBuyCommodity = async (commodity) => {
+    console.log('处理商品操作:', commodity)
+
+    // 判断是求购供应还是普通购买
+    if (commodity.isPurchaseOrder) {
+      // 求购订单 - 执行供应逻辑
+      await handleSupplyToPurchaseOrder(commodity)
+      return
+    }
+
+    // 普通购买逻辑
     console.log('购买商品:', commodity)
-    
+
     // 确认购买
     try {
       await ElMessageBox.confirm(
@@ -870,6 +888,283 @@ export function useItemSearch() {
       )
     }
   }
+
+  // ==================== 求购供应相关函数 ====================
+
+  // 处理供应到求购订单
+  const handleSupplyToPurchaseOrder = async (purchaseOrder) => {
+    console.log('供应到求购订单:', purchaseOrder)
+
+    // 检查是否选择了 Steam ID
+    if (!selectedSteamId.value) {
+      ElMessage.warning('请先选择 Steam ID')
+      return
+    }
+
+    supplyLoading.value = true
+    const loadingMessage = ElMessage({
+      message: '正在获取可供应物品...',
+      type: 'info',
+      duration: 0
+    })
+
+    try {
+      // 调用获取供应列表接口
+      const response = await axios.post(
+        apiUrls.youpinGetSupplyList(),
+        {
+          purchaseNo: purchaseOrder.purchaseNo,
+          steamId: selectedSteamId.value
+        }
+      )
+
+      loadingMessage.close()
+
+      if (response.data.success) {
+        const data = response.data.data
+
+        // 保存当前求购订单信息
+        currentPurchaseOrder.value = {
+          purchaseNo: purchaseOrder.purchaseNo,
+          purchasePrice: purchaseOrder.purchasePrice,
+          commodityName: data.commodityName || purchaseOrder.commodityName,
+          surplusQuantity: purchaseOrder.surplusQuantity
+        }
+
+        // 保存可供应列表
+        supplyInventoryList.value = data.responseList || []
+        maxSupplyQuantity.value = data.maxSupplyQuantity || 0
+
+        // 重置选中项
+        selectedSupplyItems.value = []
+
+        // 如果没有可供应物品
+        if (supplyInventoryList.value.length === 0) {
+          ElMessageBox.alert(
+            '您的库存中没有可供应的物品',
+            '无可供应物品',
+            {
+              confirmButtonText: '知道了',
+              type: 'warning'
+            }
+          )
+          return
+        }
+
+        // 显示供应对话框
+        supplyDialogVisible.value = true
+
+      } else {
+        ElMessageBox.alert(
+          `获取供应列表失败：${response.data.message || '未知错误'}`,
+          '获取失败',
+          {
+            confirmButtonText: '知道了',
+            type: 'error'
+          }
+        )
+      }
+    } catch (error) {
+      loadingMessage.close()
+      console.error('获取供应列表失败:', error)
+
+      const errorMessage = error.response?.data?.message || error.message || '网络错误'
+      ElMessageBox.alert(
+        `获取供应列表失败：${errorMessage}`,
+        '获取失败',
+        {
+          confirmButtonText: '知道了',
+          type: 'error'
+        }
+      )
+    } finally {
+      supplyLoading.value = false
+    }
+  }
+
+  // 确认供应
+  const handleConfirmSupply = async () => {
+    if (selectedSupplyItems.value.length === 0) {
+      ElMessage.warning('请至少选择一件物品')
+      return
+    }
+
+    if (selectedSupplyItems.value.length > maxSupplyQuantity.value) {
+      ElMessage.warning(`最多只能选择 ${maxSupplyQuantity.value} 件物品`)
+      return
+    }
+
+    supplyLoading.value = true
+    const loadingMessage = ElMessage({
+      message: '正在提交供应...',
+      type: 'info',
+      duration: 0
+    })
+
+    try {
+      // 步骤1: 提交供应，查询手续费
+      const submitResponse = await axios.post(
+        apiUrls.youpinSubmitSupply(),
+        {
+          purchaseOrderNo: currentPurchaseOrder.value.purchaseNo,
+          inventoryList: selectedSupplyItems.value,
+          purchasePrice: currentPurchaseOrder.value.purchasePrice,
+          steamId: selectedSteamId.value
+        }
+      )
+
+      if (!submitResponse.data.success) {
+        throw new Error(submitResponse.data.message || '提交供应失败')
+      }
+
+      const feeData = submitResponse.data.data
+      const serviceFee = feeData.serviceFee || 0
+      const expectedRevenue = feeData.expectedRevenue || 0
+
+      // 确认供应信息
+      try {
+        await ElMessageBox.confirm(
+          `确认供应以下物品吗？\n\n` +
+          `商品：${currentPurchaseOrder.value.commodityName}\n` +
+          `单价：¥${currentPurchaseOrder.value.purchasePrice}\n` +
+          `数量：${selectedSupplyItems.value.length} 件\n` +
+          `总价：¥${(parseFloat(currentPurchaseOrder.value.purchasePrice) * selectedSupplyItems.value.length).toFixed(2)}\n` +
+          `服务费：¥${serviceFee}\n` +
+          `预期收益：¥${expectedRevenue}`,
+          '确认供应',
+          {
+            confirmButtonText: '确认供应',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        )
+      } catch {
+        loadingMessage.close()
+        ElMessage.info('已取消供应')
+        supplyLoading.value = false
+        return
+      }
+
+      // 步骤2: 确认供应
+      const commodityList = selectedSupplyItems.value.map(item => ({
+        assetId: item.steamAssetId,
+        commodityId: item.commodityId
+      }))
+
+      const confirmResponse = await axios.post(
+        apiUrls.youpinConfirmSupply(),
+        {
+          purchaseNo: currentPurchaseOrder.value.purchaseNo,
+          commodityList: commodityList,
+          unitPrice: currentPurchaseOrder.value.purchasePrice,
+          steamId: selectedSteamId.value
+        }
+      )
+
+      loadingMessage.close()
+
+      if (confirmResponse.data.success) {
+        ElMessageBox.alert(
+          `供应成功！\n\n` +
+          `已供应 ${selectedSupplyItems.value.length} 件物品\n` +
+          `预期收益：¥${expectedRevenue}\n\n` +
+          `物品将发送给买家`,
+          '供应成功',
+          {
+            confirmButtonText: '知道了',
+            type: 'success',
+            callback: () => {
+              ElMessage.success('供应成功！')
+
+              // 关闭对话框
+              supplyDialogVisible.value = false
+
+              // 刷新列表
+              if (yyypCurrentWeapon.value) {
+                setTimeout(async () => {
+                  await handleRefreshYYYP()
+                }, 1000)
+              }
+            }
+          }
+        )
+      } else {
+        ElMessageBox.alert(
+          `供应失败：${confirmResponse.data.message || '未知错误'}`,
+          '供应失败',
+          {
+            confirmButtonText: '知道了',
+            type: 'error'
+          }
+        )
+      }
+    } catch (error) {
+      loadingMessage.close()
+      console.error('供应失败:', error)
+
+      const errorMessage = error.response?.data?.message || error.message || '网络错误'
+      ElMessageBox.alert(
+        `供应失败：${errorMessage}`,
+        '供应失败',
+        {
+          confirmButtonText: '知道了',
+          type: 'error'
+        }
+      )
+    } finally {
+      supplyLoading.value = false
+    }
+  }
+
+  // 切换物品选中状态
+  const toggleSupplyItemSelection = (item) => {
+    const index = selectedSupplyItems.value.findIndex(
+      selected => selected.steamAssetId === item.steamAssetId
+    )
+
+    if (index > -1) {
+      // 已选中，取消选中
+      selectedSupplyItems.value.splice(index, 1)
+    } else {
+      // 未选中，检查是否超过最大数量
+      if (selectedSupplyItems.value.length >= maxSupplyQuantity.value) {
+        ElMessage.warning(`最多只能选择 ${maxSupplyQuantity.value} 件物品`)
+        return
+      }
+      // 添加到选中列表
+      selectedSupplyItems.value.push(item)
+    }
+  }
+
+  // 检查物品是否已选中
+  const isSupplyItemSelected = (item) => {
+    return selectedSupplyItems.value.some(
+      selected => selected.steamAssetId === item.steamAssetId
+    )
+  }
+
+  // 全选供应物品
+  const selectAllSupplyItems = () => {
+    if (selectedSupplyItems.value.length === supplyInventoryList.value.length) {
+      // 已全选，清空选择
+      selectedSupplyItems.value = []
+    } else {
+      // 选择前 maxSupplyQuantity 个物品
+      const itemsToSelect = supplyInventoryList.value.slice(0, maxSupplyQuantity.value)
+      selectedSupplyItems.value = [...itemsToSelect]
+
+      if (supplyInventoryList.value.length > maxSupplyQuantity.value) {
+        ElMessage.info(`已选择前 ${maxSupplyQuantity.value} 件物品（最大供应数量限制）`)
+      }
+    }
+  }
+
+  // 计算全选按钮状态
+  const isAllSupplyItemsSelected = computed(() => {
+    if (supplyInventoryList.value.length === 0) return false
+    const maxSelectableCount = Math.min(supplyInventoryList.value.length, maxSupplyQuantity.value)
+    return selectedSupplyItems.value.length === maxSelectableCount
+  })
 
   // 批量获取改名信息（自动调用，只获取第一条）
   const fetchAllNameTags = async (commodityList) => {
@@ -1515,6 +1810,57 @@ export function useItemSearch() {
     event.target.style.display = 'none'
   }
 
+  // 获取图片URL（用于印花、挂件等）
+  const getImageUrl = (imageUrl) => {
+    if (!imageUrl) return ''
+    // 如果已经是完整URL，直接返回
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return imageUrl
+    }
+    // 如果是相对路径，返回原路径
+    return imageUrl
+  }
+
+  // 获取印花图片URL
+  const getStickerImageUrl = (sticker) => {
+    if (!sticker) return ''
+
+    // 优先使用 hashName 拼接本地路径
+    if (sticker.hashName) {
+      const localPath = getWeaponImage(`Sticker | ${sticker.hashName}`)
+      if (localPath) return localPath
+    }
+
+    // 降级使用 steamHashName
+    if (sticker.steamHashName) {
+      const localPath = getWeaponImage(sticker.steamHashName)
+      if (localPath) return localPath
+    }
+
+    // 最后降级到远程URL
+    return sticker.imgUrl || sticker.img || sticker.imageUrl || ''
+  }
+
+  // 获取挂件图片URL
+  const getPendantImageUrl = (pendant) => {
+    if (!pendant) return ''
+
+    // 优先使用 steamHashName
+    if (pendant.steamHashName) {
+      const localPath = getWeaponImage(pendant.steamHashName)
+      if (localPath) return localPath
+    }
+
+    // 降级使用 hashName
+    if (pendant.hashName) {
+      const localPath = getWeaponImage(pendant.hashName)
+      if (localPath) return localPath
+    }
+
+    // 最后降级到远程URL
+    return pendant.imgUrl || pendant.img || pendant.imageUrl || ''
+  }
+
   // 处理卡片点击
   const handleCardClick = (item, event) => {
     // 获取鼠标点击位置
@@ -2003,6 +2349,9 @@ export function useItemSearch() {
     handleSelect,
     getWeaponImage,
     handleImageError,
+    getImageUrl,
+    getStickerImageUrl,
+    getPendantImageUrl,
     handleCardClick,
     // 卡片弹出框
     showCardPopover,
@@ -2097,6 +2446,18 @@ export function useItemSearch() {
     openSteamDT,
     // 悠悠有品筛选
     handleYYYPFilterChange,
-    handleYYYPAdvancedFilter
+    handleYYYPAdvancedFilter,
+    // 求购供应
+    supplyDialogVisible,
+    supplyInventoryList,
+    selectedSupplyItems,
+    currentPurchaseOrder,
+    maxSupplyQuantity,
+    supplyLoading,
+    handleConfirmSupply,
+    toggleSupplyItemSelection,
+    isSupplyItemSelected,
+    selectAllSupplyItems,
+    isAllSupplyItemsSelected
   }
 }

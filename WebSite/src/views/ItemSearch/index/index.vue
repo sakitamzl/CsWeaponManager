@@ -701,8 +701,8 @@
     >
       <div class="sticker-preview-content">
         <div class="sticker-preview-image-wrapper">
-          <img 
-            :src="stickerPreviewData.imageUrl" 
+          <img
+            :src="stickerPreviewData.imageUrl"
             :alt="stickerPreviewData.name"
             class="sticker-preview-image"
             @error="handleImageError"
@@ -713,6 +713,167 @@
           <div class="sticker-preview-type">{{ stickerPreviewData.type }}</div>
         </div>
       </div>
+    </el-dialog>
+
+    <!-- 求购供应对话框 -->
+    <el-dialog
+      v-model="supplyDialogVisible"
+      title="选择供应物品"
+      width="800px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="true"
+      class="supply-dialog"
+    >
+      <div class="supply-dialog-content" v-loading="supplyLoading">
+        <!-- 求购订单信息 -->
+        <div class="supply-order-info" v-if="currentPurchaseOrder">
+          <div class="info-row">
+            <span class="info-label">商品名称:</span>
+            <span class="info-value">{{ currentPurchaseOrder.commodityName }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">求购价格:</span>
+            <span class="info-value price-highlight">¥{{ currentPurchaseOrder.purchasePrice }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">最大供应数量:</span>
+            <span class="info-value">{{ maxSupplyQuantity }} 件</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">已选中:</span>
+            <span class="info-value" :class="{ 'max-reached': selectedSupplyItems.length >= maxSupplyQuantity }">
+              {{ selectedSupplyItems.length }} / {{ maxSupplyQuantity }} 件
+            </span>
+          </div>
+        </div>
+
+        <!-- 可供应物品列表 -->
+        <div class="supply-inventory-list">
+          <div class="list-header">
+            <span>可供应物品列表 ({{ supplyInventoryList.length }} 件)</span>
+            <el-button
+              size="small"
+              :type="isAllSupplyItemsSelected ? 'primary' : 'default'"
+              @click="selectAllSupplyItems"
+            >
+              {{ isAllSupplyItemsSelected ? '取消全选' : '全选' }}
+            </el-button>
+          </div>
+          <div class="inventory-table-container">
+            <table class="inventory-table">
+              <thead>
+                <tr>
+                  <th class="col-image">图片</th>
+                  <th class="col-name">物品名称</th>
+                  <th class="col-wear">磨损</th>
+                  <th class="col-accessories">印花/挂件</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="item in supplyInventoryList"
+                  :key="item.steamAssetId"
+                  class="inventory-row"
+                  :class="{ 'selected': isSupplyItemSelected(item) }"
+                  @click="toggleSupplyItemSelection(item)"
+                >
+                  <!-- 物品图片 -->
+                  <td class="col-image">
+                    <div class="item-image-wrapper">
+                      <img
+                        :src="item.iconUrl"
+                        :alt="item.commodityName"
+                        class="item-image"
+                        @error="handleImageError"
+                      />
+                    </div>
+                  </td>
+
+                  <!-- 物品名称 -->
+                  <td class="col-name">
+                    <div class="item-name">{{ item.commodityName }}</div>
+                  </td>
+
+                  <!-- 磨损 -->
+                  <td class="col-wear">
+                    <div v-if="item.abrade" class="wear-container">
+                      <div class="float-bar-mini">
+                        <div class="float-segment fn"></div>
+                        <div class="float-segment mw"></div>
+                        <div class="float-segment ft"></div>
+                        <div class="float-segment ww"></div>
+                        <div class="float-segment bs"></div>
+                        <div
+                          class="float-pointer"
+                          :style="{ left: `${parseFloat(item.abrade) * 100}%` }"
+                        ></div>
+                      </div>
+                      <span class="wear-value">{{ item.abrade }}</span>
+                    </div>
+                    <div v-else class="no-wear">-</div>
+                  </td>
+
+                  <!-- 印花/挂件 -->
+                  <td class="col-accessories">
+                    <div class="accessories-wrapper">
+                      <!-- 印花列表 -->
+                      <div v-if="item.stickerList && item.stickerList.length > 0" class="stickers-row">
+                        <span class="label">印花:</span>
+                        <div class="stickers-icons">
+                          <img
+                            v-for="(sticker, idx) in item.stickerList.slice(0, 4)"
+                            :key="idx"
+                            :src="sticker.hashName ? getWeaponImage(`Sticker | ${sticker.hashName}`) : (sticker.imgUrl || sticker.img || sticker.imageUrl)"
+                            :alt="sticker.name || sticker.stickerName"
+                            :title="sticker.name || sticker.stickerName"
+                            class="sticker-icon"
+                            @error="handleImageError"
+                          />
+                        </div>
+                      </div>
+
+                      <!-- 挂件 -->
+                      <div v-if="item.hasPendant && item.pendants && item.pendants.length > 0" class="pendant-row">
+                        <span class="label">挂件:</span>
+                        <img
+                          :src="item.pendants[0].steamHashName ? getWeaponImage(item.pendants[0].steamHashName) : (item.pendants[0].imgUrl || item.pendants[0].img || item.pendants[0].imageUrl)"
+                          :alt="item.pendants[0].name || item.pendants[0].pendantName"
+                          :title="item.pendants[0].name || item.pendants[0].pendantName"
+                          class="pendant-icon"
+                          @error="handleImageError"
+                        />
+                      </div>
+
+                      <!-- 无印花/挂件 -->
+                      <div v-if="(!item.stickerList || item.stickerList.length === 0) && (!item.hasPendant || !item.pendants || item.pendants.length === 0)" class="no-accessories">
+                        -
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- 空状态 -->
+          <div v-if="supplyInventoryList.length === 0" class="empty-state">
+            <el-empty description="没有可供应的物品" />
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="supplyDialogVisible = false">取消</el-button>
+          <el-button
+            type="primary"
+            @click="handleConfirmSupply"
+            :disabled="selectedSupplyItems.length === 0 || supplyLoading"
+          >
+            确认供应 ({{ selectedSupplyItems.length }})
+          </el-button>
+        </div>
+      </template>
     </el-dialog>
   </div>
 </template>

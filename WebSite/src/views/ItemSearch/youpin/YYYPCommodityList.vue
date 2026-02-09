@@ -196,9 +196,18 @@
           <!-- 商品详情信息 -->
           <div class="commodity-card-info">
             <!-- 价格/租金显示 -->
-            <div class="info-item" v-if="!item.isLeaseItem">
+            <div class="info-item" v-if="!item.isLeaseItem && !item.isPurchaseOrder">
               <span class="info-label">价格:</span>
               <span class="info-value price-highlight">¥{{ item.price }}</span>
+            </div>
+            <!-- 求购信息显示 -->
+            <div class="info-item" v-if="item.isPurchaseOrder && item.purchasePrice">
+              <span class="info-label">求购价:</span>
+              <span class="info-value price-highlight">¥{{ item.purchasePrice }}</span>
+            </div>
+            <div class="info-item" v-if="item.isPurchaseOrder && item.surplusQuantity">
+              <span class="info-label">求购数量:</span>
+              <span class="info-value price-highlight">{{ item.surplusQuantity }}</span>
             </div>
             <!-- 租赁信息显示 -->
             <div class="info-item" v-if="item.isLeaseItem && item.leaseUnitPrice">
@@ -234,8 +243,8 @@
               </span>
             </div>
             <div class="info-item">
-              <span class="info-label">卖家:</span>
-              <span class="info-value">{{ item.userNickName || '-' }}</span>
+              <span class="info-label">{{ item.isPurchaseOrder ? '买家:' : '卖家:' }}</span>
+              <span class="info-value">{{ item.userName || item.userNickName || '-' }}</span>
             </div>
           </div>
           <!-- 印花/挂件价值 -->
@@ -258,6 +267,7 @@
             :type="getButtonType(item)"
             size="small"
             class="card-buy-button"
+            :disabled="item.isLeaseItem"
             @click.stop="handleBuyCommodity(item)"
           >
             {{ getButtonText(item) }}
