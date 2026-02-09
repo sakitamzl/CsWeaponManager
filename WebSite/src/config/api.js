@@ -270,6 +270,8 @@ export const API_CONFIG = {
 
     YOUPIN_CONFIRM_SUPPLY: '/youping898SpiderV1/confirmSupply',  // 确认供应
 
+    YOUPIN_SEND_OFFER: '/youping898SpiderV1/sendOffer',  // 发送报价
+
     YOUPIN_SELL_INVENTORY_ITEM: '/youping898SpiderV1/sellInventoryItem',  // 上架单个库存饰品
 
     CSQAQ_TASK_RESULT: '/csqaqSpiderV1/getTaskResult',  // CSQAQ获取任务结果
@@ -706,6 +708,8 @@ export const apiUrls = {
   youpinSubmitSupply: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YOUPIN_SUBMIT_SUPPLY),
 
   youpinConfirmSupply: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YOUPIN_CONFIRM_SUPPLY),
+
+  youpinSendOffer: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YOUPIN_SEND_OFFER),
 
   youpinSellInventoryItem: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YOUPIN_SELL_INVENTORY_ITEM),
 

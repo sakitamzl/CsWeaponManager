@@ -73,6 +73,7 @@ export function useItemSearch() {
   const currentPurchaseOrder = ref(null)  // 当前求购订单信息
   const maxSupplyQuantity = ref(0)  // 最大供应数量
   const supplyLoading = ref(false)  // 供应加载状态
+  const supplyPriceInfo = ref(new Map())  // 供应物品的印花/挂件价格信息，key为steamAssetId
 
   // 图片缓存 - 存储已加载的图片URL
   const imageCache = new Set()
@@ -954,6 +955,13 @@ export function useItemSearch() {
         // 显示供应对话框
         supplyDialogVisible.value = true
 
+        // 异步加载所有物品的印花/挂件价格（不阻塞UI）
+        supplyInventoryList.value.forEach(item => {
+          loadSupplyItemPrices(item).catch(error => {
+            console.error(`加载物品价格失败 (${item.steamAssetId}):`, error)
+          })
+        })
+
       } else {
         ElMessageBox.alert(
           `获取供应列表失败：${response.data.message || '未知错误'}`,
@@ -979,6 +987,38 @@ export function useItemSearch() {
       )
     } finally {
       supplyLoading.value = false
+    }
+  }
+
+  // 发送报价
+  const handleSendOffer = async (orderNo) => {
+    const loadingMessage = ElMessage({
+      message: '正在发送报价...',
+      type: 'info',
+      duration: 0
+    })
+
+    try {
+      const response = await axios.post(
+        apiUrls.youpinSendOffer(),
+        {
+          orderNo: orderNo,
+          steamId: selectedSteamId.value
+        }
+      )
+
+      loadingMessage.close()
+
+      if (response.data.success) {
+        ElMessage.success('发送报价成功！')
+      } else {
+        ElMessage.error(`发送报价失败：${response.data.message || '未知错误'}`)
+      }
+    } catch (error) {
+      loadingMessage.close()
+      console.error('发送报价失败:', error)
+      const errorMessage = error.response?.data?.message || error.message || '网络错误'
+      ElMessage.error(`发送报价失败：${errorMessage}`)
     }
   }
 
@@ -1064,30 +1104,55 @@ export function useItemSearch() {
       loadingMessage.close()
 
       if (confirmResponse.data.success) {
-        ElMessageBox.alert(
+        // 获取订单号
+        const orderNo = confirmResponse.data.data?.orderNo
+
+        // 供应成功后，弹出发送报价对话框
+        ElMessageBox.confirm(
           `供应成功！\n\n` +
           `已供应 ${selectedSupplyItems.value.length} 件物品\n` +
           `预期收益：¥${expectedRevenue}\n\n` +
-          `物品将发送给买家`,
+          `是否立即发送报价？`,
           '供应成功',
           {
-            confirmButtonText: '知道了',
+            confirmButtonText: '发送报价',
+            cancelButtonText: '稍后发送',
             type: 'success',
-            callback: () => {
-              ElMessage.success('供应成功！')
-
-              // 关闭对话框
-              supplyDialogVisible.value = false
-
-              // 刷新列表
-              if (yyypCurrentWeapon.value) {
-                setTimeout(async () => {
-                  await handleRefreshYYYP()
-                }, 1000)
-              }
-            }
+            distinguishCancelAndClose: true
           }
-        )
+        ).then(() => {
+          // 用户点击"发送报价"
+          if (orderNo) {
+            handleSendOffer(orderNo)
+          } else {
+            ElMessage.warning('未获取到订单号，无法发送报价')
+          }
+
+          // 关闭对话框
+          supplyDialogVisible.value = false
+
+          // 刷新列表
+          if (yyypCurrentWeapon.value) {
+            setTimeout(async () => {
+              await handleRefreshYYYP()
+            }, 1000)
+          }
+        }).catch((action) => {
+          // 用户点击"稍后发送"或关闭
+          if (action === 'cancel') {
+            ElMessage.info('稍后发送报价')
+          }
+
+          // 关闭对话框
+          supplyDialogVisible.value = false
+
+          // 刷新列表
+          if (yyypCurrentWeapon.value) {
+            setTimeout(async () => {
+              await handleRefreshYYYP()
+            }, 1000)
+          }
+        })
       } else {
         ElMessageBox.alert(
           `供应失败：${confirmResponse.data.message || '未知错误'}`,
@@ -1145,7 +1210,9 @@ export function useItemSearch() {
 
   // 全选供应物品
   const selectAllSupplyItems = () => {
-    if (selectedSupplyItems.value.length === supplyInventoryList.value.length) {
+    const maxSelectableCount = Math.min(supplyInventoryList.value.length, maxSupplyQuantity.value)
+
+    if (selectedSupplyItems.value.length === maxSelectableCount) {
       // 已全选，清空选择
       selectedSupplyItems.value = []
     } else {
@@ -1165,6 +1232,95 @@ export function useItemSearch() {
     const maxSelectableCount = Math.min(supplyInventoryList.value.length, maxSupplyQuantity.value)
     return selectedSupplyItems.value.length === maxSelectableCount
   })
+
+  // 查询单个印花/挂件的价格
+  const fetchAccessoryPrice = async (steamHashName) => {
+    if (!steamHashName) return null
+
+    try {
+      const url = apiUrls.buyYyypPriceInfo(steamHashName)
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        console.warn(`价格查询失败 (${steamHashName}): ${response.status}`)
+        return null
+      }
+
+      const result = await response.json()
+      if (result.success && result.data) {
+        return {
+          yyyp_price: result.data.yyyp_price,
+          yyyp_on_sale_count: result.data.yyyp_on_sale_count,
+          buff_price: result.data.buff_price,
+          buff_on_sale_count: result.data.buff_on_sale_count,
+          market_listing_item_name: result.data.market_listing_item_name
+        }
+      }
+    } catch (error) {
+      console.error(`查询价格失败 (${steamHashName}):`, error.message || error)
+    }
+    return null
+  }
+
+  // 查询供应物品的印花和挂件价格
+  const loadSupplyItemPrices = async (item) => {
+    const steamAssetId = item.steamAssetId
+    const priceData = {
+      stickers: [],
+      pendant: null
+    }
+
+    // 查询印花价格
+    if (item.stickerList && item.stickerList.length > 0) {
+      const stickerPricePromises = item.stickerList.map(async (sticker) => {
+        const steamHashName = sticker.steamHashName
+        if (!steamHashName) return null
+
+        const priceInfo = await fetchAccessoryPrice(`Sticker | ${steamHashName}`)
+        if (priceInfo) {
+          return {
+            name: sticker.name,
+            steamHashName: steamHashName,
+            ...priceInfo
+          }
+        }
+        return null
+      })
+
+      const stickerResults = await Promise.all(stickerPricePromises)
+      priceData.stickers = stickerResults.filter(item => item !== null)
+    }
+
+    // 查询挂件价格
+    if (item.hasPendant && item.pendants && item.pendants.length > 0) {
+      const pendant = item.pendants[0]
+      const steamHashName = pendant.steamHashName
+      if (steamHashName) {
+        const priceInfo = await fetchAccessoryPrice(steamHashName)
+        if (priceInfo) {
+          priceData.pendant = {
+            name: pendant.name,
+            steamHashName: steamHashName,
+            ...priceInfo
+          }
+        }
+      }
+    }
+
+    // 存储价格信息
+    supplyPriceInfo.value.set(steamAssetId, priceData)
+  }
+
+  // 获取供应物品的价格信息
+  const getSupplyItemPriceInfo = (steamAssetId) => {
+    return supplyPriceInfo.value.get(steamAssetId) || { stickers: [], pendant: null }
+  }
 
   // 批量获取改名信息（自动调用，只获取第一条）
   const fetchAllNameTags = async (commodityList) => {
@@ -1825,19 +1981,13 @@ export function useItemSearch() {
   const getStickerImageUrl = (sticker) => {
     if (!sticker) return ''
 
-    // 优先使用 hashName 拼接本地路径
-    if (sticker.hashName) {
-      const localPath = getWeaponImage(`Sticker | ${sticker.hashName}`)
-      if (localPath) return localPath
-    }
-
-    // 降级使用 steamHashName
+    // 优先使用 steamHashName，本地请求时需要拼接 "Sticker | " 前缀
     if (sticker.steamHashName) {
-      const localPath = getWeaponImage(sticker.steamHashName)
+      const localPath = getWeaponImage(`Sticker | ${sticker.steamHashName}`)
       if (localPath) return localPath
     }
 
-    // 最后降级到远程URL
+    // 直接降级到远程URL
     return sticker.imgUrl || sticker.img || sticker.imageUrl || ''
   }
 
@@ -2454,10 +2604,13 @@ export function useItemSearch() {
     currentPurchaseOrder,
     maxSupplyQuantity,
     supplyLoading,
+    supplyPriceInfo,
     handleConfirmSupply,
+    handleSendOffer,
     toggleSupplyItemSelection,
     isSupplyItemSelected,
     selectAllSupplyItems,
-    isAllSupplyItemsSelected
+    isAllSupplyItemsSelected,
+    getSupplyItemPriceInfo
   }
 }

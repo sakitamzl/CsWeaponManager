@@ -2169,7 +2169,7 @@
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .supply-order-info .info-row {
@@ -2179,9 +2179,22 @@
   font-size: 14px;
 }
 
+/* 紧凑行样式 - 价格和数量在一行 */
+.supply-order-info .compact-row {
+  display: flex;
+  gap: 32px;
+}
+
+.supply-order-info .info-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .supply-order-info .info-label {
   color: var(--el-text-color-secondary);
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .supply-order-info .info-value {
@@ -2192,10 +2205,6 @@
 .supply-order-info .price-highlight {
   color: #67c23a;
   font-size: 16px;
-}
-
-.supply-order-info .max-reached {
-  color: #e6a23c;
 }
 
 /* 可供应物品列表 */
@@ -2214,6 +2223,23 @@
   color: var(--el-text-color-primary);
   padding-bottom: 8px;
   border-bottom: 1px solid var(--el-border-color-light);
+}
+
+.list-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.selected-info {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--el-text-color-secondary);
+}
+
+.selected-info.max-reached {
+  color: #e6a23c;
+  font-weight: 600;
 }
 
 /* 物品表格容器 */
@@ -2269,12 +2295,8 @@
   width: 100px;
 }
 
-.inventory-table .col-name {
-  width: 280px;
-}
-
-.inventory-table .col-wear {
-  width: 160px;
+.inventory-table .col-name-and-wear {
+  width: 350px;
 }
 
 .inventory-table .col-accessories {
@@ -2298,6 +2320,13 @@
   object-fit: contain;
 }
 
+/* 物品名称和磨损容器 */
+.name-wear-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 /* 物品名称 */
 .inventory-table .item-name {
   font-size: 13px;
@@ -2306,7 +2335,7 @@
   line-height: 1.4;
 }
 
-/* 磨损容器 - 使用 inventory 样式 */
+/* 磨损容器 - 纵向布局，文本在进度条下方 */
 .wear-container {
   display: flex;
   flex-direction: column;
@@ -2318,7 +2347,7 @@
   height: 4px;
   display: flex;
   border-radius: 2px;
-  width: 100px;
+  width: 150px;
   overflow: hidden;
 }
 
@@ -2377,51 +2406,59 @@
 /* 印花/挂件容器 */
 .accessories-wrapper {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: center;
 }
 
-.stickers-row,
-.pendant-row {
+/* 印花和挂件在同一行 */
+.accessories-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-}
-
-.stickers-row .label,
-.pendant-row .label {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  white-space: nowrap;
-  min-width: 40px;
-}
-
-.stickers-icons {
-  display: flex;
   gap: 4px;
   flex-wrap: wrap;
 }
 
+/* 单个印花/挂件容器 (图片+价格) */
+.accessory-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+/* 印花/挂件价格信息 */
+.accessory-price {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.accessory-price .yyyp-price {
+  color: #409eff;
+  font-weight: 500;
+}
+
 .sticker-icon {
-  width: 24px;
-  height: 24px;
+  width: 60px;
+  height: 60px;
   object-fit: contain;
-  border-radius: 3px;
+  border-radius: 6px;
   padding: 2px;
   cursor: help;
   transition: transform 0.2s ease;
 }
 
 .sticker-icon:hover {
-  transform: scale(1.3);
+  transform: scale(1.2);
   z-index: 10;
 }
 
 .pendant-icon {
-  width: 24px;
-  height: 24px;
+  width: 60px;
+  height: 60px;
   object-fit: contain;
-  border-radius: 3px;
+  border-radius: 6px;
   padding: 2px;
   cursor: help;
   transition: transform 0.2s ease;
