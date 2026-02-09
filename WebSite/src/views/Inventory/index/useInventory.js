@@ -54,6 +54,8 @@ export function useInventory() {
   // 预览弹窗相关
   const previewVisible = ref(false)
   const previewItem = ref(null)
+  const stickersPriceInfo = ref([]) // 印花价格信息
+  const pendantPriceInfo = ref(null) // 挂件价格信息
 
   // 多选模式相关
   const isMultiSelectMode = ref(true) // 默认开启多选模式
@@ -1794,6 +1796,128 @@ export function useInventory() {
   const openPreview = (item) => {
     previewItem.value = item
     previewVisible.value = true
+    // 加载印花和挂件价格信息
+    loadStickersPriceInfo(item.sticker)
+    loadPendantPriceInfo(item.pendant)
+  }
+
+  // 加载印花价格信息
+  const loadStickersPriceInfo = async (stickersData) => {
+    stickersPriceInfo.value = []
+    if (!stickersData) return
+
+    try {
+      const parsed = typeof stickersData === 'string' ? JSON.parse(stickersData) : stickersData
+      if (!Array.isArray(parsed) || parsed.length === 0) return
+
+      console.log('解析的印花数据:', parsed)
+
+      const pricePromises = parsed.map(async (sticker) => {
+        const steamHashName = sticker.steam_hash_name
+        const name = sticker.name || '未知贴纸'
+
+        console.log('印花查询 - name:', name, 'steam_hash_name:', steamHashName)
+        if (!steamHashName) return null
+
+        try {
+          const url = apiUrls.buyYyypPriceInfo(steamHashName)
+          console.log('请求URL:', url)
+
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            }
+          })
+
+          console.log('响应状态:', response.status, response.statusText)
+
+          if (!response.ok) {
+            console.warn(`请求失败 (${steamHashName}): ${response.status} ${response.statusText}`)
+            return null
+          }
+
+          const result = await response.json()
+          console.log('响应数据:', result)
+
+          if (result.success && result.data) {
+            return {
+              name: name,
+              steam_hash_name: steamHashName,
+              yyyp_price: result.data.yyyp_price,
+              yyyp_on_sale_count: result.data.yyyp_on_sale_count,
+              buff_price: result.data.buff_price,
+              buff_on_sale_count: result.data.buff_on_sale_count,
+              market_listing_item_name: result.data.market_listing_item_name
+            }
+          }
+        } catch (error) {
+          console.error(`查询印花价格失败 (${name} - ${steamHashName}):`, error.message || error)
+          // 不抛出错误，让其他请求继续执行
+        }
+        return null
+      })
+
+      const results = await Promise.all(pricePromises)
+      stickersPriceInfo.value = results.filter(item => item !== null)
+      console.log('印花价格信息:', stickersPriceInfo.value)
+    } catch (error) {
+      console.error('解析印花价格信息失败:', error)
+      stickersPriceInfo.value = []
+    }
+  }
+
+  // 加载挂件价格信息
+  const loadPendantPriceInfo = async (pendantData) => {
+    pendantPriceInfo.value = null
+    if (!pendantData) return
+
+    try {
+      const parsed = typeof pendantData === 'string' ? JSON.parse(pendantData) : pendantData
+      const pendantObj = Array.isArray(parsed) ? parsed[0] : parsed
+      if (!pendantObj || typeof pendantObj !== 'object') return
+
+      const steamHashName = pendantObj.steam_hash_name
+      const name = pendantObj.name || '挂件'
+
+      if (!steamHashName) return
+
+      const url = apiUrls.buyYyypPriceInfo(steamHashName)
+      console.log('挂件请求URL:', url, 'steam_hash_name:', steamHashName)
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        console.warn(`请求失败 (${steamHashName}): ${response.status} ${response.statusText}`)
+        return
+      }
+
+      const result = await response.json()
+      console.log('挂件响应数据:', result)
+
+      if (result.success && result.data) {
+        pendantPriceInfo.value = {
+          name: name,
+          steam_hash_name: steamHashName,
+          yyyp_price: result.data.yyyp_price,
+          yyyp_on_sale_count: result.data.yyyp_on_sale_count,
+          buff_price: result.data.buff_price,
+          buff_on_sale_count: result.data.buff_on_sale_count,
+          market_listing_item_name: result.data.market_listing_item_name
+        }
+        console.log('挂件价格信息:', pendantPriceInfo.value)
+      }
+    } catch (error) {
+      console.error('解析挂件价格信息失败:', error)
+      pendantPriceInfo.value = null
+    }
   }
 
   // 悠悠出售按钮处理
@@ -1839,18 +1963,18 @@ export function useInventory() {
       return
     }
 
-    // 从印花对象中获取各种可能的字段名
-    const hashName = sticker.hashName || sticker.HashName || sticker.steam_hash_name ||
-                     sticker.steamHashName || sticker.name
+    // 直接使用 steam_hash_name 字段
+    const steamHashName = sticker.steam_hash_name
 
-    if (!hashName) {
+    if (!steamHashName) {
       console.warn('印花对象:', sticker)
-      ElMessage.warning('该印花没有有效的名称')
+      ElMessage.warning('该印花没有有效的 steam_hash_name')
       return
     }
 
     // 在新标签页打开商品搜索页面
-    const searchUrl = `/item-search?keyword=${encodeURIComponent(hashName)}`
+    const searchUrl = `/item-search?keyword=${encodeURIComponent(steamHashName)}`
+    console.log('印花跳转:', steamHashName, 'URL:', searchUrl)
     window.open(searchUrl, '_blank')
   }
 
@@ -1869,18 +1993,18 @@ export function useInventory() {
       pendantObj = pendantObj[0]
     }
 
-    // 从挂件对象中获取各种可能的字段名
-    const hashName = pendantObj.steamHashName || pendantObj.hashName || pendantObj.HashName ||
-                     pendantObj.steam_hash_name || pendantObj.name
+    // 直接使用 steam_hash_name 字段
+    const steamHashName = pendantObj.steam_hash_name
 
-    if (!hashName) {
+    if (!steamHashName) {
       console.warn('挂件对象:', pendantObj)
-      ElMessage.warning('该挂件没有有效的名称')
+      ElMessage.warning('该挂件没有有效的 steam_hash_name')
       return
     }
 
     // 在新标签页打开商品搜索页面
-    const searchUrl = `/item-search?keyword=${encodeURIComponent(hashName)}`
+    const searchUrl = `/item-search?keyword=${encodeURIComponent(steamHashName)}`
+    console.log('挂件跳转:', steamHashName, 'URL:', searchUrl)
     window.open(searchUrl, '_blank')
   }
 
@@ -2438,6 +2562,8 @@ export function useInventory() {
     fetchBuffPrice,
     previewVisible,
     previewItem,
+    stickersPriceInfo,
+    pendantPriceInfo,
     openPreview,
     handleJumpToItemSearch,
     handleJumpToItemSearchBySticker,

@@ -90,7 +90,7 @@
       <div class="collapse-header" @click.stop="toggleSearchResults">
         <span class="collapse-title">
           <el-icon><CaretRight v-if="!showSearchResults" /><CaretBottom v-if="showSearchResults" /></el-icon>
-          武器搜索结果 ({{ searchResults.length }} 件)
+          搜索结果 ({{ searchResults.length }} 件)
         </span>
         <div class="header-actions">
           <el-pagination

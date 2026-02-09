@@ -2027,6 +2027,27 @@
   color: #4CAF50;
 }
 
+/* 入库时间 */
+.preview-order-time {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.preview-info-label {
+  color: #999;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  margin-right: 0.5rem;
+}
+
+.preview-info-value {
+  color: #fff;
+  font-size: 0.9rem;
+}
+
 /* 标签信息 */
 .preview-tags {
   display: flex;

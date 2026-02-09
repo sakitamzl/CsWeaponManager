@@ -8,7 +8,7 @@
           <CaretRight v-if="!showBuffTable" />
           <CaretBottom v-if="showBuffTable" />
         </el-icon>
-        <span class="buff-collapse-title">BUFF商品列表</span>
+        <span class="buff-collapse-title">BUFF</span>
         <el-button
           type="primary"
           size="small"

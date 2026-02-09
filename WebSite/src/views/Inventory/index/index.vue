@@ -1167,7 +1167,7 @@
           <!-- 左侧区域 -->
           <div class="preview-left-section">
             <!-- 图片区域 -->
-            <div class="preview-image-section">
+            <div class="preview-image-section" @click="handleJumpToItemSearch" style="cursor: pointer;">
               <img
                 v-if="getWeaponImage(previewItem.steam_hash_name)"
                 :src="getWeaponImage(previewItem.steam_hash_name)"
@@ -1237,6 +1237,12 @@
                 </div>
               </div>
 
+              <!-- 入库时间 -->
+              <div v-if="previewItem.order_time" class="preview-order-time">
+                <span class="preview-info-label">入库时间:</span>
+                <span class="preview-info-value">{{ previewItem.order_time }}</span>
+              </div>
+
               <!-- 标签信息 -->
               <div class="preview-tags">
                 <el-tooltip v-if="previewItem.remark && parseTradeLockDate(previewItem.remark) && !parseTradeLockDate(previewItem.remark).expired" :content="previewItem.remark" placement="top" effect="dark">
@@ -1247,15 +1253,6 @@
                 <el-tooltip v-else-if="previewItem.remark && !parseTradeLockDate(previewItem.remark)" :content="previewItem.remark" placement="top" effect="dark">
                   <el-tag type="warning" size="default">交易限制</el-tag>
                 </el-tooltip>
-              </div>
-
-              <!-- 操作按钮 -->
-              <div class="preview-action-buttons">
-                <el-button type="primary" @click="handleJumpToItemSearch">跳转商店</el-button>
-                <el-button type="primary" @click="handleYYYPSell">悠悠出售</el-button>
-                <el-button type="primary" @click="handleYYYPRent">悠悠出租</el-button>
-                <el-button type="primary" @click="handleBuffSell">BUFF出售</el-button>
-                <el-button type="primary" @click="handleBuffRent">BUFF出租</el-button>
               </div>
             </div>
           </div>
@@ -1289,7 +1286,30 @@
                       <div v-else class="preview-sticker-list-placeholder">?</div>
                     </div>
                   </el-tooltip>
-                  <div class="preview-sticker-list-name">{{ sticker.name || '未知贴纸' }}</div>
+                  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+                    <div class="preview-sticker-list-name">
+                      {{ stickersPriceInfo.find(s => s.name === sticker.name)?.market_listing_item_name || sticker.name || '未知贴纸' }}
+                    </div>
+                    <!-- 印花价格信息（悠悠蓝色 + BUFF绿色，一行显示） -->
+                    <div v-if="stickersPriceInfo.find(s => s.name === sticker.name)" class="preview-sticker-price-info" style="font-size: 12px; display: flex; gap: 12px; flex-wrap: wrap;">
+                      <span v-if="stickersPriceInfo.find(s => s.name === sticker.name)?.yyyp_price || stickersPriceInfo.find(s => s.name === sticker.name)?.yyyp_on_sale_count" style="color: #409eff;">
+                        <span v-if="stickersPriceInfo.find(s => s.name === sticker.name)?.yyyp_price">
+                          悠悠: ¥{{ stickersPriceInfo.find(s => s.name === sticker.name).yyyp_price }}
+                        </span>
+                        <span v-if="stickersPriceInfo.find(s => s.name === sticker.name)?.yyyp_on_sale_count" style="margin-left: 4px;">
+                          ({{ stickersPriceInfo.find(s => s.name === sticker.name).yyyp_on_sale_count }})
+                        </span>
+                      </span>
+                      <span v-if="stickersPriceInfo.find(s => s.name === sticker.name)?.buff_price || stickersPriceInfo.find(s => s.name === sticker.name)?.buff_on_sale_count" style="color: #67c23a;">
+                        <span v-if="stickersPriceInfo.find(s => s.name === sticker.name)?.buff_price">
+                          BUFF: ¥{{ stickersPriceInfo.find(s => s.name === sticker.name).buff_price }}
+                        </span>
+                        <span v-if="stickersPriceInfo.find(s => s.name === sticker.name)?.buff_on_sale_count" style="margin-left: 4px;">
+                          ({{ stickersPriceInfo.find(s => s.name === sticker.name).buff_on_sale_count }})
+                        </span>
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1310,16 +1330,34 @@
                       <div v-else class="preview-pendant-list-placeholder">🎗️</div>
                     </div>
                   </el-tooltip>
-                  <div class="preview-pendant-list-name">{{ parsePendant(previewItem.pendant)?.name || '挂件' }}</div>
+                  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+                    <div class="preview-pendant-list-name">
+                      {{ pendantPriceInfo?.market_listing_item_name || parsePendant(previewItem.pendant)?.name || '挂件' }}
+                    </div>
+                    <!-- 挂件价格信息（悠悠蓝色 + BUFF绿色，一行显示） -->
+                    <div v-if="pendantPriceInfo" class="preview-pendant-price-info" style="font-size: 12px; display: flex; gap: 12px; flex-wrap: wrap;">
+                      <span v-if="pendantPriceInfo.yyyp_price || pendantPriceInfo.yyyp_on_sale_count" style="color: #409eff;">
+                        <span v-if="pendantPriceInfo.yyyp_price">
+                          悠悠: ¥{{ pendantPriceInfo.yyyp_price }}
+                        </span>
+                        <span v-if="pendantPriceInfo.yyyp_on_sale_count" style="margin-left: 4px;">
+                          ({{ pendantPriceInfo.yyyp_on_sale_count }})
+                        </span>
+                      </span>
+                      <span v-if="pendantPriceInfo.buff_price || pendantPriceInfo.buff_on_sale_count" style="color: #67c23a;">
+                        <span v-if="pendantPriceInfo.buff_price">
+                          BUFF: ¥{{ pendantPriceInfo.buff_price }}
+                        </span>
+                        <span v-if="pendantPriceInfo.buff_on_sale_count" style="margin-left: 4px;">
+                          ({{ pendantPriceInfo.buff_on_sale_count }})
+                        </span>
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-
-        <!-- 移入组件按钮 - 右下角 -->
-        <div class="preview-bottom-right-button">
-          <el-button type="success" @click="handleMoveToComponent">移入组件</el-button>
         </div>
       </div>
     </el-dialog>

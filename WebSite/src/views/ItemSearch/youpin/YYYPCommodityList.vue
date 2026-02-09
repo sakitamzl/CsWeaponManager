@@ -8,7 +8,7 @@
           <CaretRight v-if="!showYYYPTable" />
           <CaretBottom v-if="showYYYPTable" />
         </el-icon>
-        <span class="yyyp-collapse-title">悠悠有品商品列表</span>
+        <span class="yyyp-collapse-title">悠悠有品</span>
 
         <!-- 筛选按钮组 - 移到左侧 -->
         <div class="yyyp-filter-buttons">
