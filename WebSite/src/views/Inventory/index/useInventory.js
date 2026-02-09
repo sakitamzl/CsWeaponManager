@@ -58,7 +58,7 @@ export function useInventory() {
   const pendantPriceInfo = ref(null) // 挂件价格信息
 
   // 多选模式相关
-  const isMultiSelectMode = ref(true) // 默认开启多选模式
+  const isMultiSelectMode = ref(false) // 默认为详情模式（非多选模式）
   const selectedItems = ref([])
   
   // 组件选择对话框相关

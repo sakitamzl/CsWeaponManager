@@ -257,6 +257,7 @@ div, section, article, aside, main, header, footer, nav {
     padding: clamp(1rem, 2.5vw, 1.25rem);
     margin-bottom: clamp(0.75rem, 2vw, 1.25rem);
     border: 1px solid var(--border-default);
+    background-color: transparent;
 }
 
 /* 网格布局 */
