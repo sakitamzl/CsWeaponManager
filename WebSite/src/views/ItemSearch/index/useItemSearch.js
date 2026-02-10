@@ -2319,6 +2319,11 @@ export function useItemSearch() {
     return 'success'  // 绿色 - 购买
   })
 
+  // 判断商品预览按钮是否禁用
+  const isPreviewButtonDisabled = computed(() => {
+    return commodityPreviewType.value === 'yyyp' && yyypFilterType.value === 'on_lease'
+  })
+
   // 打开 CSQAQ 网站
   const openCSQAQ = async (item) => {
     try {
@@ -2532,6 +2537,7 @@ export function useItemSearch() {
     handleBuyCommodityFromPreview,
     getPreviewButtonText,
     getPreviewButtonType,
+    isPreviewButtonDisabled,
     // 印花/挂件预览
     stickerPreviewVisible,
     stickerPreviewData,

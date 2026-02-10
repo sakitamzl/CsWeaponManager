@@ -39,6 +39,7 @@
           <el-option label="机枪" value="机枪" />
           <el-option label="手套" value="手套" />
           <el-option label="匕首" value="匕首" />
+          <el-option label="挂件" value="挂件" />
         </el-select>
         <el-select v-model="floatRangeFilter" placeholder="磨损等级" class="filter-select" clearable @change="handleFilterChange">
           <el-option label="全部" value="" />

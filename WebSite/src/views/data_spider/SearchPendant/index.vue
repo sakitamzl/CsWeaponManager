@@ -683,6 +683,95 @@
       </template>
     </el-dialog>
 
+    <!-- 悠悠有品购买确认对话框 -->
+    <el-dialog
+      v-model="yyypBuyDialogVisible"
+      title="购买商品"
+      width="600px"
+      :close-on-click-modal="false"
+      class="yyyp-buy-dialog"
+    >
+      <div v-loading="yyypBuyDetailLoading" class="yyyp-buy-content">
+        <div v-if="yyypBuyDetail && yyypBuyDetail.commodity" class="yyyp-buy-detail">
+          <!-- 商品信息 -->
+          <div class="commodity-info-section">
+            <div class="commodity-image-large">
+              <img
+                v-if="yyypBuyDetail.commodity.templateInfo?.iconUrlLarge"
+                :src="yyypBuyDetail.commodity.templateInfo.iconUrlLarge"
+                :alt="yyypBuyDetail.commodity.commodityName"
+                style="max-width: 100%; max-height: 200px;"
+              />
+            </div>
+            <div class="commodity-info-details">
+              <h3>{{ yyypBuyDetail.commodity.commodityName }}</h3>
+              <el-descriptions :column="1" border size="small">
+                <el-descriptions-item label="价格">
+                  <span style="color: #f56c6c; font-size: 18px; font-weight: bold;">
+                    {{ yyypBuyDetail.commodity.sellPrice }}
+                  </span>
+                </el-descriptions-item>
+                <el-descriptions-item label="品质">
+                  <span :style="{ color: '#' + yyypBuyDetail.commodity.templateInfo?.qualityColor }">
+                    {{ yyypBuyDetail.commodity.templateInfo?.qualityName }}
+                  </span>
+                </el-descriptions-item>
+                <el-descriptions-item label="稀有度">
+                  <span :style="{ color: '#' + yyypBuyDetail.commodity.templateInfo?.rarityColor }">
+                    {{ yyypBuyDetail.commodity.templateInfo?.rarityName }}
+                  </span>
+                </el-descriptions-item>
+              </el-descriptions>
+            </div>
+          </div>
+
+          <!-- 支付方式 -->
+          <div class="payment-section">
+            <div class="payment-info" v-if="filteredYYYPPayList.length > 0">
+              <span style="font-size: 16px; font-weight: 600; margin-right: 20px;">支付方式</span>
+              <img
+                :src="filteredYYYPPayList[0].channelLogo"
+                :alt="filteredYYYPPayList[0].channelName"
+                style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;"
+              />
+              <span style="font-size: 14px;">{{ filteredYYYPPayList[0].channelName }}</span>
+              <span v-if="filteredYYYPPayList[0].balance" style="color: #67c23a; margin-left: 10px; font-weight: bold;">
+                ¥{{ filteredYYYPPayList[0].balance }}
+              </span>
+            </div>
+          </div>
+
+          <!-- 购买选项 -->
+          <div class="buy-options-section">
+            <el-checkbox v-model="yyypBuyForm.autoConfirmPayment">
+              自动确认支付
+            </el-checkbox>
+            <el-checkbox v-model="yyypBuyForm.pollPayment">
+              轮询支付状态
+            </el-checkbox>
+          </div>
+        </div>
+
+        <div v-else-if="!yyypBuyDetailLoading" class="no-detail-section">
+          <el-empty description="无法加载商品详情" />
+        </div>
+      </div>
+
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="yyypBuyDialogVisible = false">取消</el-button>
+          <el-button
+            type="primary"
+            :loading="buyingYYYP"
+            :disabled="!yyypBuyDetail || yyypBuyDetailLoading || !isYYYPBalanceSufficient"
+            @click="confirmYYYPBuy"
+          >
+            {{ isYYYPBalanceSufficient ? '确认购买' : '余额不足' }}
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
+
   </div>
 </template>
 

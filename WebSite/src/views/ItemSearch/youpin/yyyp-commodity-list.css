@@ -370,3 +370,41 @@
 .no-detail-section :deep(.el-empty__description) {
   color: #909399;
 }
+
+/* ========== 在售购买对话框样式 ========== */
+.yyyp-onsale-buy-dialog {
+  --el-dialog-bg-color: #2a2a2a;
+}
+
+.yyyp-onsale-buy-dialog :deep(.el-dialog__header) {
+  background-color: #1e1e1e;
+  border-bottom: 1px solid #3a3a3a;
+  padding: 16px 20px;
+}
+
+.yyyp-onsale-buy-dialog :deep(.el-dialog__title) {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.yyyp-onsale-buy-dialog :deep(.el-dialog__body) {
+  background-color: #2a2a2a;
+  padding: 20px;
+}
+
+.yyyp-onsale-buy-dialog :deep(.el-dialog__footer) {
+  background-color: #1e1e1e;
+  border-top: 1px solid #3a3a3a;
+  padding: 16px 20px;
+}
+
+.onsale-buy-content {
+  min-height: 200px;
+}
+
+.onsale-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}

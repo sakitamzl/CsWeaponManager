@@ -267,7 +267,7 @@
             :type="getButtonType(item)"
             size="small"
             class="card-buy-button"
-            :disabled="item.isLeaseItem"
+            :disabled="item.isLeaseItem || yyypFilterType === 'on_lease'"
             @click.stop="handleBuyCommodityWithPresale(item)"
           >
             {{ getButtonText(item) }}
@@ -582,10 +582,99 @@
           <el-button
             type="primary"
             :loading="buyingPresale"
-            :disabled="!presaleDetail || presaleDetailLoading"
+            :disabled="!presaleDetail || presaleDetailLoading || !isPresaleBalanceSufficient"
             @click="confirmPresaleBuy"
           >
-            确认购买
+            {{ isPresaleBalanceSufficient ? '确认购买' : '余额不足' }}
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
+
+    <!-- 在售购买对话框 -->
+    <el-dialog
+      v-model="onSaleBuyDialogVisible"
+      title="购买商品"
+      width="600px"
+      :close-on-click-modal="false"
+      class="yyyp-onsale-buy-dialog"
+    >
+      <div v-loading="onSaleDetailLoading" class="onsale-buy-content">
+        <div v-if="onSaleDetail && onSaleDetail.commodity" class="onsale-detail">
+          <!-- 商品信息 -->
+          <div class="commodity-info-section">
+            <div class="commodity-image-large">
+              <img
+                v-if="onSaleDetail.commodity.templateInfo?.iconUrlLarge"
+                :src="onSaleDetail.commodity.templateInfo.iconUrlLarge"
+                :alt="onSaleDetail.commodity.commodityName"
+                style="max-width: 100%; max-height: 200px;"
+              />
+            </div>
+            <div class="commodity-info-details">
+              <h3>{{ onSaleDetail.commodity.commodityName }}</h3>
+              <el-descriptions :column="1" border size="small">
+                <el-descriptions-item label="价格">
+                  <span style="color: #f56c6c; font-size: 18px; font-weight: bold;">
+                    {{ onSaleDetail.commodity.sellPrice }}
+                  </span>
+                </el-descriptions-item>
+                <el-descriptions-item label="品质">
+                  <span :style="{ color: '#' + onSaleDetail.commodity.templateInfo?.qualityColor }">
+                    {{ onSaleDetail.commodity.templateInfo?.qualityName }}
+                  </span>
+                </el-descriptions-item>
+                <el-descriptions-item label="稀有度">
+                  <span :style="{ color: '#' + onSaleDetail.commodity.templateInfo?.rarityColor }">
+                    {{ onSaleDetail.commodity.templateInfo?.rarityName }}
+                  </span>
+                </el-descriptions-item>
+              </el-descriptions>
+            </div>
+          </div>
+
+          <!-- 支付方式 -->
+          <div class="payment-section">
+            <div class="payment-info" v-if="filteredOnSalePayList.length > 0">
+              <span style="font-size: 16px; font-weight: 600; margin-right: 20px;">支付方式</span>
+              <img
+                :src="filteredOnSalePayList[0].channelLogo"
+                :alt="filteredOnSalePayList[0].channelName"
+                style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;"
+              />
+              <span style="font-size: 14px;">{{ filteredOnSalePayList[0].channelName }}</span>
+              <span v-if="filteredOnSalePayList[0].balance" style="color: #67c23a; margin-left: 10px; font-weight: bold;">
+                ¥{{ filteredOnSalePayList[0].balance }}
+              </span>
+            </div>
+          </div>
+
+          <!-- 购买选项 -->
+          <div class="buy-options-section">
+            <el-checkbox v-model="onSaleBuyForm.autoConfirmPayment">
+              自动确认支付
+            </el-checkbox>
+            <el-checkbox v-model="onSaleBuyForm.pollPayment">
+              轮询支付状态
+            </el-checkbox>
+          </div>
+        </div>
+
+        <div v-else-if="!onSaleDetailLoading" class="no-detail-section">
+          <el-empty description="无法加载商品详情" />
+        </div>
+      </div>
+
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="onSaleBuyDialogVisible = false">取消</el-button>
+          <el-button
+            type="primary"
+            :loading="buyingOnSale"
+            :disabled="!onSaleDetail || onSaleDetailLoading || !isOnSaleBalanceSufficient"
+            @click="confirmOnSaleBuy"
+          >
+            {{ isOnSaleBalanceSufficient ? '确认购买' : '余额不足' }}
           </el-button>
         </span>
       </template>
@@ -974,13 +1063,60 @@ const filteredPayList = computed(() => {
   return presaleDetail.value.payList.filter(pay => pay.channelId === 100)
 })
 
-// 修改购买按钮处理逻辑，添加预售支持
+// 判断预售商品余额是否充足
+const isPresaleBalanceSufficient = computed(() => {
+  if (!presaleDetail.value?.commodity) return false
+  if (filteredPayList.value.length === 0) return false
+
+  const balance = filteredPayList.value[0].balance || 0
+  const depositAmount = presaleDetail.value.commodity.commodityPreSaleDTO?.depositAmount || 0
+
+  return balance >= depositAmount
+})
+
+// ========== 在售购买相关 ==========
+// 在售购买对话框状态
+const onSaleBuyDialogVisible = ref(false)
+const onSaleDetail = ref(null)
+const onSaleDetailLoading = ref(false)
+const buyingOnSale = ref(false)
+const currentOnSaleItem = ref(null)
+
+// 在售购买表单
+const onSaleBuyForm = ref({
+  autoConfirmPayment: true,
+  pollPayment: true,
+  paymentChannel: 'balance'
+})
+
+// 过滤在售商品的支付方式列表，只显示有品余额
+const filteredOnSalePayList = computed(() => {
+  if (!onSaleDetail.value?.payList) return []
+  return onSaleDetail.value.payList.filter(pay => pay.channelId === 100)
+})
+
+// 判断在售商品余额是否充足
+const isOnSaleBalanceSufficient = computed(() => {
+  if (!onSaleDetail.value?.commodity) return false
+  if (filteredOnSalePayList.value.length === 0) return false
+
+  const balance = filteredOnSalePayList.value[0].balance || 0
+  const price = onSaleDetail.value.commodity.commodityConversionPrice ||
+                (onSaleDetail.value.commodity.commodityPrice / 100) || 0
+
+  return balance >= price
+})
+
+// 修改购买按钮处理逻辑，添加预售和在售支持
 const handleBuyCommodityWithPresale = async (item) => {
   // 如果是预售商品，打开预售购买对话框
   if (item.isPreSale === 1 || props.yyypFilterType === 'presale') {
     await openPresaleBuyDialog(item)
+  } else if (props.yyypFilterType === 'on_sale') {
+    // 在售商品，打开在售购买对话框
+    await openOnSaleBuyDialog(item)
   } else {
-    // 普通商品，调用父组件的购买方法
+    // 其他商品，调用父组件的购买方法
     emit('buy-commodity', item)
   }
 }
@@ -1093,6 +1229,98 @@ const confirmPresaleBuy = async () => {
     ElMessage.error(errorMsg)
   } finally {
     buyingPresale.value = false
+  }
+}
+
+// 打开在售购买对话框
+const openOnSaleBuyDialog = async (item) => {
+  if (!item || !item.id) {
+    ElMessage.warning('商品信息不完整')
+    return
+  }
+
+  currentOnSaleItem.value = item
+  onSaleBuyDialogVisible.value = true
+  onSaleDetailLoading.value = true
+  onSaleDetail.value = null
+
+  try {
+    // 使用相同的API获取购买确认页面信息（在售商品也有这个接口）
+    const response = await axios.post(
+      apiUrls.yyypGetPresaleDetail(),  // 在售和预售使用相同的API
+      {
+        steamId: '',
+        commodityId: item.id.toString()
+      }
+    )
+
+    if (response.data.success) {
+      onSaleDetail.value = response.data.data
+      console.log('在售商品详情:', onSaleDetail.value)
+    } else {
+      throw new Error(response.data.message || '获取商品详情失败')
+    }
+  } catch (error) {
+    console.error('获取商品详情失败:', error)
+    ElMessage.error(error.message || '获取商品详情失败')
+    onSaleBuyDialogVisible.value = false
+  } finally {
+    onSaleDetailLoading.value = false
+  }
+}
+
+// 确认购买在售商品
+const confirmOnSaleBuy = async () => {
+  if (!currentOnSaleItem.value || !onSaleDetail.value) {
+    ElMessage.error('商品信息不完整')
+    return
+  }
+
+  const commodity = onSaleDetail.value.commodity
+  if (!commodity) {
+    ElMessage.error('商品详情缺失')
+    return
+  }
+
+  // 获取商品价格
+  const price = commodity.commodityConversionPrice || commodity.commodityPrice
+  if (!price) {
+    ElMessage.error('商品价格缺失')
+    return
+  }
+
+  // 确认对话框
+  try {
+    await ElMessageBox.confirm(
+      `确认购买 ${commodity.commodityName}？\n价格: ¥${typeof price === 'number' && price > 100 ? (price / 100).toFixed(2) : price}`,
+      '确认购买',
+      {
+        confirmButtonText: '确认',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+  } catch {
+    return
+  }
+
+  buyingOnSale.value = true
+
+  try {
+    // 调用父组件的购买方法
+    emit('buy-commodity', currentOnSaleItem.value)
+
+    ElMessage.success('购买请求已发送！')
+    onSaleBuyDialogVisible.value = false
+
+    // 刷新列表
+    emit('refresh-yyyp')
+  } catch (error) {
+    console.error('购买在售商品失败:', error)
+    const errorMsg = error.response?.data?.message || error.message || '购买失败，请稍后重试'
+    ElMessage.error(errorMsg)
+  } finally {
+    buyingOnSale.value = false
   }
 }
 </script>

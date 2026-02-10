@@ -217,6 +217,38 @@ const isLoadingMore = ref(false)
 const buyingItems = ref({})  // 正在购买的商品 {itemId: true/false}
 const purchasedItems = ref(new Set())  // 已成功购买的商品ID集合
 
+// 悠悠有品购买确认对话框相关状态
+const yyypBuyDialogVisible = ref(false)
+const yyypBuyDetail = ref(null)
+const yyypBuyDetailLoading = ref(false)
+const buyingYYYP = ref(false)
+const currentYYYPItem = ref(null)
+
+// 悠悠有品购买表单
+const yyypBuyForm = ref({
+  autoConfirmPayment: true,
+  pollPayment: true,
+  paymentChannel: 'balance'
+})
+
+// 过滤支付方式列表，只显示有品余额
+const filteredYYYPPayList = computed(() => {
+  if (!yyypBuyDetail.value?.payList) return []
+  return yyypBuyDetail.value.payList.filter(pay => pay.channelId === 100)
+})
+
+// 判断悠悠有品余额是否充足
+const isYYYPBalanceSufficient = computed(() => {
+  if (!yyypBuyDetail.value?.commodity) return false
+  if (filteredYYYPPayList.value.length === 0) return false
+
+  const balance = filteredYYYPPayList.value[0].balance || 0
+  const price = yyypBuyDetail.value.commodity.commodityConversionPrice ||
+                (yyypBuyDetail.value.commodity.commodityPrice / 100) || 0
+
+  return balance >= price
+})
+
 const normalizeReferencePriceSource = (value, defaultValue = 'youpin') => {
   const normalized = (value || '').toString().trim().toLowerCase()
   if (normalized === 'buff') {
@@ -1878,32 +1910,11 @@ const handleBuyWeapon = async (item) => {
   console.log('当前表单平台类型:', crawlForm.value.platformType)
   console.log('================================')
   
-  // 确认购买
-  try {
-    await ElMessageBox.confirm(
-      `确认购买该商品吗？\n\n改名：${item.nameTag || '无'}\n价格：¥${item.price}\n磨损：${item.abrade || '-'}\n溢价：+¥${typeof item.spread === 'number' ? item.spread.toFixed(2) : '0.00'}`,
-      '确认购买',
-      {
-        confirmButtonText: '确认购买',
-        cancelButtonText: '取消',
-        type: 'warning',
-        distinguishCancelAndClose: true
-      }
-    )
-  } catch (error) {
-    // 用户取消
-    ElMessage.info('已取消购买')
-    return
-  }
-  
   // 检查购买账号
   if (!crawlForm.value.steamId) {
     ElMessage.warning('请先选择购买账号')
     return
   }
-  
-  // 设置购买中状态
-  buyingItems.value[item.id] = true
   
   // 根据平台类型选择不同的购买流程
   // 1. 优先从选中的配置中获取平台类型
@@ -2094,45 +2105,23 @@ const handleBuyWeapon = async (item) => {
         )
       }
     } else {
-      // 悠悠有品购买流程（原有逻辑）
-      console.log('[购买] ========== ⚠️ 使用 悠悠有品 购买流程 ==========')
-      console.log('[购买] ⚠️ 警告：平台类型不是 steam，使用 youping 接口')
-      console.log('[购买] 当前表单平台类型:', crawlForm.value.platformType)
-      console.log('[购买] 标准化表单平台类型:', formPlatformType)
-      console.log('[购买] 配置平台类型:', configPlatformType || '无')
-      console.log('[购买] 最终平台类型:', platformType || '无')
-      console.log('[购买] isSteamPlatform:', isSteamPlatform)
-      console.log('[购买] isSteamItem:', isSteamItem)
-      console.log('[购买] 最终 isSteam:', isSteam)
-      console.log('[购买] 如果这是 Steam 市场商品，请检查平台类型设置')
+      // 悠悠有品购买流程 - 打开购买确认对话框
+      console.log('[购买] ========== 使用 悠悠有品 购买流程 ==========')
+      console.log('[购买] 打开购买确认对话框')
+      console.log('[购买] 商品ID:', item.id)
       console.log('[购买] ================================================')
-      
-      // 如果平台类型明显是 Steam 但进入了 else 分支，给出警告
-      if (formPlatformType.includes('steam') || configPlatformType.includes('steam')) {
-        console.error('[购买] ❌ 错误：检测到平台类型包含 steam，但进入了 youping 分支！')
-        console.error('[购买] 这可能是代码逻辑错误，请检查判断条件')
-        ElMessage.warning('检测到平台类型可能是 Steam，但使用了 youping 接口。如果这是 Steam 市场商品，请联系开发者。')
-      }
-      
-      const requestData = {
-        steamId: crawlForm.value.steamId,  // ✅ 使用购买账号
-        commodityId: item.id,
-        buyQuantity: 1,
-        price: item.price,
-        autoConfirmPayment: true,  // 自动使用余额支付
-        pollPayment: true  // 轮询支付状态
-      }
-      
-      console.log('[购买] 购买请求数据 (使用购买账号):', requestData)
-      console.log('[购买]   - 购买账号:', crawlForm.value.steamId)
-      console.log('[购买]   - 爬取账号:', crawlForm.value.crawlAccountId)
-      console.log('[购买] 调用接口:', `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/buyCommodity`)
-      
-      // 调用完整购买接口（创建订单+自动支付）
-      const response = await axios.post(
-        `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/buyCommodity`,
-        requestData
-      )
+
+      // 关闭loading消息
+      loadingMessage.close()
+
+      // 打开购买确认对话框
+      await openYYYPBuyDialog(item)
+
+      // 重置购买中状态
+      buyingItems.value[item.id] = false
+
+      // 购买流程由对话框接管，直接返回
+      return
       
       console.log('购买响应:', response.data)
       
@@ -2246,12 +2235,131 @@ const handleSidebarAreaClick = (event) => {
 }
 
 // 组件挂载时加载数据（不自动启动搜索和轮询）
+// 打开悠悠有品购买确认对话框
+const openYYYPBuyDialog = async (item) => {
+  if (!item || !item.id) {
+    ElMessage.warning('商品信息不完整')
+    return
+  }
+
+  currentYYYPItem.value = item
+  yyypBuyDialogVisible.value = true
+  yyypBuyDetailLoading.value = true
+  yyypBuyDetail.value = null
+
+  try {
+    const response = await axios.post(
+      `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getPresaleDetail`,
+      {
+        steamId: '',
+        commodityId: item.id.toString()
+      }
+    )
+
+    if (response.data.success) {
+      yyypBuyDetail.value = response.data.data
+      console.log('悠悠有品商品详情:', yyypBuyDetail.value)
+    } else {
+      throw new Error(response.data.message || '获取商品详情失败')
+    }
+  } catch (error) {
+    console.error('获取商品详情失败:', error)
+    ElMessage.error(error.message || '获取商品详情失败')
+    yyypBuyDialogVisible.value = false
+  } finally {
+    yyypBuyDetailLoading.value = false
+  }
+}
+
+// 确认购买悠悠有品商品
+const confirmYYYPBuy = async () => {
+  if (!currentYYYPItem.value || !yyypBuyDetail.value) {
+    ElMessage.error('商品信息不完整')
+    return
+  }
+
+  const commodity = yyypBuyDetail.value.commodity
+  if (!commodity) {
+    ElMessage.error('商品详情缺失')
+    return
+  }
+
+  // 获取商品价格
+  const price = commodity.commodityConversionPrice || (commodity.commodityPrice / 100) || 0
+  if (!price) {
+    ElMessage.error('商品价格缺失')
+    return
+  }
+
+  // 确认对话框
+  try {
+    await ElMessageBox.confirm(
+      `确认购买 ${commodity.commodityName}？\n价格: ¥${price}`,
+      '确认购买',
+      {
+        confirmButtonText: '确认',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+  } catch {
+    return
+  }
+
+  buyingYYYP.value = true
+
+  try {
+    const requestData = {
+      steamId: crawlForm.value.steamId,
+      commodityId: currentYYYPItem.value.id,
+      buyQuantity: 1,
+      price: price,
+      autoConfirmPayment: yyypBuyForm.value.autoConfirmPayment,
+      pollPayment: yyypBuyForm.value.pollPayment
+    }
+
+    const response = await axios.post(
+      `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/buyCommodity`,
+      requestData
+    )
+
+    if (response.data.success) {
+      // 购买成功 - 标记为已购买
+      purchasedItems.value.add(currentYYYPItem.value.id)
+
+      // 更新数据库状态
+      try {
+        await axios.post(
+          `${API_CONFIG.BASE_URL}/searchRename/item/update-status`,
+          {
+            commodityId: currentYYYPItem.value.id,
+            status: 'buyed'
+          }
+        )
+      } catch (updateError) {
+        console.error('更新数据库状态失败:', updateError)
+      }
+
+      ElMessage.success('购买成功！')
+      yyypBuyDialogVisible.value = false
+    } else {
+      throw new Error(response.data.message || '购买失败')
+    }
+  } catch (error) {
+    console.error('购买悠悠有品商品失败:', error)
+    const errorMsg = error.response?.data?.message || error.message || '购买失败，请稍后重试'
+    ElMessage.error(errorMsg)
+  } finally {
+    buyingYYYP.value = false
+  }
+}
+
 onMounted(() => {
   if (crawlForm.value.platformType) {
     loadAccountsForPlatform(crawlForm.value.platformType)
   }
   loadConfigList()
-  
+
   // 不再自动加载搜索结果和启动轮询，需要点击配置卡片后才进行搜索
 })
 
@@ -2327,6 +2435,16 @@ return {
   handleBuyWeapon,
   getBuyButtonType,
   getSteamBottomPrice,
+  // 悠悠有品购买对话框
+  yyypBuyDialogVisible,
+  yyypBuyDetail,
+  yyypBuyDetailLoading,
+  buyingYYYP,
+  yyypBuyForm,
+  filteredYYYPPayList,
+  isYYYPBalanceSufficient,
+  openYYYPBuyDialog,
+  confirmYYYPBuy,
   // 历史结果管理
   clearCrawlHistory,
   // 工具区域折叠

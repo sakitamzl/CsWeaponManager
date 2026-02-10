@@ -2,7 +2,7 @@
 echo Starting PyInstaller packaging process...
 
 :: Set version number (modify this for each release)
-set VERSION=v2.3.5.4
+set VERSION=v2.3.6
 
 :: Sync version to package.json
 echo Syncing version to package.json...

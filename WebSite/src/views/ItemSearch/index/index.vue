@@ -582,13 +582,13 @@
                     </span>
                   </div>
                   <!-- 购买/租用按钮 - 与改名同一行 -->
-                  <el-button :type="getPreviewButtonType" class="preview-price-buy-btn" @click="handleBuyCommodityFromPreview">{{ getPreviewButtonText }}</el-button>
+                  <el-button :type="getPreviewButtonType" :disabled="isPreviewButtonDisabled" class="preview-price-buy-btn" @click="handleBuyCommodityFromPreview">{{ getPreviewButtonText }}</el-button>
                 </div>
               </template>
 
               <!-- 如果没有改名，购买/租用按钮单独一行 -->
               <div v-if="commodityPreviewType !== 'yyyp' || commodityPreviewItem.haveNameTag !== 1" class="preview-price-row">
-                <el-button :type="getPreviewButtonType" class="preview-price-buy-btn-standalone" @click="handleBuyCommodityFromPreview">{{ getPreviewButtonText }}</el-button>
+                <el-button :type="getPreviewButtonType" :disabled="isPreviewButtonDisabled" class="preview-price-buy-btn-standalone" @click="handleBuyCommodityFromPreview">{{ getPreviewButtonText }}</el-button>
               </div>
             </div>
           </div>

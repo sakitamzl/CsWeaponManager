@@ -24,7 +24,7 @@
 - 优化印花和挂件跳转逻辑，直接使用steam_hash_name字段进行商品搜索
 - 修改库存页面默认模式为详情模式，提升用户浏览体验
 - 完成悠悠 BUFF 租入数据更新方法
-- 完成悠悠有品 饰品供应方法
+- 完成悠悠有品 求购供应 、预售购买方法
 - 修复BUFF buy列表无法获取印花 挂件的steam_hash_name 历史数据需要执行下面的sql语句后重新获取。
 ```sql
 delete FROM "buy" WHERE "from" = 'buff'

@@ -475,6 +475,38 @@ export function useSearchPendant() {
   const buyingItems = ref({})  // 正在购买的商品 {itemId: true/false}
   const purchasedItems = ref(new Set())  // 已成功购买的商品ID集合
 
+  // 悠悠有品购买确认对话框相关状态
+  const yyypBuyDialogVisible = ref(false)
+  const yyypBuyDetail = ref(null)
+  const yyypBuyDetailLoading = ref(false)
+  const buyingYYYP = ref(false)
+  const currentYYYPItem = ref(null)
+
+  // 悠悠有品购买表单
+  const yyypBuyForm = ref({
+    autoConfirmPayment: true,
+    pollPayment: true,
+    paymentChannel: 'balance'
+  })
+
+  // 过滤支付方式列表，只显示有品余额
+  const filteredYYYPPayList = computed(() => {
+    if (!yyypBuyDetail.value?.payList) return []
+    return yyypBuyDetail.value.payList.filter(pay => pay.channelId === 100)
+  })
+
+  // 判断悠悠有品余额是否充足
+  const isYYYPBalanceSufficient = computed(() => {
+    if (!yyypBuyDetail.value?.commodity) return false
+    if (filteredYYYPPayList.value.length === 0) return false
+
+    const balance = filteredYYYPPayList.value[0].balance || 0
+    const price = yyypBuyDetail.value.commodity.commodityConversionPrice ||
+                  (yyypBuyDetail.value.commodity.commodityPrice / 100) || 0
+
+    return balance >= price
+  })
+
   // 工具与配置区域联动折叠状态
   const isConfigSectionsCollapsed = ref(false)
   const isSearchResultsCollapsed = ref(false)  // 搜索结果列表折叠状态
@@ -2218,142 +2250,159 @@ const clearAllWeaponIds = async () => {
   }
 }
 
-// 购买饰品
-const handleBuyWeapon = async (item) => {
-  console.log('购买商品:', item)
-  
-  // 确认购买
-  try {
-    const pendantNames = item.pendants ? item.pendants.map(p => p.name).join(', ') : '无'
-    const priceDiffText = item.priceDiff >= 0 ? `+${item.priceDiff.toFixed(2)}` : `${item.priceDiff.toFixed(2)}`
-    await ElMessageBox.confirm(
-      `确认购买该商品吗？\n\n挂件：${pendantNames}\n价格：¥${item.price}\n磨损：${item.abrade || '-'}\n溢价：${item.spread.toFixed(2)}\n收益：${priceDiffText}`,
-      '确认购买',
-      {
-        confirmButtonText: '确认购买',
-        cancelButtonText: '取消',
-        type: 'warning',
-        distinguishCancelAndClose: true
-      }
-    )
-  } catch (error) {
-    // 用户取消
-    ElMessage.info('已取消购买')
+// 打开悠悠有品购买确认对话框
+const openYYYPBuyDialog = async (item) => {
+  if (!item || !item.id) {
+    ElMessage.warning('商品信息不完整')
     return
   }
-  
-  // 设置购买中状态
-  buyingItems.value[item.id] = true
-  
-  // 开始购买流程
-  const loadingMessage = ElMessage({
-    message: '正在创建订单...',
-    type: 'info',
-    duration: 0
-  })
-  
+
+  currentYYYPItem.value = item
+  yyypBuyDialogVisible.value = true
+  yyypBuyDetailLoading.value = true
+  yyypBuyDetail.value = null
+
+  try {
+    const response = await axios.post(
+      `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getPresaleDetail`,
+      {
+        steamId: '',
+        commodityId: item.id.toString()
+      }
+    )
+
+    if (response.data.success) {
+      yyypBuyDetail.value = response.data.data
+      console.log('悠悠有品商品详情:', yyypBuyDetail.value)
+    } else {
+      throw new Error(response.data.message || '获取商品详情失败')
+    }
+  } catch (error) {
+    console.error('获取商品详情失败:', error)
+    ElMessage.error(error.message || '获取商品详情失败')
+    yyypBuyDialogVisible.value = false
+  } finally {
+    yyypBuyDetailLoading.value = false
+  }
+}
+
+// 确认购买悠悠有品商品
+const confirmYYYPBuy = async () => {
+  if (!currentYYYPItem.value || !yyypBuyDetail.value) {
+    ElMessage.error('商品信息不完整')
+    return
+  }
+
+  const commodity = yyypBuyDetail.value.commodity
+  if (!commodity) {
+    ElMessage.error('商品详情缺失')
+    return
+  }
+
+  // 获取商品价格
+  const price = commodity.commodityConversionPrice || (commodity.commodityPrice / 100) || 0
+  if (!price) {
+    ElMessage.error('商品价格缺失')
+    return
+  }
+
+  // 确认对话框
+  try {
+    await ElMessageBox.confirm(
+      `确认购买 ${commodity.commodityName}？\n价格: ¥${price}`,
+      '确认购买',
+      {
+        confirmButtonText: '确认',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+  } catch {
+    return
+  }
+
+  buyingYYYP.value = true
+
   try {
     const requestData = {
-      steamId: crawlForm.value.steamId,  // ✅ 使用购买账号
-      commodityId: item.id,
+      steamId: crawlForm.value.steamId,
+      commodityId: currentYYYPItem.value.id,
       buyQuantity: 1,
-      price: item.price,
-      autoConfirmPayment: true,  // 自动使用余额支付
-      pollPayment: true  // 轮询支付状态
+      price: price,
+      autoConfirmPayment: yyypBuyForm.value.autoConfirmPayment,
+      pollPayment: yyypBuyForm.value.pollPayment
     }
-    
-    console.log('购买请求数据 (使用购买账号):', requestData)
-    console.log('  - 购买账号:', crawlForm.value.steamId)
-    console.log('  - 爬取账号:', crawlForm.value.crawlAccountId)
-    
-    // 调用完整购买接口（创建订单+自动支付）
+
     const response = await axios.post(
       `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/buyCommodity`,
       requestData
     )
-    
-    console.log('购买响应:', response.data)
-    
-    loadingMessage.close()
-    
+
     if (response.data.success) {
-      const orderData = response.data.data?.order || {}
-      const paymentStatus = response.data.data?.payment_status || {}
-      const orderNo = orderData.orderNo || '未知'
-      const paymentAmount = item.price || '未知'
-      
-      // 检查支付状态
-      const payStatus = paymentStatus.payStatus
-      let message = ''
-      
-      if (payStatus === 2) {
-        // 支付成功 - 标记为已购买
-        purchasedItems.value.add(item.id)
-        
-        // 更新数据库中的状态为 buyed
-        try {
-          await axios.post(
-            `${API_CONFIG.BASE_URL}/searchRename/item/update-status`,
-            {
-              commodityId: item.id,
-              status: 'buyed'
-            }
-          )
-          console.log('数据库状态已更新为 buyed')
-        } catch (updateError) {
-          console.error('更新数据库状态失败:', updateError)
-          // 不影响购买成功的提示
-        }
-        
-        message = `购买成功！\n\n商品：挂件饰品\n订单号：${orderNo}\n金额：¥${paymentAmount}\n状态：支付成功✅\n\n饰品将发送至您的库存。`
-      } else if (payStatus === 1) {
-        // 支付处理中
-        message = `订单已创建！\n\n订单号：${orderNo}\n金额：¥${paymentAmount}\n状态：支付处理中⏳\n\n请稍后查看订单状态。`
-      } else {
-        // 订单创建成功但支付未完成
-        message = `订单创建成功！\n\n订单号：${orderNo}\n金额：¥${paymentAmount}\n\n已自动使用余额支付，请稍后查看订单状态。`
-      }
-      
-      // 显示购买成功信息
-      ElMessageBox.alert(
-        message,
-        '购买完成',
-        {
-          confirmButtonText: '知道了',
-          type: 'success',
-          callback: () => {
-            ElMessage.success(payStatus === 2 ? '购买成功！' : '订单已创建')
+      // 购买成功 - 标记为已购买
+      purchasedItems.value.add(currentYYYPItem.value.id)
+
+      // 更新数据库状态
+      try {
+        await axios.post(
+          `${API_CONFIG.BASE_URL}/searchRename/item/update-status`,
+          {
+            commodityId: currentYYYPItem.value.id,
+            status: 'buyed'
           }
-        }
-      )
+        )
+      } catch (updateError) {
+        console.error('更新数据库状态失败:', updateError)
+      }
+
+      ElMessage.success('购买成功！')
+      yyypBuyDialogVisible.value = false
     } else {
-      ElMessageBox.alert(
-        `购买失败：${response.data.message || '未知错误'}\n\n请检查配置或稍后重试。`,
-        '购买失败',
-        {
-          confirmButtonText: '知道了',
-          type: 'error'
-        }
-      )
+      throw new Error(response.data.message || '购买失败')
     }
   } catch (error) {
-    loadingMessage.close()
-    console.error('购买商品失败:', error)
-    
-    const errorMessage = error.response?.data?.message || error.message || '网络错误，请稍后重试'
-    
-    ElMessageBox.alert(
-      `购买失败：${errorMessage}`,
-      '购买失败',
-      {
-        confirmButtonText: '知道了',
-        type: 'error'
-      }
-    )
+    console.error('购买悠悠有品商品失败:', error)
+    const errorMsg = error.response?.data?.message || error.message || '购买失败，请稍后重试'
+    ElMessage.error(errorMsg)
   } finally {
-    // 移除购买中状态
+    buyingYYYP.value = false
+  }
+}
+
+// 购买饰品
+const handleBuyWeapon = async (item) => {
+  console.log('[购买] ========== 使用 悠悠有品 购买流程 ==========')
+  console.log('[购买] 打开购买确认对话框')
+  console.log('[购买] 商品ID:', item.id)
+  console.log('[购买] ================================================')
+
+  // 设置购买中状态
+  buyingItems.value[item.id] = true
+
+  // 开始购买流程 - 显示loading消息
+  const loadingMessage = ElMessage({
+    message: '正在加载商品详情...',
+    type: 'info',
+    duration: 0
+  })
+
+  try {
+    // 打开购买确认对话框
+    await openYYYPBuyDialog(item)
+
+    // 关闭loading消息
+    loadingMessage.close()
+  } catch (error) {
+    // 关闭loading消息
+    loadingMessage.close()
+    console.error('[购买] 打开对话框失败:', error)
+  } finally {
+    // 重置购买中状态
     buyingItems.value[item.id] = false
   }
+
+  // 购买流程由对话框接管，直接返回
+  return
 }
 
 // 表格行样式
@@ -2766,6 +2815,16 @@ const getRarityColor = (rarity) => {
     hasHighlightMoment,
     getBuyButtonType,
     getItemIconUrl,
+    // 悠悠有品购买对话框
+    yyypBuyDialogVisible,
+    yyypBuyDetail,
+    yyypBuyDetailLoading,
+    buyingYYYP,
+    yyypBuyForm,
+    filteredYYYPPayList,
+    isYYYPBalanceSufficient,
+    openYYYPBuyDialog,
+    confirmYYYPBuy,
     // 历史结果管理
     clearCrawlHistory,
     // 工具区域折叠
