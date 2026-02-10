@@ -61,9 +61,12 @@
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.2);
 }
 
-/* 当二级侧边栏收缩时，按钮移到主侧边栏右侧（紧贴，无间隙） */
+/* 当二级侧边栏收缩时，按钮移到主侧边栏右侧（紧贴，无间隙，去掉左侧圆角和左边框） */
 .toggle-button.collapsed {
   left: var(--main-sidebar-width, max(15rem, min(18vw, 20rem)));
+  border-left: none;
+  border-radius: 0 12px 12px 0;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
 }
 
 /* 当主侧边栏收缩时 */
@@ -73,6 +76,7 @@
 
 .on-sale-container.main-sidebar-collapsed .toggle-button.collapsed {
   left: 4rem;
+  border-left: none;
 }
 
 .toggle-button:hover {
@@ -187,8 +191,16 @@
     left: calc(var(--main-sidebar-width, max(calc(15rem - 50px), min(18vw, calc(20rem - 50px)))) + 240px + 2px);
   }
 
+  .toggle-button.collapsed {
+    left: var(--main-sidebar-width, max(15rem, min(18vw, 20rem)));
+  }
+
   .on-sale-container.main-sidebar-collapsed .toggle-button {
     left: calc(4rem + 240px + 2px);
+  }
+
+  .on-sale-container.main-sidebar-collapsed .toggle-button.collapsed {
+    left: 4rem;
   }
 
   .main-wrapper {
@@ -206,8 +218,16 @@
     left: calc(var(--main-sidebar-width, max(calc(15rem - 50px), min(18vw, calc(20rem - 50px)))) + 200px + 2px);
   }
 
+  .toggle-button.collapsed {
+    left: var(--main-sidebar-width, max(15rem, min(18vw, 20rem)));
+  }
+
   .on-sale-container.main-sidebar-collapsed .toggle-button {
     left: calc(4rem + 200px + 2px);
+  }
+
+  .on-sale-container.main-sidebar-collapsed .toggle-button.collapsed {
+    left: 4rem;
   }
 
   .main-wrapper {
@@ -240,11 +260,12 @@
   }
 
   .toggle-button {
-    left: calc(3rem + 180px - 36px);
+    left: calc(3rem + 180px + 2px);
   }
 
-  .secondary-sidebar.collapsed .toggle-button {
+  .toggle-button.collapsed {
     left: 3rem;
+    border-left: none;
   }
 
   .main-wrapper {
@@ -256,25 +277,6 @@
   }
 }
 
-@media (min-width: 1200px) and (max-width: 1919px) {
-  .toggle-button {
-    left: calc(max(calc(18rem - 50px), 16vw) + 220px - 36px);
-  }
-
-  .secondary-sidebar.collapsed .toggle-button {
-    left: max(calc(18rem - 50px), 16vw);
-  }
-}
-
-@media (min-width: 1600px) and (max-width: 1919px) {
-  .toggle-button {
-    left: calc(max(calc(20rem - 50px), 14vw) + 220px - 36px);
-  }
-
-  .secondary-sidebar.collapsed .toggle-button {
-    left: max(calc(20rem - 50px), 14vw);
-  }
-}
 
 /* 深色主题滚动条 */
 .sidebar-content::-webkit-scrollbar {
