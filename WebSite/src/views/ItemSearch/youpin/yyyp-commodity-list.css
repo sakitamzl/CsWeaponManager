@@ -180,3 +180,193 @@
   border-top: 1px solid var(--el-border-color);
   padding-top: 20px;
 }
+
+/* ========== 预售购买对话框样式 ========== */
+.yyyp-presale-buy-dialog {
+  --el-dialog-bg-color: #2a2a2a;
+}
+
+.yyyp-presale-buy-dialog :deep(.el-dialog__header) {
+  background-color: #1e1e1e;
+  border-bottom: 1px solid #3a3a3a;
+  padding: 16px 20px;
+}
+
+.yyyp-presale-buy-dialog :deep(.el-dialog__title) {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.yyyp-presale-buy-dialog :deep(.el-dialog__body) {
+  background-color: #2a2a2a;
+  padding: 20px;
+}
+
+.yyyp-presale-buy-dialog :deep(.el-dialog__footer) {
+  background-color: #1e1e1e;
+  border-top: 1px solid #3a3a3a;
+  padding: 16px 20px;
+}
+
+.presale-buy-content {
+  min-height: 400px;
+}
+
+.presale-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 商品信息区域 */
+.commodity-info-section {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  background: #1e1e1e;
+  border-radius: 8px;
+  border: 1px solid #3a3a3a;
+}
+
+.commodity-image-large {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 200px;
+  height: 150px;
+  background: #252525;
+  border-radius: 8px;
+  padding: 10px;
+  border: 1px solid #3a3a3a;
+}
+
+.commodity-info-details {
+  flex: 1;
+}
+
+.commodity-info-details h3 {
+  margin: 0 0 15px 0;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* 覆盖 el-descriptions 样式 */
+.commodity-info-details :deep(.el-descriptions) {
+  background-color: transparent;
+}
+
+.commodity-info-details :deep(.el-descriptions__label) {
+  background-color: #252525;
+  color: #909399;
+  font-size: 14px;
+}
+
+.commodity-info-details :deep(.el-descriptions__content) {
+  background-color: #1e1e1e;
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.commodity-info-details :deep(.el-descriptions__cell) {
+  border-color: #3a3a3a;
+}
+
+/* 预售信息区域 */
+.presale-info-section {
+  padding: 20px;
+  background: #1e1e1e;
+  border-radius: 8px;
+  border: 1px solid #3a3a3a;
+}
+
+.presale-info-section :deep(.el-alert) {
+  background-color: #2a2a2a;
+  border: 1px solid #3a3a3a;
+}
+
+.presale-info-section :deep(.el-alert__title) {
+  color: #e6a23c;
+  font-weight: 600;
+}
+
+.presale-info-section :deep(.el-alert__description) {
+  color: #b0b0b0;
+}
+
+.presale-info-section :deep(.el-descriptions) {
+  background-color: transparent;
+}
+
+.presale-info-section :deep(.el-descriptions__label) {
+  background-color: #252525;
+  color: #909399;
+}
+
+.presale-info-section :deep(.el-descriptions__content) {
+  background-color: #1e1e1e;
+  color: #ffffff;
+}
+
+.presale-info-section :deep(.el-descriptions__cell) {
+  border-color: #3a3a3a;
+}
+
+/* 支付方式区域 */
+.payment-section {
+  padding: 20px;
+  background: #1e1e1e;
+  border-radius: 8px;
+  border: 1px solid #3a3a3a;
+}
+
+.payment-section .payment-info {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: transparent;
+  border: none;
+  border-radius: 6px;
+}
+
+/* 购买选项区域 */
+.buy-options-section {
+  display: flex;
+  gap: 30px;
+  padding: 20px;
+  background: #1e1e1e;
+  border-radius: 8px;
+  border: 1px solid #3a3a3a;
+}
+
+.buy-options-section :deep(.el-checkbox) {
+  color: #ffffff;
+}
+
+.buy-options-section :deep(.el-checkbox__label) {
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.buy-options-section :deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
+  background-color: #409eff;
+  border-color: #409eff;
+}
+
+/* 空状态 */
+.no-detail-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+}
+
+.no-detail-section :deep(.el-empty) {
+  --el-empty-fill-color-0: #252525;
+}
+
+.no-detail-section :deep(.el-empty__description) {
+  color: #909399;
+}

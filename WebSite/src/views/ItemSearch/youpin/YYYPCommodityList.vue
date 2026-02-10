@@ -268,7 +268,7 @@
             size="small"
             class="card-buy-button"
             :disabled="item.isLeaseItem"
-            @click.stop="handleBuyCommodity(item)"
+            @click.stop="handleBuyCommodityWithPresale(item)"
           >
             {{ getButtonText(item) }}
           </el-button>
@@ -463,6 +463,126 @@
           <el-button @click="handleResetFilter">重置</el-button>
           <el-button type="primary" @click="handleApplyFilter">确定</el-button>
         </div>
+      </template>
+    </el-dialog>
+
+    <!-- 预售购买对话框 -->
+    <el-dialog
+      v-model="presaleBuyDialogVisible"
+      title="购买预售商品"
+      width="600px"
+      :close-on-click-modal="false"
+      class="yyyp-presale-buy-dialog"
+    >
+      <div v-loading="presaleDetailLoading" class="presale-buy-content">
+        <div v-if="presaleDetail && presaleDetail.commodity" class="presale-detail">
+          <!-- 商品信息 -->
+          <div class="commodity-info-section">
+            <div class="commodity-image-large">
+              <img
+                v-if="presaleDetail.commodity.templateInfo?.iconUrlLarge"
+                :src="presaleDetail.commodity.templateInfo.iconUrlLarge"
+                :alt="presaleDetail.commodity.commodityName"
+                style="max-width: 100%; max-height: 200px;"
+              />
+            </div>
+            <div class="commodity-info-details">
+              <h3>{{ presaleDetail.commodity.commodityName }}</h3>
+              <el-descriptions :column="1" border size="small">
+                <el-descriptions-item label="价格">
+                  <span style="color: #f56c6c; font-size: 18px; font-weight: bold;">
+                    {{ presaleDetail.commodity.sellPrice }}
+                  </span>
+                </el-descriptions-item>
+                <el-descriptions-item label="品质">
+                  <span :style="{ color: '#' + presaleDetail.commodity.templateInfo?.qualityColor }">
+                    {{ presaleDetail.commodity.templateInfo?.qualityName }}
+                  </span>
+                </el-descriptions-item>
+                <el-descriptions-item label="稀有度">
+                  <span :style="{ color: '#' + presaleDetail.commodity.templateInfo?.rarityColor }">
+                    {{ presaleDetail.commodity.templateInfo?.rarityName }}
+                  </span>
+                </el-descriptions-item>
+              </el-descriptions>
+            </div>
+          </div>
+
+          <!-- 预售信息 -->
+          <div v-if="presaleDetail.commodity.commodityPreSaleDTO" class="presale-info-section">
+            <el-alert
+              title="预售说明"
+              type="warning"
+              :closable="false"
+              style="margin-bottom: 15px;"
+            >
+              <div style="line-height: 1.8; white-space: pre-wrap;">{{ presaleDetail.preSaleBuyDesc || '1. 等待冷却结束期间取消订单会产生违约费用\n2. 预售交易模式采用买家自动接收报价\n3. 冷却结束后由卖家发起报价，买家接收报价\n4. 冷却结束后进入收发货流程，将无法取消订单' }}</div>
+            </el-alert>
+
+            <el-descriptions :column="2" border>
+              <el-descriptions-item label="未发货赔付">
+                <span style="color: #67c23a; font-weight: bold;">
+                  ¥{{ presaleDetail.commodity.commodityPreSaleDTO.buyerCompensationAmount }}
+                </span>
+              </el-descriptions-item>
+              <el-descriptions-item label="不收货惩罚">
+                <span style="color: #f56c6c; font-weight: bold;">
+                  ¥{{ presaleDetail.commodity.commodityPreSaleDTO.buyerLiquidatedDamagesAmount }}
+                </span>
+              </el-descriptions-item>
+              <el-descriptions-item label="冷却结束时间">
+                {{ formatTimestamp(presaleDetail.commodity.commodityPreSaleDTO.preSaleEndTime) }}
+              </el-descriptions-item>
+              <el-descriptions-item label="发送报价截止时间" :span="2">
+                {{ formatTimestamp(presaleDetail.commodity.commodityPreSaleDTO.sendOfferEndTime) }}
+              </el-descriptions-item>
+            </el-descriptions>
+          </div>
+
+          <!-- 支付方式 -->
+          <div class="payment-section">
+            <div class="payment-info" v-if="filteredPayList.length > 0">
+              <span style="font-size: 16px; font-weight: 600; margin-right: 20px;">支付方式</span>
+              <img
+                :src="filteredPayList[0].channelLogo"
+                :alt="filteredPayList[0].channelName"
+                style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;"
+              />
+              <span style="font-size: 14px;">{{ filteredPayList[0].channelName }}</span>
+              <span v-if="filteredPayList[0].balance" style="color: #67c23a; margin-left: 10px; font-weight: bold;">
+                ¥{{ filteredPayList[0].balance }}
+              </span>
+            </div>
+          </div>
+
+          <!-- 购买选项 -->
+          <div class="buy-options-section">
+            <el-checkbox v-model="presaleBuyForm.autoConfirmPayment">
+              自动确认支付
+            </el-checkbox>
+            <el-checkbox v-model="presaleBuyForm.pollPayment">
+              轮询支付状态
+            </el-checkbox>
+          </div>
+        </div>
+
+        <div v-else-if="!presaleDetailLoading" class="no-detail-section">
+          <el-empty description="无法加载预售详情" />
+        </div>
+      </div>
+
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="presaleBuyDialogVisible = false">取消</el-button>
+          <el-button
+            type="primary"
+            :loading="buyingPresale"
+            :disabled="!presaleDetail || presaleDetailLoading"
+            @click="confirmPresaleBuy"
+          >
+            确认购买
+          </el-button>
+        </span>
       </template>
     </el-dialog>
   </div>
@@ -810,6 +930,159 @@ const getWeaponImage = inject('getWeaponImage', (hashName) => {
   if (!hashName) return ''
   return `/weapon_imgs/${encodeURIComponent(hashName)}.png`
 })
+
+// ========== 预售购买相关 ==========
+import { apiUrls } from '@/config/api.js'
+import { ElMessageBox } from 'element-plus'
+
+// 预售购买对话框状态
+const presaleBuyDialogVisible = ref(false)
+const presaleDetail = ref(null)
+const presaleDetailLoading = ref(false)
+const buyingPresale = ref(false)
+const currentPresaleItem = ref(null)
+
+// 预售购买表单
+const presaleBuyForm = ref({
+  autoConfirmPayment: true,
+  pollPayment: true,
+  paymentChannel: 'balance'
+})
+
+// 格式化时间戳
+const formatTimestamp = (timestamp) => {
+  if (!timestamp) return '-'
+  const date = new Date(timestamp)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+// 过滤支付方式列表，只显示有品余额
+const filteredPayList = computed(() => {
+  if (!presaleDetail.value?.payList) return []
+  // 只返回 channelId === 100 的有品余额支付方式
+  return presaleDetail.value.payList.filter(pay => pay.channelId === 100)
+})
+
+// 修改购买按钮处理逻辑，添加预售支持
+const handleBuyCommodityWithPresale = async (item) => {
+  // 如果是预售商品，打开预售购买对话框
+  if (item.isPreSale === 1 || props.yyypFilterType === 'presale') {
+    await openPresaleBuyDialog(item)
+  } else {
+    // 普通商品，调用父组件的购买方法
+    emit('buy-commodity', item)
+  }
+}
+
+// 打开预售购买对话框
+const openPresaleBuyDialog = async (item) => {
+  if (!item || !item.id) {
+    ElMessage.warning('商品信息不完整')
+    return
+  }
+
+  currentPresaleItem.value = item
+  presaleBuyDialogVisible.value = true
+  presaleDetailLoading.value = true
+  presaleDetail.value = null
+
+  try {
+    const response = await axios.post(
+      apiUrls.yyypGetPresaleDetail(),
+      {
+        steamId: '',
+        commodityId: item.id.toString()
+      }
+    )
+
+    if (response.data.success) {
+      presaleDetail.value = response.data.data
+      console.log('预售详情:', presaleDetail.value)
+    } else {
+      throw new Error(response.data.message || '获取预售详情失败')
+    }
+  } catch (error) {
+    console.error('获取预售详情失败:', error)
+    ElMessage.error(error.message || '获取预售详情失败')
+    presaleBuyDialogVisible.value = false
+  } finally {
+    presaleDetailLoading.value = false
+  }
+}
+
+// 确认购买预售商品
+const confirmPresaleBuy = async () => {
+  if (!currentPresaleItem.value || !presaleDetail.value) {
+    ElMessage.error('商品信息不完整')
+    return
+  }
+
+  const commodity = presaleDetail.value.commodity
+  if (!commodity) {
+    ElMessage.error('商品详情缺失')
+    return
+  }
+
+  // 确认对话框
+  try {
+    await ElMessageBox.confirm(
+      `确认购买 ${commodity.commodityName}？\n定金: ¥${(commodity.commodityPrice / 100).toFixed(2)}`,
+      '确认购买',
+      {
+        confirmButtonText: '确认',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+  } catch {
+    return
+  }
+
+  buyingPresale.value = true
+
+  try {
+    const response = await axios.post(
+      apiUrls.yyypBuyPresaleCommodity(),
+      {
+        steamId: '',
+        commodityId: currentPresaleItem.value.id.toString(),
+        price: commodity.commodityPrice.toString(),
+        autoConfirmPayment: presaleBuyForm.value.autoConfirmPayment,
+        pollPayment: presaleBuyForm.value.pollPayment,
+        paymentChannel: presaleBuyForm.value.paymentChannel
+      }
+    )
+
+    if (response.data.success) {
+      ElMessage.success('购买成功！')
+
+      const orderData = response.data.data?.order
+      if (orderData && orderData.orderNo) {
+        ElMessage.info(`订单号: ${orderData.orderNo}`)
+      }
+
+      presaleBuyDialogVisible.value = false
+
+      // 刷新列表
+      emit('refresh-yyyp')
+    } else {
+      throw new Error(response.data.message || '购买失败')
+    }
+  } catch (error) {
+    console.error('购买预售商品失败:', error)
+    // 优先从 response.data.message 获取后端返回的错误信息
+    const errorMsg = error.response?.data?.message || error.message || '购买失败，请稍后重试'
+    ElMessage.error(errorMsg)
+  } finally {
+    buyingPresale.value = false
+  }
+}
 </script>
 
 <style scoped src="./yyyp-commodity-list.css"></style>

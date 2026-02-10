@@ -202,10 +202,10 @@
             </template>
           </el-table-column>
           
-          <el-table-column label="操作" width="160" align="center" fixed="right">
+          <el-table-column label="操作" width="240" align="center" fixed="right">
             <template #default="{ row }">
-              <el-button 
-                type="primary" 
+              <el-button
+                type="primary"
                 size="small"
                 @click="handleSearchCSQAQ(row)"
                 :disabled="!row.csqaq_id"
@@ -213,13 +213,22 @@
               >
                 搜索
               </el-button>
-              <el-button 
-                type="success" 
+              <el-button
+                type="success"
                 size="small"
                 @click="handleOpenCSQAQ(row)"
                 :disabled="!row.csqaq_id"
               >
                 跳转QAQ
+              </el-button>
+              <el-button
+                type="warning"
+                size="small"
+                @click="loadYYYPCommodityList(row.yyyp_id, 'presale')"
+                :disabled="!row.yyyp_id"
+                :loading="loadingYYYPList"
+              >
+                查看悠悠
               </el-button>
             </template>
           </el-table-column>
@@ -283,8 +292,8 @@
                 </div>
               </div>
               <div class="card-actions">
-                <el-button 
-                  type="primary" 
+                <el-button
+                  type="primary"
                   size="small"
                   @click="handleSearchCSQAQ(item)"
                   :disabled="!item.csqaq_id"
@@ -293,14 +302,24 @@
                 >
                   搜索
                 </el-button>
-                <el-button 
-                  type="success" 
+                <el-button
+                  type="success"
                   size="small"
                   @click="handleOpenCSQAQ(item)"
                   :disabled="!item.csqaq_id"
                   style="flex: 1;"
                 >
                   跳转QAQ
+                </el-button>
+                <el-button
+                  type="warning"
+                  size="small"
+                  @click="loadYYYPCommodityList(item.yyyp_id, 'presale')"
+                  :disabled="!item.yyyp_id"
+                  :loading="loadingYYYPList"
+                  style="flex: 1;"
+                >
+                  查看悠悠
                 </el-button>
               </div>
             </div>
@@ -459,9 +478,10 @@ const {
   performSearch,
   handleWeaponTypeChange,
   loadWeaponNamesIfNeeded,
-  resetFilters,
+  handleClear,
+  handleSearchCSQAQ,
+  handleOpenCSQAQ,
   getWeaponImage,
-  getItemDetail,
   handleImageError,
   closeDetail,
   Loading,

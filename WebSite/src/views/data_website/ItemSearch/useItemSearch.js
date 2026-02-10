@@ -16,7 +16,7 @@ export function useItemSearch() {
   const loadingDetail = ref(false)
   const displayMode = ref('card') // 'list' 或 'card' - 默认卡片模式
   const image404Cache = ref(new Set()) // 图片404缓存
-  
+
   const filters = reactive({
     weaponType: '',
     weaponName: '',
@@ -24,7 +24,7 @@ export function useItemSearch() {
     priceMin: null,
     priceMax: null
   })
-  
+
   // 稀有度颜色映射
   const getRarityColor = (rarity) => {
     const colorMap = {
@@ -227,9 +227,10 @@ export function useItemSearch() {
     performSearch,
     handleWeaponTypeChange,
     loadWeaponNamesIfNeeded,
-    resetFilters,
+    handleClear,
+    handleSearchCSQAQ,
+    handleOpenCSQAQ,
     getWeaponImage,
-    getItemDetail,
     handleImageError,
     closeDetail,
     Loading,
