@@ -2303,6 +2303,22 @@ export function useItemSearch() {
     }
   }
 
+  // 获取商品预览按钮文本
+  const getPreviewButtonText = computed(() => {
+    if (commodityPreviewType.value === 'yyyp' && yyypFilterType.value === 'on_lease') {
+      return '租用'
+    }
+    return '购买'
+  })
+
+  // 获取商品预览按钮类型
+  const getPreviewButtonType = computed(() => {
+    if (commodityPreviewType.value === 'yyyp' && yyypFilterType.value === 'on_lease') {
+      return 'primary'  // 蓝色 - 租用
+    }
+    return 'success'  // 绿色 - 购买
+  })
+
   // 打开 CSQAQ 网站
   const openCSQAQ = async (item) => {
     try {
@@ -2514,6 +2530,8 @@ export function useItemSearch() {
     handleCommodityCardClick,
     getCommodityTitle,
     handleBuyCommodityFromPreview,
+    getPreviewButtonText,
+    getPreviewButtonType,
     // 印花/挂件预览
     stickerPreviewVisible,
     stickerPreviewData,

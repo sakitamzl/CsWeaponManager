@@ -494,6 +494,11 @@
                     {{ presaleDetail.commodity.sellPrice }}
                   </span>
                 </el-descriptions-item>
+                <el-descriptions-item label="定金" v-if="presaleDetail.commodity.commodityPreSaleDTO">
+                  <span style="color: #e6a23c; font-size: 16px; font-weight: bold;">
+                    ¥{{ presaleDetail.commodity.commodityPreSaleDTO.depositAmount }}
+                  </span>
+                </el-descriptions-item>
                 <el-descriptions-item label="品质">
                   <span :style="{ color: '#' + presaleDetail.commodity.templateInfo?.qualityColor }">
                     {{ presaleDetail.commodity.templateInfo?.qualityName }}
@@ -882,7 +887,7 @@ const getButtonType = (item) => {
   if (item.isPurchaseOrder) {
     return 'primary'  // 蓝色 - 供应
   } else if (item.isLeaseItem) {
-    return 'warning'  // 橙色 - 租用
+    return 'primary'  // 蓝色 - 租用
   } else {
     return 'success'  // 绿色 - 购买
   }
@@ -1029,10 +1034,17 @@ const confirmPresaleBuy = async () => {
     return
   }
 
+  // 获取定金金额
+  const depositAmount = commodity.commodityPreSaleDTO?.depositAmount
+  if (!depositAmount) {
+    ElMessage.error('定金金额缺失')
+    return
+  }
+
   // 确认对话框
   try {
     await ElMessageBox.confirm(
-      `确认购买 ${commodity.commodityName}？\n定金: ¥${(commodity.commodityPrice / 100).toFixed(2)}`,
+      `确认购买 ${commodity.commodityName}？\n定金: ¥${depositAmount}`,
       '确认购买',
       {
         confirmButtonText: '确认',
@@ -1052,7 +1064,7 @@ const confirmPresaleBuy = async () => {
       {
         steamId: '',
         commodityId: currentPresaleItem.value.id.toString(),
-        price: commodity.commodityPrice.toString(),
+        price: depositAmount.toString(),  // 传入定金金额（元）
         autoConfirmPayment: presaleBuyForm.value.autoConfirmPayment,
         pollPayment: presaleBuyForm.value.pollPayment,
         paymentChannel: presaleBuyForm.value.paymentChannel

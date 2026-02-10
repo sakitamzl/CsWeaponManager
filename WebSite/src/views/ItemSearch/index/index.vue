@@ -581,14 +581,14 @@
                       🏷️ 点击解析
                     </span>
                   </div>
-                  <!-- 购买按钮 - 与改名同一行 -->
-                  <el-button type="success" class="preview-price-buy-btn" @click="handleBuyCommodityFromPreview">购买</el-button>
+                  <!-- 购买/租用按钮 - 与改名同一行 -->
+                  <el-button :type="getPreviewButtonType" class="preview-price-buy-btn" @click="handleBuyCommodityFromPreview">{{ getPreviewButtonText }}</el-button>
                 </div>
               </template>
-              
-              <!-- 如果没有改名，购买按钮单独一行 -->
+
+              <!-- 如果没有改名，购买/租用按钮单独一行 -->
               <div v-if="commodityPreviewType !== 'yyyp' || commodityPreviewItem.haveNameTag !== 1" class="preview-price-row">
-                <el-button type="success" class="preview-price-buy-btn-standalone" @click="handleBuyCommodityFromPreview">购买</el-button>
+                <el-button :type="getPreviewButtonType" class="preview-price-buy-btn-standalone" @click="handleBuyCommodityFromPreview">{{ getPreviewButtonText }}</el-button>
               </div>
             </div>
           </div>
