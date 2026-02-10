@@ -157,7 +157,7 @@ export function useYyypMessageBox() {
       '提取': 'info',
       '诚信卖家': 'danger'
     }
-    return colorMap[type] || ''
+    return colorMap[type] || 'info'
   }
 
   const filteredMessageData = computed(() => {

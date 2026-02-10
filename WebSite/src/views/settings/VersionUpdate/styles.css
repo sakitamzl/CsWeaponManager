@@ -21,19 +21,76 @@
   height: calc(100vh - 3rem);
 }
 
-/* 左侧文档目录 */
-.doc-sidebar {
+/* 左侧区域：版本更新 + 文档目录 */
+.left-sidebar {
   width: 280px;
   min-width: 280px;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* 版本检查区域（紧凑版） */
+.version-check-section {
+  background-color: #252525;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  border: 1px solid #333;
+  flex-shrink: 0;
+}
+
+.version-header h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #409eff;
+  margin: 0 0 0.75rem 0;
+}
+
+.version-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.current-version {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  background-color: #1e1e1e;
+  border-radius: 4px;
+}
+
+.current-version .label {
+  font-size: 0.875rem;
+  color: #999;
+}
+
+.current-version .value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #409eff;
+}
+
+.update-alert,
+.no-update {
+  margin-top: 0.75rem;
+}
+
+/* 文档目录 */
+.doc-sidebar {
+  flex: 1;
   background-color: #252525;
   border-radius: 0.5rem;
   padding: 1.5rem;
   border: 1px solid #333;
   display: flex;
   flex-direction: column;
-  height: 100%;
   overflow: hidden;
+  min-height: 0;
 }
 
 .sidebar-header {
@@ -473,196 +530,4 @@
   background: rgba(64, 158, 255, 0.5);
 }
 
-/* ============================================ */
-/* 版本检查区域样式 */
-/* ============================================ */
-
-.version-check-section {
-  padding: 2rem;
-  max-width: 900px;
-}
-
-/* 版本信息卡片 */
-.version-info-card,
-.update-info-card,
-.no-update-card {
-  background-color: #252525;
-  border-radius: 0.75rem;
-  padding: 1.5rem;
-  border: 1px solid #333;
-  margin-bottom: 1.5rem;
-}
-
-.version-info-card .card-header,
-.update-info-card .card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #333;
-}
-
-.version-info-card .card-header h3,
-.update-info-card .card-header h3 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #fff;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.version-info-card .card-body,
-.update-info-card .card-body {
-  color: #ccc;
-}
-
-/* 版本显示 */
-.version-display {
-  display: flex;
-  align-items: center;
-  font-size: 1.1rem;
-}
-
-.version-label {
-  color: #999;
-  margin-right: 0.5rem;
-}
-
-.version-value {
-  color: #409eff;
-  font-weight: 600;
-  font-size: 1.3rem;
-}
-
-/* 更新详情 */
-.update-detail {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.detail-item {
-  display: flex;
-  align-items: center;
-}
-
-.detail-label {
-  color: #999;
-  margin-right: 0.5rem;
-}
-
-.detail-value {
-  color: #fff;
-  font-weight: 500;
-}
-
-.detail-value.highlight {
-  color: #67c23a;
-  font-size: 1.2rem;
-  font-weight: 600;
-}
-
-.required-badge {
-  margin-left: auto;
-}
-
-/* 更新日志 */
-.changelog-section {
-  background-color: #1e1e1e;
-  border-radius: 0.5rem;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.changelog-section h4 {
-  font-size: 1rem;
-  color: #409eff;
-  margin: 0 0 0.75rem 0;
-}
-
-.changelog-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.changelog-list li {
-  color: #ccc;
-  padding: 0.4rem 0;
-  padding-left: 1.5rem;
-  position: relative;
-}
-
-.changelog-list li::before {
-  content: '•';
-  position: absolute;
-  left: 0.5rem;
-  color: #409eff;
-  font-size: 1.2rem;
-  line-height: 1;
-}
-
-/* 更新按钮 */
-.update-actions {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.update-actions .el-button {
-  flex: 0 0 auto;
-}
-
-/* 更新进度 */
-.update-progress {
-  background-color: #1e1e1e;
-  border-radius: 0.5rem;
-  padding: 1.5rem;
-}
-
-.update-progress .el-progress {
-  margin-bottom: 0.75rem;
-}
-
-.progress-text {
-  text-align: center;
-  color: #999;
-  font-size: 0.9rem;
-  margin: 0;
-}
-
-/* 无更新卡片 */
-.no-update-card {
-  padding: 3rem 1.5rem;
-}
-
-.no-update-card .el-result {
-  --el-result-icon-font-size: 64px;
-  --el-result-title-font-size: 20px;
-  --el-result-subtitle-font-size: 14px;
-}
-
-/* 响应式调整 */
-@media (max-width: 768px) {
-  .version-check-section {
-    padding: 1rem;
-  }
-
-  .update-detail {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .update-actions {
-    flex-direction: column;
-  }
-
-  .update-actions .el-button {
-    width: 100%;
-  }
-}
 

@@ -2,130 +2,111 @@
   <div class="version-update-container">
     <div class="doc-box">
       <div class="page-layout">
-        <!-- 左侧文档目录 -->
-        <aside class="doc-sidebar">
-          <div class="sidebar-header">
-            <h3>文档目录</h3>
+        <!-- 左侧区域：版本更新 + 文档目录 -->
+        <aside class="left-sidebar">
+          <!-- 版本检查区域（紧凑版） -->
+          <div class="version-check-section">
+            <div class="version-header">
+              <h3>版本管理</h3>
+            </div>
+
+            <div class="version-info">
+              <div class="current-version">
+                <span class="label">当前版本</span>
+                <span class="value">v{{ currentVersion }}</span>
+              </div>
+
+              <el-button
+                type="primary"
+                size="small"
+                @click="handleCheckUpdate"
+                :loading="checkingUpdate"
+                style="width: 100%;"
+              >
+                <el-icon v-if="!checkingUpdate"><Refresh /></el-icon>
+                {{ checkingUpdate ? '检查中...' : '检查更新' }}
+              </el-button>
+            </div>
+
+            <!-- 更新提示（紧凑版） -->
+            <div v-if="updateInfo" class="update-alert">
+              <el-alert
+                type="success"
+                :closable="false"
+              >
+                <template #title>
+                  <div style="font-size: 13px; font-weight: 600;">
+                    发现新版本 v{{ updateInfo.latest_version }}
+                  </div>
+                </template>
+                <div style="font-size: 12px; margin-top: 8px;">
+                  <div>发布日期: {{ updateInfo.release_date }}</div>
+                  <div style="margin-top: 4px;">大小: {{ updateInfo.file_size }}</div>
+                  <el-button
+                    type="success"
+                    size="small"
+                    style="width: 100%; margin-top: 10px;"
+                    @click="handleStartUpdate"
+                    :loading="updating"
+                  >
+                    {{ updating ? '更新中...' : '立即更新' }}
+                  </el-button>
+                  <div v-if="updating" style="margin-top: 10px;">
+                    <el-progress :percentage="updateProgress" :status="updateStatus" />
+                    <div style="font-size: 11px; text-align: center; margin-top: 4px; color: #999;">
+                      {{ updateStatusText }}
+                    </div>
+                  </div>
+                </div>
+              </el-alert>
+            </div>
+
+            <!-- 无更新提示 -->
+            <div v-else-if="!checkingUpdate && checkedOnce" class="no-update">
+              <el-alert
+                type="success"
+                :closable="false"
+              >
+                <template #title>
+                  <div style="font-size: 12px;">已是最新版本</div>
+                </template>
+              </el-alert>
+            </div>
           </div>
 
           <div class="sidebar-divider"></div>
 
-          <div v-if="treeLoading" class="tree-loading">
-            <el-icon class="is-loading">
-              <Loading />
-            </el-icon>
-            <p>加载中...</p>
-          </div>
+          <!-- 文档目录 -->
+          <div class="doc-sidebar">
+            <div class="sidebar-header">
+              <h3>文档目录</h3>
+            </div>
 
-          <div v-else-if="treeError" class="tree-error">
-            <el-alert type="error" :title="treeError" show-icon :closable="false" />
-          </div>
+            <div v-if="treeLoading" class="tree-loading">
+              <el-icon class="is-loading">
+                <Loading />
+              </el-icon>
+              <p>加载中...</p>
+            </div>
 
-          <div v-else class="doc-list">
-            <TreeNode
-              v-for="item in fileTree"
-              :key="item.path"
-              :node="item"
-              :selected-path="selectedFilePath"
-              @select="onFileSelect"
-            />
+            <div v-else-if="treeError" class="tree-error">
+              <el-alert type="error" :title="treeError" show-icon :closable="false" />
+            </div>
+
+            <div v-else class="doc-list">
+              <TreeNode
+                v-for="item in fileTree"
+                :key="item.path"
+                :node="item"
+                :selected-path="selectedFilePath"
+                @select="onFileSelect"
+              />
+            </div>
           </div>
         </aside>
 
         <!-- 右侧内容区域 -->
         <div class="main-content-area">
-          <!-- 版本检查区域 -->
-          <div class="version-check-section">
-            <div class="version-info-card">
-              <div class="card-header">
-                <h3>当前版本</h3>
-                <el-button type="primary" @click="handleCheckUpdate" :loading="checkingUpdate">
-                  <el-icon v-if="!checkingUpdate"><Refresh /></el-icon>
-                  {{ checkingUpdate ? '检查中...' : '检查更新' }}
-                </el-button>
-              </div>
-              <div class="card-body">
-                <div class="version-display">
-                  <span class="version-label">版本号：</span>
-                  <span class="version-value">v{{ currentVersion }}</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- 更新信息卡片 -->
-            <div v-if="updateInfo" class="update-info-card">
-              <div class="card-header">
-                <h3>
-                  <el-icon color="#67c23a"><SuccessFilled /></el-icon>
-                  发现新版本
-                </h3>
-              </div>
-              <div class="card-body">
-                <div class="update-detail">
-                  <div class="detail-item">
-                    <span class="detail-label">最新版本：</span>
-                    <span class="detail-value highlight">v{{ updateInfo.latest_version }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">发布日期：</span>
-                    <span class="detail-value">{{ updateInfo.release_date }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">文件大小：</span>
-                    <span class="detail-value">{{ updateInfo.file_size }}</span>
-                  </div>
-                  <div v-if="updateInfo.required" class="detail-item required-badge">
-                    <el-tag type="danger" effect="dark">强制更新</el-tag>
-                  </div>
-                </div>
-
-                <!-- 更新日志 -->
-                <div class="changelog-section">
-                  <h4>更新内容：</h4>
-                  <ul class="changelog-list">
-                    <li v-for="(item, index) in updateInfo.changelog" :key="index">{{ item }}</li>
-                  </ul>
-                </div>
-
-                <!-- 更新按钮 -->
-                <div class="update-actions">
-                  <el-button
-                    type="primary"
-                    size="large"
-                    @click="handleStartUpdate"
-                    :loading="updating"
-                    :disabled="updating"
-                  >
-                    <el-icon v-if="!updating"><Download /></el-icon>
-                    {{ updateButtonText }}
-                  </el-button>
-                  <el-button
-                    v-if="!updateInfo.required && !updating"
-                    size="large"
-                    @click="handleCancelUpdate"
-                  >
-                    稍后更新
-                  </el-button>
-                </div>
-
-                <!-- 更新进度 -->
-                <div v-if="updating" class="update-progress">
-                  <el-progress :percentage="updateProgress" :status="updateStatus"></el-progress>
-                  <p class="progress-text">{{ updateStatusText }}</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- 没有更新时显示 -->
-            <div v-else-if="!checkingUpdate && checkedOnce" class="no-update-card">
-              <el-result
-                icon="success"
-                title="已是最新版本"
-                sub-title="当前已经是最新版本，无需更新"
-              >
-              </el-result>
-            </div>
-          </div>
           <!-- Markdown 目录导航 -->
           <aside v-if="tocItems.length > 0 && !contentLoading && !contentError && selectedFilePath" class="toc-sidebar">
             <div class="toc-header">
@@ -189,9 +170,19 @@
 
 <script>
 import { useVersionUpdate } from './useVersionUpdate.js'
+import TreeNode from './TreeNode.vue'
+import { Loading, Document, Refresh, Download, SuccessFilled } from '@element-plus/icons-vue'
 
 export default {
   name: 'VersionUpdate',
+  components: {
+    TreeNode,
+    Loading,
+    Document,
+    Refresh,
+    Download,
+    SuccessFilled
+  },
   setup() {
     return useVersionUpdate()
   }
