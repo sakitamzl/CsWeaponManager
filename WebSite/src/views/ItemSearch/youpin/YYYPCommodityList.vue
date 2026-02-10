@@ -65,11 +65,49 @@
           >
             筛选
           </button>
+
+          <!-- 排序选择器 - 仅在在售模块下显示 -->
+          <el-select
+            v-if="yyypFilterType === 'on_sale'"
+            v-model="sortType"
+            size="small"
+            placeholder="排序方式"
+            @click.stop
+            @change="handleSortChange"
+            style="width: 120px; margin-left: 16px"
+          >
+            <el-option label="默认" value="default" />
+            <el-option label="热度" value="popularity" />
+            <el-option label="最新" value="newest" />
+            <el-option label="价格 ↑" value="price_asc" />
+            <el-option label="价格 ↓" value="price_desc" />
+            <el-option label="磨损 ↑" value="wear_asc" />
+            <el-option label="磨损 ↓" value="wear_desc" />
+          </el-select>
+
+          <!-- 磨损区间选择器 - 仅在在售模块且有磨损区间时显示 -->
+          <el-select
+            v-if="yyypFilterType === 'on_sale' && wearRangeOptions.length > 0"
+            v-model="wearRange"
+            size="small"
+            placeholder="磨损区间"
+            @click.stop
+            @change="handleWearRangeChange"
+            style="width: 140px; margin-left: 8px"
+            clearable
+          >
+            <el-option label="全部磨损" value="" />
+            <el-option
+              v-for="option in wearRangeOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            />
+          </el-select>
         </div>
       </div>
       <div class="yyyp-weapon-info">
         <span class="weapon-name">{{ yyypCurrentWeapon?.market_listing_item_name }}</span>
-        <span class="commodity-count">已加载: {{ yyypCommodities.length }} 件</span>
         <span class="total-count">总数: {{ yyypTotalCount }} 件</span>
 
         <!-- 价格追踪按钮 - 移到右侧 -->
@@ -716,10 +754,94 @@ const emit = defineEmits([
   'buy-commodity',
   'fetch-single-nametag',
   'filter-change',
-  'advanced-filter'
+  'advanced-filter',
+  'sort-change',
+  'wear-range-change'
 ])
 
 // activeFilter 已移除，使用 props.yyypFilterType
+
+// 排序和磨损区间状态
+const sortType = ref('default')
+const wearRange = ref('')
+
+// 判断当前武器品质并返回对应的磨损区间选项
+const wearRangeOptions = computed(() => {
+  if (!props.yyypCurrentWeapon?.market_listing_item_name) return []
+
+  const name = props.yyypCurrentWeapon.market_listing_item_name
+
+  // 崭新出厂 (Factory New: 0.00 - 0.07)
+  if (name.includes('崭新出厂') || name.includes('Factory New')) {
+    return [
+      { label: '0.00 - 0.01', value: '0.00-0.01' },
+      { label: '0.01 - 0.02', value: '0.01-0.02' },
+      { label: '0.02 - 0.03', value: '0.02-0.03' },
+      { label: '0.03 - 0.04', value: '0.03-0.04' },
+      { label: '0.04 - 0.07', value: '0.04-0.07' }
+    ]
+  }
+
+  // 略有磨损 (Minimal Wear: 0.07 - 0.15)
+  if (name.includes('略有磨损') || name.includes('Minimal Wear')) {
+    return [
+      { label: '0.07 - 0.08', value: '0.07-0.08' },
+      { label: '0.08 - 0.09', value: '0.08-0.09' },
+      { label: '0.09 - 0.10', value: '0.09-0.10' },
+      { label: '0.10 - 0.11', value: '0.10-0.11' },
+      { label: '0.11 - 0.15', value: '0.11-0.15' }
+    ]
+  }
+
+  // 久经沙场 (Field-Tested: 0.15 - 0.38)
+  if (name.includes('久经沙场') || name.includes('Field-Tested')) {
+    return [
+      { label: '0.15 - 0.18', value: '0.15-0.18' },
+      { label: '0.18 - 0.21', value: '0.18-0.21' },
+      { label: '0.21 - 0.24', value: '0.21-0.24' },
+      { label: '0.24 - 0.27', value: '0.24-0.27' },
+      { label: '0.27 - 0.38', value: '0.27-0.38' }
+    ]
+  }
+
+  // 破损不堪 (Well-Worn: 0.38 - 0.45)
+  if (name.includes('破损不堪') || name.includes('Well-Worn')) {
+    return [
+      { label: '0.38 - 0.39', value: '0.38-0.39' },
+      { label: '0.39 - 0.40', value: '0.39-0.40' },
+      { label: '0.40 - 0.41', value: '0.40-0.41' },
+      { label: '0.41 - 0.42', value: '0.41-0.42' },
+      { label: '0.42 - 0.45', value: '0.42-0.45' }
+    ]
+  }
+
+  // 战痕累累 (Battle-Scarred: 0.45 - 1.00)
+  if (name.includes('战痕累累') || name.includes('Battle-Scarred')) {
+    return [
+      { label: '全部', value: '' },
+      { label: '0.45 - 0.50', value: '0.45-0.50' },
+      { label: '0.50 - 0.63', value: '0.50-0.63' },
+      { label: '0.63 - 0.76', value: '0.63-0.76' },
+      { label: '0.76 - 0.90', value: '0.76-0.90' },
+      { label: '0.90 - 1.00', value: '0.90-1.00' }
+    ]
+  }
+
+  // 其他品质暂不支持磨损区间筛选
+  return []
+})
+
+// 排序变更处理
+const handleSortChange = (value) => {
+  console.log('排序变更:', value)
+  emit('sort-change', value)
+}
+
+// 磨损区间变更处理
+const handleWearRangeChange = (value) => {
+  console.log('磨损区间变更:', value)
+  emit('wear-range-change', value)
+}
 
 // 筛选对话框状态
 const filterDialogVisible = ref(false)
