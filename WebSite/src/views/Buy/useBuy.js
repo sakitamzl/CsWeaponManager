@@ -204,7 +204,7 @@ export function useBuy() {
     return !!(item.sticker || item.pendant || item.rename)
   }
 
-  const parseStickers = (stickerData) => {
+  const parseStickers = (stickerData, from = null) => {
     if (!stickerData) return []
     try {
       const parsed = typeof stickerData === 'string' ? JSON.parse(stickerData) : stickerData
@@ -216,12 +216,17 @@ export function useBuy() {
 
         let imageUrl = null
         if (hashName) {
-          const imageName = hashName
+          // 如果 hashName 已经包含 "Sticker | " 前缀，直接使用；否则添加前缀
+          const fullHashName = hashName.startsWith('Sticker | ')
+            ? hashName
+            : `Sticker | ${hashName}`
+
+          const imageName = fullHashName
             .replace(/\s*\|\s*/g, '___')
             .replace(/\s/g, '_')
             .replace(/\*/g, '_')
             .replace(/™/g, '?')
-          imageUrl = apiUrls.weaponImage(`Sticker___${imageName}.png`)
+          imageUrl = apiUrls.weaponImage(`${imageName}.png`)
         }
 
         return {
@@ -235,7 +240,7 @@ export function useBuy() {
     }
   }
 
-  const parsePendant = (pendantData) => {
+  const parsePendant = (pendantData, from = null) => {
     if (!pendantData) return null
     try {
       const parsed = typeof pendantData === 'string' ? JSON.parse(pendantData) : pendantData
@@ -248,7 +253,12 @@ export function useBuy() {
 
       let imageUrl = null
       if (hashName) {
-        const imageName = hashName
+        // 如果 hashName 已经包含 "Charm | " 前缀，直接使用；否则添加前缀
+        const fullHashName = hashName.startsWith('Charm | ')
+          ? hashName
+          : `Charm | ${hashName}`
+
+        const imageName = fullHashName
           .replace(/\s*\|\s*/g, '___')
           .replace(/\s/g, '_')
           .replace(/\*/g, '_')

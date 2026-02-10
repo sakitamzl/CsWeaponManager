@@ -1,6 +1,5 @@
 from flask import jsonify, request, Blueprint
 from src.execution_db import Date_base
-from src.db_manager.buff.buff_buy import BuffBuyModel
 from src.db_manager.index.buy import BuyModel
 from src.db_manager.index.weapon_classID import WeaponClassIDModel
 import json
@@ -64,9 +63,10 @@ def process_accessory_data(accessory_json_str, accessory_type):
 
 @buff163BuyV1.route('/selectNotEnd/<user_id>', methods=['get'])
 def selectNotEnd(user_id):
+    """查询BUFF平台未完成的购买订单"""
     try:
-        records = BuffBuyModel.find_all(
-            "status NOT IN ('已完成', '已取消') AND data_user = ?", 
+        records = BuyModel.find_all(
+            "status NOT IN ('已完成', '已取消') AND data_user = ? AND \"from\" = 'buff'",
             (user_id,)
         )
         not_end_orders = [record.ID for record in records]
@@ -78,10 +78,11 @@ def selectNotEnd(user_id):
 
 @buff163BuyV1.route('/ApexTimeUrl/<user_id>', methods=['get'])
 def ApexTimeUrl(user_id):
+    """获取BUFF平台最新订单时间"""
     try:
-        records = BuffBuyModel.find_all(
-            "data_user = ? ORDER BY order_time DESC", 
-            (user_id,), 
+        records = BuyModel.find_all(
+            "data_user = ? AND \"from\" = 'buff' ORDER BY order_time DESC",
+            (user_id,),
             limit=1
         )
         last_order_time = records[0].order_time if records else None
@@ -92,14 +93,14 @@ def ApexTimeUrl(user_id):
 
 @buff163BuyV1.route('/getLatestData/<user_id>', methods=['GET'])
 def getLatestData(user_id):
-    """获取指定用户的最新一条购买记录（ID和订单时间）"""
+    """获取指定用户BUFF平台的最新一条购买记录（ID和订单时间）"""
     try:
-        records = BuffBuyModel.find_all(
-            "data_user = ? ORDER BY order_time DESC", 
-            (user_id,), 
+        records = BuyModel.find_all(
+            "data_user = ? AND \"from\" = 'buff' ORDER BY order_time DESC",
+            (user_id,),
             limit=1
         )
-        
+
         if records and len(records) > 0:
             latest_record = records[0]
             return jsonify({
@@ -116,38 +117,36 @@ def getLatestData(user_id):
 
 @buff163BuyV1.route('/updateOrderStatus', methods=['post'])
 def updateOrderStatus():
+    """更新BUFF购买订单状态"""
     try:
         data = request.get_json()
         item_id = data['item_id']
         status = data['state']
         status_sub = data.get('state_sub')
-        
-        # 更新buff_buy表
-        buff_record = BuffBuyModel.find_by_id(ID=item_id)
-        if buff_record:
-            buff_record.status = status
-            buff_record.status_sub = status_sub
-            buff_record.save()
-        
-        # 更新通用buy表
-        buy_record = BuyModel.find_by_id(ID=item_id)
+
+        # 只更新buy表中from='buff'的记录
+        buy_record = BuyModel.find_by_id(ID=item_id, **{'from': 'buff'})
         if buy_record:
             buy_record.status = status
             buy_record.status_sub = status_sub
             buy_record.save()
-        
-        return jsonify({'success': True, 'message': '更新成功'}), 200
+            return jsonify({'success': True, 'message': '更新成功'}), 200
+        else:
+            return jsonify({'success': False, 'error': '未找到对应的BUFF购买订单'}), 404
     except Exception as e:
         print(f"更新订单状态失败: {e}")
+        import traceback
+        print(f"详细错误信息: {traceback.format_exc()}")
         return jsonify({'success': False, 'error': f'服务器错误: {str(e)}'}), 500  
 
 @buff163BuyV1.route('/insert_db', methods=['post'])
 def insert_db():
+    """插入BUFF购买记录到buy表"""
     try:
         data = request.get_json()
         if not data:
             return jsonify({'success': False, 'error': '无效的JSON数据'}), 400
-        
+
         item_id = data['item_id']
         weapon_type = data['weapon_type']
         item_name = data['item_name']
@@ -162,7 +161,7 @@ def insert_db():
         seller_id = data['seller_id']
         weapon_float = data['weapon_float']
         data_user = data['data_user']
-        # 新增字段 - 只入库buy表
+        # 新增字段
         sticker = data.get('sticker')
         pendant = data.get('pendant')
         rename = data.get('rename')
@@ -185,28 +184,8 @@ def insert_db():
             steam_hash_name = img_url
             print(f"market_hash_name为空,使用img_url作为steam_hash_name: {img_url}")
 
-        # 插入到buff_buy表
-        print(f"插入BUFF购买记录到buff_buy表，ID: {item_id}")
-        buff_buy_record = BuffBuyModel()
-        buff_buy_record.ID = item_id
-        buff_buy_record.weapon_name = weaponitem_name
-        buff_buy_record.weapon_type = weapon_type
-        buff_buy_record.item_name = item_name
-        buff_buy_record.weapon_float = weapon_float
-        buff_buy_record.float_range = float_range
-        buff_buy_record.price = price
-        buff_buy_record.seller_name = seller_id
-        buff_buy_record.status = state
-        buff_buy_record.order_time = created_at
-        buff_buy_record.payment = pay_method_text
-        buff_buy_record.data_user = data_user
-        buff_buy_record.status_sub = state_sub
-        setattr(buff_buy_record, 'from', 'buff')
-        buff_saved = buff_buy_record.save()
-        print(f"buff_buy表保存结果: {buff_saved}")
-
-        # 插入到通用buy表
-        print(f"插入购买记录到buy表，ID: {item_id}")
+        # 只插入到buy表
+        print(f"插入BUFF购买记录到buy表，ID: {item_id}, from: buff")
         buy_record = BuyModel()
         buy_record.ID = item_id
         buy_record.weapon_name = weaponitem_name
@@ -221,7 +200,7 @@ def insert_db():
         buy_record.payment = pay_method_text
         buy_record.data_user = data_user
         buy_record.status_sub = state_sub
-        # 新增字段 - 只入库buy表
+        # 新增字段
         buy_record.sticker = sticker
         buy_record.pendant = pendant
         buy_record.rename = rename
@@ -230,7 +209,7 @@ def insert_db():
         buy_saved = buy_record.save()
         print(f"buy表保存结果: {buy_saved}")
 
-        if buff_saved and buy_saved:
+        if buy_saved:
             return jsonify({
                 'success': True,
                 'message': 'BUFF购买数据插入成功',
@@ -243,7 +222,7 @@ def insert_db():
             }), 200
         else:
             return jsonify({'success': False, 'error': '数据插入失败'}), 500
-            
+
     except Exception as e:
         print(f"BUFF购买数据插入错误: {str(e)}")
         import traceback
@@ -252,10 +231,11 @@ def insert_db():
 
 @buff163BuyV1.route('/countData/<user_id>', methods=['get'])
 def countData(user_id):
+    """统计指定用户BUFF平台的购买记录数量"""
     try:
-        records = BuffBuyModel.find_all("data_user = ?", (user_id,))
+        records = BuyModel.find_all("data_user = ? AND \"from\" = 'buff'", (user_id,))
         count = len(records)
-        print(count)
+        print(f"BUFF购买记录数量: {count}")
         return jsonify({"count": count}), 200
     except Exception as e:
         print(f"查询数据数量失败: {e}")

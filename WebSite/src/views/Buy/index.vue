@@ -251,7 +251,7 @@
                 <!-- 印花图片 -->
                 <div class="sticker-list" v-if="scope.row.sticker">
                   <div
-                    v-for="(sticker, idx) in parseStickers(scope.row.sticker)"
+                    v-for="(sticker, idx) in parseStickers(scope.row.sticker, scope.row.from)"
                     :key="idx"
                     class="sticker-item"
                     :title="sticker.name || '未知贴纸'"
@@ -269,9 +269,9 @@
                 <!-- 挂件图片 -->
                 <div class="pendant-list" v-if="scope.row.pendant">
                     <img
-                      v-if="parsePendant(scope.row.pendant)?.image"
-                      :src="parsePendant(scope.row.pendant).image"
-                      :alt="parsePendant(scope.row.pendant)?.name"
+                      v-if="parsePendant(scope.row.pendant, scope.row.from)?.image"
+                      :src="parsePendant(scope.row.pendant, scope.row.from).image"
+                      :alt="parsePendant(scope.row.pendant, scope.row.from)?.name"
                     class="pendant-img"
                     @error="(e) => e.target.style.display = 'none'"
                   />
@@ -496,10 +496,10 @@
             </div>
 
             <!-- 贴纸列表 -->
-            <div v-if="previewItem.sticker && parseStickers(previewItem.sticker).length > 0" class="preview-sticker-list-section">
+            <div v-if="previewItem.sticker && parseStickers(previewItem.sticker, previewItem.from).length > 0" class="preview-sticker-list-section">
               <div class="preview-sticker-list">
                 <div
-                  v-for="(sticker, index) in parseStickers(previewItem.sticker)"
+                  v-for="(sticker, index) in parseStickers(previewItem.sticker, previewItem.from)"
                   :key="index"
                   class="preview-sticker-list-item clickable-item"
                   @click="handleJumpToItemSearchBySticker(sticker)"
@@ -548,12 +548,12 @@
             <div v-if="previewItem.pendant" class="preview-pendant-section">
               <div class="preview-pendant-list">
                 <div class="preview-pendant-list-item clickable-item" @click="handleJumpToItemSearchByPendant(previewItem.pendant)">
-                  <el-tooltip :content="parsePendant(previewItem.pendant)?.name || '挂件'" placement="left">
+                  <el-tooltip :content="parsePendant(previewItem.pendant, previewItem.from)?.name || '挂件'" placement="left">
                     <div class="preview-pendant-list-img-wrapper">
                       <img
-                        v-if="parsePendant(previewItem.pendant)?.image"
-                        :src="parsePendant(previewItem.pendant).image"
-                        :alt="parsePendant(previewItem.pendant).name"
+                        v-if="parsePendant(previewItem.pendant, previewItem.from)?.image"
+                        :src="parsePendant(previewItem.pendant, previewItem.from).image"
+                        :alt="parsePendant(previewItem.pendant, previewItem.from).name"
                         class="preview-pendant-list-img"
                         @error="(e) => e.target.style.display = 'none'"
                       />
@@ -562,7 +562,7 @@
                   </el-tooltip>
                   <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;">
                     <div class="preview-pendant-list-name">
-                      {{ pendantPriceInfo?.market_listing_item_name || parsePendant(previewItem.pendant)?.name || '挂件' }}
+                      {{ pendantPriceInfo?.market_listing_item_name || parsePendant(previewItem.pendant, previewItem.from)?.name || '挂件' }}
                     </div>
                     <!-- 挂件价格信息（悠悠蓝色 + BUFF绿色，一行显示） -->
                     <div v-if="pendantPriceInfo" class="preview-pendant-price-info" style="font-size: 12px; display: flex; gap: 12px; flex-wrap: wrap;">

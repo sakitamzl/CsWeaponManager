@@ -240,21 +240,26 @@ export function useRental() {
     try {
       const parsed = typeof stickerData === 'string' ? JSON.parse(stickerData) : stickerData
       if (!Array.isArray(parsed)) return []
-      
+
       return parsed.map(sticker => {
         const name = sticker.name || '未知贴纸'
         const hashName = sticker.hashName || sticker.steam_hash_name || sticker.steamHashName
-        
+
         let imageUrl = null
         if (hashName) {
-          const imageName = hashName
+          // 如果 hashName 已经包含 "Sticker | " 前缀，直接使用；否则添加前缀
+          const fullHashName = hashName.startsWith('Sticker | ')
+            ? hashName
+            : `Sticker | ${hashName}`
+
+          const imageName = fullHashName
             .replace(/\s*\|\s*/g, '___')
             .replace(/\s/g, '_')
             .replace(/\*/g, '_')
             .replace(/™/g, '?')
-          imageUrl = apiUrls.weaponImage(`Sticker___${imageName}.png`)
+          imageUrl = apiUrls.weaponImage(`${imageName}.png`)
         }
-        
+
         return {
           name: name,
           image: imageUrl
@@ -271,16 +276,21 @@ export function useRental() {
     if (!pendantData) return null
     try {
       const parsed = typeof pendantData === 'string' ? JSON.parse(pendantData) : pendantData
-      
+
       let pendantObj = Array.isArray(parsed) ? parsed[0] : parsed
-      
+
       if (!pendantObj || typeof pendantObj !== 'object') return null
-      
+
       const hashName = pendantObj.hashName || pendantObj.steam_hash_name || pendantObj.steamHashName
-      
+
       let imageUrl = null
       if (hashName) {
-        const imageName = hashName
+        // 如果 hashName 已经包含 "Charm | " 前缀，直接使用；否则添加前缀
+        const fullHashName = hashName.startsWith('Charm | ')
+          ? hashName
+          : `Charm | ${hashName}`
+
+        const imageName = fullHashName
           .replace(/\s*\|\s*/g, '___')
           .replace(/\s/g, '_')
           .replace(/\*/g, '_')
@@ -288,7 +298,7 @@ export function useRental() {
           + '.png'
         imageUrl = apiUrls.weaponImage(imageName)
       }
-      
+
       return {
         name: pendantObj.name || '挂件',
         image: imageUrl
