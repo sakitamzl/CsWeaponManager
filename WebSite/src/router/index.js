@@ -169,6 +169,12 @@ const routes = [
             name: 'SysMessage',
             component: () => import('@/views/settings/SysMessage/index.vue'),
             meta: { title: '系统消息' }
+          },
+          {
+            path: 'aes-decrypt',
+            name: 'AESDecrypt',
+            component: () => import('@/views/settings/AESDecrypt/index.vue'),
+            meta: { title: 'AES解密工具' }
           }
         ]
       },

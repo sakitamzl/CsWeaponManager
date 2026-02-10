@@ -35,7 +35,7 @@
             </el-icon>
             <span>Steam交易历史</span>
           </li>
-          <li 
+          <li
             :class="{ active: $route.name === 'DevTools' }"
             @click="navigateTo('/settings/dev-tools')"
           >
@@ -43,6 +43,15 @@
               <SetUp />
             </el-icon>
             <span>开荒工具</span>
+          </li>
+          <li
+            :class="{ active: $route.name === 'AESDecrypt' }"
+            @click="navigateTo('/settings/aes-decrypt')"
+          >
+            <el-icon :size="18">
+              <Lock />
+            </el-icon>
+            <span>AES解密工具</span>
           </li>
           <li 
             :class="{ active: $route.name === 'SystemSettings' }"
@@ -117,7 +126,7 @@
 
 
 <script setup>
-import { SetUp, Setting, Box, Timer, DataBoard, ArrowLeft, ArrowRight, ChatLineRound, Refresh, BellFilled } from '@element-plus/icons-vue'
+import { SetUp, Setting, Box, Timer, DataBoard, ArrowLeft, ArrowRight, ChatLineRound, Refresh, BellFilled, Lock } from '@element-plus/icons-vue'
 import { useSettings } from './useSettings.js'
 
 const {

@@ -214,6 +214,16 @@ export const API_CONFIG = {
     RENTAL_STATS_BY_TIME: (startDate, endDate) => `/webRentalV1/getRentalStatsByTimeRange/${startDate}/${endDate}`,
     RENTAL_COUNT: '/webRentalV1/countRentalNumber',
 
+    // AES工具相关
+
+    AES_DECRYPT: '/aesToolsV1/decrypt',
+
+    AES_CHECK_LICENSE: '/aesToolsV1/check-license',
+
+    AES_HEALTH: '/aesToolsV1/health',
+
+
+
     // 爬虫相关
 
     YOUPIN_SPIDER: '/youping898SpiderV1/newData',
@@ -658,6 +668,11 @@ export const apiUrls = {
   
 
   // 爬虫API
+
+  // AES工具相关
+  aesDecrypt: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.AES_DECRYPT),
+  aesCheckLicense: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.AES_CHECK_LICENSE),
+  aesHealth: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.AES_HEALTH),
 
   youpinSpider: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YOUPIN_SPIDER),
 
