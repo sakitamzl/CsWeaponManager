@@ -6,7 +6,6 @@ export function useOnSaleContainer() {
   const router = useRouter()
   const sidebarCollapsed = ref(false)
   const isMainSidebarCollapsed = ref(false)
-  const isMounted = ref(false)
 
   const navigateTo = (path) => {
     router.push(path)
@@ -48,11 +47,6 @@ export function useOnSaleContainer() {
         attributeFilter: ['class']
       })
     }
-
-    // 立即标记为已挂载，避免首次渲染时的过渡动画
-    setTimeout(() => {
-      isMounted.value = true
-    }, 0)
   })
 
   onUnmounted(() => {
@@ -64,7 +58,6 @@ export function useOnSaleContainer() {
   return {
     sidebarCollapsed,
     isMainSidebarCollapsed,
-    isMounted,
     navigateTo,
     toggleSidebar,
     handleContentClick

@@ -804,3 +804,6 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+git.txt
+CsWeaponManager.sln
