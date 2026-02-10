@@ -5,6 +5,13 @@
   margin-bottom: 1.875rem;
   padding-right: 0.5rem;
   cursor: pointer;
+  overflow: hidden;
+}
+
+.sidebar-header h1 {
+  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
 }
 
 .collapsed-title {
@@ -13,6 +20,8 @@
   margin: 0;
   text-align: center;
   width: 100%;
+  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* 侧边栏收缩状态 */
@@ -28,46 +37,57 @@
 
 /* 菜单项 */
 .menu-icon {
-  width: clamp(1.5rem, 3vw, 2.375rem);
-  height: auto;
-  vertical-align: middle;
-  margin-right: clamp(0.5rem, 1.5vw, 0.75rem);
+  width: 2.1875rem;
+  height: 2.1875rem;
+  object-fit: contain;
+  margin-right: 0.75rem;
   flex-shrink: 0;
+  display: block;
+  position: relative;
 }
 
 .sidebar.collapsed .menu-icon {
-  margin: 0 auto;
+  margin-right: 0.75rem;
 }
 
 .menu-text {
   opacity: 1;
-  transition: opacity 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  line-height: 2.1875rem;
+  flex: 1;
+  transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar.collapsed .menu-text {
   opacity: 0;
-  display: none;
 }
 
-/* 收缩状态下的菜单项居中 */
+/* 菜单项基础样式 */
+.sidebar li {
+  cursor: pointer;
+  padding: 0.625rem 0.75rem !important;
+  display: flex;
+  align-items: center;
+  height: 3.125rem;
+  box-sizing: border-box;
+}
+
+/* 收缩状态下的菜单项 - 保持相同高度和左对齐 */
 .sidebar.collapsed li {
-  justify-content: center;
-  text-align: center;
-  padding: 0.75rem 0.25rem;
+  padding: 0.625rem 0.5rem !important;
+  height: 3.125rem;
 }
 
 /* 过渡动画 */
 .sidebar {
-  transition: all 0.3s ease;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
+  will-change: width;
 }
 
 .sidebar ul {
   cursor: default;
-}
-
-.sidebar li {
-  cursor: pointer;
 }
 
 /* 空白填充区域 */
@@ -81,6 +101,11 @@
 .sidebar-footer {
   padding: 1rem;
   border-top: 1px solid #333;
+  transition: padding 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar.collapsed .sidebar-footer {
+  padding: 0.75rem 0.5rem;
 }
 
 .user-info {
@@ -88,6 +113,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .username {
@@ -98,6 +124,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .logout-btn {
@@ -108,39 +135,88 @@
   border-radius: 4px;
   font-size: 0.75rem;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .logout-btn:hover {
   background-color: #f54545;
+  transform: translateY(-1px);
+}
+
+.logout-btn:active {
+  transform: translateY(0);
 }
 
 .logout-btn-icon {
-  width: 100%;
-  padding: 0.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
   background-color: #f56c6c;
   color: #fff;
   border: none;
-  border-radius: 4px;
-  font-size: 1.25rem;
+  border-radius: 6px;
+  font-size: 0;
   cursor: pointer;
-  transition: background-color 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  position: relative;
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.logout-btn-icon::before {
+  content: '';
+  width: 1rem;
+  height: 1rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4'%3E%3C/path%3E%3Cpolyline points='16 17 21 12 16 7'%3E%3C/polyline%3E%3Cline x1='21' y1='12' x2='9' y2='12'%3E%3C/line%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
 }
 
 .logout-btn-icon:hover {
   background-color: #f54545;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.logout-btn-icon:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* iPad 横屏和大屏平板适配 (769px - 1199px) */
 @media (min-width: 769px) and (max-width: 1199px) {
   .menu-icon {
-    width: 2rem;
+    width: 2.03125rem;
+    height: 2.03125rem;
     margin-right: 0.625rem;
   }
 
   .sidebar.collapsed .menu-icon {
-    width: 1.75rem;
-    margin: 0 auto;
+    width: 2.03125rem;
+    height: 2.03125rem;
+    margin-right: 0.625rem;
+  }
+
+  .menu-text {
+    font-size: 0.9rem;
+    line-height: 2.03125rem;
+  }
+
+  .sidebar li {
+    height: 2.875rem;
+    padding: 0.625rem 0.75rem !important;
+  }
+
+  .sidebar.collapsed li {
+    height: 2.875rem;
+    padding: 0.625rem 0.5rem !important;
   }
 
   .sidebar-header h1 {
@@ -149,10 +225,6 @@
 
   .collapsed-title {
     font-size: 1.25rem;
-  }
-
-  .menu-text {
-    font-size: 0.9rem;
   }
 
   .username {
@@ -169,12 +241,29 @@
 @media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
   .menu-icon {
     width: 1.875rem;
+    height: 1.875rem;
     margin-right: 0.5rem;
   }
 
   .sidebar.collapsed .menu-icon {
-    width: 1.5rem;
-    margin: 0 auto;
+    width: 1.875rem;
+    height: 1.875rem;
+    margin-right: 0.5rem;
+  }
+
+  .menu-text {
+    font-size: 0.875rem;
+    line-height: 1.875rem;
+  }
+
+  .sidebar li {
+    height: 2.625rem;
+    padding: 0.5625rem 0.625rem !important;
+  }
+
+  .sidebar.collapsed li {
+    height: 2.625rem;
+    padding: 0.5625rem 0.5rem !important;
   }
 
   .sidebar-header h1 {
@@ -185,10 +274,6 @@
     font-size: 1.125rem;
   }
 
-  .menu-text {
-    font-size: 0.875rem;
-  }
-
   .username {
     font-size: 0.8125rem;
   }
@@ -197,13 +282,30 @@
 /* 移动端适配 */
 @media (max-width: 768px) {
   .menu-icon {
-    width: 1.25rem;
-    margin-right: 0.25rem;
+    width: 1.5625rem;
+    height: 1.5625rem;
+    margin-right: 0.5rem;
   }
 
   .sidebar.collapsed .menu-icon {
-    width: 1rem;
-    margin: 0 auto;
+    width: 1.5625rem;
+    height: 1.5625rem;
+    margin-right: 0.5rem;
+  }
+
+  .menu-text {
+    font-size: 0.8125rem;
+    line-height: 1.5625rem;
+  }
+
+  .sidebar li {
+    height: 2.5rem;
+    padding: 0.625rem 0.5rem !important;
+  }
+
+  .sidebar.collapsed li {
+    height: 2.5rem;
+    padding: 0.625rem 0.375rem !important;
   }
 
   .sidebar.collapsed {

@@ -29,9 +29,7 @@
             退出
           </button>
         </div>
-        <button v-else @click.stop="handleLogout" class="logout-btn-icon" title="退出登录">
-          🚪
-        </button>
+        <button v-else @click.stop="handleLogout" class="logout-btn-icon" title="退出登录"></button>
       </div>
     </aside>
 
