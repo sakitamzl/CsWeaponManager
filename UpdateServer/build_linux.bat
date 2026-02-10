@@ -7,6 +7,21 @@ echo   UpdateServer Linux 打包工具（在 Windows 环境下）
 echo ============================================================
 echo.
 
+REM 切换到脚本所在目录
+cd /d "%~dp0"
+
+REM 检查项目文件是否存在
+if not exist UpdateServer.csproj (
+    echo ❌ 错误：未找到 UpdateServer.csproj
+    echo    请确保在 UpdateServer 目录下运行此脚本
+    echo.
+    pause
+    exit /b 1
+)
+
+echo ✅ 找到项目文件
+echo.
+
 REM 检查 .NET SDK 是否安装
 dotnet --version > nul 2>&1
 if %errorlevel% neq 0 (

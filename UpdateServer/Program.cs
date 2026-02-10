@@ -54,27 +54,9 @@ Console.WriteLine("🚀 CS Weapon Manager - 更新服务器");
 Console.WriteLine("============================================================");
 Console.WriteLine($"📁 程序目录: {AppContext.BaseDirectory}");
 Console.WriteLine($"📁 版本目录: {Path.Combine(AppContext.BaseDirectory, "Releases")}");
-
-var updateService = app.Services.GetRequiredService<UpdateService>();
-var versions = updateService.GetAvailableVersions();
-Console.WriteLine($"\n📦 可用版本: {versions.Count} 个");
-foreach (var v in versions)
-{
-    var status = v.HasPackage ? "✅" : "⚠️ ";
-    Console.WriteLine($"  {status} {v.Version} - {v.ReleaseDate}");
-}
-
-var latest = updateService.GetLatestVersion();
-if (latest != null)
-{
-    Console.WriteLine($"\n🆕 最新版本: {latest.Version}");
-}
-else
-{
-    Console.WriteLine("\n⚠️  暂无可用版本");
-}
-
-Console.WriteLine($"\n🌐 服务器地址: http://0.0.0.0:9004");
+Console.WriteLine($"🌐 服务器地址: http://0.0.0.0:9004");
+Console.WriteLine("============================================================");
+Console.WriteLine("✅ 服务器已启动，版本信息将在每次请求时动态加载");
 Console.WriteLine("============================================================\n");
 
 // ============================================
@@ -99,21 +81,27 @@ app.MapGet("/api/update/check", ([FromQuery] string currentVersion, UpdateServic
     {
         Console.WriteLine($"📥 收到更新检查请求，客户端版本: {currentVersion}");
 
+        // 每次请求都重新读取版本列表
+        var versions = service.GetAvailableVersions();
+        Console.WriteLine($"📦 当前可用版本数: {versions.Count}");
+
         var latest = service.GetLatestVersion();
         if (latest == null)
         {
-            return Results.Json(new ApiResponse<object>
+            Console.WriteLine("⚠️  暂无可用更新版本");
+            return Results.Ok(new
             {
-                Success = false,
-                Error = "暂无可用更新版本"
-            }, statusCode: 404);
+                Success = true,
+                HasUpdate = false,
+                Message = "暂无可用更新版本"
+            });
         }
 
         var hasUpdate = service.CompareVersions(latest.Version, currentVersion) > 0;
 
         if (!hasUpdate)
         {
-            Console.WriteLine("✅ 客户端已是最新版本");
+            Console.WriteLine($"✅ 客户端已是最新版本 (服务器最新版本: {latest.Version})");
             return Results.Ok(new
             {
                 Success = true,
@@ -160,9 +148,11 @@ app.MapGet("/api/update/download", (UpdateService service) =>
     {
         Console.WriteLine("📥 收到更新包下载请求");
 
+        // 每次请求都重新读取版本列表
         var latest = service.GetLatestVersion();
         if (latest == null)
         {
+            Console.WriteLine("⚠️  暂无可用更新版本");
             return Results.Json(new ApiResponse<object>
             {
                 Success = false,
@@ -298,11 +288,18 @@ public class UpdateService
     {
         _releasesPath = Path.Combine(AppContext.BaseDirectory, ReleasesDir);
 
-        // 确保 Releases 目录存在
+        // 确保 Releases 目录存在（但不强制要求有内容）
         if (!Directory.Exists(_releasesPath))
         {
-            Console.WriteLine($"⚠️  Releases 目录不存在，正在创建...");
-            Directory.CreateDirectory(_releasesPath);
+            try
+            {
+                Directory.CreateDirectory(_releasesPath);
+                Console.WriteLine($"📁 已创建 Releases 目录: {_releasesPath}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️  无法创建 Releases 目录: {ex.Message}");
+            }
         }
     }
 
@@ -311,16 +308,27 @@ public class UpdateService
         var versions = new List<VersionInfo>();
 
         if (!Directory.Exists(_releasesPath))
+        {
+            Console.WriteLine($"📁 Releases 目录不存在: {_releasesPath}");
             return versions;
+        }
 
-        foreach (var dir in Directory.GetDirectories(_releasesPath))
+        var dirs = Directory.GetDirectories(_releasesPath);
+        Console.WriteLine($"📂 扫描 Releases 目录，找到 {dirs.Length} 个子目录");
+
+        foreach (var dir in dirs)
         {
             var dirName = Path.GetFileName(dir);
 
             // 检查目录名是否符合 vX.Y.Z 格式
             if (!System.Text.RegularExpressions.Regex.IsMatch(dirName, @"^v\d+\.\d+\.\d+$",
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            {
+                Console.WriteLine($"  ⏭️  跳过非版本目录: {dirName}");
                 continue;
+            }
+
+            Console.WriteLine($"  📦 检测到版本: {dirName}");
 
             var versionInfo = new VersionInfo
             {
@@ -356,10 +364,17 @@ public class UpdateService
                 versionInfo.HasPackage = true;
                 versionInfo.PackagePath = packagePath;
                 versionInfo.FileSize = new FileInfo(packagePath).Length;
+                Console.WriteLine($"     ✅ 找到更新包: update.zip ({versionInfo.FileSizeFormatted})");
+            }
+            else
+            {
+                Console.WriteLine($"     ⚠️  缺少更新包: update.zip");
             }
 
             versions.Add(versionInfo);
         }
+
+        Console.WriteLine($"📊 共加载 {versions.Count} 个版本，其中 {versions.Count(v => v.HasPackage)} 个包含更新包");
 
         // 按版本号排序（从新到旧）
         versions.Sort((a, b) => CompareVersions(b.Version, a.Version));
