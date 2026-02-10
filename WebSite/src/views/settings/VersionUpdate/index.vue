@@ -34,6 +34,98 @@
 
         <!-- 右侧内容区域 -->
         <div class="main-content-area">
+          <!-- 版本检查区域 -->
+          <div class="version-check-section">
+            <div class="version-info-card">
+              <div class="card-header">
+                <h3>当前版本</h3>
+                <el-button type="primary" @click="handleCheckUpdate" :loading="checkingUpdate">
+                  <el-icon v-if="!checkingUpdate"><Refresh /></el-icon>
+                  {{ checkingUpdate ? '检查中...' : '检查更新' }}
+                </el-button>
+              </div>
+              <div class="card-body">
+                <div class="version-display">
+                  <span class="version-label">版本号：</span>
+                  <span class="version-value">v{{ currentVersion }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 更新信息卡片 -->
+            <div v-if="updateInfo" class="update-info-card">
+              <div class="card-header">
+                <h3>
+                  <el-icon color="#67c23a"><SuccessFilled /></el-icon>
+                  发现新版本
+                </h3>
+              </div>
+              <div class="card-body">
+                <div class="update-detail">
+                  <div class="detail-item">
+                    <span class="detail-label">最新版本：</span>
+                    <span class="detail-value highlight">v{{ updateInfo.latest_version }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">发布日期：</span>
+                    <span class="detail-value">{{ updateInfo.release_date }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">文件大小：</span>
+                    <span class="detail-value">{{ updateInfo.file_size }}</span>
+                  </div>
+                  <div v-if="updateInfo.required" class="detail-item required-badge">
+                    <el-tag type="danger" effect="dark">强制更新</el-tag>
+                  </div>
+                </div>
+
+                <!-- 更新日志 -->
+                <div class="changelog-section">
+                  <h4>更新内容：</h4>
+                  <ul class="changelog-list">
+                    <li v-for="(item, index) in updateInfo.changelog" :key="index">{{ item }}</li>
+                  </ul>
+                </div>
+
+                <!-- 更新按钮 -->
+                <div class="update-actions">
+                  <el-button
+                    type="primary"
+                    size="large"
+                    @click="handleStartUpdate"
+                    :loading="updating"
+                    :disabled="updating"
+                  >
+                    <el-icon v-if="!updating"><Download /></el-icon>
+                    {{ updateButtonText }}
+                  </el-button>
+                  <el-button
+                    v-if="!updateInfo.required && !updating"
+                    size="large"
+                    @click="handleCancelUpdate"
+                  >
+                    稍后更新
+                  </el-button>
+                </div>
+
+                <!-- 更新进度 -->
+                <div v-if="updating" class="update-progress">
+                  <el-progress :percentage="updateProgress" :status="updateStatus"></el-progress>
+                  <p class="progress-text">{{ updateStatusText }}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- 没有更新时显示 -->
+            <div v-else-if="!checkingUpdate && checkedOnce" class="no-update-card">
+              <el-result
+                icon="success"
+                title="已是最新版本"
+                sub-title="当前已经是最新版本，无需更新"
+              >
+              </el-result>
+            </div>
+          </div>
           <!-- Markdown 目录导航 -->
           <aside v-if="tocItems.length > 0 && !contentLoading && !contentError && selectedFilePath" class="toc-sidebar">
             <div class="toc-header">

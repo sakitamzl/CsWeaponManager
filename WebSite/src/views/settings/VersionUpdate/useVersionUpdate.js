@@ -1,11 +1,28 @@
 import { ref, onMounted, computed, nextTick, onBeforeUnmount } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
-import { API_CONFIG } from '@/config/api.js'
+import { API_CONFIG, apiUrls } from '@/config/api.js'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 
 export function useVersionUpdate() {
+  // 更新相关状态
+  const currentVersion = ref('0.0.0')
+  const checkingUpdate = ref(false)
+  const checkedOnce = ref(false)
+  const updateInfo = ref(null)
+  const updating = ref(false)
+  const updateProgress = ref(0)
+  const updateStatus = ref('')
+  const updateStatusText = ref('')
+
+  // 更新按钮文本
+  const updateButtonText = computed(() => {
+    if (updating.value) {
+      return updateStatusText.value || '更新中...'
+    }
+    return '立即更新'
+  })
   const headingIds = new Map()
   let currentFilePath = ''
 
@@ -370,8 +387,150 @@ export function useVersionUpdate() {
     loadFile(filePath)
   }
 
+  // ============================================
+  // 更新系统功能
+  // ============================================
+
+  // 获取当前版本
+  const loadCurrentVersion = async () => {
+    try {
+      const response = await axios.get(apiUrls.getCurrentVersion())
+      if (response.data.success) {
+        currentVersion.value = response.data.data.version
+      }
+    } catch (err) {
+      console.error('获取当前版本失败:', err)
+    }
+  }
+
+  // 检查更新
+  const handleCheckUpdate = async () => {
+    checkingUpdate.value = true
+    checkedOnce.value = true
+    updateInfo.value = null
+
+    try {
+      const response = await axios.get(apiUrls.checkUpdate())
+
+      if (response.data.success) {
+        if (response.data.has_update) {
+          updateInfo.value = response.data.data
+          ElMessage.success('发现新版本！')
+        } else {
+          ElMessage.info('当前已是最新版本')
+        }
+      } else {
+        ElMessage.error(response.data.error || '检查更新失败')
+      }
+    } catch (err) {
+      console.error('检查更新失败:', err)
+      if (err.response?.status === 503) {
+        ElMessage.error('无法连接到更新服务器，请检查更新服务是否启动')
+      } else {
+        ElMessage.error('检查更新失败，请稍后重试')
+      }
+    } finally {
+      checkingUpdate.value = false
+    }
+  }
+
+  // 开始更新
+  const handleStartUpdate = async () => {
+    try {
+      // 确认更新
+      await ElMessageBox.confirm(
+        `确定要更新到版本 v${updateInfo.value.latest_version} 吗？更新完成后需要重启应用。`,
+        '确认更新',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      )
+
+      updating.value = true
+      updateProgress.value = 0
+      updateStatus.value = ''
+      updateStatusText.value = '准备下载...'
+
+      // 步骤1：下载更新包
+      updateProgress.value = 10
+      updateStatusText.value = '正在下载更新包...'
+
+      const downloadResponse = await axios.post(apiUrls.downloadUpdate())
+
+      if (!downloadResponse.data.success) {
+        throw new Error(downloadResponse.data.error || '下载失败')
+      }
+
+      const { file_path, md5 } = downloadResponse.data.data
+
+      updateProgress.value = 60
+      updateStatusText.value = '下载完成，正在解压更新包...'
+
+      // 步骤2：解压更新包
+      const extractResponse = await axios.post(apiUrls.extractUpdate(), {
+        file_path: file_path,
+        verify_md5: md5
+      })
+
+      if (!extractResponse.data.success) {
+        throw new Error(extractResponse.data.error || '解压失败')
+      }
+
+      updateProgress.value = 100
+      updateStatus.value = 'success'
+      updateStatusText.value = '更新完成！'
+
+      // 显示成功消息
+      await ElMessageBox.alert(
+        '更新已完成，请重启应用以应用更新。',
+        '更新成功',
+        {
+          confirmButtonText: '知道了',
+          type: 'success'
+        }
+      )
+
+      // 重置状态
+      updating.value = false
+      updateInfo.value = null
+      checkedOnce.value = false
+
+      // 重新加载版本信息
+      await loadCurrentVersion()
+
+    } catch (err) {
+      if (err === 'cancel') {
+        // 用户取消
+        return
+      }
+
+      console.error('更新失败:', err)
+      updateStatus.value = 'exception'
+      updateStatusText.value = '更新失败'
+
+      ElMessage.error(err.message || '更新失败，请稍后重试')
+
+      // 延迟重置状态
+      setTimeout(() => {
+        updating.value = false
+        updateProgress.value = 0
+        updateStatus.value = ''
+        updateStatusText.value = ''
+      }, 3000)
+    }
+  }
+
+  // 取消更新
+  const handleCancelUpdate = () => {
+    updateInfo.value = null
+    checkedOnce.value = false
+  }
+
   onMounted(() => {
     loadFileTree()
+    loadCurrentVersion()
   })
 
   return {
@@ -387,6 +546,19 @@ export function useVersionUpdate() {
     markdownContainer,
     tocItems,
     activeAnchor,
-    scrollToAnchor
+    scrollToAnchor,
+    // 更新系统
+    currentVersion,
+    checkingUpdate,
+    checkedOnce,
+    updateInfo,
+    updating,
+    updateProgress,
+    updateStatus,
+    updateStatusText,
+    updateButtonText,
+    handleCheckUpdate,
+    handleStartUpdate,
+    handleCancelUpdate
   }
 }

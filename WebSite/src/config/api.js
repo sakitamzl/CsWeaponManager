@@ -445,6 +445,18 @@ export const API_CONFIG = {
 
     LOGIN_VERIFY: '/loginSettingsV1/api/login-settings/verify',  // 验证登录
 
+
+
+    // 版本更新相关
+
+    UPDATE_CHECK: '/api/update/check',  // 检查更新
+
+    UPDATE_CURRENT_VERSION: '/api/update/current-version',  // 获取当前版本
+
+    UPDATE_DOWNLOAD: '/api/update/download',  // 下载更新包
+
+    UPDATE_EXTRACT: '/api/update/extract',  // 解压更新包
+
   }
 
 }
@@ -886,6 +898,18 @@ export const apiUrls = {
   yyypGetPresaleDetail: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_PRESALE_DETAIL),  // 获取预售详情
   yyypBuyPresaleCommodity: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_BUY_PRESALE_COMMODITY),  // 购买预售商品
   yyypRentAutoPricing: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_RENT_AUTO_PRICING),
+
+
+
+  // 版本更新API
+
+  checkUpdate: () => getApiUrl(API_CONFIG.ENDPOINTS.UPDATE_CHECK),  // 检查更新
+
+  getCurrentVersion: () => getApiUrl(API_CONFIG.ENDPOINTS.UPDATE_CURRENT_VERSION),  // 获取当前版本
+
+  downloadUpdate: () => getApiUrl(API_CONFIG.ENDPOINTS.UPDATE_DOWNLOAD),  // 下载更新包
+
+  extractUpdate: () => getApiUrl(API_CONFIG.ENDPOINTS.UPDATE_EXTRACT),  // 解压更新包
 
 }
 
