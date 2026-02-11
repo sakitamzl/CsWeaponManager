@@ -68,24 +68,24 @@ export function useHome() {
   const componentChartRef = ref(null)
   const buyChartRef = ref(null)
   const sellChartRef = ref(null)
-  const klineChartRef = ref(null)
   const csqaqChartRef = ref(null)
   let inventoryChart = null
   let componentChart = null
   let buyChart = null
   let sellChart = null
-  let klineChart = null
   let csqaqChart = null
-  
+
   // 图表模式切换
   const inventoryChartMode = ref('value') // 'value' 或 'count'
   const componentChartMode = ref('value') // 'value' 或 'count'
   const buyChartMode = ref('value') // 'value' 或 'count'
   const sellChartMode = ref('value') // 'value' 或 'count'
-  
-  // K线图相关
-  const klinePeriod = ref('1h')
-  const loadingKline = ref(false)
+
+  // SteamDT大盘指数相关
+  const marketIndexData = ref(null)
+  const loadingMarketIndex = ref(false)
+
+  // CSQAQ K线图相关
   const csqaqPeriod = ref('1h')
   const loadingCSQAQ = ref(false)
   
@@ -1305,7 +1305,28 @@ export function useHome() {
     sellChart.setOption(option)
   }
 
-  // 计算移动平均线
+  // 加载SteamDT大盘指数数据
+  const loadMarketIndexData = async () => {
+    loadingMarketIndex.value = true
+    try {
+      const response = await axios.get(apiUrls.steamdtMarketIndex())
+
+      if (response.data && response.data.success) {
+        marketIndexData.value = response.data.data
+        console.log('获取SteamDT大盘指数成功:', marketIndexData.value)
+      } else {
+        console.error('获取SteamDT大盘指数失败:', response.data?.message || '未知错误')
+        marketIndexData.value = null
+      }
+    } catch (error) {
+      console.error('获取SteamDT大盘指数失败:', error)
+      marketIndexData.value = null
+    } finally {
+      loadingMarketIndex.value = false
+    }
+  }
+
+  // 计算移动平均线（用于 CSQAQ K 线图）
   const calculateMA = (data, period) => {
     const result = []
     for (let i = 0; i < data.length; i++) {
@@ -1320,304 +1341,6 @@ export function useHome() {
       result.push((sum / period).toFixed(2))
     }
     return result
-  }
-
-  // 初始化K线图
-  const initKlineChart = async () => {
-    await nextTick()
-    
-    if (!klineChartRef.value) return
-
-    klineChart = echarts.init(klineChartRef.value)
-    
-    const option = {
-      backgroundColor: 'transparent',
-      animation: true,
-      animationDuration: 300,
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: {
-          type: 'cross',
-          link: [{ xAxisIndex: 'all' }]
-        },
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        borderColor: '#333',
-        textStyle: {
-          color: '#fff'
-        }
-      },
-      legend: {
-        data: ['K线', 'MA5', 'MA10', 'MA20'],
-        textStyle: {
-          color: '#fff'
-        },
-        top: '0%'
-      },
-      axisPointer: {
-        link: [{ xAxisIndex: 'all' }]
-      },
-      grid: [
-        {
-          left: '3%',
-          right: '3%',
-          top: '12%',
-          height: '60%',
-          containLabel: true
-        },
-        {
-          left: '3%',
-          right: '3%',
-          top: '77%',
-          height: '16%',
-          containLabel: true
-        }
-      ],
-      xAxis: [
-        {
-          type: 'category',
-          data: [],
-          boundaryGap: true,
-          axisLine: {
-            lineStyle: {
-              color: '#3a3a3a'
-            }
-          },
-          axisLabel: {
-            show: false
-          },
-          gridIndex: 0
-        },
-        {
-          type: 'category',
-          data: [],
-          boundaryGap: true,
-          axisLine: {
-            lineStyle: {
-              color: '#3a3a3a'
-            }
-          },
-          axisLabel: {
-            color: '#fff',
-            fontSize: 10
-          },
-          gridIndex: 1
-        }
-      ],
-      yAxis: [
-        {
-          scale: true,
-          splitLine: {
-            lineStyle: {
-              color: '#3a3a3a'
-            }
-          },
-          axisLabel: {
-            color: '#fff'
-          },
-          gridIndex: 0
-        },
-        {
-          scale: true,
-          splitLine: {
-            show: false
-          },
-          axisLabel: {
-            color: '#fff',
-            fontSize: 10
-          },
-          gridIndex: 1,
-          splitNumber: 2
-        }
-      ],
-      dataZoom: [
-        {
-          type: 'inside',
-          xAxisIndex: [0, 1],
-          start: 0,
-          end: 100,
-          zoomOnMouseWheel: true,
-          moveOnMouseMove: true,
-          moveOnMouseWheel: false
-        }
-      ],
-      series: [
-        {
-          name: 'K线',
-          type: 'candlestick',
-          data: [],
-          itemStyle: {
-            color: '#ef5350',
-            color0: '#00c853',
-            borderColor: '#ef5350',
-            borderColor0: '#00c853'
-          },
-          xAxisIndex: 0,
-          yAxisIndex: 0
-        },
-        {
-          name: 'MA5',
-          type: 'line',
-          data: [],
-          smooth: true,
-          lineStyle: {
-            width: 1,
-            color: '#409eff'
-          },
-          showSymbol: false,
-          xAxisIndex: 0,
-          yAxisIndex: 0
-        },
-        {
-          name: 'MA10',
-          type: 'line',
-          data: [],
-          smooth: true,
-          lineStyle: {
-            width: 1,
-            color: '#e6a23c'
-          },
-          showSymbol: false,
-          xAxisIndex: 0,
-          yAxisIndex: 0
-        },
-        {
-          name: 'MA20',
-          type: 'line',
-          data: [],
-          smooth: true,
-          lineStyle: {
-            width: 1,
-            color: '#909399'
-          },
-          showSymbol: false,
-          xAxisIndex: 0,
-          yAxisIndex: 0
-        },
-        {
-          name: '成交量',
-          type: 'bar',
-          data: [],
-          itemStyle: {
-            color: function(params) {
-              return params.data.isUp ? '#ef5350' : '#00c853'
-            }
-          },
-          xAxisIndex: 1,
-          yAxisIndex: 1
-        }
-      ]
-    }
-    
-    klineChart.setOption(option)
-  }
-
-  // 加载K线图数据
-  const loadKlineData = async () => {
-    loadingKline.value = true
-    try {
-      const response = await axios.get('/spider/steamdtSpiderV1/getKline', {
-        params: {
-          period: klinePeriod.value
-        }
-      })
-      
-      if (response.data && response.data.code === 200) {
-        const data = response.data.data
-        updateKlineChart(data)
-      }
-    } catch (error) {
-      console.error('获取K线数据失败:', error)
-    } finally {
-      loadingKline.value = false
-    }
-  }
-
-  // 更新K线图
-  const updateKlineChart = (data) => {
-    if (!klineChart || !data || data.length === 0) return
-    
-    const times = data.map(item => item.time)
-    const klineData = data.map(item => [
-      parseFloat(item.open),
-      parseFloat(item.close),
-      parseFloat(item.low),
-      parseFloat(item.high)
-    ])
-    
-    // 计算成交量数据（根据涨跌设置颜色）
-    const volumeData = data.map((item, index) => {
-      const open = parseFloat(item.open)
-      const close = parseFloat(item.close)
-      const high = parseFloat(item.high)
-      const low = parseFloat(item.low)
-      let volume = parseFloat(item.volume || 0)
-      
-      // 如果成交量为0，使用价格波动幅度作为替代
-      if (volume === 0) {
-        volume = Math.abs(high - low) * 100
-      }
-      
-      return {
-        value: volume,
-        isUp: close >= open
-      }
-    })
-    
-    const ma5 = calculateMA(klineData, 5)
-    const ma10 = calculateMA(klineData, 10)
-    const ma20 = calculateMA(klineData, 20)
-    
-    // 默认显示最后36条数据
-    const defaultDisplayCount = 36
-    
-    const totalCount = data.length
-    const startPercent = Math.max(0, ((totalCount - defaultDisplayCount) / totalCount) * 100)
-    const endPercent = 100
-    
-    klineChart.setOption({
-      xAxis: [
-        {
-          data: times
-        },
-        {
-          data: times
-        }
-      ],
-      dataZoom: [
-        {
-          type: 'inside',
-          xAxisIndex: [0, 1],
-          start: startPercent,
-          end: endPercent,
-          zoomOnMouseWheel: true,
-          moveOnMouseMove: true,
-          moveOnMouseWheel: false
-        }
-      ],
-      series: [
-        {
-          data: klineData
-        },
-        {
-          data: ma5
-        },
-        {
-          data: ma10
-        },
-        {
-          data: ma20
-        },
-        {
-          data: volumeData
-        }
-      ]
-    })
-  }
-
-  // 切换K线周期
-  const changeKlinePeriod = (period) => {
-    klinePeriod.value = period
-    loadKlineData()
   }
 
   // 初始化CSQAQ K线图
@@ -1932,9 +1655,6 @@ export function useHome() {
     if (sellChart) {
       sellChart.resize()
     }
-    if (klineChart) {
-      klineChart.resize()
-    }
     if (csqaqChart) {
       csqaqChart.resize()
     }
@@ -1963,9 +1683,6 @@ export function useHome() {
       if (sellChartRef.value) {
         resizeObserver.observe(sellChartRef.value)
       }
-      if (klineChartRef.value) {
-        resizeObserver.observe(klineChartRef.value)
-      }
       if (csqaqChartRef.value) {
         resizeObserver.observe(csqaqChartRef.value)
       }
@@ -1975,7 +1692,7 @@ export function useHome() {
   // 加载所有统计数据
   const loadAllStats = async () => {
     await loadSteamIdList()
-    
+
     // 并行加载所有数据
     await Promise.all([
       loadBuyStats(),
@@ -1983,17 +1700,14 @@ export function useHome() {
       loadInventoryStats(),
       loadComponentsStats(),
       loadBuyChartData(),
-      loadSellChartData()
+      loadSellChartData(),
+      loadMarketIndexData()  // 加载SteamDT大盘指数
     ])
-    
-    // 初始化并加载K线图
-    await initKlineChart()
-    await loadKlineData()
-    
+
     // 初始化并加载CSQAQ K线图
     await initCSQAQChart()
     await loadCSQAQData()
-    
+
     // 初始化 ResizeObserver
     await nextTick()
     initResizeObserver()
@@ -2111,13 +1825,13 @@ export function useHome() {
   onUnmounted(() => {
     // 移除 window resize 监听
     window.removeEventListener('resize', handleResize)
-    
+
     // 断开 ResizeObserver
     if (resizeObserver) {
       resizeObserver.disconnect()
       resizeObserver = null
     }
-    
+
     // 销毁图表实例
     if (inventoryChart) {
       inventoryChart.dispose()
@@ -2134,10 +1848,6 @@ export function useHome() {
     if (sellChart) {
       sellChart.dispose()
       sellChart = null
-    }
-    if (klineChart) {
-      klineChart.dispose()
-      klineChart = null
     }
     if (csqaqChart) {
       csqaqChart.dispose()
@@ -2200,14 +1910,13 @@ export function useHome() {
     componentChartRef,
     buyChartRef,
     sellChartRef,
-    klineChartRef,
     csqaqChartRef,
     inventoryChartMode,
     componentChartMode,
     buyChartMode,
     sellChartMode,
-    klinePeriod,
-    loadingKline,
+    marketIndexData,
+    loadingMarketIndex,
     csqaqPeriod,
     loadingCSQAQ,
     itemListVisible,
@@ -2231,7 +1940,6 @@ export function useHome() {
     getItemTitle,
     getWeaponImage,
     handleImageError,
-    changeKlinePeriod,
     changeCSQAQPeriod
   }
 }

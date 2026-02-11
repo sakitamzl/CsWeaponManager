@@ -290,7 +290,10 @@ export const API_CONFIG = {
 
     AUTO_BUY_RENAMED_WEAPON: '/youping898SpiderV1/auto_buy_renamed_weapon',  // 自动购买改名饰品
 
-    
+    // SteamDT大盘指数相关
+    STEAMDT_MARKET_INDEX: '/steamdtSpiderV1/getMarketIndex',  // 获取SteamDT大盘指数
+
+
 
     // Steam登录相关
 
@@ -898,6 +901,9 @@ export const apiUrls = {
   yyypGetPresaleDetail: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_PRESALE_DETAIL),  // 获取预售详情
   yyypBuyPresaleCommodity: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_BUY_PRESALE_COMMODITY),  // 购买预售商品
   yyypRentAutoPricing: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_RENT_AUTO_PRICING),
+
+  // SteamDT大盘指数API
+  steamdtMarketIndex: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAMDT_MARKET_INDEX),
 
 
 

@@ -336,6 +336,7 @@
       width="900px"
       :close-on-click-modal="true"
       :close-on-press-escape="true"
+      :show-close="false"
       class="preview-dialog"
     >
       <div v-if="previewItem" class="preview-content">
@@ -343,7 +344,7 @@
           <!-- 左侧区域 -->
           <div class="preview-left-section">
             <!-- 图片区域 -->
-            <div class="preview-image-section">
+            <div class="preview-image-section clickable-item" @click="confirmJumpToItemSearch">
               <img
                 v-if="getWeaponImage(previewItem.steam_hash_name)"
                 :src="getWeaponImage(previewItem.steam_hash_name)"
@@ -559,14 +560,6 @@
           </div>
         </div>
       </div>
-
-      <!-- 对话框底部按钮 -->
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button type="primary" @click="handleJumpToItemSearch">跳转商店</el-button>
-          <el-button @click="previewVisible = false">关闭</el-button>
-        </div>
-      </template>
     </el-dialog>
   </div>
 </template>

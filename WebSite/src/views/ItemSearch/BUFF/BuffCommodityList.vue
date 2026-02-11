@@ -65,9 +65,8 @@
             筛选
           </button>
 
-          <!-- 排序选择器 - 仅在在售模块下显示 -->
+          <!-- 排序选择器 - 始终显示 -->
           <el-select
-            v-if="buffFilterType === 'on_sale'"
             v-model="sortType"
             size="small"
             placeholder="排序方式"
@@ -84,9 +83,9 @@
             <el-option label="磨损 ↓" value="wear_desc" />
           </el-select>
 
-          <!-- 磨损区间选择器 - 仅在在售模块且有磨损区间时显示 -->
+          <!-- 磨损区间选择器 - 有磨损区间时显示 -->
           <el-select
-            v-if="buffFilterType === 'on_sale' && wearRangeOptions.length > 0"
+            v-if="wearRangeOptions.length > 0"
             v-model="wearRange"
             size="small"
             placeholder="磨损区间"

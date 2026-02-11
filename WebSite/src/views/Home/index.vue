@@ -45,8 +45,8 @@
           <div class="chart-header">
             <h3>库存饰品价格</h3>
             <div class="chart-controls">
-              <el-select 
-                v-model="selectedInventorySteamId" 
+              <el-select
+                v-model="selectedInventorySteamId"
                 placeholder="选择steam账号"
                 @change="handleInventorySteamIdChange"
                 style="width: 200px;"
@@ -82,8 +82,8 @@
           <div class="chart-header">
             <h3>库存组件价格</h3>
             <div class="chart-controls">
-              <el-select 
-                v-model="selectedComponentSteamId" 
+              <el-select
+                v-model="selectedComponentSteamId"
                 placeholder="选择steam账号"
                 @change="handleComponentSteamIdChange"
                 style="width: 200px;"
@@ -115,34 +115,59 @@
             </div>
           </div>
         </div>
-        <!-- SteamDT K线图卡片 -->
-        <div class="card chart-card chart-card-kline">
+        <!-- SteamDT 大盘指数卡片 -->
+        <div class="card chart-card">
           <div class="chart-header">
-            <h3>SteamDT 市场指数</h3>
-            <div class="chart-controls">
-              <el-button-group size="small">
-                <el-button 
-                  :type="klinePeriod === '1h' ? 'primary' : ''"
-                  @click="changeKlinePeriod('1h')"
-                >
-                  1小时
-                </el-button>
-                <el-button 
-                  :type="klinePeriod === '1d' ? 'primary' : ''"
-                  @click="changeKlinePeriod('1d')"
-                >
-                  日线
-                </el-button>
-                <el-button 
-                  :type="klinePeriod === '1w' ? 'primary' : ''"
-                  @click="changeKlinePeriod('1w')"
-                >
-                  周线
-                </el-button>
-              </el-button-group>
+            <h3>SteamDT 大盘指数</h3>
+          </div>
+          <div class="market-index-content" v-loading="loadingMarketIndex">
+            <div v-if="marketIndexData" class="market-index-data">
+              <!-- 主要指数信息 -->
+              <div class="index-main">
+                <div class="index-value">{{ marketIndexData.index }}</div>
+                <div class="index-change" :class="marketIndexData.riseFallRate >= 0 ? 'positive' : 'negative'">
+                  <span class="change-diff">{{ marketIndexData.riseFallRate >= 0 ? '+' : '' }}{{ marketIndexData.riseFallDiff }}</span>
+                  <span class="change-rate">{{ marketIndexData.riseFallRate >= 0 ? '+' : '' }}{{ marketIndexData.riseFallRate }}%</span>
+                </div>
+              </div>
+
+              <!-- 统计信息网格 -->
+              <div class="index-stats-grid">
+                <div class="stat-item">
+                  <div class="stat-label">昨日指数</div>
+                  <div class="stat-value">{{ marketIndexData.yesterdayIndex }}</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-label">最高</div>
+                  <div class="stat-value positive">{{ marketIndexData.highIndex }}</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-label">最低</div>
+                  <div class="stat-value negative">{{ marketIndexData.lowIndex }}</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-label">上涨数量</div>
+                  <div class="stat-value positive">{{ marketIndexData.upNum }}</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-label">持平数量</div>
+                  <div class="stat-value">{{ marketIndexData.flatNum }}</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-label">下跌数量</div>
+                  <div class="stat-value negative">{{ marketIndexData.downNum }}</div>
+                </div>
+              </div>
+
+              <!-- 更新时间 -->
+              <div class="index-update-time">
+                更新时间: {{ new Date(parseInt(marketIndexData.updateTime) * 1000).toLocaleString('zh-CN') }}
+              </div>
+            </div>
+            <div v-else class="market-index-empty">
+              暂无数据
             </div>
           </div>
-          <div ref="klineChartRef" class="kline-chart" v-loading="loadingKline"></div>
         </div>
         <div class="card chart-card">
           <div class="chart-header">
@@ -219,24 +244,24 @@
           </div>
         </div>
         <!-- CSQAQ K线图卡片 -->
-        <div class="card chart-card chart-card-kline">
+        <div class="card chart-card">
           <div class="chart-header">
             <h3>CSQAQ 市场指数</h3>
             <div class="chart-controls">
               <el-button-group size="small">
-                <el-button 
+                <el-button
                   :type="csqaqPeriod === '1h' ? 'primary' : ''"
                   @click="changeCSQAQPeriod('1h')"
                 >
                   1小时
                 </el-button>
-                <el-button 
+                <el-button
                   :type="csqaqPeriod === '1d' ? 'primary' : ''"
                   @click="changeCSQAQPeriod('1d')"
                 >
                   日线
                 </el-button>
-                <el-button 
+                <el-button
                   :type="csqaqPeriod === '1w' ? 'primary' : ''"
                   @click="changeCSQAQPeriod('1w')"
                 >
@@ -245,7 +270,7 @@
               </el-button-group>
             </div>
           </div>
-          <div ref="csqaqChartRef" class="kline-chart" v-loading="loadingCSQAQ"></div>
+          <div ref="csqaqChartRef" class="price-chart" v-loading="loadingCSQAQ"></div>
         </div>
       </div>
     </div>

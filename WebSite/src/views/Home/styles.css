@@ -502,9 +502,9 @@
 
 /* 大屏桌面优化 (> 1366px) */
 @media (min-width: 1367px) {
-  /* 图表容器 - 网格布局，饼状图一行两个 */
+  /* 图表容器 - 网格布局，饼状图一行三个 */
   .chart-container {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
 
   /* K线图占据整行 */
@@ -587,7 +587,7 @@
   width: 100%;
   margin-top: clamp(1.5rem, 3vw, 2rem);
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
 }
 
@@ -842,4 +842,126 @@
 .no-image {
   color: #888;
   font-size: 0.85rem;
+}
+
+/* ========== SteamDT 大盘指数样式 ========== */
+.market-index-content {
+  padding: 1.5rem;
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.market-index-data {
+  width: 100%;
+}
+
+.index-main {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.index-value {
+  font-size: 3rem;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 0.75rem;
+  line-height: 1;
+}
+
+.index-change {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.index-change.positive {
+  color: #f56c6c;
+}
+
+.index-change.negative {
+  color: #4CAF50;
+}
+
+.change-diff {
+  font-size: 1.5rem;
+}
+
+.change-rate {
+  font-size: 1.25rem;
+}
+
+.index-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid #3a3a3a;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: #888;
+  margin-bottom: 0.5rem;
+}
+
+.stat-value {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #fff;
+}
+
+.stat-value.positive {
+  color: #f56c6c;
+}
+
+.stat-value.negative {
+  color: #4CAF50;
+}
+
+.index-update-time {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #666;
+  padding-top: 1rem;
+  border-top: 1px solid #3a3a3a;
+}
+
+.market-index-empty {
+  text-align: center;
+  font-size: 1rem;
+  color: #666;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .index-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .index-value {
+    font-size: 2rem;
+  }
+
+  .change-diff {
+    font-size: 1.25rem;
+  }
+
+  .change-rate {
+    font-size: 1rem;
+  }
 }

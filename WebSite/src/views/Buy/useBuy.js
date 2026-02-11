@@ -3,7 +3,7 @@
  * 包含数据加载、搜索、过滤、统计等功能
  */
 import { ref, computed, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { apiUrls } from '@/config/api'
 
 export function useBuy() {
@@ -1345,7 +1345,31 @@ export function useBuy() {
     loadPendantPriceInfo(item.pendant)
   }
 
-  // 跳转到商品搜索页面
+  // 跳转到商品搜索页面（带确认）
+  const confirmJumpToItemSearch = () => {
+    if (!previewItem.value || !previewItem.value.steam_hash_name) {
+      ElMessage.warning('未找到商品信息')
+      return
+    }
+
+    ElMessageBox.confirm(
+      `是否跳转到商品搜索页面查看 "${previewItem.value.steam_hash_name}"？`,
+      '跳转确认',
+      {
+        confirmButtonText: '跳转',
+        cancelButtonText: '取消',
+        type: 'info'
+      }
+    ).then(() => {
+      // 在新标签页打开商品搜索页面
+      const searchUrl = `/item-search?keyword=${encodeURIComponent(previewItem.value.steam_hash_name)}`
+      window.open(searchUrl, '_blank')
+    }).catch(() => {
+      // 用户取消，不做任何操作
+    })
+  }
+
+  // 跳转到商品搜索页面（不带确认，用于其他地方）
   const handleJumpToItemSearch = () => {
     if (!previewItem.value || !previewItem.value.steam_hash_name) {
       ElMessage.warning('未找到商品信息')
@@ -1357,7 +1381,7 @@ export function useBuy() {
     window.open(searchUrl, '_blank')
   }
 
-  // 通过印花跳转到商品搜索页面
+  // 通过印花跳转到商品搜索页面（带确认）
   const handleJumpToItemSearchBySticker = (sticker) => {
     if (!sticker) {
       ElMessage.warning('未找到印花信息')
@@ -1374,12 +1398,26 @@ export function useBuy() {
       return
     }
 
-    // 在新标签页打开商品搜索页面
-    const searchUrl = `/item-search?keyword=${encodeURIComponent(hashName)}`
-    window.open(searchUrl, '_blank')
+    const displayName = sticker.name || hashName
+
+    ElMessageBox.confirm(
+      `是否跳转到商品搜索页面查看印花 "${displayName}"？`,
+      '跳转确认',
+      {
+        confirmButtonText: '跳转',
+        cancelButtonText: '取消',
+        type: 'info'
+      }
+    ).then(() => {
+      // 在新标签页打开商品搜索页面
+      const searchUrl = `/item-search?keyword=${encodeURIComponent(hashName)}`
+      window.open(searchUrl, '_blank')
+    }).catch(() => {
+      // 用户取消，不做任何操作
+    })
   }
 
-  // 通过挂件跳转到商品搜索页面
+  // 通过挂件跳转到商品搜索页面（带确认）
   const handleJumpToItemSearchByPendant = (pendant) => {
     if (!pendant) {
       ElMessage.warning('未找到挂件信息')
@@ -1404,9 +1442,23 @@ export function useBuy() {
       return
     }
 
-    // 在新标签页打开商品搜索页面
-    const searchUrl = `/item-search?keyword=${encodeURIComponent(hashName)}`
-    window.open(searchUrl, '_blank')
+    const displayName = pendantObj.name || hashName
+
+    ElMessageBox.confirm(
+      `是否跳转到商品搜索页面查看挂件 "${displayName}"？`,
+      '跳转确认',
+      {
+        confirmButtonText: '跳转',
+        cancelButtonText: '取消',
+        type: 'info'
+      }
+    ).then(() => {
+      // 在新标签页打开商品搜索页面
+      const searchUrl = `/item-search?keyword=${encodeURIComponent(hashName)}`
+      window.open(searchUrl, '_blank')
+    }).catch(() => {
+      // 用户取消，不做任何操作
+    })
   }
 
   // ==================== 生命周期 ====================
@@ -1484,6 +1536,7 @@ export function useBuy() {
     previewVisible,
     previewItem,
     openPreview,
+    confirmJumpToItemSearch,
     handleJumpToItemSearch,
     handleJumpToItemSearchBySticker,
     handleJumpToItemSearchByPendant,
