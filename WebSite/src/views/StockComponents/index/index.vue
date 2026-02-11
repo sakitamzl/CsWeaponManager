@@ -251,11 +251,11 @@
             <template #default="scope">
               <div class="expand-content" v-if="scope.row.item_count > 1">
                 <div class="expand-two-columns">
-                  <div 
-                    v-for="(item, index) in getExpandedItems(scope.row)" 
+                  <div
+                    v-for="(item, index) in getExpandedItems(scope.row)"
                     :key="item.goods_assetid"
                     class="expand-item-card"
-                    @click="openPreview(item)"
+                    @click="handleExpandedItemClick(item, $event)"
                   >
                     <div class="expand-item-row">
                       <div class="expand-item-left">
@@ -456,7 +456,15 @@
               <span style="font-family: monospace;">{{ scope.row.goods_assetid || scope.row.component_id || '-' }}</span>
             </template>
           </el-table-column>
-          <el-table-column v-if="groupMode" label="数量" width="120" align="center">
+          <el-table-column
+            v-if="groupMode"
+            prop="item_count"
+            label="数量"
+            width="120"
+            align="center"
+            sortable="custom"
+            :sort-orders="['descending', 'ascending']"
+          >
             <template #default="scope">
               <span>{{ scope.row.item_count || 0 }}</span>
             </template>
@@ -518,11 +526,12 @@
               />
             </template>
           </el-table-column>
-          <el-table-column 
-            prop="yyyp_price" 
-            label="悠悠价格" 
-            min-width="180" 
+          <el-table-column
+            prop="yyyp_price"
+            label="悠悠价格"
+            min-width="180"
             sortable="custom"
+            :sort-orders="['descending', 'ascending']"
           >
             <template #default="scope">
               <span 
@@ -547,11 +556,12 @@
               <span v-else style="color: #888;">-</span>
             </template>
           </el-table-column>
-          <el-table-column 
-            prop="buff_price" 
-            label="BUFF价格" 
-            min-width="180" 
+          <el-table-column
+            prop="buff_price"
+            label="BUFF价格"
+            min-width="180"
             sortable="custom"
+            :sort-orders="['descending', 'ascending']"
           >
             <template #default="scope">
               <span 
@@ -576,7 +586,13 @@
               <span v-else style="color: #888;">-</span>
             </template>
           </el-table-column>
-          <el-table-column prop="steam_price" label="Steam价格" min-width="180" sortable>
+          <el-table-column
+            prop="steam_price"
+            label="Steam价格"
+            min-width="180"
+            sortable="custom"
+            :sort-orders="['descending', 'ascending']"
+          >
             <template #default="scope">
               <span 
                 v-if="scope.row.steam_price && scope.row.buy_price"

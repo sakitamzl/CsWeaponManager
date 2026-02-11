@@ -560,13 +560,18 @@ def get_components_grouped(steam_id):
 
         where_clause = " AND ".join(where_conditions)
 
-        # 排序字段映射（组合模式下：价格列按“平均价”排序，而不是总价）
+        # 排序字段映射（组合模式下：价格列按"单价"排序，盈亏字段按"单价差值"排序）
         direction = 'ASC' if order_dir == 'asc' else 'DESC'
-        # 平均价表达式：SUM(price)/COUNT(*)
+        # 单价表达式：SUM(price)/COUNT(*)
         avg_buy_expr = "(CASE WHEN COUNT(*) = 0 THEN 0 ELSE (SUM(CAST(buy_price AS REAL)) / COUNT(*)) END)"
         avg_yyyp_expr = "(CASE WHEN COUNT(*) = 0 THEN 0 ELSE (SUM(CAST(yyyp_price AS REAL)) / COUNT(*)) END)"
         avg_buff_expr = "(CASE WHEN COUNT(*) = 0 THEN 0 ELSE (SUM(CAST(buff_price AS REAL)) / COUNT(*)) END)"
         avg_steam_expr = "(CASE WHEN COUNT(*) = 0 THEN 0 ELSE (SUM(CAST(steam_price AS REAL)) / COUNT(*)) END)"
+
+        # 盈亏表达式（平台单价 - 购入单价）
+        yyyp_profit_expr = f"({avg_yyyp_expr} - {avg_buy_expr})"
+        buff_profit_expr = f"({avg_buff_expr} - {avg_buy_expr})"
+        steam_profit_expr = f"({avg_steam_expr} - {avg_buy_expr})"
 
         # 空/0 均价排最后（不管升降序）
         null_last_case = f"""
@@ -578,12 +583,17 @@ def get_components_grouped(steam_id):
 
         order_map = {
             'count': f'item_count {direction}, item_name ASC',
+            'item_count': f'item_count {direction}, item_name ASC',  # 数量排序
             'name': 'item_name ASC',
-            # 注意：这里的 buy/yyyp/buff/steam 都按“均价”排序
+            # 价格字段：按单价排序
             'buy_price': f'{avg_buy_expr} {direction}',
             'yyyp_price': f'{avg_yyyp_expr} {direction}',
             'buff_price': f'{avg_buff_expr} {direction}',
             'steam_price': f'{avg_steam_expr} {direction}',
+            # 盈亏字段：按单价差值排序
+            'yyyp_profit': f'{yyyp_profit_expr} {direction}',
+            'buff_profit': f'{buff_profit_expr} {direction}',
+            'steam_profit': f'{steam_profit_expr} {direction}',
             # unit_price 兼容：等同于平均购入价
             'unit_price': f'{avg_buy_expr} {direction}'
         }

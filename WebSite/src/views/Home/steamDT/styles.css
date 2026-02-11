@@ -1,7 +1,6 @@
 /* SteamDT 紧凑卡片样式 */
-
 .steamdt-compact-card {
-  /* 去除底色,使用透明背景 */
+  /* 使用卡片默认样式 */
 }
 
 .steamdt-compact-card .chart-header {
@@ -12,6 +11,33 @@
   font-size: 16px;
   font-weight: 600;
   color: #e5e7eb;
+}
+
+/* 大盘项 - 左右布局 */
+.main-item-with-chart {
+  display: flex;
+  gap: 1rem;
+  padding: 12px 16px;
+  align-items: center;
+}
+
+/* 大盘左侧 - 数据 */
+.main-item-left {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 大盘右侧 - 小折线图 */
+.main-item-right {
+  flex: 0 0 280px;
+  min-width: 280px;
+  height: 70px;
+}
+
+/* 小型图表容器 */
+.mini-chart-container {
+  width: 100%;
+  height: 100%;
 }
 
 /* 加载中 */
@@ -34,16 +60,6 @@
 .compact-content {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  max-height: 400px;
-}
-
-/* 大盘项 - 固定在顶部 */
-.main-item {
-  flex-shrink: 0;
-  margin-bottom: 8px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* 可滚动区域 */
@@ -142,6 +158,96 @@
   color: #606266;
 }
 
+/* 首页数据区域 - 两列布局 */
+.homepage-data-section {
+  padding: 12px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  gap: 16px;
+}
+
+.data-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 左列右侧添加分割线 */
+.data-column:first-child {
+  padding-right: 16px;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 列头 */
+.data-column-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.column-title {
+  font-size: 12px;
+  color: #909399;
+}
+
+.column-ratio {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.column-ratio.positive {
+  color: #f56c6c;
+}
+
+.column-ratio.negative {
+  color: #67c23a;
+}
+
+/* 主要数据 */
+.data-column-main {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.main-number {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* 成交额 - 橙色 */
+.main-number.orange {
+  color: #ff9800;
+}
+
+/* 成交量 - 蓝色 */
+.main-number.blue {
+  color: #409eff;
+}
+
+/* 新增额 - 紫色 */
+.main-number.purple {
+  color: #9c27b0;
+}
+
+/* 新增量 - 绿色 */
+.main-number.green {
+  color: #67c23a;
+}
+
+.main-unit {
+  font-size: 14px;
+  color: #909399;
+}
+
+/* 底部昨日数据 */
+.data-column-footer {
+  font-size: 12px;
+  color: #606266;
+}
+
 /* 无数据 */
 .compact-empty {
   display: flex;
@@ -154,6 +260,21 @@
 
 /* 响应式 */
 @media (max-width: 768px) {
+  .main-item-with-chart {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .main-item-left {
+    width: 100%;
+  }
+
+  .main-item-right {
+    flex: 0 0 60px;
+    width: 100%;
+    height: 60px;
+  }
+
   .main-value {
     font-size: 20px;
   }
@@ -162,7 +283,21 @@
     font-size: 12px;
   }
 
-  .list-label {
-    min-width: 50px;
+  /* 两列数据在小屏幕上垂直排列 */
+  .homepage-data-section {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* 小屏幕上移除右侧分割线，添加底部分割线 */
+  .data-column:first-child {
+    padding-right: 0;
+    padding-bottom: 12px;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .main-number {
+    font-size: 20px;
   }
 }

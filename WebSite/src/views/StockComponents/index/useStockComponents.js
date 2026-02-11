@@ -58,7 +58,7 @@ export function useStockComponents() {
   const weaponNameFilter = ref('') // 磨损等级筛选
   const weaponNames = ref([]) // 磨损等级列表
   const currentPage = ref(1)
-  const pageSize = ref(50) // 每次加载数量
+  const pageSize = ref(10) // 列表模式默认每页显示数量（卡片模式会调整）
   const currentOffset = ref(0) // 当前偏移量
   const hasMore = ref(true) // 是否还有更多数据
   const loadingMore = ref(false) // 是否正在加载更多
@@ -886,7 +886,18 @@ export function useStockComponents() {
       sortBy.value = 'unit_price'
       sortDir.value = 'desc'
     } else {
-      sortBy.value = prop
+      // 在组合模式下，价格列（yyyp_price/buff_price/steam_price）按盈亏排序
+      if (groupMode.value && (prop === 'yyyp_price' || prop === 'buff_price' || prop === 'steam_price')) {
+        // 转换为盈亏排序字段（后端需要支持这些字段）
+        const profitLossMap = {
+          'yyyp_price': 'yyyp_profit',
+          'buff_price': 'buff_profit',
+          'steam_price': 'steam_profit'
+        }
+        sortBy.value = profitLossMap[prop] || prop
+      } else {
+        sortBy.value = prop
+      }
       sortDir.value = order === 'ascending' ? 'asc' : 'desc'
     }
 
@@ -946,6 +957,10 @@ export function useStockComponents() {
       // 切换到卡片模式，关闭组合模式
       groupMode.value = false
       currentOffset.value = 0
+      // 卡片模式：增加单次加载数量以优化无限滚动体验
+      if (pageSize.value < 20) {
+        pageSize.value = 50
+      }
       loadComponentData()
       // setupScrollObserver 会在 loadComponentData 完成后自动调用
     } else if (newMode === 'list' && oldMode === 'card') {
@@ -953,6 +968,10 @@ export function useStockComponents() {
       const saved = safeGetLocalStorage(STORAGE_KEYS.groupMode)
       groupMode.value = saved === 'false' ? false : true
       currentPage.value = 1
+      // 列表模式：恢复默认分页大小
+      if (pageSize.value > 20) {
+        pageSize.value = 10
+      }
       loadGroupedData()
     }
   })
@@ -1457,20 +1476,73 @@ export function useStockComponents() {
 
   // 处理行点击事件
   const handleRowClick = (row, column, event) => {
-    if (!groupMode.value) return
-    if (row.item_count <= 1) return
-    
-    if (tableRef.value) {
-      tableRef.value.toggleRowExpansion(row)
+    // 组合模式下的行为
+    if (groupMode.value) {
+      // 组合模式：展开/收起行（只有数量大于1才能展开）
+      if (row.item_count > 1 && tableRef.value) {
+        tableRef.value.toggleRowExpansion(row)
+      }
+      return
     }
+
+    // 明细模式下的行为
+    if (!selectedComponent.value) {
+      // 未选择组件时，显示 Popover 跳转
+      popoverItem.value = row
+      popoverPosition.value = { x: event.clientX, y: event.clientY }
+      popoverVisible.value = true
+    } else {
+      // 已选择组件时，多选物品
+      if (isMultiSelectMode.value) {
+        toggleItemSelection(row)
+      }
+    }
+  }
+
+  // 处理展开行内的明细项点击事件
+  const handleExpandedItemClick = (item, event) => {
+    // 如果未选择组件，显示 Popover 跳转
+    if (!selectedComponent.value) {
+      popoverItem.value = item
+      popoverPosition.value = { x: event.clientX, y: event.clientY }
+      popoverVisible.value = true
+      return
+    }
+
+    // 已选择组件时，打开预览
+    openPreview(item)
   }
 
   // 获取行样式
   const getRowStyle = (data) => {
     const style = { backgroundColor: 'transparent' }
+
+    // 组合模式：数量大于1的行可点击（用于展开）
     if (groupMode.value && data.row.item_count > 1) {
       style.cursor = 'pointer'
+      return style
     }
+
+    // 明细模式下的样式
+    if (!groupMode.value) {
+      // 未选择组件时：所有行可点击（用于跳转）
+      if (!selectedComponent.value) {
+        style.cursor = 'pointer'
+        return style
+      }
+
+      // 已选择组件时：显示选中状态
+      if (isItemSelected(data.row.goods_assetid)) {
+        style.backgroundColor = 'rgba(64, 158, 255, 0.1)'
+        style.borderLeft = '3px solid #409eff'
+      }
+
+      // 多选模式下所有行可点击
+      if (isMultiSelectMode.value) {
+        style.cursor = 'pointer'
+      }
+    }
+
     return style
   }
 
@@ -1619,12 +1691,69 @@ export function useStockComponents() {
   }
 
   // 跳转到组件
-  const jumpToComponent = () => {
-    if (popoverItem.value) {
-      selectedComponent.value = popoverItem.value.assetid
-      popoverVisible.value = false
-      handleComponentSelect()
+  const jumpToComponent = async () => {
+    if (!popoverItem.value) {
+      return
     }
+
+    const targetAssetId = popoverItem.value.assetid
+
+    console.log('跳转到组件 - targetAssetId:', targetAssetId)
+    console.log('当前库存组件列表:', inventoryComponents.value)
+
+    // 如果库存组件列表为空，先加载
+    if (inventoryComponents.value.length === 0) {
+      console.log('库存组件列表为空，正在加载...')
+      await loadInventoryComponents()
+    }
+
+    // 验证该组件是否在下拉框列表中
+    const component = inventoryComponents.value.find(comp => comp.assetid === targetAssetId)
+
+    if (!component) {
+      console.warn('组件未找到 - targetAssetId:', targetAssetId)
+      console.warn('可用的组件列表:', inventoryComponents.value.map(c => c.assetid))
+
+      // 提供两个选项：直接跳转或刷新列表
+      ElMessageBox.confirm(
+        '该物品所属的组件未在下拉框列表中找到。可能是数据未同步，是否尝试直接跳转？',
+        '提示',
+        {
+          confirmButtonText: '直接跳转',
+          cancelButtonText: '刷新列表',
+          type: 'warning',
+          distinguishCancelAndClose: true
+        }
+      ).then(() => {
+        // 用户选择直接跳转
+        selectedComponent.value = targetAssetId
+        popoverVisible.value = false
+        handleComponentSelect()
+        ElMessage.success('已跳转到该物品所属的组件')
+      }).catch((action) => {
+        if (action === 'cancel') {
+          // 用户选择刷新列表
+          popoverVisible.value = false
+          loadInventoryComponents().then(() => {
+            ElMessage.success('库存组件列表已刷新，请重试')
+          })
+        } else {
+          // 用户关闭对话框
+          popoverVisible.value = false
+        }
+      })
+      return
+    }
+
+    // 组件存在，正常跳转
+    console.log('找到组件:', component)
+    selectedComponent.value = targetAssetId
+    popoverVisible.value = false
+
+    // 加载该组件的数据
+    handleComponentSelect()
+
+    ElMessage.success(`已跳转到组件: ${component.item_name || targetAssetId}`)
   }
 
   // 关闭 popover
@@ -1788,6 +1917,7 @@ export function useStockComponents() {
     getExpandedTotal,
     handleExpandPageChange,
     handleRowClick,
+    handleExpandedItemClick,
     getRowStyle,
     openPreview,
     handleCardClick,
