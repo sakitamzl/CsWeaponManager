@@ -1,9 +1,16 @@
-import { ref, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { ElMessage } from 'element-plus'
 
 export function useSteamDT() {
   // 状态
   const steamdtIframe = ref(null)
   const iframeLoading = ref(true)
+  const dataLoading = ref(false)
+
+  // 拦截到的数据
+  const marketIndexData = ref(null)
+  const categoryData = ref([])  // 品类数据
+  const lastUpdate = ref(null)
 
   /**
    * 刷新 iframe
@@ -13,7 +20,7 @@ export function useSteamDT() {
       iframeLoading.value = true
       // 重新加载 iframe
       steamdtIframe.value.src = steamdtIframe.value.src
-      console.log('刷新 SteamDT iframe')
+      console.log('[SteamDT] 刷新 iframe')
     }
   }
 
@@ -22,45 +29,60 @@ export function useSteamDT() {
    */
   const onIframeLoad = () => {
     iframeLoading.value = false
-    console.log('SteamDT iframe 加载完成')
-
-    // 尝试监听 iframe 内的消息（如果 SteamDT 支持 postMessage）
-    try {
-      const iframeWindow = steamdtIframe.value?.contentWindow
-      if (iframeWindow) {
-        // 监听来自 iframe 的 postMessage
-        window.addEventListener('message', handleIframeMessage)
-      }
-    } catch (error) {
-      console.warn('无法访问 iframe 内容（跨域限制）:', error)
-    }
+    console.log('[SteamDT] iframe 加载完成')
   }
 
   /**
-   * 处理来自 iframe 的消息
-   * 注意：需要 SteamDT 页面支持 postMessage
+   * 使用无头浏览器获取市场指数数据
    */
-  const handleIframeMessage = (event) => {
-    // 验证来源
-    if (event.origin !== 'https://steamdt.com') {
-      return
-    }
+  const fetchMarketIndexData = async () => {
+    dataLoading.value = true
+    console.log('[SteamDT] 开始使用无头浏览器获取市场指数...')
 
-    console.log('收到来自 SteamDT 的消息:', event.data)
+    try {
+      const response = await fetch('/spider/steamdtSpiderV1/getMarketIndexHeadless?timeout=30000')
+      const result = await response.json()
+
+      if (result.success && result.data) {
+        // 解构数据
+        marketIndexData.value = result.data.market_index
+        categoryData.value = result.data.category_data || []
+        lastUpdate.value = new Date()
+
+        console.log('[SteamDT] 市场指数获取成功:', result.data.market_index)
+        console.log('[SteamDT] 品类数据获取成功,品类数量:', categoryData.value.length)
+        ElMessage.success('市场指数数据已更新')
+      } else {
+        console.error('[SteamDT] 获取失败:', result.message)
+        ElMessage.error('获取市场指数失败: ' + result.message)
+      }
+    } catch (error) {
+      console.error('[SteamDT] 请求失败:', error)
+      ElMessage.error('网络请求失败')
+    } finally {
+      dataLoading.value = false
+    }
   }
 
-  // 组件卸载时清理事件监听
-  onUnmounted(() => {
-    window.removeEventListener('message', handleIframeMessage)
+
+  // 组件挂载时
+  onMounted(() => {
+    // 自动获取数据
+    fetchMarketIndexData()
   })
 
   return {
     // 状态
     steamdtIframe,
     iframeLoading,
+    dataLoading,
+    marketIndexData,
+    categoryData,
+    lastUpdate,
 
     // 方法
     refreshIframe,
-    onIframeLoad
+    onIframeLoad,
+    fetchMarketIndexData
   }
 }

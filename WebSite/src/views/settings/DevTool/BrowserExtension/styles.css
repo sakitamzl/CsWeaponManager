@@ -1,0 +1,170 @@
+/* 浏览器扩展安装组件样式 */
+
+.browser-extension-card {
+  margin-bottom: 2rem;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-weight: 600;
+}
+
+.extension-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* 状态面板 - 黑色主题 */
+.extension-status-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+  background: #2a2a2a;
+  border-radius: 8px;
+}
+
+/* 一键安装按钮 - 黑色主题 */
+.one-click-install {
+  text-align: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.one-click-install .el-button {
+  font-size: 18px;
+  padding: 16px 40px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.one-click-install .el-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.install-hint {
+  margin: 1rem 0 0 0;
+  color: #fff;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.status-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.status-item .label {
+  font-size: 14px;
+  color: #909399;
+  font-weight: 500;
+}
+
+.status-item .value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #e5e7eb;
+}
+
+.status-item .value.success {
+  color: #67c23a;
+}
+
+.status-item .value.warning {
+  color: #e6a23c;
+}
+
+/* 安装步骤 - 黑色主题 */
+.install-steps {
+  padding: 1rem;
+  background: #1a1a1a;
+  border-radius: 8px;
+}
+
+.install-steps h4 {
+  margin: 0 0 1rem 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #e5e7eb;
+}
+
+.install-steps ol {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.install-steps li {
+  margin-bottom: 1rem;
+  line-height: 1.6;
+  color: #d1d5db;
+}
+
+.install-steps li:last-child {
+  margin-bottom: 0;
+}
+
+.install-steps strong {
+  color: #e5e7eb;
+  font-size: 15px;
+}
+
+.step-desc {
+  margin: 0.5rem 0 0 1rem;
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+/* 扩展路径 - 黑色主题 */
+.extension-path {
+  margin-top: 1rem;
+}
+
+.extension-path code {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: #1a1a1a;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 14px;
+  color: #409eff;
+  word-break: break-all;
+}
+
+/* 测试区域 - 黑色主题 */
+.test-section {
+  padding: 1rem;
+  background: #1e3a4a;
+  border: 1px solid #2c5f7f;
+  border-radius: 8px;
+}
+
+.test-section h4 {
+  margin: 0 0 1rem 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #e5e7eb;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .extension-status-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .install-steps ol {
+    padding-left: 1rem;
+  }
+
+  .install-steps li {
+    font-size: 14px;
+  }
+}

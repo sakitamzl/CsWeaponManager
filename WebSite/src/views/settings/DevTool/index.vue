@@ -1,5 +1,8 @@
 <template>
   <div class="dev-tool-container">
+    <!-- SteamDT 数据拦截扩展 -->
+    <BrowserExtension />
+
     <!-- ADB 与网络证书安装 -->
     <AdbCertForm />
 
@@ -13,6 +16,7 @@
 
 
 <script>
+import BrowserExtension from './BrowserExtension/index.vue'
 import AdbCertForm from './AdbCertForm/index.vue'
 import WeaponMappingForm from './WeaponMappingForm/index.vue'
 import ImageResourceForm from './ImageResourceForm/index.vue'
@@ -20,6 +24,7 @@ import ImageResourceForm from './ImageResourceForm/index.vue'
 export default {
   name: 'DevTool',
   components: {
+    BrowserExtension,
     AdbCertForm,
     WeaponMappingForm,
     ImageResourceForm
