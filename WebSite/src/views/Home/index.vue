@@ -191,35 +191,8 @@
             </div>
           </div>
         </div>
-        <!-- CSQAQ K线图卡片 -->
-        <div class="card chart-card">
-          <div class="chart-header">
-            <h3>CSQAQ 市场指数</h3>
-            <div class="chart-controls">
-              <el-button-group size="small">
-                <el-button
-                  :type="csqaqPeriod === '1h' ? 'primary' : ''"
-                  @click="changeCSQAQPeriod('1h')"
-                >
-                  1小时
-                </el-button>
-                <el-button
-                  :type="csqaqPeriod === '1d' ? 'primary' : ''"
-                  @click="changeCSQAQPeriod('1d')"
-                >
-                  日线
-                </el-button>
-                <el-button
-                  :type="csqaqPeriod === '1w' ? 'primary' : ''"
-                  @click="changeCSQAQPeriod('1w')"
-                >
-                  周线
-                </el-button>
-              </el-button-group>
-            </div>
-          </div>
-          <div ref="csqaqChartRef" class="price-chart" v-loading="loadingCSQAQ"></div>
-        </div>
+        <!-- CSQAQ 市场指数组件 -->
+        <CSQAQMarketIndex />
       </div>
     </div>
 
@@ -377,11 +350,13 @@
 <script>
 import { useHome } from './useHome.js'
 import SteamDTMarketIndex from './steamDT/index.vue'
+import CSQAQMarketIndex from './CSQAQMarketIndex/index.vue'
 
 export default {
   name: 'Home',
   components: {
-    SteamDTMarketIndex
+    SteamDTMarketIndex,
+    CSQAQMarketIndex
   },
   setup() {
     return useHome()

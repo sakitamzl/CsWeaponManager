@@ -260,6 +260,8 @@ export const API_CONFIG = {
 
     STEAM_BUY_MARKET_ITEM: '/steamSpiderV1/buyMarketItem',  // Steam 市场购买物品
 
+    CSQAQ_MARKET_INDEX: '/csqaqSpiderV1/getMarketIndex',  // CSQAQ市场指数
+
     CSQAQ_GET_GOODS: '/csqaqSpiderV1/getGoodsList',  // CSQAQ同步获取商品
 
     CSQAQ_GET_GOODS_ASYNC: '/csqaqSpiderV1/getGoodsListAsync',  // CSQAQ异步获取商品
@@ -717,6 +719,8 @@ export const apiUrls = {
   steamFetchHashNames: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_FETCH_HASH_NAMES),
 
   steamFetchHashNamesByWeapon: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_FETCH_HASH_NAMES_BY_WEAPON),
+
+  csqaqMarketIndex: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_MARKET_INDEX),
 
   csqaqGetGoods: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_GET_GOODS),
 
