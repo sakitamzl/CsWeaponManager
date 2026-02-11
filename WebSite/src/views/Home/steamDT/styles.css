@@ -1,0 +1,44 @@
+/* SteamDT 大盘指数组件样式 */
+
+.steamdt-market-index {
+  height: 100%;
+}
+
+/* iframe 容器 */
+.market-index-iframe-container {
+  width: 100%;
+  height: 600px;
+  min-height: 500px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #1a1a1a;
+  position: relative;
+}
+
+.steamdt-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 8px;
+}
+
+/* 响应式调整 */
+@media (max-width: 1024px) {
+  .market-index-iframe-container {
+    height: 500px;
+  }
+}
+
+@media (max-width: 768px) {
+  .market-index-iframe-container {
+    height: 450px;
+    min-height: 400px;
+  }
+}
+
+@media (max-width: 480px) {
+  .market-index-iframe-container {
+    height: 400px;
+    min-height: 350px;
+  }
+}

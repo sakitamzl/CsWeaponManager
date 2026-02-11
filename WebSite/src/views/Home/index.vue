@@ -115,60 +115,8 @@
             </div>
           </div>
         </div>
-        <!-- SteamDT 大盘指数卡片 -->
-        <div class="card chart-card">
-          <div class="chart-header">
-            <h3>SteamDT 大盘指数</h3>
-          </div>
-          <div class="market-index-content" v-loading="loadingMarketIndex">
-            <div v-if="marketIndexData" class="market-index-data">
-              <!-- 主要指数信息 -->
-              <div class="index-main">
-                <div class="index-value">{{ marketIndexData.index }}</div>
-                <div class="index-change" :class="marketIndexData.riseFallRate >= 0 ? 'positive' : 'negative'">
-                  <span class="change-diff">{{ marketIndexData.riseFallRate >= 0 ? '+' : '' }}{{ marketIndexData.riseFallDiff }}</span>
-                  <span class="change-rate">{{ marketIndexData.riseFallRate >= 0 ? '+' : '' }}{{ marketIndexData.riseFallRate }}%</span>
-                </div>
-              </div>
-
-              <!-- 统计信息网格 -->
-              <div class="index-stats-grid">
-                <div class="stat-item">
-                  <div class="stat-label">昨日指数</div>
-                  <div class="stat-value">{{ marketIndexData.yesterdayIndex }}</div>
-                </div>
-                <div class="stat-item">
-                  <div class="stat-label">最高</div>
-                  <div class="stat-value positive">{{ marketIndexData.highIndex }}</div>
-                </div>
-                <div class="stat-item">
-                  <div class="stat-label">最低</div>
-                  <div class="stat-value negative">{{ marketIndexData.lowIndex }}</div>
-                </div>
-                <div class="stat-item">
-                  <div class="stat-label">上涨数量</div>
-                  <div class="stat-value positive">{{ marketIndexData.upNum }}</div>
-                </div>
-                <div class="stat-item">
-                  <div class="stat-label">持平数量</div>
-                  <div class="stat-value">{{ marketIndexData.flatNum }}</div>
-                </div>
-                <div class="stat-item">
-                  <div class="stat-label">下跌数量</div>
-                  <div class="stat-value negative">{{ marketIndexData.downNum }}</div>
-                </div>
-              </div>
-
-              <!-- 更新时间 -->
-              <div class="index-update-time">
-                更新时间: {{ new Date(parseInt(marketIndexData.updateTime) * 1000).toLocaleString('zh-CN') }}
-              </div>
-            </div>
-            <div v-else class="market-index-empty">
-              暂无数据
-            </div>
-          </div>
-        </div>
+        <!-- SteamDT 大盘指数组件 -->
+        <SteamDTMarketIndex />
         <div class="card chart-card">
           <div class="chart-header">
             <h3>购入饰品价格</h3>
@@ -428,9 +376,13 @@
 
 <script>
 import { useHome } from './useHome.js'
+import SteamDTMarketIndex from './steamDT/index.vue'
 
 export default {
   name: 'Home',
+  components: {
+    SteamDTMarketIndex
+  },
   setup() {
     return useHome()
   }

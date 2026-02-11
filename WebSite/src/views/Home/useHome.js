@@ -81,9 +81,6 @@ export function useHome() {
   const buyChartMode = ref('value') // 'value' 或 'count'
   const sellChartMode = ref('value') // 'value' 或 'count'
 
-  // SteamDT大盘指数相关
-  const marketIndexData = ref(null)
-  const loadingMarketIndex = ref(false)
 
   // CSQAQ K线图相关
   const csqaqPeriod = ref('1h')
@@ -1305,26 +1302,6 @@ export function useHome() {
     sellChart.setOption(option)
   }
 
-  // 加载SteamDT大盘指数数据
-  const loadMarketIndexData = async () => {
-    loadingMarketIndex.value = true
-    try {
-      const response = await axios.get(apiUrls.steamdtMarketIndex())
-
-      if (response.data && response.data.success) {
-        marketIndexData.value = response.data.data
-        console.log('获取SteamDT大盘指数成功:', marketIndexData.value)
-      } else {
-        console.error('获取SteamDT大盘指数失败:', response.data?.message || '未知错误')
-        marketIndexData.value = null
-      }
-    } catch (error) {
-      console.error('获取SteamDT大盘指数失败:', error)
-      marketIndexData.value = null
-    } finally {
-      loadingMarketIndex.value = false
-    }
-  }
 
   // 计算移动平均线（用于 CSQAQ K 线图）
   const calculateMA = (data, period) => {
@@ -1700,8 +1677,7 @@ export function useHome() {
       loadInventoryStats(),
       loadComponentsStats(),
       loadBuyChartData(),
-      loadSellChartData(),
-      loadMarketIndexData()  // 加载SteamDT大盘指数
+      loadSellChartData()
     ])
 
     // 初始化并加载CSQAQ K线图
@@ -1915,8 +1891,6 @@ export function useHome() {
     componentChartMode,
     buyChartMode,
     sellChartMode,
-    marketIndexData,
-    loadingMarketIndex,
     csqaqPeriod,
     loadingCSQAQ,
     itemListVisible,
