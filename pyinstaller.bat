@@ -66,11 +66,55 @@ cd ..
 :: Package Spider.py (with Playwright browser bundling)
 echo.
 echo [2/3] Packaging Spider.exe with Playwright support...
+
+:: Check if Playwright browsers are installed
+echo Checking Playwright browser installation...
 cd Spider
+
+:: Use a simpler check that won't hang
+for /f "tokens=*" %%i in ('python -c "from pathlib import Path; import os; print((Path(os.environ.get('LOCALAPPDATA', '')) / 'ms-playwright').exists())" 2^>nul') do set BROWSER_EXISTS=%%i
+
+if /i "%BROWSER_EXISTS%"=="False" (
+    echo.
+    echo ========================================
+    echo WARNING: Playwright browsers not found!
+    echo ========================================
+    echo.
+    echo The Spider module requires Playwright browsers to be installed.
+    echo Installing Playwright browsers now...
+
+    :: Try to install browsers automatically
+    if exist "install_playwright_browsers.bat" (
+        echo Running install_playwright_browsers.bat...
+        call install_playwright_browsers.bat
+        if %errorlevel% neq 0 (
+            echo Warning: Browser installation may have failed.
+            echo Trying direct installation...
+            playwright install chromium 2>nul
+        )
+    ) else (
+        echo Installing Playwright browsers directly...
+        playwright install chromium 2>nul
+    )
+
+    echo.
+    echo Browser installation attempt completed.
+    echo.
+) else if /i "%BROWSER_EXISTS%"=="True" (
+    echo Playwright browsers found. Proceeding with packaging...
+) else (
+    echo Could not determine browser installation status. Proceeding anyway...
+)
+
+:: Now proceed with packaging
+echo.
+echo Packaging Spider.exe...
 pyinstaller --clean --noconfirm Spider.spec --distpath "..\Releases\%VERSION%"
 if %errorlevel% neq 0 (
     echo Error: Failed to package Spider.py
-    echo Note: If Playwright browsers are missing, run: playwright install chromium
+    echo Note: If the error is related to Playwright:
+    echo   1. Run install_playwright_browsers.bat in the Spider directory
+    echo   2. Then run this script again
     cd ..
     pause
     exit /b 1
