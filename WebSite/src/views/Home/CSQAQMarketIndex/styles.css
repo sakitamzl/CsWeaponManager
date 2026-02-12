@@ -1,60 +1,72 @@
-/* CSQAQ 市场指数卡片样式 */
+/* CSQAQ 紧凑卡片样式 */
 .csqaq-compact-card {
-  min-height: 200px;
+  /* 使用卡片默认样式 */
 }
 
-.compact-loading,
-.compact-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  color: #999;
-  gap: 10px;
+.csqaq-compact-card .chart-header {
+  margin-bottom: 1rem;
 }
 
-.compact-loading .el-icon {
-  font-size: 24px;
+.csqaq-compact-card .chart-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #e5e7eb;
 }
 
-.compact-content {
-  padding: 16px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-/* 市场指数主区域 - 左数据右图表 */
+/* 大盘项 - 左右布局 */
 .main-item-with-chart {
   display: flex;
+  gap: 1rem;
+  padding: 12px 16px;
   align-items: center;
-  gap: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* 大盘左侧 - 数据 */
 .main-item-left {
   flex: 1;
   min-width: 0;
 }
 
+/* 大盘右侧 - 小折线图 */
 .main-item-right {
-  flex-shrink: 0;
-  width: 140px;
-  height: 60px;
+  flex: 0 0 280px;
+  min-width: 280px;
+  height: 70px;
 }
 
+/* 小型图表容器 */
 .mini-chart-container {
   width: 100%;
   height: 100%;
 }
 
-/* 数据内容 */
-.list-content {
+/* 加载中 */
+.compact-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #909399;
+  font-size: 13px;
+  padding: 8px 0;
+}
+
+.compact-loading .el-icon {
+  font-size: 16px;
+  color: #409eff;
+}
+
+/* 内容容器 */
+.compact-content {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+}
+
+.list-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .list-value {
@@ -65,96 +77,190 @@
 }
 
 .main-value {
-  font-size: 28px;
-  font-weight: bold;
-  color: #fff;
+  font-size: 24px;
+  font-weight: 600;
+  color: #e5e7eb;
   line-height: 1;
 }
 
 .change-value {
   font-size: 14px;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  font-weight: 500;
+  line-height: 1;
 }
 
 .change-value.positive {
-  color: #67c23a;
+  color: #f56c6c; /* 上涨红色 */
 }
 
 .change-value.negative {
-  color: #f56c6c;
+  color: #67c23a; /* 下跌绿色 */
 }
 
 .list-update {
-  font-size: 12px;
-  color: #999;
+  font-size: 11px;
+  color: #606266;
 }
 
-/* 统计信息 */
-.stats-section {
+/* 无数据 */
+.compact-empty {
   display: flex;
-  justify-content: space-around;
-  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 0;
+  color: #606266;
+  font-size: 13px;
 }
 
-.stat-item {
+/* 指数列表部分 */
+.index-list-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #3a3a3a;
+}
+
+.index-list-header {
+  margin-bottom: 1rem;
+}
+
+.index-list-header h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e5e7eb;
+  margin: 0;
+}
+
+.index-list-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.index-item-card {
+  background: #2a2a2a;
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid #3a3a3a;
+  transition: all 0.2s;
+}
+
+.index-item-card:hover {
+  border-color: #409eff;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.15);
+}
+
+.index-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.index-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.index-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e5e7eb;
+}
+
+.index-item-content {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
+  gap: 8px;
 }
 
-.stat-label {
-  font-size: 12px;
-  color: #999;
+.index-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
 }
 
-.stat-value {
-  font-size: 16px;
+.index-current-value {
+  font-size: 20px;
   font-weight: 600;
-  color: #fff;
+  color: #e5e7eb;
 }
 
-/* 响应式设计 */
-@media (max-width: 1366px) {
-  .main-item-right {
-    width: 120px;
-    height: 50px;
-  }
-
-  .main-value {
-    font-size: 24px;
-  }
-
-  .change-value {
-    font-size: 13px;
-  }
-
-  .stat-value {
-    font-size: 14px;
-  }
+.index-change-value {
+  font-size: 13px;
+  font-weight: 500;
 }
 
+.index-change-value.positive {
+  color: #f56c6c;
+}
+
+.index-change-value.negative {
+  color: #67c23a;
+}
+
+.index-detail-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.index-detail-label {
+  color: #909399;
+  min-width: 36px;
+}
+
+.index-detail-value {
+  color: #e5e7eb;
+  font-weight: 500;
+}
+
+.index-detail-value.positive {
+  color: #f56c6c;
+}
+
+.index-detail-value.negative {
+  color: #67c23a;
+}
+
+.index-update-time {
+  font-size: 11px;
+  color: #606266;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid #3a3a3a;
+}
+
+/* 响应式 */
 @media (max-width: 768px) {
   .main-item-with-chart {
     flex-direction: column;
-    align-items: stretch;
+    align-items: flex-start;
+  }
+
+  .main-item-left {
+    width: 100%;
   }
 
   .main-item-right {
+    flex: 0 0 60px;
     width: 100%;
-    height: 80px;
+    height: 60px;
   }
 
-  .stats-section {
-    flex-direction: column;
-    gap: 12px;
+  .main-value {
+    font-size: 20px;
   }
 
-  .stat-item {
-    flex-direction: row;
-    justify-content: space-between;
+  .change-value {
+    font-size: 12px;
+  }
+
+  .index-list-grid {
+    grid-template-columns: 1fr;
   }
 }
