@@ -134,25 +134,25 @@ export function useHome() {
     }
   }
 
-  // 加载出售统计数据
-  const loadSellStats = async () => {
-    try {
-      const response = await axios.get(`${API_CONFIG.BASE_URL}/webSellV1/getSellStats`)
-      if (response.data) {
-        sellStats.value = {
-          totalAmount: response.data.total_amount?.toFixed(2) || '0.00',
-          totalCount: response.data.total_count || 0
-        }
-      }
-    } catch (error) {
-      console.error('加载出售统计失败:', error)
-      // 保持默认值
-      sellStats.value = {
-        totalAmount: '0.00',
-        totalCount: 0
-      }
-    }
-  }
+  // 加载出售统计数据 - 已停用：后端接口不再需要
+  // const loadSellStats = async () => {
+  //   try {
+  //     const response = await axios.get(`${API_CONFIG.BASE_URL}/webSellV1/getSellStats`)
+  //     if (response.data) {
+  //       sellStats.value = {
+  //         totalAmount: response.data.total_amount?.toFixed(2) || '0.00',
+  //         totalCount: response.data.total_count || 0
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.error('加载出售统计失败:', error)
+  //     // 保持默认值
+  //     sellStats.value = {
+  //       totalAmount: '0.00',
+  //       totalCount: 0
+  //     }
+  //   }
+  // }
 
   // 加载Steam ID列表
   const loadSteamIdList = async () => {
@@ -1344,7 +1344,7 @@ export function useHome() {
     // 并行加载所有数据
     await Promise.all([
       loadBuyStats(),
-      loadSellStats(),
+      // loadSellStats(),  // 已停用：后端接口不再需要
       loadInventoryStats(),
       loadComponentsStats(),
       loadBuyChartData(),

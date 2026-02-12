@@ -23,25 +23,25 @@ export function useSteamDT() {
    */
   const initChart = () => {
     if (!chartContainer.value) {
-      console.log('[SteamDT] chartContainer 未找到')
+      // console.log('[SteamDT] chartContainer 未找到')
       return false
     }
 
-    console.log('[SteamDT] 初始化图表...')
-    console.log('[SteamDT] chartContainer 尺寸:', {
-      width: chartContainer.value.offsetWidth,
-      height: chartContainer.value.offsetHeight
-    })
+    // console.log('[SteamDT] 初始化图表...')
+    // console.log('[SteamDT] chartContainer 尺寸:', {
+    //   width: chartContainer.value.offsetWidth,
+    //   height: chartContainer.value.offsetHeight
+    // })
 
     // 销毁旧实例
     if (chartInstance) {
-      console.log('[SteamDT] 销毁旧图表实例')
+      // console.log('[SteamDT] 销毁旧图表实例')
       chartInstance.dispose()
     }
 
     // 创建新实例
     chartInstance = echarts.init(chartContainer.value)
-    console.log('[SteamDT] 图表实例已创建:', chartInstance)
+    // console.log('[SteamDT] 图表实例已创建:', chartInstance)
 
     // 设置初始配置 - 迷你图表样式
     const option = {
@@ -115,7 +115,7 @@ export function useSteamDT() {
     }
 
     chartInstance.setOption(option)
-    console.log('[SteamDT] 图表配置已设置')
+    // console.log('[SteamDT] 图表配置已设置')
 
     // 监听窗口大小变化
     window.addEventListener('resize', handleResize)
@@ -127,15 +127,15 @@ export function useSteamDT() {
    * 更新图表数据
    */
   const updateChart = () => {
-    console.log('[SteamDT] updateChart 调用 - chartInstance:', !!chartInstance, 'chartData.length:', chartData.value?.length)
+    // console.log('[SteamDT] updateChart 调用 - chartInstance:', !!chartInstance, 'chartData.length:', chartData.value?.length)
 
     if (!chartInstance) {
-      console.log('[SteamDT] 图表实例不存在,无法更新')
+      // console.log('[SteamDT] 图表实例不存在,无法更新')
       return
     }
 
     if (!chartData.value || chartData.value.length === 0) {
-      console.log('[SteamDT] 图表数据为空,无法更新')
+      // console.log('[SteamDT] 图表数据为空,无法更新')
       return
     }
 
@@ -164,9 +164,9 @@ export function useSteamDT() {
       }
     })
 
-    console.log('[SteamDT] 准备设置数据 - dates:', dates.length, 'values:', values.length)
-    console.log('[SteamDT] 数值范围:', { min: Math.min(...values), max: Math.max(...values) })
-    console.log('[SteamDT] 天数:', Object.keys(dayStartIndices).length)
+    // console.log('[SteamDT] 准备设置数据 - dates:', dates.length, 'values:', values.length)
+    // console.log('[SteamDT] 数值范围:', { min: Math.min(...values), max: Math.max(...values) })
+    // console.log('[SteamDT] 天数:', Object.keys(dayStartIndices).length)
 
     // 构建分段数据，按日期分段，每天根据当天收盘价与开盘价比较显示颜色
     const pieces = []
@@ -212,7 +212,7 @@ export function useSteamDT() {
       ]
     })
 
-    console.log('[SteamDT] 图表已更新,数据点数量:', values.length, '分段数量:', pieces.length)
+    // console.log('[SteamDT] 图表已更新,数据点数量:', values.length, '分段数量:', pieces.length)
   }
 
   /**
@@ -229,7 +229,7 @@ export function useSteamDT() {
    */
   const fetchMarketIndexData = async () => {
     dataLoading.value = true
-    console.log('[SteamDT] 开始调用 SteamDT API 获取市场指数...')
+    // console.log('[SteamDT] 开始调用 SteamDT API 获取市场指数...')
 
     try {
       // 直接调用 SteamDT API
@@ -238,7 +238,7 @@ export function useSteamDT() {
       const response = await fetch(apiUrl)
       const result = await response.json()
 
-      console.log('[SteamDT] API 响应:', result)
+      // console.log('[SteamDT] API 响应:', result)
 
       if (result.success && result.data) {
         // 解析大盘指数数据
@@ -253,23 +253,23 @@ export function useSteamDT() {
 
         lastUpdate.value = new Date()
 
-        console.log('[SteamDT] 大盘指数获取成功:', marketIndexData.value)
-        console.log('[SteamDT] 折线图数据获取成功,数据点数量:', chartData.value.length)
+        // console.log('[SteamDT] 大盘指数获取成功:', marketIndexData.value)
+        // console.log('[SteamDT] 折线图数据获取成功,数据点数量:', chartData.value.length)
 
         // 手动更新图表（使用 nextTick 确保 DOM 已更新）
         nextTick(() => {
           if (chartData.value.length > 0) {
             // 如果图表实例不存在，先初始化
             if (!chartInstance && chartContainer.value) {
-              console.log('[SteamDT] 图表实例不存在，先初始化图表')
+              // console.log('[SteamDT] 图表实例不存在，先初始化图表')
               initChart()
             }
             // 更新图表
             if (chartInstance) {
-              console.log('[SteamDT] 手动触发图表更新')
+              // console.log('[SteamDT] 手动触发图表更新')
               updateChart()
             } else {
-              console.warn('[SteamDT] 图表实例仍然不存在，无法更新')
+              // console.warn('[SteamDT] 图表实例仍然不存在，无法更新')
             }
           }
         })
@@ -291,18 +291,18 @@ export function useSteamDT() {
    * 获取SteamDT首页数据（饰品成交额等）
    */
   const fetchHomepageData = async () => {
-    console.log('[SteamDT] 开始获取首页数据（饰品成交额）...')
+    // console.log('[SteamDT] 开始获取首页数据（饰品成交额）...')
 
     try {
       const url = apiUrls.steamdtHomepageData()
       const response = await fetch(url)
       const result = await response.json()
 
-      console.log('[SteamDT] 首页数据响应:', result)
+      // console.log('[SteamDT] 首页数据响应:', result)
 
       if (result.success && result.data) {
         homepageData.value = result.data
-        console.log('[SteamDT] 首页数据获取成功:', homepageData.value)
+        // console.log('[SteamDT] 首页数据获取成功:', homepageData.value)
       } else {
         console.error('[SteamDT] 首页数据获取失败:', result.message)
       }
@@ -315,15 +315,15 @@ export function useSteamDT() {
   // 监听 marketIndexData 变化,确保容器渲染后初始化图表
   watch(marketIndexData, (newData) => {
     if (newData) {
-      console.log('[SteamDT] marketIndexData 已加载,准备初始化图表')
+      // console.log('[SteamDT] marketIndexData 已加载,准备初始化图表')
       nextTick(() => {
-        console.log('[SteamDT] DOM 更新后,chartContainer.value:', chartContainer.value)
+        // console.log('[SteamDT] DOM 更新后,chartContainer.value:', chartContainer.value)
         if (chartContainer.value && !chartInstance) {
-          console.log('[SteamDT] 容器已就绪,初始化图表')
+          // console.log('[SteamDT] 容器已就绪,初始化图表')
           initChart()
           // 如果此时 chartData 已有数据,立即更新图表
           if (chartData.value && chartData.value.length > 0) {
-            console.log('[SteamDT] 数据已存在,立即更新图表')
+            // console.log('[SteamDT] 数据已存在,立即更新图表')
             updateChart()
           }
         }
@@ -333,33 +333,33 @@ export function useSteamDT() {
 
   // 监听 chartData 变化,更新图表数据
   watch(chartData, (newData) => {
-    console.log('[SteamDT] chartData 变化,数据点:', newData?.length)
+    // console.log('[SteamDT] chartData 变化,数据点:', newData?.length)
     if (!newData || newData.length === 0) {
-      console.log('[SteamDT] 数据为空,跳过更新')
+      // console.log('[SteamDT] 数据为空,跳过更新')
       return
     }
 
     nextTick(() => {
       // 如果图表还没初始化,先初始化
       if (!chartInstance) {
-        console.log('[SteamDT] 图表未初始化,先检查容器')
+        // console.log('[SteamDT] 图表未初始化,先检查容器')
         if (chartContainer.value) {
-          console.log('[SteamDT] 容器存在,初始化图表')
+          // console.log('[SteamDT] 容器存在,初始化图表')
           initChart()
         } else {
-          console.log('[SteamDT] 容器不存在,等待 marketIndexData 加载')
+          // console.log('[SteamDT] 容器不存在,等待 marketIndexData 加载')
           return
         }
       }
       // 更新图表数据
-      console.log('[SteamDT] 准备更新图表数据')
+      // console.log('[SteamDT] 准备更新图表数据')
       updateChart()
     })
   })
 
   // 组件挂载时
   onMounted(() => {
-    console.log('[SteamDT] 组件已挂载')
+    // console.log('[SteamDT] 组件已挂载')
     // 自动获取数据(不在这里初始化图表,等待数据加载后再初始化)
     fetchMarketIndexData()
     fetchHomepageData()

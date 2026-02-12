@@ -22,21 +22,21 @@ export function useCSQAQMarketIndex() {
    */
   const initChart = () => {
     if (!chartContainer.value) {
-      console.log('[CSQAQ] chartContainer 未找到')
+      // console.log('[CSQAQ] chartContainer 未找到')
       return false
     }
 
-    console.log('[CSQAQ] 初始化图表...')
+    // console.log('[CSQAQ] 初始化图表...')
 
     // 销毁旧实例
     if (chartInstance) {
-      console.log('[CSQAQ] 销毁旧图表实例')
+      // console.log('[CSQAQ] 销毁旧图表实例')
       chartInstance.dispose()
     }
 
     // 创建新实例
     chartInstance = echarts.init(chartContainer.value)
-    console.log('[CSQAQ] 图表实例已创建')
+    // console.log('[CSQAQ] 图表实例已创建')
 
     // 设置初始配置 - 迷你图表样式
     const option = {
@@ -110,7 +110,7 @@ export function useCSQAQMarketIndex() {
     }
 
     chartInstance.setOption(option)
-    console.log('[CSQAQ] 图表配置已设置')
+    // console.log('[CSQAQ] 图表配置已设置')
 
     // 监听窗口大小变化
     window.addEventListener('resize', handleResize)
@@ -122,15 +122,15 @@ export function useCSQAQMarketIndex() {
    * 更新图表数据
    */
   const updateChart = () => {
-    console.log('[CSQAQ] updateChart 调用 - chartInstance:', !!chartInstance, 'chartData:', !!chartData.value)
+    // console.log('[CSQAQ] updateChart 调用 - chartInstance:', !!chartInstance, 'chartData:', !!chartData.value)
 
     if (!chartInstance) {
-      console.log('[CSQAQ] 图表实例不存在,无法更新')
+      // console.log('[CSQAQ] 图表实例不存在,无法更新')
       return
     }
 
     if (!chartData.value) {
-      console.log('[CSQAQ] 图表数据为空,无法更新')
+      // console.log('[CSQAQ] 图表数据为空,无法更新')
       return
     }
 
@@ -138,7 +138,7 @@ export function useCSQAQMarketIndex() {
     const { timestamps, values } = chartData.value
 
     if (!timestamps || !values || timestamps.length !== values.length) {
-      console.log('[CSQAQ] 数据格式错误')
+      // console.log('[CSQAQ] 数据格式错误')
       return
     }
 
@@ -177,9 +177,9 @@ export function useCSQAQMarketIndex() {
       lastDate = dateStr
     }
 
-    console.log('[CSQAQ] 准备设置数据 - dates:', dates.length, 'values:', values.length)
-    console.log('[CSQAQ] 数值范围:', { min: Math.min(...values), max: Math.max(...values) })
-    console.log('[CSQAQ] 日期分界线数量:', markLineData.length)
+    // console.log('[CSQAQ] 准备设置数据 - dates:', dates.length, 'values:', values.length)
+    // console.log('[CSQAQ] 数值范围:', { min: Math.min(...values), max: Math.max(...values) })
+    // console.log('[CSQAQ] 日期分界线数量:', markLineData.length)
 
     // 更新图表
     chartInstance.setOption({
@@ -198,7 +198,7 @@ export function useCSQAQMarketIndex() {
       ]
     })
 
-    console.log('[CSQAQ] 图表已更新,数据点数量:', values.length)
+    // console.log('[CSQAQ] 图表已更新,数据点数量:', values.length)
   }
 
   /**
@@ -215,13 +215,13 @@ export function useCSQAQMarketIndex() {
    */
   const fetchMarketIndexData = async () => {
     dataLoading.value = true
-    console.log('[CSQAQ] 开始获取市场指数...')
+    // console.log('[CSQAQ] 开始获取市场指数...')
 
     try {
       const response = await fetch(apiUrls.csqaqMarketIndex())
       const result = await response.json()
 
-      console.log('[CSQAQ] API 响应:', result)
+      // console.log('[CSQAQ] API 响应:', result)
 
       if (result.code === 200 && result.data) {
         // 新的数据结构包含两个API的响应
@@ -260,8 +260,8 @@ export function useCSQAQMarketIndex() {
             values: values
           }
 
-          console.log('[CSQAQ] 市场指数获取成功:', marketIndexData.value)
-          console.log('[CSQAQ] 折线图数据获取成功,数据点数量:', chartData.value.values.length)
+          // console.log('[CSQAQ] 市场指数获取成功:', marketIndexData.value)
+          // console.log('[CSQAQ] 折线图数据获取成功,数据点数量:', chartData.value.values.length)
         }
 
         // 处理current_data数据（所有指数列表）
@@ -269,7 +269,7 @@ export function useCSQAQMarketIndex() {
           const currentData = result.data.current_data.data
           if (currentData.sub_index_data && Array.isArray(currentData.sub_index_data)) {
             indexListData.value = currentData.sub_index_data
-            console.log('[CSQAQ] 指数列表获取成功,数量:', indexListData.value.length)
+            // console.log('[CSQAQ] 指数列表获取成功,数量:', indexListData.value.length)
           }
         }
 
@@ -277,20 +277,14 @@ export function useCSQAQMarketIndex() {
         lastUpdate.value = new Date()
 
         // 手动更新图表（使用 nextTick 确保 DOM 已更新）
+        // 注意：不在这里初始化图表，由 watch(marketIndexData) 负责初始化
+        // 这里只负责在图表已存在的情况下更新数据
         nextTick(() => {
-          if (chartData.value && chartData.value.values.length > 0) {
-            // 如果图表实例不存在，先初始化
-            if (!chartInstance && chartContainer.value) {
-              console.log('[CSQAQ] 图表实例不存在，先初始化图表')
-              initChart()
-            }
-            // 更新图表
-            if (chartInstance) {
-              console.log('[CSQAQ] 手动触发图表更新')
-              updateChart()
-            } else {
-              console.warn('[CSQAQ] 图表实例仍然不存在，无法更新')
-            }
+          if (chartInstance && chartData.value && chartData.value.values.length > 0) {
+            // console.log('[CSQAQ] 手动触发图表更新')
+            updateChart()
+          } else {
+            // console.log('[CSQAQ] 等待 watch 监听器初始化图表')
           }
         })
 
@@ -311,17 +305,21 @@ export function useCSQAQMarketIndex() {
   // 监听 marketIndexData 变化,确保容器渲染后初始化图表
   watch(marketIndexData, (newData) => {
     if (newData) {
-      console.log('[CSQAQ] marketIndexData 已加载,准备初始化图表')
+      // console.log('[CSQAQ] marketIndexData 已加载,准备初始化图表')
       nextTick(() => {
-        console.log('[CSQAQ] DOM 更新后,chartContainer.value:', chartContainer.value)
+        // console.log('[CSQAQ] DOM 更新后,chartContainer.value:', !!chartContainer.value)
         if (chartContainer.value && !chartInstance) {
-          console.log('[CSQAQ] 容器已就绪,初始化图表')
-          initChart()
-          // 如果此时 chartData 已有数据,立即更新图表
-          if (chartData.value && chartData.value.values && chartData.value.values.length > 0) {
-            console.log('[CSQAQ] 数据已存在,立即更新图表')
+          // console.log('[CSQAQ] 容器已就绪,初始化图表')
+          const initSuccess = initChart()
+          // 如果初始化成功且数据已存在,立即更新图表
+          if (initSuccess && chartData.value && chartData.value.values && chartData.value.values.length > 0) {
+            // console.log('[CSQAQ] 数据已存在,立即更新图表')
             updateChart()
           }
+        } else if (!chartContainer.value) {
+          // console.warn('[CSQAQ] 容器尚未渲染到 DOM')
+        } else if (chartInstance) {
+          // console.log('[CSQAQ] 图表实例已存在，跳过初始化')
         }
       })
     }
@@ -329,33 +327,37 @@ export function useCSQAQMarketIndex() {
 
   // 监听 chartData 变化,更新图表数据
   watch(chartData, (newData) => {
-    console.log('[CSQAQ] chartData 变化,数据点:', newData?.values?.length)
+    // console.log('[CSQAQ] chartData 变化,数据点:', newData?.values?.length)
     if (!newData || !newData.values || newData.values.length === 0) {
-      console.log('[CSQAQ] 数据为空,跳过更新')
+      // console.log('[CSQAQ] 数据为空,跳过更新')
       return
     }
 
     nextTick(() => {
-      // 如果图表还没初始化,先初始化
+      // 如果图表还没初始化,先检查容器并初始化
       if (!chartInstance) {
-        console.log('[CSQAQ] 图表未初始化,先检查容器')
+        // console.log('[CSQAQ] 图表未初始化,先检查容器')
         if (chartContainer.value) {
-          console.log('[CSQAQ] 容器存在,初始化图表')
-          initChart()
+          // console.log('[CSQAQ] 容器存在,尝试初始化图表')
+          const initSuccess = initChart()
+          if (!initSuccess) {
+            // console.warn('[CSQAQ] 图表初始化失败，无法更新数据')
+            return
+          }
         } else {
-          console.log('[CSQAQ] 容器不存在,等待 marketIndexData 加载')
+          // console.log('[CSQAQ] 容器不存在,等待 marketIndexData 加载触发容器渲染')
           return
         }
       }
       // 更新图表数据
-      console.log('[CSQAQ] 准备更新图表数据')
+      // console.log('[CSQAQ] 准备更新图表数据')
       updateChart()
     })
   })
 
   // 组件挂载时
   onMounted(() => {
-    console.log('[CSQAQ] 组件已挂载')
+    // console.log('[CSQAQ] 组件已挂载')
     // 自动获取数据(不在这里初始化图表,等待数据加载后再初始化)
     fetchMarketIndexData()
   })
