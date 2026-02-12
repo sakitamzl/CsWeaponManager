@@ -39,53 +39,30 @@
 
     <!-- 所有指数列表 -->
     <div v-if="indexListData && indexListData.length > 0" class="index-list-section">
-      <div class="index-list-header">
-        <h4>市场指数列表</h4>
-      </div>
-      <div class="index-list-grid">
+      <div class="index-list-scrollable">
         <div
           v-for="index in indexListData"
           :key="index.id"
-          class="index-item-card"
+          class="index-item-row"
         >
-          <div class="index-item-header">
+          <div class="index-item-left">
             <img v-if="index.img" :src="index.img" :alt="index.name" class="index-icon" />
             <span class="index-name">{{ index.name }}</span>
           </div>
-          <div class="index-item-content">
-            <div class="index-value-row">
-              <span class="index-current-value">{{ index.market_index }}</span>
-              <span
-                class="index-change-value"
-                :class="index.chg_rate >= 0 ? 'positive' : 'negative'"
-              >
-                {{ index.chg_rate >= 0 ? '+' : '' }}{{ index.chg_rate }}%
-              </span>
-            </div>
-            <div class="index-detail-row">
-              <span class="index-detail-label">涨跌:</span>
-              <span
-                class="index-detail-value"
-                :class="index.chg_num >= 0 ? 'positive' : 'negative'"
-              >
-                {{ index.chg_num >= 0 ? '+' : '' }}{{ index.chg_num }}
-              </span>
-            </div>
-            <div class="index-detail-row">
-              <span class="index-detail-label">开盘:</span>
-              <span class="index-detail-value">{{ index.open }}</span>
-              <span class="index-detail-label">收盘:</span>
-              <span class="index-detail-value">{{ index.close }}</span>
-            </div>
-            <div class="index-detail-row">
-              <span class="index-detail-label">最高:</span>
-              <span class="index-detail-value">{{ index.high }}</span>
-              <span class="index-detail-label">最低:</span>
-              <span class="index-detail-value">{{ index.low }}</span>
-            </div>
-            <div class="index-update-time">
-              更新: {{ index.updated_at ? new Date(index.updated_at).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'N/A' }}
-            </div>
+          <div class="index-item-right">
+            <span class="index-current-value">{{ index.market_index }}</span>
+            <span
+              class="index-change-value"
+              :class="index.chg_rate >= 0 ? 'positive' : 'negative'"
+            >
+              {{ index.chg_rate >= 0 ? '+' : '' }}{{ index.chg_rate }}%
+            </span>
+            <span
+              class="index-change-num"
+              :class="index.chg_num >= 0 ? 'positive' : 'negative'"
+            >
+              {{ index.chg_num >= 0 ? '+' : '' }}{{ index.chg_num }}
+            </span>
           </div>
         </div>
       </div>

@@ -308,14 +308,6 @@ export function useCSQAQMarketIndex() {
     }
   }
 
-  /**
-   * 自动刷新数据（每5分钟）
-   */
-  const startAutoRefresh = () => {
-    refreshTimer = setInterval(() => {
-      fetchMarketIndexData()
-    }, 5 * 60 * 1000) // 5分钟
-  }
 
   // 监听 marketIndexData 变化,确保容器渲染后初始化图表
   watch(marketIndexData, (newData) => {
@@ -367,16 +359,10 @@ export function useCSQAQMarketIndex() {
     console.log('[CSQAQ] 组件已挂载')
     // 自动获取数据(不在这里初始化图表,等待数据加载后再初始化)
     fetchMarketIndexData()
-    startAutoRefresh()
   })
 
   // 组件卸载时
   onUnmounted(() => {
-    // 清除定时器
-    if (refreshTimer) {
-      clearInterval(refreshTimer)
-    }
-
     // 移除窗口大小监听
     window.removeEventListener('resize', handleResize)
 
