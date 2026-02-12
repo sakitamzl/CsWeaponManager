@@ -2,7 +2,7 @@
 echo Starting PyInstaller packaging process...
 
 :: Set version number (modify this for each release)
-set VERSION=v2.3.6
+set VERSION=v2.3.7
 
 :: Sync version to package.json
 echo Syncing version to package.json...
@@ -63,13 +63,14 @@ if %errorlevel% neq 0 (
 )
 cd ..
 
-:: Package Spider.py
+:: Package Spider.py (with Playwright browser bundling)
 echo.
-echo [2/3] Packaging Spider.exe...
+echo [2/3] Packaging Spider.exe with Playwright support...
 cd Spider
-pyinstaller --onefile --clean --noconfirm Spider.py --distpath "..\Releases\%VERSION%"
+pyinstaller --clean --noconfirm Spider.spec --distpath "..\Releases\%VERSION%"
 if %errorlevel% neq 0 (
     echo Error: Failed to package Spider.py
+    echo Note: If Playwright browsers are missing, run: playwright install chromium
     cd ..
     pause
     exit /b 1
@@ -177,7 +178,7 @@ echo Cleaning up build artifacts...
 if exist "backEnd\build" rmdir /s /q "backEnd\build"
 if exist "backEnd\*.spec" del /q "backEnd\*.spec"
 if exist "Spider\build" rmdir /s /q "Spider\build"
-if exist "Spider\*.spec" del /q "Spider\*.spec"
+echo Note: Spider\Spider.spec is kept in version control for Playwright bundling
 if exist "WebServer\build" rmdir /s /q "WebServer\build"
 if exist "WebServer\*.spec" del /q "WebServer\*.spec"
 

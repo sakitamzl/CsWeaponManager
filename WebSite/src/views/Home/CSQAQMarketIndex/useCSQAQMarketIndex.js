@@ -16,7 +16,6 @@ export function useCSQAQMarketIndex() {
   // 图表相关
   const chartContainer = ref(null)
   let chartInstance = null
-  let refreshTimer = null
 
   /**
    * 初始化图表(小型迷你图表)
