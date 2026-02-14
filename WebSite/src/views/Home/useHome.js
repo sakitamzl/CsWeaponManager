@@ -2,6 +2,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import axios from 'axios'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
 import * as echarts from 'echarts'
+import { getDeviceType, applyDeviceClass, watchDeviceType } from '@/utils/deviceDetect.js'
 
 
 export function useHome() {
@@ -739,17 +740,17 @@ export function useHome() {
         }
       },
       legend: {
-        show: window.innerWidth > 1366,
+        show: window.innerWidth > 1024,
         orient: 'vertical',
-        right: '5%',
+        right: '3%',
         top: 'center',
         textStyle: {
           color: '#fff',
-          fontSize: 12
+          fontSize: window.innerWidth > 1366 ? 12 : 11
         },
-        itemWidth: 25,
-        itemHeight: 14,
-        itemGap: 10,
+        itemWidth: window.innerWidth > 1366 ? 25 : 22,
+        itemHeight: window.innerWidth > 1366 ? 14 : 12,
+        itemGap: window.innerWidth > 1366 ? 10 : 8,
         formatter: (name) => {
           const item = chartData.find(d => d.name === name)
           if (item) {
@@ -764,8 +765,8 @@ export function useHome() {
         {
           name: isValueMode ? '价格区间分布' : '数量区间分布',
           type: 'pie',
-          radius: window.innerWidth > 1366 ? ['40%', '70%'] : ['35%', '65%'],
-          center: window.innerWidth > 1366 ? ['40%', '50%'] : ['50%', '50%'],
+          radius: window.innerWidth > 1366 ? ['40%', '70%'] : window.innerWidth > 1024 ? ['38%', '68%'] : ['35%', '65%'],
+          center: window.innerWidth > 1366 ? ['40%', '50%'] : window.innerWidth > 1024 ? ['42%', '50%'] : ['50%', '50%'],
           avoidLabelOverlap: false,
           itemStyle: {
             borderRadius: 10,
@@ -898,17 +899,17 @@ export function useHome() {
         }
       },
       legend: {
-        show: window.innerWidth > 1366,
+        show: window.innerWidth > 1024,
         orient: 'vertical',
-        right: '5%',
+        right: '3%',
         top: 'center',
         textStyle: {
           color: '#fff',
-          fontSize: 12
+          fontSize: window.innerWidth > 1366 ? 12 : 11
         },
-        itemWidth: 25,
-        itemHeight: 14,
-        itemGap: 10,
+        itemWidth: window.innerWidth > 1366 ? 25 : 22,
+        itemHeight: window.innerWidth > 1366 ? 14 : 12,
+        itemGap: window.innerWidth > 1366 ? 10 : 8,
         formatter: (name) => {
           const item = chartData.find(d => d.name === name)
           if (item) {
@@ -923,8 +924,8 @@ export function useHome() {
         {
           name: isValueMode ? '价格区间分布' : '数量区间分布',
           type: 'pie',
-          radius: window.innerWidth > 1366 ? ['40%', '70%'] : ['35%', '65%'],
-          center: window.innerWidth > 1366 ? ['40%', '50%'] : ['50%', '50%'],
+          radius: window.innerWidth > 1366 ? ['40%', '70%'] : window.innerWidth > 1024 ? ['38%', '68%'] : ['35%', '65%'],
+          center: window.innerWidth > 1366 ? ['40%', '50%'] : window.innerWidth > 1024 ? ['42%', '50%'] : ['50%', '50%'],
           avoidLabelOverlap: false,
           itemStyle: {
             borderRadius: 10,
@@ -1057,17 +1058,17 @@ export function useHome() {
         }
       },
       legend: {
-        show: window.innerWidth > 1366,
+        show: window.innerWidth > 1024,
         orient: 'vertical',
-        right: '5%',
+        right: '3%',
         top: 'center',
         textStyle: {
           color: '#fff',
-          fontSize: 12
+          fontSize: window.innerWidth > 1366 ? 12 : 11
         },
-        itemWidth: 25,
-        itemHeight: 14,
-        itemGap: 10,
+        itemWidth: window.innerWidth > 1366 ? 25 : 22,
+        itemHeight: window.innerWidth > 1366 ? 14 : 12,
+        itemGap: window.innerWidth > 1366 ? 10 : 8,
         formatter: (name) => {
           const item = chartData.find(d => d.name === name)
           if (item) {
@@ -1082,8 +1083,8 @@ export function useHome() {
         {
           name: isValueMode ? '价格区间分布' : '数量区间分布',
           type: 'pie',
-          radius: window.innerWidth > 1366 ? ['40%', '70%'] : ['35%', '65%'],
-          center: window.innerWidth > 1366 ? ['40%', '50%'] : ['50%', '50%'],
+          radius: window.innerWidth > 1366 ? ['40%', '70%'] : window.innerWidth > 1024 ? ['38%', '68%'] : ['35%', '65%'],
+          center: window.innerWidth > 1366 ? ['40%', '50%'] : window.innerWidth > 1024 ? ['42%', '50%'] : ['50%', '50%'],
           avoidLabelOverlap: false,
           itemStyle: {
             borderRadius: 10,
@@ -1216,17 +1217,17 @@ export function useHome() {
         }
       },
       legend: {
-        show: window.innerWidth > 1366,
+        show: window.innerWidth > 1024,
         orient: 'vertical',
-        right: '5%',
+        right: '3%',
         top: 'center',
         textStyle: {
           color: '#fff',
-          fontSize: 12
+          fontSize: window.innerWidth > 1366 ? 12 : 11
         },
-        itemWidth: 25,
-        itemHeight: 14,
-        itemGap: 10,
+        itemWidth: window.innerWidth > 1366 ? 25 : 22,
+        itemHeight: window.innerWidth > 1366 ? 14 : 12,
+        itemGap: window.innerWidth > 1366 ? 10 : 8,
         formatter: (name) => {
           const item = chartData.find(d => d.name === name)
           if (item) {
@@ -1241,8 +1242,8 @@ export function useHome() {
         {
           name: isValueMode ? '价格区间分布' : '数量区间分布',
           type: 'pie',
-          radius: window.innerWidth > 1366 ? ['40%', '70%'] : ['35%', '65%'],
-          center: window.innerWidth > 1366 ? ['40%', '50%'] : ['50%', '50%'],
+          radius: window.innerWidth > 1366 ? ['40%', '70%'] : window.innerWidth > 1024 ? ['38%', '68%'] : ['35%', '65%'],
+          center: window.innerWidth > 1366 ? ['40%', '50%'] : window.innerWidth > 1024 ? ['42%', '50%'] : ['50%', '50%'],
           avoidLabelOverlap: false,
           itemStyle: {
             borderRadius: 10,
@@ -1434,7 +1435,24 @@ export function useHome() {
     }
   }
 
+  // 设备类型监听取消函数
+  let unwatchDevice = null
+
   onMounted(() => {
+    // 应用设备类型类到 body
+    const deviceType = applyDeviceClass()
+    console.log('当前设备类型:', deviceType)
+
+    // 监听设备类型变化
+    unwatchDevice = watchDeviceType((newDeviceType) => {
+      console.log('设备类型已变更:', newDeviceType)
+      // 设备类型变化时重新加载图表
+      if (inventoryChart) inventoryChart.resize()
+      if (componentChart) componentChart.resize()
+      if (buyChart) buyChart.resize()
+      if (sellChart) sellChart.resize()
+    })
+
     loadAllStats()
     // 监听窗口大小变化
     window.addEventListener('resize', handleResize)
@@ -1468,6 +1486,11 @@ export function useHome() {
   onUnmounted(() => {
     // 移除 window resize 监听
     window.removeEventListener('resize', handleResize)
+
+    // 取消设备类型监听
+    if (unwatchDevice) {
+      unwatchDevice()
+    }
 
     // 断开 ResizeObserver
     if (resizeObserver) {

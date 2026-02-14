@@ -41,6 +41,10 @@
     <div class="chart-section">
       <!-- 图表容器 -->
       <div class="chart-container">
+        <!-- 市场指数卡片 - 在 iPad 上优先显示 -->
+        <SteamDTMarketIndex class="market-index-card" />
+        <CSQAQMarketIndex class="market-index-card" />
+
         <div class="card chart-card">
           <div class="chart-header">
             <h3>库存饰品价格</h3>
@@ -115,8 +119,6 @@
             </div>
           </div>
         </div>
-        <!-- SteamDT 大盘指数组件 -->
-        <SteamDTMarketIndex />
         <div class="card chart-card">
           <div class="chart-header">
             <h3>购入饰品价格</h3>
@@ -191,8 +193,6 @@
             </div>
           </div>
         </div>
-        <!-- CSQAQ 市场指数组件 -->
-        <CSQAQMarketIndex />
       </div>
     </div>
 
