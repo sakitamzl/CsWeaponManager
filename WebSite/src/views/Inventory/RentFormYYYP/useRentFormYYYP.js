@@ -5,22 +5,17 @@ import { apiUrls } from '@/config/api'
 export function useRentFormYYYP(props, { emit }) {
   const autoPricingLoading = ref(false)
 
-  // 赔付文本（富文本HTML）
-  const compensationRichText = ref('')
-
-  // 全局表单数据（交易方式/租期/增值服务）
+  // 全局表单数据（租期）
   const formData = reactive({
-    tradeMode: 1, // 默认租赁
     rentDays: 8, // 默认天数
-    customDays: null,
-    services: {
-      zeroCooldown: false, // 0CD出租
-      rentActivity: false  // 租送活动
-    }
+    customDays: null
   })
 
   // 每个饰品独立的价格表单：短租/长租/押金
   const itemFormMap = reactive({})
+
+  // 每个饰品的赔付方式代码（key为assetid, value为compensationTypeCode）
+  const itemsCompensation = reactive({})
 
   // 从 initData 解析交易方式
   const tradeMethods = computed(() => {
@@ -61,6 +56,46 @@ export function useRentFormYYYP(props, { emit }) {
     }
   })
 
+  // 获取指定饰品的扩展信息（赔付方式列表）
+  const getItemExtendInfo = (assetId) => {
+    return props.initData?.inventoryExtendInfo?.normalLeaseCompensationMap?.[assetId]
+  }
+
+  // 获取指定饰品当前的赔付方式详情（根据 compensationTypeCode）
+  const getItemCompensationMode = (assetId) => {
+    const extendInfo = getItemExtendInfo(assetId)
+    if (!extendInfo) return null
+
+    const selectedCode = itemsCompensation[assetId] || extendInfo.compensationTypeCode
+    // compensationModeMap 的 key 是字符串，需要转换
+    return extendInfo.compensationModeMap?.[String(selectedCode)]
+  }
+
+  // 获取指定饰品的0CD配置
+  const getItemZeroCDConfig = (assetId) => {
+    return props.initData?.inventoryExtendInfo?.zeroCDRentConfigMap?.[assetId]
+  }
+
+  // 检测指定饰品的赔付文本中是否有删除线（表示有折扣活动）
+  const itemHasStrikethrough = (assetId) => {
+    const compensationMode = getItemCompensationMode(assetId)
+    if (!compensationMode?.depositCompensationRichContent) {
+      return false
+    }
+    // 检查HTML中是否包含 text-decoration: line-through
+    return compensationMode.depositCompensationRichContent.includes('text-decoration: line-through')
+  }
+
+  // 判断指定饰品是否支持0CD（需要同时满足：后端支持 + 有折扣活动）
+  const canItemEnableZeroCD = (assetId) => {
+    const config = getItemZeroCDConfig(assetId)
+    const hasDiscount = itemHasStrikethrough(assetId)
+
+    // zeroCDRentSwitch === 1 表示后端支持0CD
+    // 同时需要有折扣活动（赔付文本中有删除线）
+    return config?.zeroCDRentSwitch === 1 && hasDiscount
+  }
+
   // 最小/最大租赁天数
   const minRentDays = computed(() => {
     return firstItemConfig.value?.coefficient?.minRentDays || 8
@@ -89,20 +124,6 @@ export function useRentFormYYYP(props, { emit }) {
   const vipServiceFeeRate = computed(() => {
     const vipRate = firstItemConfig.value?.depositProtect?.vipRate
     return vipRate ? (vipRate * 100).toFixed(0) : null
-  })
-
-  // 检测赔付文本中是否有删除线（表示有折扣活动）
-  const hasStrikethrough = computed(() => {
-    if (!compensationRichText.value) {
-      return false
-    }
-    // 检查HTML中是否包含 text-decoration: line-through
-    return compensationRichText.value.includes('text-decoration: line-through')
-  })
-
-  // 是否可以启用0CD出租（需要同时满足：后端支持 + 有折扣活动）
-  const canEnableZeroCD = computed(() => {
-    return hasStrikethrough.value && firstItemConfig.value?.enableZeroCD === true
   })
 
   // 是否显示长租价格输入框（租期>21天时显示）
@@ -141,85 +162,44 @@ export function useRentFormYYYP(props, { emit }) {
       formData.rentDays = rentDaysOptions.value[0]
     }
 
-    // 初始化每个饰品的价格表单，自动填充原有数据
+    // 初始化每个饰品的价格表单、赔付方式和0CD开关
     if (props.items && props.items.length > 0) {
       props.items.forEach((item) => {
+        // 初始化赔付方式选择（使用API返回的默认值）
+        const extendInfo = getItemExtendInfo(item.assetid)
+        if (extendInfo) {
+          // 使用 compensationTypeCode 作为默认选中的赔付方式
+          itemsCompensation[item.assetid] = extendInfo.compensationTypeCode || 7
+        } else {
+          // 如果没有扩展信息，默认使用押金赔付（code=7）
+          itemsCompensation[item.assetid] = 7
+        }
+
+        // 检测是否支持0CD（后端支持 + 有折扣活动）
+        const canEnableZeroCD = canItemEnableZeroCD(item.assetid)
+
         // 总是重新初始化，确保使用最新的 props 数据
         // 自动填充当前的租赁价格数据
         itemFormMap[item.assetid] = reactive({
           shortRentPrice: item.currentShortRentPrice || '',
           longRentPrice: item.currentLongRentPrice || '',
-          depositPrice: item.currentDepositPrice || item.weapon_classID?.yyyp_Price || ''
+          depositPrice: item.currentDepositPrice || item.weapon_classID?.yyyp_Price || '',
+          tradeMode: 1,  // 每个饰品独立的交易方式（1=租赁, 2=可租可售）
+          zeroCooldown: canEnableZeroCD,  // 如果支持0CD，默认开启
+          rentActivity: false  // 每个饰品独立的租送活动开关
         })
-      })
-    }
-  }
 
-  // 获取赔付文本
-  const fetchCompensationText = async () => {
-    console.log('[DEBUG] fetchCompensationText called')
-    console.log('[DEBUG] props.items:', props.items)
-    console.log('[DEBUG] props.steamId:', props.steamId)
-
-    if (!props.items || props.items.length === 0) {
-      console.log('[DEBUG] No items, returning early')
-      return
-    }
-
-    try {
-      // 使用第一个饰品的数据
-      const firstItem = props.items[0]
-      console.log('[DEBUG] firstItem:', firstItem)
-
-      // 构建itemInfo
-      const itemInfo = {
-        abrade: String(firstItem.weapon_float || firstItem.float || '0'),
-        leaseType: formData.tradeMode === 1 ? 0 : 1,  // 0=租赁, 1=可租可售
-        marketHashName: firstItem.steam_hash_name || firstItem.name,
-        marketPrice: String(firstItem.yyyp_Price || firstItem.weapon_classID?.yyyp_Price || '0'),
-        pageSourceType: 10,
-        paintSeed: parseInt(firstItem.paintseed || 0),
-        steamAssetId: parseInt(firstItem.assetid || 0),
-        supportEasyCompensation: false,
-        templateId: parseInt(firstItem.weapon_classID?.yyyp_id || 0)
-      }
-      console.log('[DEBUG] itemInfo:', itemInfo)
-
-      const requestBody = {
-        steamId: props.steamId || '',
-        itemInfo: itemInfo
-      }
-      console.log('[DEBUG] Request body:', requestBody)
-
-      const apiUrl = `${window.location.origin.replace('9003', '9005')}/youping898SpiderV1/getCompensationText`
-      console.log('[DEBUG] API URL:', apiUrl)
-
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestBody)
-      })
-
-      console.log('[DEBUG] Response status:', response.status)
-      const result = await response.json()
-      console.log('[DEBUG] Response result:', result)
-
-      if (result.success && result.data) {
-        // 使用富文本HTML
-        const richContent = result.data.compensationRichContent
-        console.log('[DEBUG] Rich content:', richContent)
-        if (richContent) {
-          compensationRichText.value = richContent
-          console.log('[DEBUG] Compensation text set successfully')
+        // 如果该赔付方式有固定押金，自动填充
+        const compensationMode = getItemCompensationMode(item.assetid)
+        if (compensationMode && compensationMode.depositAmount && !itemFormMap[item.assetid].depositPrice) {
+          itemFormMap[item.assetid].depositPrice = compensationMode.depositAmount
         }
-      } else {
-        console.log('[DEBUG] Response not successful or no data')
-      }
-    } catch (error) {
-      console.error('[DEBUG] Error in fetchCompensationText:', error)
-      // 失败时保留默认值
+
+        // 调试日志
+        if (canEnableZeroCD) {
+          console.log(`[0CD] 饰品 ${item.assetid} 支持0CD，默认开启`)
+        }
+      })
     }
   }
 
@@ -234,32 +214,11 @@ export function useRentFormYYYP(props, { emit }) {
 
       initForms()
 
-      // 直接从 initData 中获取赔付文本（已在 handleRentPlatformSelect 中预加载）
-      if (props.initData?.compensationRichContent) {
-        compensationRichText.value = props.initData.compensationRichContent
-        console.log('[DEBUG] 从 initData 加载赔付文本:', props.initData.compensationRichContent)
-
-        // 检测是否有删除线，如果有则自动开启0CD
-        if (hasStrikethrough.value && firstItemConfig.value?.enableZeroCD === true) {
-          formData.services.zeroCooldown = true
-          console.log('[DEBUG] 检测到折扣活动，自动开启0CD')
-        } else {
-          formData.services.zeroCooldown = false
-          console.log('[DEBUG] 无折扣活动或不支持0CD，禁用0CD')
-        }
-      } else {
-        // 如果 initData 中没有，则尝试请求API（降级方案）
-        console.log('[DEBUG] initData 中没有赔付文本，尝试请求API')
-        fetchCompensationText()
-      }
+      // 不再需要全局赔付文本，每个饰品都有自己的赔付说明
+      // 赔付文本从 inventoryExtendInfo.normalLeaseCompensationMap[assetId] 中获取
     },
     { immediate: true, deep: true }
   )
-
-  // 切换服务选项
-  const toggleService = (serviceName) => {
-    formData.services[serviceName] = !formData.services[serviceName]
-  }
 
   // 处理图片加载错误
   const handleImageError = (e) => {
@@ -288,18 +247,24 @@ export function useRentFormYYYP(props, { emit }) {
 
     // 准备提交数据（全局配置 + 每个饰品的独立价格）
     const submitData = {
-      tradeMode: formData.tradeMode,
       rentDays: formData.rentDays === 'custom' ? formData.customDays : formData.rentDays,
-      services: formData.services,
-      items: props.items.map((item) => ({
-        assetid: item.assetid,
-        steam_hash_name: item.steam_hash_name,
-        shortRentPrice: parseFloat(itemFormMap[item.assetid].shortRentPrice),
-        longRentPrice: itemFormMap[item.assetid].longRentPrice
-          ? parseFloat(itemFormMap[item.assetid].longRentPrice)
-          : null,
-        depositPrice: parseFloat(itemFormMap[item.assetid].depositPrice)
-      }))
+      items: props.items.map((item) => {
+        const itemForm = itemFormMap[item.assetid]
+        const zeroCDConfig = getItemZeroCDConfig(item.assetid)
+
+        return {
+          assetid: item.assetid,
+          steam_hash_name: item.steam_hash_name,
+          shortRentPrice: parseFloat(itemForm.shortRentPrice),
+          longRentPrice: itemForm.longRentPrice ? parseFloat(itemForm.longRentPrice) : null,
+          depositPrice: parseFloat(itemForm.depositPrice),
+          tradeMode: itemForm.tradeMode,  // 每个饰品独立的交易方式
+          zeroCooldown: itemForm.zeroCooldown,  // 是否开启0CD
+          rentActivity: itemForm.rentActivity,  // 租送活动（固定false）
+          // 从0CD配置中读取marketDynamicPricingMinCoefficient
+          marketDynamicPricingMinCoefficient: zeroCDConfig?.marketDynamicPricingMinCoefficient || '95'
+        }
+      })
     }
 
     console.log('[DEBUG] handleSubmit - 提交数据:', submitData)
@@ -538,6 +503,7 @@ export function useRentFormYYYP(props, { emit }) {
   return {
     formData,
     itemFormMap,
+    itemsCompensation,
     tradeMethods,
     rentDaysOptions,
     minRentDays,
@@ -546,17 +512,17 @@ export function useRentFormYYYP(props, { emit }) {
     depositTip,
     serviceFeeRate,
     vipServiceFeeRate,
-    compensationRichText,
-    hasStrikethrough,
-    canEnableZeroCD,
     showLongRentPrice,
     rentActivities,
     rentActivityDesc,
-    toggleService,
     handleImageError,
     handleCancel,
     handleSubmit,
     handleAutoPricing,
-    autoPricingLoading
+    autoPricingLoading,
+    // 赔付方式相关
+    getItemCompensationMode,
+    // 0CD相关
+    canItemEnableZeroCD
   }
 }

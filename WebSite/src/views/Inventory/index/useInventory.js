@@ -1438,27 +1438,20 @@ export function useInventory() {
       })
 
       try {
-        // 并发调用 rentInit 和 getCompensationText API
-        const firstItem = selectedItems.value[0]
+        // 构建所有选中饰品的列表信息（用于获取扩展信息）
+        const itemsList = selectedItems.value.map(item => ({
+          abrade: String(item.weapon_float || '0'),
+          commodityTemplateId: parseInt(item.weapon_classID?.yyyp_id || 0),
+          marketHashName: item.steam_hash_name || item.item_name,
+          paintSeed: String(item.paintseed || '0'),
+          steamAssetId: parseInt(item.assetid || 0)
+        }))
 
-        // 构建赔付文本请求的 itemInfo
-        const itemInfo = {
-          abrade: String(firstItem.weapon_float || '0'),
-          leaseType: 0,  // 默认租赁模式
-          marketHashName: firstItem.steam_hash_name || firstItem.item_name,
-          marketPrice: String(firstItem.yyyp_Price || firstItem.weapon_classID?.yyyp_Price || '0'),
-          pageSourceType: 10,
-          paintSeed: parseInt(firstItem.paintseed || 0),
-          steamAssetId: parseInt(firstItem.assetid || 0),
-          supportEasyCompensation: false,
-          templateId: parseInt(firstItem.weapon_classID?.yyyp_id || 0)
-        }
+        console.log('[出租] 开始并发请求 rentInit 和 getInventoryExtendInfo')
+        console.log('[出租] 选中饰品数量:', selectedItems.value.length)
 
-        console.log('[出租] 开始并发请求 rentInit 和 getCompensationText')
-        console.log('[出租] itemInfo:', itemInfo)
-
-        // 并发请求
-        const [initResponse, compensationResponse] = await Promise.all([
+        // 并发请求 - 使用 Promise.allSettled 确保即使扩展信息获取失败也能打开出租表单
+        const [initResult, extendInfoResult] = await Promise.allSettled([
           axios.post(
             `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/rentInit`,
             {
@@ -1467,24 +1460,37 @@ export function useInventory() {
             }
           ),
           axios.post(
-            `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getCompensationText`,
+            `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getInventoryExtendInfo`,
             {
               steamId: selectedSteamId.value,
-              itemInfo: itemInfo
+              itemsList: itemsList
             }
           )
         ])
+
+        // 检查 rentInit 结果（必须成功）
+        if (initResult.status === 'rejected') {
+          throw initResult.reason
+        }
+
+        const initResponse = initResult.value
 
         if (initResponse.data.success) {
           // 保存 init 数据
           rentInitData.value = initResponse.data.data
 
-          // 保存赔付文本到 initData 中，方便 RentFormYYYP 使用
-          if (compensationResponse.data.success && compensationResponse.data.data) {
-            rentInitData.value.compensationRichContent = compensationResponse.data.data.compensationRichContent
-            console.log('[出租] 赔付文本获取成功:', compensationResponse.data.data.compensationRichContent)
+          // 保存每个饰品的扩展信息（包含赔付方式列表）到 initData 中
+          if (extendInfoResult.status === 'fulfilled') {
+            const extendInfoResponse = extendInfoResult.value
+            if (extendInfoResponse.data.success && extendInfoResponse.data.data) {
+              // 将扩展信息附加到 rentInitData
+              rentInitData.value.inventoryExtendInfo = extendInfoResponse.data.data
+              console.log('[出租] 库存扩展信息获取成功，饰品数量:', Object.keys(extendInfoResponse.data.data.normalLeaseCompensationMap || {}).length)
+            } else {
+              console.warn('[出租] 库存扩展信息获取失败:', extendInfoResponse.data.message)
+            }
           } else {
-            console.warn('[出租] 赔付文本获取失败:', compensationResponse.data.message)
+            console.warn('[出租] 库存扩展信息请求失败（不影响出租流程）:', extendInfoResult.reason?.message)
           }
 
           // 打开悠悠有品出租表单
@@ -1492,12 +1498,52 @@ export function useInventory() {
 
           console.log('[出租] 获取配置成功')
         } else {
-          ElMessage.error(initResponse.data.message || '获取出租配置失败')
-          console.error('[出租] 获取配置失败:', initResponse.data.message)
+          // 显示详细的错误信息
+          const errorMsg = initResponse.data.message || '获取出租配置失败'
+          ElMessage.error({
+            message: errorMsg,
+            duration: 5000,
+            showClose: true
+          })
+          console.error('[出租] 获取配置失败:', errorMsg)
         }
       } catch (error) {
-        console.error('获取出租配置失败:', error)
-        ElMessage.error('获取出租配置失败，请重试')
+        console.error('[出租] 获取出租配置异常:', error)
+
+        // 提取详细错误信息
+        let errorMsg = '获取出租配置失败，请重试'
+
+        if (error.response) {
+          // 服务器返回了错误响应
+          const status = error.response.status
+          const data = error.response.data
+
+          if (data && data.message) {
+            errorMsg = data.message
+          } else if (status === 400) {
+            errorMsg = '请求参数错误，请检查所选饰品是否有效'
+          } else if (status === 401) {
+            errorMsg = 'Token已过期或无效，请前往【设置 > 数据源配置】重新获取悠悠有品配置'
+          } else if (status === 500) {
+            errorMsg = '服务器错误，请查看日志获取详细信息'
+          }
+
+          console.error(`[出租] 错误状态码: ${status}, 错误数据:`, data)
+        } else if (error.request) {
+          // 请求已发送但没有收到响应
+          errorMsg = '无法连接到Spider服务，请确认Spider服务是否正常运行'
+          console.error('[出租] 请求未收到响应:', error.request)
+        } else {
+          // 其他错误
+          errorMsg = `请求错误: ${error.message}`
+          console.error('[出租] 请求设置错误:', error.message)
+        }
+
+        ElMessage.error({
+          message: errorMsg,
+          duration: 5000,
+          showClose: true
+        })
       } finally {
         loading.close()
       }
@@ -1545,9 +1591,10 @@ export function useInventory() {
               shortRentPrice: item.shortRentPrice,
               depositPrice: item.depositPrice,
               rentDays: formData.rentDays,
-              tradeMode: formData.tradeMode,
-              zeroCooldown: formData.services.zeroCooldown,
-              rentActivity: formData.services.rentActivity,
+              tradeMode: item.tradeMode || 1,  // 每个饰品独立的交易方式，默认租赁
+              zeroCooldown: item.zeroCooldown || false,  // 每个饰品独立的0CD开关
+              rentActivity: item.rentActivity || false,  // 每个饰品独立的租送活动
+              marketDynamicPricingMinCoefficient: item.marketDynamicPricingMinCoefficient || '95',  // 0CD动态定价系数
               price: item.price || null,
               remark: ''
             }

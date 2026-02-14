@@ -3,69 +3,6 @@
     <!-- 头部标题已简化，去掉“X个饰品上架”提示 -->
 
     <div class="form-content">
-      <!-- 交易方式 + 押金赔付 + 增值服务 -->
-      <div class="form-section">
-        <div class="trade-and-services-row">
-          <!-- 交易方式 -->
-          <div class="trade-mode-block trade-card">
-            <div class="trade-mode-buttons">
-              <div
-                v-for="method in tradeMethods"
-                :key="method.id"
-                class="trade-mode-btn"
-                :class="{ active: formData.tradeMode === method.type }"
-                @click="formData.tradeMode = method.type"
-              >
-                <span class="mode-label">{{ method.name }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 押金赔付 -->
-          <div class="trade-card deposit-card">
-            <div class="compensation-icon">
-              <span class="icon-badge">V</span>
-            </div>
-            <div class="compensation-content">
-              <div class="compensation-text" v-html="compensationRichText"></div>
-            </div>
-          </div>
-
-          <!-- 增值服务 -->
-          <div class="trade-card services-card">
-            <div class="value-added-inline">
-              <!-- 0CD出租 -->
-              <div
-                class="service-item-inline service-switch-item"
-                :class="{ disabled: !canEnableZeroCD }"
-              >
-                <span class="service-label">
-                  <span class="service-badge zero-cd">0CD</span>
-                </span>
-                <el-switch
-                  v-model="formData.services.zeroCooldown"
-                  size="large"
-                  :disabled="!canEnableZeroCD"
-                />
-              </div>
-
-              <!-- 租送活动 -->
-              <div
-                class="service-item-inline service-switch-item"
-              >
-                <span class="service-label">
-                  <span class="service-badge rent-activity">租送</span>
-                </span>
-                <el-switch
-                  v-model="formData.services.rentActivity"
-                  size="large"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- 出租天数 -->
       <div class="form-section">
         <div class="section-label">出租天数</div>
@@ -146,29 +83,49 @@
               </div>
             </div>
 
-            <!-- 右侧：输入框 -->
+            <!-- 右侧：控制区域 -->
             <div class="item-right-box">
-              <!-- 短租租金 -->
-              <el-input
-                v-model="itemFormMap[item.assetid].shortRentPrice"
-                placeholder="短租租金"
-                class="price-input"
-              />
+              <!-- 第一行：输入框 + 0CD -->
+              <div class="item-row-1">
+                <el-input
+                  v-model="itemFormMap[item.assetid].shortRentPrice"
+                  placeholder="短租租金"
+                  class="price-input"
+                />
+                <el-input
+                  v-model="itemFormMap[item.assetid].longRentPrice"
+                  placeholder="长租租金"
+                  :disabled="!showLongRentPrice"
+                  class="price-input"
+                />
+                <el-input
+                  v-model="itemFormMap[item.assetid].depositPrice"
+                  placeholder="商品押金"
+                  :disabled="!getItemCompensationMode(item.assetid)?.depositEditable"
+                  class="price-input"
+                />
 
-              <!-- 长租租金（租期≤21天时禁用） -->
-              <el-input
-                v-model="itemFormMap[item.assetid].longRentPrice"
-                placeholder="长租租金"
-                :disabled="!showLongRentPrice"
-                class="price-input"
-              />
+                <!-- 0CD -->
+                <div
+                  class="service-btn"
+                  :class="{
+                    active: itemFormMap[item.assetid].zeroCooldown,
+                    disabled: !canItemEnableZeroCD(item.assetid)
+                  }"
+                  @click="canItemEnableZeroCD(item.assetid) && (itemFormMap[item.assetid].zeroCooldown = !itemFormMap[item.assetid].zeroCooldown)"
+                >
+                  <span class="service-badge zero-cd">0CD</span>
+                </div>
+              </div>
 
-              <!-- 商品押金 -->
-              <el-input
-                v-model="itemFormMap[item.assetid].depositPrice"
-                placeholder="商品押金"
-                class="price-input"
-              />
+              <!-- 第二行：赔付说明 -->
+              <div class="item-row-2">
+                <div
+                  v-if="getItemCompensationMode(item.assetid)?.depositCompensationRichContent"
+                  class="compensation-text"
+                  v-html="getItemCompensationMode(item.assetid).depositCompensationRichContent"
+                ></div>
+              </div>
             </div>
           </div>
         </div>
