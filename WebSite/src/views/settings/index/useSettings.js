@@ -1,5 +1,6 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { applyDeviceClass, watchDeviceType } from '@/utils/deviceDetect.js'
 
 export function useSettings() {
   const router = useRouter()
@@ -31,8 +32,16 @@ export function useSettings() {
 
   // 使用 MutationObserver 监听主侧边栏的 class 变化
   let observer = null
+  let unwatchDevice = null
 
   onMounted(() => {
+    const deviceType = applyDeviceClass()
+    console.log('[Settings] 当前设备类型:', deviceType)
+
+    unwatchDevice = watchDeviceType((newDeviceType) => {
+      console.log('[Settings] 设备类型已变更:', newDeviceType)
+    })
+
     checkMainSidebarState()
 
     const mainSidebar = document.querySelector('.sidebar')
@@ -49,6 +58,9 @@ export function useSettings() {
   })
 
   onUnmounted(() => {
+    if (unwatchDevice) {
+      unwatchDevice()
+    }
     if (observer) {
       observer.disconnect()
     }

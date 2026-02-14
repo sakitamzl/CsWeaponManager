@@ -1,9 +1,10 @@
-import { ref, onMounted, computed, provide } from 'vue'
+import { ref, onMounted, onUnmounted, computed, provide } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { CaretRight, CaretBottom, Refresh, Check, Loading } from '@element-plus/icons-vue'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
+import { applyDeviceClass, watchDeviceType } from '@/utils/deviceDetect.js'
 
 export function useItemSearch() {
   const route = useRoute()
@@ -2472,8 +2473,17 @@ export function useItemSearch() {
   provide('isCommoditySelected', isCommoditySelected)
   provide('getWeaponImage', getWeaponImage)
 
+  let unwatchDevice = null
+
   // 页面加载时获取Steam ID列表
   onMounted(async () => {
+    const deviceType = applyDeviceClass()
+    console.log('[ItemSearch] 当前设备类型:', deviceType)
+
+    unwatchDevice = watchDeviceType((newDeviceType) => {
+      console.log('[ItemSearch] 设备类型已变更:', newDeviceType)
+    })
+
     await loadSteamIdList()
 
     // 检查 URL 参数中是否有 keyword，如果有则自动搜索
@@ -2485,6 +2495,12 @@ export function useItemSearch() {
         // 从URL参数跳转时，启用自动"全部搜索"功能，并使用精确匹配
         handleSearchWeapon(true, true)  // autoSearchAll=true, exactMatch=true
       }, 300)
+    }
+  })
+
+  onUnmounted(() => {
+    if (unwatchDevice) {
+      unwatchDevice()
     }
   })
 

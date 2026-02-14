@@ -1,6 +1,7 @@
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { apiUrls } from '@/config/api'
+import { applyDeviceClass, watchDeviceType } from '@/utils/deviceDetect.js'
 
 export function useSell() {
   const loading = ref(false)
@@ -1437,12 +1438,31 @@ export function useSell() {
     })
   }
 
+  // 设备类型监听取消函数
+  let unwatchDevice = null
+
   onMounted(() => {
+    // 应用设备类型类到 body
+    const deviceType = applyDeviceClass()
+    console.log('[Sell] 当前设备类型:', deviceType)
+
+    // 监听设备类型变化
+    unwatchDevice = watchDeviceType((newDeviceType) => {
+      console.log('[Sell] 设备类型已变更:', newDeviceType)
+    })
+
     loadSellData()
     loadWeaponTypes()
     loadFloatRanges()
     loadStatusList()
     loadStatusSubList()
+  })
+
+  onUnmounted(() => {
+    // 取消设备类型监听
+    if (unwatchDevice) {
+      unwatchDevice()
+    }
   })
 
   return {

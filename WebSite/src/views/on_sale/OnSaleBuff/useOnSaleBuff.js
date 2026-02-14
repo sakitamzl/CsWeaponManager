@@ -1,7 +1,8 @@
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
+import { applyDeviceClass, watchDeviceType } from '@/utils/deviceDetect.js'
 
 export function useOnSaleBuff() {
   const loading = ref(false)
@@ -378,8 +379,23 @@ export function useOnSaleBuff() {
     return diff >= 0 ? 'price-profit' : 'price-loss'
   }
 
+  let unwatchDevice = null
+
   onMounted(() => {
+    const deviceType = applyDeviceClass()
+    console.log('[OnSaleBuff] 当前设备类型:', deviceType)
+
+    unwatchDevice = watchDeviceType((newDeviceType) => {
+      console.log('[OnSaleBuff] 设备类型已变更:', newDeviceType)
+    })
+
     loadAccountList()
+  })
+
+  onUnmounted(() => {
+    if (unwatchDevice) {
+      unwatchDevice()
+    }
   })
 
   return {

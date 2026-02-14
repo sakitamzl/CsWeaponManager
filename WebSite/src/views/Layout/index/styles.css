@@ -309,3 +309,30 @@
     width: 3rem;
   }
 }
+
+/* iPad 设备专用样式 */
+body.device-ipad {
+  font-size: 14px;
+}
+
+body.device-ipad .sidebar {
+  font-size: 14px;
+}
+
+body.device-ipad .menu-item {
+  padding: 12px 8px;
+}
+
+body.device-ipad .menu-item-title {
+  font-size: 14px;
+}
+
+body.device-ipad .el-button {
+  padding: 10px 16px;
+  font-size: 14px;
+  min-height: 36px;
+}
+
+body.device-ipad .content-area {
+  font-size: 14px;
+}

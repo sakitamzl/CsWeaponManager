@@ -1,6 +1,7 @@
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
+import { applyDeviceClass, watchDeviceType } from '@/utils/deviceDetect.js'
 
 export function useLayout() {
   const router = useRouter()
@@ -87,10 +88,25 @@ export function useLayout() {
     // }
   ])
 
+  let unwatchDevice = null
+
   onMounted(() => {
+    const deviceType = applyDeviceClass()
+    console.log('[Layout] 当前设备类型:', deviceType)
+
+    unwatchDevice = watchDeviceType((newDeviceType) => {
+      console.log('[Layout] 设备类型已变更:', newDeviceType)
+    })
+
     // 检查登录状态
     isLoggedIn.value = localStorage.getItem('isLoggedIn') === 'true'
     username.value = localStorage.getItem('username') || '用户'
+  })
+
+  onUnmounted(() => {
+    if (unwatchDevice) {
+      unwatchDevice()
+    }
   })
 
   // 监听路由变化，切换页面时自动收缩侧边栏

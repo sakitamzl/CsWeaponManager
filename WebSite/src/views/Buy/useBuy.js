@@ -2,9 +2,10 @@
  * Buy页面的业务逻辑
  * 包含数据加载、搜索、过滤、统计等功能
  */
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { apiUrls } from '@/config/api'
+import { applyDeviceClass, watchDeviceType } from '@/utils/deviceDetect.js'
 
 export function useBuy() {
   // ==================== 状态定义 ====================
@@ -1463,7 +1464,19 @@ export function useBuy() {
 
   // ==================== 生命周期 ====================
 
+  // 设备类型监听取消函数
+  let unwatchDevice = null
+
   onMounted(() => {
+    // 应用设备类型类到 body
+    const deviceType = applyDeviceClass()
+    console.log('[Buy] 当前设备类型:', deviceType)
+
+    // 监听设备类型变化
+    unwatchDevice = watchDeviceType((newDeviceType) => {
+      console.log('[Buy] 设备类型已变更:', newDeviceType)
+    })
+
     normalizeFilters()
     loadBuyData()
     loadWeaponTypes()
@@ -1471,6 +1484,13 @@ export function useBuy() {
     loadStatusList()
     loadStatusSubList()
     loadDataUserList()
+  })
+
+  onUnmounted(() => {
+    // 取消设备类型监听
+    if (unwatchDevice) {
+      unwatchDevice()
+    }
   })
 
   // ==================== 返回 ====================

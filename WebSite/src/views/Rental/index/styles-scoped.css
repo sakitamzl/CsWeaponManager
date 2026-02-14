@@ -1107,4 +1107,66 @@
   box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
 }
 
+/* ========== iPad 响应式适配 ========== */
+
+/* iPad 设备专用样式 */
+body.device-ipad {
+  font-size: 14px;
+}
+
+body.device-ipad :deep(.el-table) {
+  font-size: 14px;
+}
+
+body.device-ipad :deep(.el-table th),
+body.device-ipad :deep(.el-table td) {
+  padding: 10px 8px;
+}
+
+body.device-ipad .el-input,
+body.device-ipad .el-select {
+  font-size: 14px;
+}
+
+body.device-ipad .el-button {
+  padding: 10px 16px;
+  font-size: 14px;
+}
+
+body.device-ipad :deep(.el-pagination) {
+  font-size: 14px;
+}
+
+body.device-ipad :deep(.el-pagination button),
+body.device-ipad :deep(.el-pagination .el-pager li) {
+  min-width: 36px;
+  height: 36px;
+  line-height: 36px;
+}
+
+body.device-ipad .weapon-image-cell {
+  min-height: 100px;
+}
+
+body.device-ipad .weapon-img {
+  max-height: 100px;
+}
+
+/* Mobile 设备专用样式 */
+body.device-mobile :deep(.el-table) {
+  font-size: 12px;
+}
+
+body.device-mobile :deep(.el-table th),
+body.device-mobile :deep(.el-table td) {
+  padding: 8px 4px;
+}
+
+body.device-mobile .weapon-image-cell {
+  min-height: 80px;
+}
+
+body.device-mobile .weapon-img {
+  max-height: 80px;
+}
 

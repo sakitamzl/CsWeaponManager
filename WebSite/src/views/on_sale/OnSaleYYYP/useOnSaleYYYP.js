@@ -1,8 +1,9 @@
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Loading } from '@element-plus/icons-vue'
 import axios from 'axios'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
+import { applyDeviceClass, watchDeviceType } from '@/utils/deviceDetect.js'
 import RentFormYYYP from '@/views/Inventory/RentFormYYYP/index.vue'
 import OfferProcessing from './OfferProcessing/index.vue'
 import RentedOut from './RentedOut/index.vue'
@@ -1504,8 +1505,23 @@ export default {
       localStorage.setItem('yyyp_selected_trade_type', newValue)
     })
 
+    let unwatchDevice = null
+
     onMounted(() => {
+      const deviceType = applyDeviceClass()
+      console.log('[OnSaleYYYP] 当前设备类型:', deviceType)
+
+      unwatchDevice = watchDeviceType((newDeviceType) => {
+        console.log('[OnSaleYYYP] 设备类型已变更:', newDeviceType)
+      })
+
       loadAccountList()
+    })
+
+    onUnmounted(() => {
+      if (unwatchDevice) {
+        unwatchDevice()
+      }
     })
 
     return {

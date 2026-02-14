@@ -1,7 +1,8 @@
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
+import { applyDeviceClass, watchDeviceType } from '@/utils/deviceDetect.js'
 
 export function useStockComponents() {
   const STORAGE_KEYS = {
@@ -1762,7 +1763,16 @@ export function useStockComponents() {
     popoverItem.value = null
   }
 
+  let unwatchDevice = null
+
   onMounted(async () => {
+    const deviceType = applyDeviceClass()
+    console.log('[StockComponents] 当前设备类型:', deviceType)
+
+    unwatchDevice = watchDeviceType((newDeviceType) => {
+      console.log('[StockComponents] 设备类型已变更:', newDeviceType)
+    })
+
     await loadSteamIdList()
     if (selectedSteamId.value) {
       await loadInventoryComponents()
@@ -1779,6 +1789,16 @@ export function useStockComponents() {
         loadComponentData()
         // setupScrollObserver 会在 loadComponentData 完成后自动调用
       }
+    }
+  })
+
+  onUnmounted(() => {
+    if (unwatchDevice) {
+      unwatchDevice()
+    }
+    if (imageObserver) {
+      imageObserver.disconnect()
+      imageObserver = null
     }
   })
 

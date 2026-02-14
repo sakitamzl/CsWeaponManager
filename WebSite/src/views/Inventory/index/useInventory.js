@@ -5,6 +5,7 @@ import axios from 'axios'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
 import PlatformSelectDialog from '../PlatformSelectDialog/index.vue'
 import RentFormYYYP from '../RentFormYYYP/index.vue'
+import { applyDeviceClass, watchDeviceType } from '@/utils/deviceDetect.js'
 
 export function useInventory() {
   const loading = ref(false)
@@ -2509,20 +2510,32 @@ export function useInventory() {
     }
   })
 
+  // 设备类型监听取消函数
+  let unwatchDevice = null
+
   onMounted(async () => {
+    // 应用设备类型类到 body
+    const deviceType = applyDeviceClass()
+    console.log('[Inventory] 当前设备类型:', deviceType)
+
+    // 监听设备类型变化
+    unwatchDevice = watchDeviceType((newDeviceType) => {
+      console.log('[Inventory] 设备类型已变更:', newDeviceType)
+    })
+
     await loadSteamIdList()
     if (selectedSteamId.value) {
       loadInventoryData(true)
     }
-    
+
     // 设置滚动监听
     setupScrollObserver()
-    
+
     // 监听显示模式变化，重新设置观察器
     watch(displayMode, () => {
       setupScrollObserver()
     })
-    
+
     // 监听数据变化，重新设置观察器（数据加载后）
     watch(inventoryData, () => {
       setupScrollObserver()
@@ -2536,6 +2549,11 @@ export function useInventory() {
 
   // 组件卸载时清理观察器
   onUnmounted(() => {
+    // 取消设备类型监听
+    if (unwatchDevice) {
+      unwatchDevice()
+    }
+
     if (imageObserver) {
       imageObserver.disconnect()
       imageObserver = null

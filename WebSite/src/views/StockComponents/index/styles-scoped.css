@@ -1213,4 +1213,51 @@
   z-index: 10;
 }
 
+/* iPad 设备专用样式 */
+body.device-ipad {
+  font-size: 14px;
+}
+
+body.device-ipad :deep(.el-table) {
+  font-size: 14px;
+}
+
+body.device-ipad :deep(.el-table th),
+body.device-ipad :deep(.el-table td) {
+  padding: 10px 8px;
+}
+
+body.device-ipad .el-button {
+  padding: 10px 16px;
+  font-size: 14px;
+  min-height: 36px;
+}
+
+body.device-ipad :deep(.el-pagination button),
+body.device-ipad :deep(.el-pagination .el-pager li) {
+  min-width: 36px;
+  height: 36px;
+  line-height: 36px;
+}
+
+body.device-ipad .component-item-image {
+  height: 100px;
+}
+
+body.device-ipad .el-input__inner {
+  font-size: 14px;
+  padding: 10px 12px;
+}
+
+body.device-ipad .el-select {
+  font-size: 14px;
+}
+
+body.device-ipad .card-item {
+  font-size: 14px;
+}
+
+body.device-ipad .card-item-image {
+  height: 120px;
+}
 
