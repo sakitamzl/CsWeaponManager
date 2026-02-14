@@ -517,59 +517,19 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="武器名称" min-width="260">
+          <el-table-column label="武器名称" min-width="280">
             <template #default="scope">
-              <el-tooltip
-                :content="scope.row.weapon_name"
-                placement="top"
-                :disabled="!scope.row.weapon_name || scope.row.weapon_name.length <= 20"
-              >
-                <div class="weapon-name-cell">{{ scope.row.weapon_name }}</div>
-              </el-tooltip>
-            </template>
-          </el-table-column>
-          
-          <el-table-column label="价格" width="100">
-              <template #default="scope">
-                <span class="price">¥{{ scope.row.price }}</span>
-              </template>
-            </el-table-column>
-
-            <el-table-column label="在售数量" width="100" align="center">
-              <template #default="scope">
-                <span>{{ scope.row.totalCount || 0 }}</span>
-              </template>
-            </el-table-column>
-
-            <el-table-column label="溢价" width="100">
-              <template #default="scope">
-                <el-tag type="danger" size="small">
-                  {{ scope.row.spread.toFixed(2) }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            
-            <el-table-column label="手续费" width="100" align="center">
-              <template #default="scope">
-                <span class="commission-fee">¥{{ scope.row.commissionFee ? scope.row.commissionFee.toFixed(2) : '0.00' }}</span>
-              </template>
-            </el-table-column>
-            
-            <el-table-column label="收益" width="120" align="center">
-              <template #default="scope">
-                <el-tag 
-                  :type="scope.row.priceDiff < 0 ? 'danger' : (scope.row.priceDiff < 3 ? 'warning' : 'success')" 
-                  size="small"
+              <div class="weapon-info-container">
+                <el-tooltip
+                  :content="scope.row.weapon_name"
+                  placement="top"
+                  :disabled="!scope.row.weapon_name || scope.row.weapon_name.length <= 20"
                 >
-                  {{ scope.row.priceDiff >= 0 ? '+' : '' }}{{ scope.row.priceDiff.toFixed(2) }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            
-            <el-table-column label="磨损" width="240">
-              <template #default="scope">
+                  <div class="weapon-name-cell">{{ scope.row.weapon_name }}</div>
+                </el-tooltip>
+
+                <!-- 磨损值显示在武器名称下方 -->
                 <div class="float-cell-vertical" v-if="scope.row.abrade">
-                  <div class="float-value">{{ scope.row.abrade }}</div>
                   <div class="float-bar-mini">
                     <div class="float-segment fn" title="崭新出厂 (0.00 - 0.07)"></div>
                     <div class="float-segment mw" title="略有磨损 (0.07 - 0.15)"></div>
@@ -582,8 +542,43 @@
                       :title="`磨损值: ${scope.row.abrade}`"
                     ></div>
                   </div>
+                  <div class="float-value">磨损: {{ scope.row.abrade }}</div>
                 </div>
-                <span v-else>-</span>
+              </div>
+            </template>
+          </el-table-column>
+          
+          <el-table-column label="价格信息" min-width="500">
+              <template #default="scope">
+                <div class="price-info-container">
+                  <div class="price-info-item">
+                    <span class="price-label">价格</span>
+                    <span class="price">¥{{ scope.row.price }}</span>
+                  </div>
+                  <div class="price-info-item">
+                    <span class="price-label">在售</span>
+                    <span class="price-value">{{ scope.row.totalCount || 0 }}</span>
+                  </div>
+                  <div class="price-info-item">
+                    <span class="price-label">溢价</span>
+                    <el-tag type="danger" size="small">
+                      {{ scope.row.spread.toFixed(2) }}
+                    </el-tag>
+                  </div>
+                  <div class="price-info-item">
+                    <span class="price-label">手续费</span>
+                    <span class="commission-fee">¥{{ scope.row.commissionFee ? scope.row.commissionFee.toFixed(2) : '0.00' }}</span>
+                  </div>
+                  <div class="price-info-item">
+                    <span class="price-label">收益</span>
+                    <el-tag
+                      :type="scope.row.priceDiff < 0 ? 'danger' : (scope.row.priceDiff < 3 ? 'warning' : 'success')"
+                      size="small"
+                    >
+                      {{ scope.row.priceDiff >= 0 ? '+' : '' }}{{ scope.row.priceDiff.toFixed(2) }}
+                    </el-tag>
+                  </div>
+                </div>
               </template>
             </el-table-column>
             
@@ -2170,22 +2165,23 @@ export default {
   background: #555;
 }
 
-/* 磨损值显示 */
+/* 磨损值显示（在武器名称下方） */
 .float-cell-vertical {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
   align-items: flex-start;
+  width: 100%;
 }
 
 .float-bar-mini {
   position: relative;
-  height: 4px;
+  height: 6px;
   display: flex;
-  border-radius: 2px;
+  border-radius: 3px;
   overflow: hidden;
-  width: 120px;
-  max-width: 120px;
+  width: 100%;
+  max-width: 200px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
@@ -2259,9 +2255,11 @@ export default {
 }
 
 .float-value {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.9);
   flex-shrink: 0;
+  font-weight: 500;
+  margin-top: 2px;
 }
 
 /* 查询模式对话框样式 */
