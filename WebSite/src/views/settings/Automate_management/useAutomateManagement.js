@@ -521,11 +521,11 @@ export function useAutomateManagement() {
     }
   }
   
-  // 获取悠悠有品价格
+  // 获取悠悠有品价格（V2 API）
   const fetchYYYPPrice = async (steamId) => {
     try {
       const response = await axios.post(
-        `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getYYYPPrice`,
+        `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/settings/dev_tools/syncWeaponPrice`,
         { steamId }
       )
       

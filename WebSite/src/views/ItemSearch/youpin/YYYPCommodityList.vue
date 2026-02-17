@@ -906,7 +906,8 @@ const loadPriceTrend = async () => {
   priceTrendLoading.value = true
 
   try {
-    const url = `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getPriceTrend`
+    // 使用V2 API
+    const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/price_trend/getPriceTrend`
     const response = await axios.post(url, {
       yyypId: props.yyypCurrentWeapon.yyyp_id,
       day: selectedDays.value
@@ -1256,13 +1257,12 @@ const openPresaleBuyDialog = async (item) => {
   presaleDetail.value = null
 
   try {
-    const response = await axios.post(
-      apiUrls.yyypGetPresaleDetail(),
-      {
-        steamId: '',
-        commodityId: item.id.toString()
-      }
-    )
+    // 使用V2 API获取预售详情
+    const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/presale/getPresaleDetail`
+    const response = await axios.post(url, {
+      steamId: '',
+      commodityId: item.id.toString()
+    })
 
     if (response.data.success) {
       presaleDetail.value = response.data.data
@@ -1317,17 +1317,16 @@ const confirmPresaleBuy = async () => {
   buyingPresale.value = true
 
   try {
-    const response = await axios.post(
-      apiUrls.yyypBuyPresaleCommodity(),
-      {
-        steamId: '',
-        commodityId: currentPresaleItem.value.id.toString(),
-        price: depositAmount.toString(),  // 传入定金金额（元）
-        autoConfirmPayment: presaleBuyForm.value.autoConfirmPayment,
-        pollPayment: presaleBuyForm.value.pollPayment,
-        paymentChannel: presaleBuyForm.value.paymentChannel
-      }
-    )
+    // 使用V2 API购买预售商品
+    const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/presale/buyPresaleCommodity`
+    const response = await axios.post(url, {
+      steamId: '',
+      commodityId: currentPresaleItem.value.id.toString(),
+      price: depositAmount.toString(),  // 传入定金金额（元）
+      autoConfirmPayment: presaleBuyForm.value.autoConfirmPayment,
+      pollPayment: presaleBuyForm.value.pollPayment,
+      paymentChannel: presaleBuyForm.value.paymentChannel
+    })
 
     if (response.data.success) {
       ElMessage.success('购买成功！')
@@ -1367,14 +1366,12 @@ const openOnSaleBuyDialog = async (item) => {
   onSaleDetail.value = null
 
   try {
-    // 使用相同的API获取购买确认页面信息（在售商品也有这个接口）
-    const response = await axios.post(
-      apiUrls.yyypGetPresaleDetail(),  // 在售和预售使用相同的API
-      {
-        steamId: '',
-        commodityId: item.id.toString()
-      }
-    )
+    // 使用V2 API获取在售商品详情
+    const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/getWeaponDetail`
+    const response = await axios.post(url, {
+      steamId: '',
+      commodityId: item.id.toString()
+    })
 
     if (response.data.success) {
       onSaleDetail.value = response.data.data

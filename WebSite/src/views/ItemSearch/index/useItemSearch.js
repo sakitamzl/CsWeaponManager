@@ -549,11 +549,27 @@ export function useItemSearch() {
         steamId: selectedSteamId.value || '',
         yyypId: row.yyyp_id,
         pageIndex: 1,
-        pageSize: 50,
-        filterType: yyypFilterType.value  // 添加筛选类型参数
+        pageSize: 50
       }
-      
-      const apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getCommoditiesByTemplateId`
+
+      // 根据筛选类型选择对应的V2 API
+      let apiUrl
+      switch (yyypFilterType.value) {
+        case 'on_sale':
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/getCommodityList`
+          break
+        case 'on_lease':
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_lease/getCommodityList`
+          break
+        case 'presale':
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/presale/getCommodityList`
+          break
+        case 'wanted':
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/purchase_order/getCommodityList`
+          break
+        default:
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/getCommodityList`
+      }
       
       console.log('请求URL:', apiUrl)
       console.log('请求数据:', requestData)
@@ -635,11 +651,27 @@ export function useItemSearch() {
         steamId: selectedSteamId.value || '',
         yyypId: yyypCurrentWeapon.value.yyyp_id,
         pageIndex: nextPage,
-        pageSize: 50,
-        filterType: yyypFilterType.value  // 添加筛选类型参数
+        pageSize: 50
       }
-      
-      const apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getCommoditiesByTemplateId`
+
+      // 根据筛选类型选择对应的V2 API
+      let apiUrl
+      switch (yyypFilterType.value) {
+        case 'on_sale':
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/getCommodityList`
+          break
+        case 'on_lease':
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_lease/getCommodityList`
+          break
+        case 'presale':
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/presale/getCommodityList`
+          break
+        case 'wanted':
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/purchase_order/getCommodityList`
+          break
+        default:
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/getCommodityList`
+      }
       const response = await axios.post(apiUrl, requestData)
       
       if (response.data.success) {
@@ -813,9 +845,9 @@ export function useItemSearch() {
       
       console.log('购买请求数据:', requestData)
       
-      // 调用完整购买接口（创建订单+自动支付）
+      // 调用完整购买接口（创建订单+自动支付）- 使用V2 API
       const response = await axios.post(
-        `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/buyCommodity`,
+        `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/buyCommodity`,
         requestData
       )
       
@@ -1341,9 +1373,9 @@ export function useItemSearch() {
     try {
       console.log(`正在获取商品 ${commodity.id} 的改名信息`)
       
-      // 调用接口获取详细信息
+      // 调用接口获取详细信息 - 使用V2 API
       const response = await axios.post(
-        `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getWeaponDetail`,
+        `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/getWeaponDetail`,
         {
           steamId: selectedSteamId.value,
           id: commodity.id
@@ -1377,9 +1409,9 @@ export function useItemSearch() {
 
       console.log('正在获取改名信息，商品ID:', commodity.id)
 
-      // 调用接口获取详细信息
+      // 调用接口获取详细信息 - 使用V2 API
       const response = await axios.post(
-        `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getWeaponDetail`,
+        `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/getWeaponDetail`,
         {
           steamId: selectedSteamId.value,
           id: commodity.id
@@ -2166,7 +2198,7 @@ export function useItemSearch() {
             }
             
             const response = await axios.post(
-              `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/buyCommodity`,
+              `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/buyCommodity`,
               requestData
             )
             
@@ -2408,11 +2440,27 @@ export function useItemSearch() {
         steamId: selectedSteamId.value || '',
         yyypId: yyypCurrentWeapon.value.yyyp_id,
         pageIndex: 1,
-        pageSize: 50,
-        filterType: filterType
+        pageSize: 50
       }
 
-      const apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getCommoditiesByTemplateId`
+      // 根据筛选类型选择对应的V2 API
+      let apiUrl
+      switch (filterType) {
+        case 'on_sale':
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/getCommodityList`
+          break
+        case 'on_lease':
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_lease/getCommodityList`
+          break
+        case 'presale':
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/presale/getCommodityList`
+          break
+        case 'wanted':
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/purchase_order/getCommodityList`
+          break
+        default:
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/getCommodityList`
+      }
       const response = await axios.post(apiUrl, requestData)
 
       if (response.data.success) {
