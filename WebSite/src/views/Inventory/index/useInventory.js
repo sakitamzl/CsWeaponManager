@@ -1763,7 +1763,7 @@ export function useInventory() {
             console.log(`[${i + 1}/${itemsData.length}] 正在上架: ${item.name}`)
             
             const response = await axios.post(
-              `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/sellInventoryItem`,
+              `${API_CONFIG.SPIDER_BASE_URL}${API_CONFIG.ENDPOINTS.YOUPIN_SELL_INVENTORY_ITEM}`,
               {
                 steamId: selectedSteamId.value,
                 assetId: item.assetid,

@@ -868,14 +868,14 @@ export default {
         // 获取租赁初始化数据、赔付文本、转租协议和转租详情（并行请求）
         const [initResponse, compensationResponse, agreementResponse, detailResponse] = await Promise.all([
           axios.post(
-            `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/rentInit`,
+            apiUrls.yyypRentInit(),
             {
               steamId: steamId.value,
               steam_hash_name: [item.steam_hash_name || item.item_name]
             }
           ),
           axios.post(
-            `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getCompensationText`,
+            apiUrls.yyypGetCompensationText(),
             {
               steamId: steamId.value,
               itemInfo: {
@@ -892,13 +892,13 @@ export default {
             }
           ),
           axios.post(
-            `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getSubleaseAgreement`,
+            apiUrls.yyypGetSubleaseAgreement(),
             {
               steamId: steamId.value
             }
           ),
           axios.post(
-            `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getSubleaseDetail`,
+            apiUrls.yyypGetSubleaseDetail(),
             {
               steamId: steamId.value,
               commodityIds: [String(item.commodity_id || item.id)]
@@ -1117,7 +1117,7 @@ export default {
 
           // 获取租赁初始化数据
           const initResponse = await axios.post(
-            `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/rentInit`,
+            apiUrls.yyypRentInit(),
             {
               steamId: steamId.value,
               steam_hash_name: hashNames

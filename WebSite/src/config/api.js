@@ -284,7 +284,7 @@ export const API_CONFIG = {
 
     YOUPIN_SEND_OFFER: '/youping898SpiderV1/sendOffer',  // 发送报价
 
-    YOUPIN_SELL_INVENTORY_ITEM: '/youping898SpiderV1/sellInventoryItem',  // 上架单个库存饰品
+    YOUPIN_SELL_INVENTORY_ITEM: '/spiderApiV2/youping/units/inventory/sell/sellInventoryItem',  // 上架单个库存饰品（新版API）
 
     CSQAQ_TASK_RESULT: '/csqaqSpiderV1/getTaskResult',  // CSQAQ获取任务结果
 
@@ -422,19 +422,24 @@ export const API_CONFIG = {
 
     // 悠悠有品租赁相关
 
-    YYYP_GET_LEASE_LIST: '/youping898SpiderV1/getLeaseList',  // 获取租赁列表
-    YYYP_GET_SUBLEASE_LIST: '/youping898SpiderV1/getSubleaseList',  // 获取转租列表
+    YYYP_GET_LEASE_LIST: '/spiderApiV2/youping/units/on_sale/lent/getLeaseList',  // 获取租赁列表（新API）
+    YYYP_GET_SUBLEASE_LIST: '/spiderApiV2/youping/units/on_sale/sublease/getSubleaseList',  // 获取转租列表（新API）
     YYYP_GET_PRESALE_LIST: '/youping898SpiderV1/getPresaleList',  // 获取预售列表
-    YYYP_GET_SELL_LIST: '/youping898SpiderV1/getSellList',  // 获取出售列表
-    YYYP_GET_RENTED_OUT_LIST: '/youping898SpiderV1/getRentedOutList',  // 获取已租出列表
-    YYYP_GET_MY_SELL_ORDERS: '/youping898SpiderV1/getMySellOrders',  // 获取我的出售订单（报价处理）
-    YYYP_GET_MY_BUY_ORDERS: '/youping898SpiderV1/getMyBuyOrders',  // 获取我的收货订单（报价处理）
-    YYYP_PROCESS_OFFER_BUTTON: '/youping898SpiderV1/processOfferButton',  // 处理报价按钮操作
-    YYYP_OFF_SHELF: '/youping898SpiderV1/offShelfItems',  // 下架商品
-    YYYP_CANCEL_SUBLEASE: '/youping898SpiderV1/cancelSublease',  // 取消转租
-    YYYP_CHANGE_PRICE: '/youping898SpiderV1/changeCommodityPrice',  // 改价（售卖商品）
-    YYYP_CHANGE_RENT_PRICE: '/youping898SpiderV1/changePrice',  // 改价（租赁/转租，支持单个和批量）
-    YYYP_GET_INSTANT_PAYMENT_LIST: '/youping898SpiderV1/getInstantPaymentList',  // 获取0CD(秒到账)订单列表
+    YYYP_GET_SELL_LIST: '/spiderApiV2/youping/units/on_sale/sell/getSellList',  // 获取出售列表（新API）
+    YYYP_GET_RENTED_OUT_LIST: '/spiderApiV2/youping/units/on_sale/rented_out/getRentedOutList',  // 获取已租出列表（新API）
+    YYYP_GET_MY_SELL_ORDERS: '/spiderApiV2/youping/units/on_sale/offer_handling/getMySellOrders',  // 获取我的出售订单（报价处理，新API）
+    YYYP_GET_MY_BUY_ORDERS: '/spiderApiV2/youping/units/on_sale/offer_handling/getMyBuyOrders',  // 获取我的收货订单（报价处理，新API）
+    YYYP_PROCESS_OFFER_BUTTON: '/spiderApiV2/youping/units/on_sale/offer_handling/processOfferButton',  // 处理报价按钮操作（新API）
+    YYYP_OFF_SHELF: '/spiderApiV2/youping/units/on_sale/sell/offShelf',  // 下架商品（新API）
+    YYYP_CANCEL_SUBLEASE: '/spiderApiV2/youping/units/on_sale/sublease/cancelSublease',  // 取消转租（新API）
+    YYYP_CHANGE_PRICE: '/spiderApiV2/youping/units/on_sale/sell/changePrice',  // 改价（售卖商品，新API）
+    YYYP_BATCH_CHANGE_PRICE: '/spiderApiV2/youping/units/on_sale/sell/batchChangePrice',  // 批量改价（售卖商品，新API）
+    YYYP_CHANGE_RENT_PRICE: '/spiderApiV2/youping/units/on_sale/lent/changePrice',  // 改价（租赁/转租，支持单个和批量，新API）
+    YYYP_GET_INSTANT_PAYMENT_LIST: '/spiderApiV2/youping/units/on_sale/instant/getInstantPaymentList',  // 获取0CD(秒到账)订单列表（新API）
+    YYYP_GET_SUBLEASE_AGREEMENT: '/spiderApiV2/youping/units/on_sale/sublease/getSubleaseAgreement',  // 获取转租协议（新API）
+    YYYP_GET_SUBLEASE_DETAIL: '/spiderApiV2/youping/units/on_sale/sublease/getSubleaseDetail',  // 获取转租详情（新API）
+    YYYP_RENT_INIT: '/spiderApiV2/youping/units/on_sale/lent/rentInit',  // 获取出租初始化配置（新API）
+    YYYP_GET_COMPENSATION_TEXT: '/spiderApiV2/youping/units/on_sale/lent/getCompensationText',  // 获取赔付文本信息（新API）
 
     // 悠悠有品预售相关
     YYYP_GET_PRESALE_DETAIL: '/youping898SpiderV1/getPresaleDetail',  // 获取预售详情
@@ -901,8 +906,13 @@ export const apiUrls = {
   yyypOffShelf: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_OFF_SHELF),
   yyypCancelSublease: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_CANCEL_SUBLEASE),
   yyypChangePrice: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_CHANGE_PRICE),  // 售卖商品改价
+  yyypBatchChangePrice: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_BATCH_CHANGE_PRICE),  // 售卖商品批量改价
   yyypChangeRentPrice: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_CHANGE_RENT_PRICE),  // 租赁/转租改价（支持单个和批量）
   yyypGetInstantPaymentList: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_INSTANT_PAYMENT_LIST),  // 获取0CD订单列表
+  yyypGetSubleaseAgreement: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_SUBLEASE_AGREEMENT),  // 获取转租协议
+  yyypGetSubleaseDetail: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_SUBLEASE_DETAIL),  // 获取转租详情
+  yyypRentInit: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_RENT_INIT),  // 获取出租初始化配置
+  yyypGetCompensationText: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_COMPENSATION_TEXT),  // 获取赔付文本信息
   yyypGetPresaleDetail: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_PRESALE_DETAIL),  // 获取预售详情
   yyypBuyPresaleCommodity: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_BUY_PRESALE_COMMODITY),  // 购买预售商品
   yyypRentAutoPricing: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_RENT_AUTO_PRICING),
