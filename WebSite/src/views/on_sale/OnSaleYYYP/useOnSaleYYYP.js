@@ -1,6 +1,6 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Loading } from '@element-plus/icons-vue'
+import { Loading, CircleCheck, CircleClose } from '@element-plus/icons-vue'
 import axios from 'axios'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
 import { applyDeviceClass, watchDeviceType } from '@/utils/deviceDetect.js'
@@ -16,6 +16,8 @@ export default {
   name: 'OnSale',
   components: {
     Loading,
+    CircleCheck,
+    CircleClose,
     RentFormYYYP,
     OfferProcessing,
     RentedOut,
@@ -78,7 +80,9 @@ export default {
 
     // 批量改价相关
     const batchChangePriceForm = ref({
-      individualPrices: []  // 每个商品的价格
+      individualPrices: [],  // 每个商品的价格
+      priceUpdateStatus: [],  // 每个商品的改价状态: 'success' | 'error' | null
+      priceUpdateErrors: []   // 每个商品的错误信息
     })
 
     // 格式化租赁改价的 item 数据
@@ -830,16 +834,30 @@ export default {
 
       updating.value = true
       try {
-        const response = await axios.post(apiUrls.updateSalePrice(), {
-          id: selectedItem.value.id,
-          new_price: price,  // 直接传递原始字符串
-          account_id: selectedAccount.value
+        // 使用批量改价API（传递单个商品）
+        const response = await axios.post(apiUrls.yyypBatchChangePrice(), {
+          steamId: steamId.value,
+          priceUpdates: [{
+            id: selectedItem.value.id,
+            newPrice: priceFloat.toFixed(2)
+          }]
         })
 
         if (response.data && response.data.success) {
-          ElMessage.success('改价成功')
-          updatePriceDialogVisible.value = false
-          loadOnSaleData()
+          // 检查具体结果
+          const results = response.data.results || []
+          // IsSuccess 字段是数字: 1=成功, 0=失败
+          const failedItems = results.filter(item => item.IsSuccess === 0 || item.IsSuccess === false)
+
+          if (failedItems.length > 0) {
+            // 有失败的商品，错误信息在 Message 或 FailReason 字段
+            const failReason = failedItems[0].Message || failedItems[0].FailReason || '未知原因'
+            ElMessage.error(`改价失败: ${failReason}`)
+          } else {
+            ElMessage.success('改价成功')
+            updatePriceDialogVisible.value = false
+            loadOnSaleData()
+          }
         } else {
           ElMessage.error(response.data?.message || '改价失败')
         }
@@ -1147,6 +1165,9 @@ export default {
         batchChangePriceForm.value.individualPrices = selectedItems.value.map(item =>
           parseFloat(item.sale_price).toFixed(2)
         )
+        // 清空状态和错误信息
+        batchChangePriceForm.value.priceUpdateStatus = selectedItems.value.map(() => null)
+        batchChangePriceForm.value.priceUpdateErrors = selectedItems.value.map(() => '')
         batchChangePriceDialogVisible.value = true
       }
     }
@@ -1197,11 +1218,47 @@ export default {
         )
 
         if (response.data && response.data.success) {
-          ElMessage.success(`成功改价 ${priceUpdates.length} 件商品`)
-          batchChangePriceDialogVisible.value = false
-          selectedItems.value = []
-          // 重新加载数据
-          await loadOnSaleData()
+          // 检查每个商品的改价结果
+          const results = response.data.results || []
+          // IsSuccess 字段是数字: 1=成功, 0=失败
+          const failedItems = results.filter(item => item.IsSuccess === 0 || item.IsSuccess === false)
+          const successCount = results.length - failedItems.length
+
+          // 更新每个商品的状态
+          selectedItems.value.forEach((item, index) => {
+            const itemId = String(item.id || item.commodity_id)
+            const result = results.find(r => String(r.CommodityId) === itemId)
+
+            if (result) {
+              // IsSuccess: 1=成功, 0=失败
+              if (result.IsSuccess === 1 || result.IsSuccess === true) {
+                batchChangePriceForm.value.priceUpdateStatus[index] = 'success'
+                batchChangePriceForm.value.priceUpdateErrors[index] = ''
+              } else {
+                batchChangePriceForm.value.priceUpdateStatus[index] = 'error'
+                // 错误信息在 Message 或 FailReason 字段
+                batchChangePriceForm.value.priceUpdateErrors[index] = result.Message || result.FailReason || '改价失败'
+              }
+            } else {
+              // 没有返回结果，可能是请求失败
+              batchChangePriceForm.value.priceUpdateStatus[index] = 'error'
+              batchChangePriceForm.value.priceUpdateErrors[index] = '未返回改价结果'
+            }
+          })
+
+          if (failedItems.length > 0) {
+            ElMessage.warning(`批量改价完成: 成功 ${successCount} 件, 失败 ${failedItems.length} 件，请查看列表中的错误提示`)
+
+            if (successCount > 0) {
+              // 有成功的，重新加载数据
+              await loadOnSaleData()
+            }
+          } else {
+            ElMessage.success(`成功改价 ${priceUpdates.length} 件商品`)
+            await loadOnSaleData()
+            batchChangePriceDialogVisible.value = false
+            selectedItems.value = []
+          }
         } else {
           throw new Error(response.data?.message || '批量改价失败')
         }
@@ -1500,6 +1557,13 @@ export default {
       return diff > 0 ? 'price-profit' : 'price-loss'
     }
 
+    // 从市价字符串中提取数字（格式如 "¥239" 或 "239"）
+    const getReferencePrice = (referencePriceStr) => {
+      if (!referencePriceStr) return null
+      const match = String(referencePriceStr).match(/[\d.]+/)
+      return match ? parseFloat(match[0]) : null
+    }
+
     // 监听交易类型变化，保存到localStorage
     watch(selectedTradeType, (newValue) => {
       localStorage.setItem('yyyp_selected_trade_type', newValue)
@@ -1580,6 +1644,7 @@ export default {
       toggleItemSelection,
       handleCardClick,
       getPriceDiffClass,
+      getReferencePrice,
       getTradeTypeCount,
       handleTradeTypeChange,
       handleOfferCountUpdate,

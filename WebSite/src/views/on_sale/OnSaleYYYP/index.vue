@@ -312,8 +312,29 @@
                 <div class="item-details">
                   <div class="item-name-text">{{ getCardTitle(item) }}</div>
                   <div class="current-price-text">
-                    当前售价: ¥{{ parseFloat(item.sale_price).toFixed(2) }}
-                    <span class="reference-price-inline" v-if="item.reference_price">市价: {{ item.reference_price }}</span>
+                    当前售价:
+                    <span
+                      :class="{
+                        'price-higher': item.buy_price && parseFloat(item.sale_price) > parseFloat(item.buy_price),
+                        'price-lower': item.buy_price && parseFloat(item.sale_price) < parseFloat(item.buy_price)
+                      }"
+                    >
+                      ¥{{ parseFloat(item.sale_price).toFixed(2) }}
+                    </span>
+                  </div>
+                  <div class="buy-price-text" v-if="item.buy_price">
+                    购入: ¥{{ parseFloat(item.buy_price).toFixed(2) }}
+                  </div>
+                  <div class="reference-price-text" v-if="item.reference_price">
+                    市价:
+                    <span
+                      :class="{
+                        'price-higher': getReferencePrice(item.reference_price) && parseFloat(item.sale_price) > getReferencePrice(item.reference_price),
+                        'price-lower': getReferencePrice(item.reference_price) && parseFloat(item.sale_price) < getReferencePrice(item.reference_price)
+                      }"
+                    >
+                      {{ item.reference_price }}
+                    </span>
                   </div>
                   <div class="wear-info" v-if="item.wear_value !== null && item.wear_value !== undefined">
                     <div class="float-bar">
@@ -333,13 +354,32 @@
                 </div>
               </div>
               <div class="price-input-section">
-                <el-input
-                  v-model="batchChangePriceForm.individualPrices[index]"
-                  placeholder="请输入新售价"
-                  class="price-input"
-                >
-                  <template #prepend>¥</template>
-                </el-input>
+                <div style="flex: 1; position: relative;">
+                  <el-input
+                    v-model="batchChangePriceForm.individualPrices[index]"
+                    placeholder="请输入新售价"
+                    class="price-input"
+                    :class="{
+                      'input-success': batchChangePriceForm.priceUpdateStatus[index] === 'success',
+                      'input-error': batchChangePriceForm.priceUpdateStatus[index] === 'error'
+                    }"
+                  >
+                    <template #prepend>¥</template>
+                  </el-input>
+                  <!-- 错误信息 -->
+                  <div v-if="batchChangePriceForm.priceUpdateErrors[index]" class="error-message">
+                    {{ batchChangePriceForm.priceUpdateErrors[index] }}
+                  </div>
+                </div>
+                <!-- 状态指示器 -->
+                <div v-if="batchChangePriceForm.priceUpdateStatus[index]" class="status-indicator">
+                  <el-icon v-if="batchChangePriceForm.priceUpdateStatus[index] === 'success'" class="success-icon" color="#67C23A">
+                    <CircleCheck />
+                  </el-icon>
+                  <el-icon v-if="batchChangePriceForm.priceUpdateStatus[index] === 'error'" class="error-icon" color="#F56C6C">
+                    <CircleClose />
+                  </el-icon>
+                </div>
               </div>
             </div>
           </div>

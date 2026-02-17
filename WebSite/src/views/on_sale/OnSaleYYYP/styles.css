@@ -1141,10 +1141,10 @@
 
 .batch-item-card {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   padding: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 18px;
   background: var(--bg-secondary);
   border-radius: 8px;
   border: 1px solid var(--border-color);
@@ -1166,10 +1166,9 @@
 }
 
 .item-thumbnail {
-  width: 80px;
-  height: 60px;
+  width: 120px;
+  height: 90px;
   object-fit: contain;
-  background: rgba(0, 0, 0, 0.3);
   border-radius: 4px;
   flex-shrink: 0;
 }
@@ -1194,6 +1193,38 @@
   color: var(--text-secondary);
 }
 
+.current-price-text .price-higher {
+  color: #F56C6C;
+  font-weight: 600;
+}
+
+.current-price-text .price-lower {
+  color: #67C23A;
+  font-weight: 600;
+}
+
+.buy-price-text {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.reference-price-text {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.reference-price-text .price-higher {
+  color: #F56C6C;
+  font-weight: 600;
+}
+
+.reference-price-text .price-lower {
+  color: #67C23A;
+  font-weight: 600;
+}
+
 .reference-price-inline {
   margin-left: 12px;
   color: var(--text-secondary);
@@ -1201,15 +1232,63 @@
 
 .wear-info {
   margin-top: 6px;
+  max-width: 200px;
+}
+
+.wear-info .float-bar {
+  width: 100%;
 }
 
 .price-input-section {
-  width: 180px;
+  width: 220px;
   flex-shrink: 0;
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
 }
 
 .price-input-section .price-input {
   width: 100%;
+}
+
+/* 改价状态样式 */
+.price-input-section .input-success :deep(.el-input__wrapper) {
+  border-color: #67C23A;
+  box-shadow: 0 0 0 1px #67C23A inset;
+}
+
+.price-input-section .input-error :deep(.el-input__wrapper) {
+  border-color: #F56C6C;
+  box-shadow: 0 0 0 1px #F56C6C inset;
+}
+
+.status-indicator {
+  flex-shrink: 0;
+  width: 24px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.error-message {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 24px;
+  padding: 6px 10px;
+  background: rgba(245, 108, 108, 0.1);
+  border: 1px solid rgba(245, 108, 108, 0.3);
+  border-radius: 4px;
+  color: #F56C6C;
+  font-size: 12px;
+  line-height: 1.5;
+  word-break: break-word;
+  z-index: 5;
+  box-shadow: 0 2px 8px rgba(245, 108, 108, 0.15);
 }
 
 /* iPad 设备专用样式 */

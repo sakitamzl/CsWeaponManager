@@ -414,8 +414,6 @@ export const API_CONFIG = {
 
     ON_SALE_ITEMS: '/webOnSaleV1/getOnSaleItems',  // 获取在售商品列表
 
-    ON_SALE_UPDATE_PRICE: '/webOnSaleV1/updateSalePrice',  // 修改售价
-
     ON_SALE_REMOVE: '/webOnSaleV1/removeFromSale',  // 下架商品
 
     
@@ -886,8 +884,6 @@ export const apiUrls = {
   getBuffAccounts: () => getApiUrl(API_CONFIG.ENDPOINTS.ON_SALE_BUFF_ACCOUNTS),
 
   getOnSaleItems: () => getApiUrl(API_CONFIG.ENDPOINTS.ON_SALE_ITEMS),
-
-  updateSalePrice: () => getApiUrl(API_CONFIG.ENDPOINTS.ON_SALE_UPDATE_PRICE),
 
   removeFromSale: () => getApiUrl(API_CONFIG.ENDPOINTS.ON_SALE_REMOVE),
 

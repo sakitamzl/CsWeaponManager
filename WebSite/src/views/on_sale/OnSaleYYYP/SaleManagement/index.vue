@@ -172,7 +172,12 @@
                 <div class="price-row">
                   <div class="price-group" v-if="item.reference_price">
                     <span class="price-label">市价:</span>
-                    <span class="price-value">{{ item.reference_price }}</span>
+                    <span
+                      class="price-value"
+                      :class="getMarketPriceClass(item.sale_price, item.reference_price)"
+                    >
+                      {{ item.reference_price }}
+                    </span>
                   </div>
                   <div class="price-group" v-if="item.buy_price">
                     <span class="price-label">收益:</span>
@@ -307,7 +312,12 @@
         <template v-if="selectedTradeType === 'sale' || selectedTradeType === 'transfer'">
           <el-table-column prop="sale_price" label="售价" width="150">
             <template #default="scope">
-              <span style="color: #fff; font-weight: bold;">¥{{ parseFloat(scope.row.sale_price).toFixed(2) }}</span>
+              <span
+                :class="getSalePriceClass(scope.row.sale_price, scope.row.buy_price)"
+                style="font-weight: bold;"
+              >
+                ¥{{ parseFloat(scope.row.sale_price).toFixed(2) }}
+              </span>
             </template>
           </el-table-column>
           <el-table-column prop="buy_price" label="购入价" width="150">

@@ -140,13 +140,25 @@ export default {
       return diff > 0 ? 'price-profit' : 'price-loss'
     }
 
-    // 获取售价的颜色类：比购入大显示红色，小显示绿色，相等白色
+    // 获取售价的颜色类：比购入大显示红色（赔钱），小显示绿色（赚钱），相等白色
     const getSalePriceClass = (salePrice, buyPrice) => {
       if (!salePrice || !buyPrice) return ''
       const sale = parseFloat(salePrice)
       const buy = parseFloat(buyPrice)
       if (sale === buy) return 'price-equal'
-      return sale > buy ? 'price-loss' : 'price-profit'
+      return sale > buy ? 'price-profit' : 'price-loss'  // 售价高=赔钱=红色(profit类), 售价低=赚钱=绿色(loss类)
+    }
+
+    // 获取市价的颜色类：售价比市价高显示红色，低显示绿色
+    const getMarketPriceClass = (salePrice, referencePrice) => {
+      if (!salePrice || !referencePrice) return ''
+      const sale = parseFloat(salePrice)
+      // 从市价字符串中提取数字（格式如 "¥239"）
+      const match = String(referencePrice).match(/[\d.]+/)
+      if (!match) return ''
+      const market = parseFloat(match[0])
+      if (sale === market) return 'price-equal'
+      return sale > market ? 'price-profit' : 'price-loss'  // 售价>市价=红色(profit类), 售价<市价=绿色(loss类)
     }
 
     // 多选相关
@@ -196,6 +208,7 @@ export default {
       formatOnSaleTime,
       getPriceDiffClass,
       getSalePriceClass,
+      getMarketPriceClass,
       isItemSelected,
       handleCardClick,
       handleUpdatePrice,
