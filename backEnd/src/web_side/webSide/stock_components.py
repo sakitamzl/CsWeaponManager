@@ -147,20 +147,20 @@ def get_weapon_types(steam_id):
         }), 500
 
 
-@webStockComponentsV1.route('/weapon_names/<steam_id>', methods=['GET'])
-def get_weapon_names(steam_id):
-    """获取指定用户的所有磨损等级（weapon_name字段）"""
+@webStockComponentsV1.route('/float_ranges/<steam_id>', methods=['GET'])
+def get_float_ranges(steam_id):
+    """获取指定用户的所有磨损等级（float_range字段）"""
     try:
         db = DatabaseManager()
 
         sql = """
-        SELECT DISTINCT weapon_name
+        SELECT DISTINCT float_range
         FROM steam_stockComponents
         WHERE data_user = ?
-          AND weapon_name IS NOT NULL
-          AND weapon_name != ''
+          AND float_range IS NOT NULL
+          AND float_range != ''
         ORDER BY
-            CASE weapon_name
+            CASE float_range
                 WHEN '崭新出厂' THEN 1
                 WHEN '略有磨损' THEN 2
                 WHEN '久经沙场' THEN 3
@@ -168,7 +168,7 @@ def get_weapon_names(steam_id):
                 WHEN '战痕累累' THEN 5
                 ELSE 999
             END,
-            weapon_name
+            float_range
         """
         results = db.execute_query(sql, (steam_id,))
 
@@ -200,7 +200,7 @@ def get_components(steam_id):
         # 获取查询参数
         search_text = request.args.get('search', '')
         weapon_type = request.args.get('weapon_type', '')  # 武器类型筛选
-        weapon_name = request.args.get('weapon_name', '')  # 磨损等级筛选
+        float_range = request.args.get('float_range', '')  # 磨损等级筛选
         weapon_level = request.args.get('weapon_level', '')  # 武器等级筛选
         assetid = request.args.get('assetid', '')  # 组件assetid筛选
         pendant_filter = request.args.get('pendant_filter', '')  # 挂件筛选
@@ -237,9 +237,9 @@ def get_components(steam_id):
             params.append(weapon_type)
 
         # 磨损等级筛选
-        if weapon_name:
-            where_conditions.append("weapon_name = ?")
-            params.append(weapon_name)
+        if float_range:
+            where_conditions.append("float_range = ?")
+            params.append(float_range)
 
         # 武器等级筛选
         if weapon_level:
@@ -389,7 +389,7 @@ def get_components_stats(steam_id):
         # 获取筛选参数
         search_text = request.args.get('search', '')
         weapon_type = request.args.get('weapon_type', '')
-        weapon_name = request.args.get('weapon_name', '')  # 磨损等级筛选
+        float_range = request.args.get('float_range', '')  # 磨损等级筛选
         assetid = request.args.get('assetid', '')  # 组件assetid筛选
         pendant_filter = request.args.get('pendant_filter', '')  # 挂件筛选
         sticker_filter = request.args.get('sticker_filter', '')  # 印花筛选
@@ -418,9 +418,9 @@ def get_components_stats(steam_id):
             params.append(weapon_type)
 
         # 磨损等级筛选
-        if weapon_name:
-            where_conditions.append("weapon_name = ?")
-            params.append(weapon_name)
+        if float_range:
+            where_conditions.append("float_range = ?")
+            params.append(float_range)
 
         # 挂件筛选
         if pendant_filter == 'has':
@@ -503,7 +503,7 @@ def get_components_grouped(steam_id):
     try:
         search_text = request.args.get('search', '')
         weapon_type = request.args.get('weapon_type', '')  # 武器类型筛选
-        weapon_name = request.args.get('weapon_name', '')  # 磨损等级筛选
+        float_range = request.args.get('float_range', '')  # 磨损等级筛选
         assetid = request.args.get('assetid', '')  # 组件assetid筛选
         pendant_filter = request.args.get('pendant_filter', '')  # 挂件筛选
         sticker_filter = request.args.get('sticker_filter', '')  # 印花筛选
@@ -536,9 +536,9 @@ def get_components_grouped(steam_id):
             params.append(weapon_type)
 
         # 磨损等级筛选
-        if weapon_name:
-            where_conditions.append("weapon_name = ?")
-            params.append(weapon_name)
+        if float_range:
+            where_conditions.append("float_range = ?")
+            params.append(float_range)
 
         # 挂件筛选
         if pendant_filter == 'has':

@@ -188,7 +188,7 @@ export function useSearchPendant() {
     if (selectedConfigId.value && isCrawling.value) {
       try {
         const progressResponse = await fetch(
-          `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/get_pendant_search_progress`,
+          `${API_CONFIG.SPIDER_BASE_URL}${API_CONFIG.YOUPIN_GET_PENDANT_SEARCH_PROGRESS}`,
           {
             method: 'POST',
             headers: {
@@ -1118,13 +1118,13 @@ const startCrawl = async () => {
     }
 
     console.log('[挂件搜索] 准备发送请求（数据库轮询模式）')
-    console.log('[挂件搜索] 请求URL:', `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/auto_buy_pendant_weapon`)
+    console.log('[挂件搜索] 请求URL:', `${API_CONFIG.SPIDER_BASE_URL}${API_CONFIG.YOUPIN_AUTO_BUY_PENDANT_WEAPON}`)
     console.log('[挂件搜索] 请求数据:', JSON.stringify(requestData, null, 2))
     console.log('[挂件搜索] weapon_id数组长度:', spiderConfig.weapon_id ? spiderConfig.weapon_id.length : 0)
 
     // 使用普通POST接口启动任务
     const response = await fetch(
-      `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/auto_buy_pendant_weapon`,
+      `${API_CONFIG.SPIDER_BASE_URL}${API_CONFIG.YOUPIN_AUTO_BUY_PENDANT_WEAPON}`,
       {
         method: 'POST',
         headers: {
@@ -1181,7 +1181,7 @@ const stopCrawl = async () => {
   try {
     ElMessage.info('正在停止搜索...')
 
-    const url = `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/stop_pendant_search`
+    const url = `${API_CONFIG.SPIDER_BASE_URL}${API_CONFIG.YOUPIN_STOP_PENDANT_SEARCH}`
     console.log('[停止搜索] 请求URL:', url)
     console.log('[停止搜索] config_id:', selectedConfigId.value)
 
@@ -1189,10 +1189,7 @@ const stopCrawl = async () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        config_id: selectedConfigId.value
-      })
+      }
     })
 
     console.log('[停止搜索] HTTP状态:', response.status)
@@ -1387,7 +1384,7 @@ const selectConfig = async (configId) => {
       let isSearching = false
       try {
         const progressResp = await fetch(
-          `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/get_pendant_search_progress`,
+          `${API_CONFIG.SPIDER_BASE_URL}${API_CONFIG.YOUPIN_GET_PENDANT_SEARCH_PROGRESS}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -2512,7 +2509,7 @@ const loadProgressFromStorage = async (configId) => {
     if (!progressData) {
       try {
         const resp = await fetch(
-          `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/get_pendant_search_progress`,
+          `${API_CONFIG.SPIDER_BASE_URL}${API_CONFIG.YOUPIN_GET_PENDANT_SEARCH_PROGRESS}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

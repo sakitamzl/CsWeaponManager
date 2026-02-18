@@ -713,15 +713,15 @@ export function useAutomateManagement() {
   const executeSearchRenameTask = async (configOption) => {
     return runSearchTask(
       configOption,
-      `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/auto_buy_renamed_weapon`,
+      `${API_CONFIG.SPIDER_BASE_URL}${API_CONFIG.YOUPIN_AUTO_BUY_RENAMED_WEAPON}`,
       '改名饰品搜索任务已启动'
     )
   }
-  
+
   const executeSearchPendantTask = async (configOption) => {
     return runSearchTask(
       configOption,
-      `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/auto_buy_pendant_weapon`,
+      `${API_CONFIG.SPIDER_BASE_URL}${API_CONFIG.YOUPIN_AUTO_BUY_PENDANT_WEAPON}`,
       '挂件饰品搜索任务已启动'
     )
   }

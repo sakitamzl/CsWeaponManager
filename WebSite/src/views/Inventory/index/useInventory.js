@@ -1292,7 +1292,7 @@ export function useInventory() {
         
         // 实时查询悠悠在售底价
         const priceResponse = await axios.post(
-          `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getRealTimeLowestPrice`,
+          `${API_CONFIG.SPIDER_BASE_URL}${API_CONFIG.YOUPIN_REALTIME_LOWEST_PRICE}`,
           {
             yyypId: yyypId,
             steamId: selectedSteamId.value,
@@ -1461,7 +1461,7 @@ export function useInventory() {
             }
           ),
           axios.post(
-            `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getInventoryExtendInfo`,
+            `${API_CONFIG.SPIDER_BASE_URL}${API_CONFIG.YOUPIN_GET_INVENTORY_EXTEND_INFO}`,
             {
               steamId: selectedSteamId.value,
               itemsList: itemsList
@@ -1583,7 +1583,7 @@ export function useInventory() {
     try {
       // 调用上架出租 API
       const response = await axios.post(
-        `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/uploadRent`,
+        `${API_CONFIG.SPIDER_BASE_URL}${API_CONFIG.YOUPIN_UPLOAD_RENT}`,
         {
           steamId: selectedSteamId.value,
           items: formData.items.map(item => {

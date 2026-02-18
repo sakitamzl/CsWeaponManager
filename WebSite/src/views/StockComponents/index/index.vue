@@ -77,29 +77,11 @@
             >
               <el-option v-for="name in weaponNames" :key="name" :label="name" :value="name" />
             </el-select>
-            <el-select v-model="pendantFilter" placeholder="挂件" class="filter-select" clearable @change="handleFilterChange">
-              <el-option label="全部" value="" />
-              <el-option label="有挂件" value="has" />
-              <el-option label="无挂件" value="none" />
-            </el-select>
-            <el-select v-model="stickerFilter" placeholder="印花" class="filter-select" clearable @change="handleFilterChange">
-              <el-option label="全部" value="" />
-              <el-option label="有印花" value="has" />
-              <el-option label="无印花" value="none" />
-            </el-select>
-            <el-select v-model="renameFilter" placeholder="改名" class="filter-select" clearable @change="handleFilterChange">
-              <el-option label="全部" value="" />
-              <el-option label="有改名" value="has" />
-              <el-option label="无改名" value="none" />
-            </el-select>
             <el-button type="primary" @click="handleSearch" :loading="loading">
               搜索
             </el-button>
             <el-button @click="handleClearSearch" :disabled="loading">
               重置
-            </el-button>
-            <el-button type="success" @click="handleUpdateComponent" :loading="updateLoading" :disabled="!selectedComponent">
-              获取/更新组件物品
             </el-button>
             <el-button type="success" @click="handleUpdateAbnormalComponents" :loading="updateAbnormalLoading" :disabled="!selectedSteamId || abnormalComponentsCount === 0">
               更新异常组件数据 {{ abnormalComponentsCount > 0 ? `(${abnormalComponentsCount})` : '' }}
@@ -115,48 +97,24 @@
               {{ showPriceDiff ? '显示价格' : '显示差价' }}
             </el-button>
             <div style="margin-left: auto; display: flex; gap: 0.5rem; align-items: center;">
-              <!-- 列表模式：组合开关 -->
+              <!-- 组合模式开关（列表和卡片模式都显示） -->
               <el-switch
-                v-if="displayMode === 'list'"
                 v-model="groupMode"
                 active-text="组合模式"
                 inactive-text="明细模式"
                 @change="handleToggleGroupMode"
               />
 
-              <!-- 卡片模式：价格排序（后端排序，影响无限滚动顺序） -->
-              <template v-if="displayMode === 'card'">
-                <el-select
-                  v-model="sortBy"
-                  placeholder="价格排序"
-                  size="small"
-                  style="width: 140px;"
-                  @change="handlePriceSortFieldChange"
-                >
-                  <el-option label="购入单价" value="unit_price" />
-                  <el-option label="悠悠均价" value="yyyp_price" />
-                  <el-option label="BUFF均价" value="buff_price" />
-                  <el-option label="Steam均价" value="steam_price" />
-                </el-select>
-                <el-button 
-                  size="small" 
-                  @click="togglePriceSortDir"
-                  :title="sortDir === 'desc' ? '按价格从高到低' : '按价格从低到高'"
-                >
-                  {{ sortDir === 'desc' ? '↓ 高→低' : '↑ 低→高' }}
-                </el-button>
-              </template>
-
               <!-- 视图模式切换 -->
               <el-button-group>
-                <el-button 
-                  :type="displayMode === 'list' ? 'primary' : ''" 
+                <el-button
+                  :type="displayMode === 'list' ? 'primary' : ''"
                   @click="displayMode = 'list'"
                 >
                   列表
                 </el-button>
-                <el-button 
-                  :type="displayMode === 'card' ? 'primary' : ''" 
+                <el-button
+                  :type="displayMode === 'card' ? 'primary' : ''"
                   @click="displayMode = 'card'"
                 >
                   卡片
@@ -635,7 +593,7 @@
       <div v-if="displayMode === 'card'" class="card-container">
         <div v-loading="loading" class="card-grid">
           <div
-            v-for="item in componentData"
+            v-for="item in (groupMode ? groupedData : componentData)"
             :key="item.goods_assetid"
             :class="['inventory-card', { 'selected': isItemSelected(item.goods_assetid) }]"
             @click="handleCardClick(item, $event)"
@@ -645,6 +603,10 @@
               <span class="checkmark">✓</span>
             </div>
             <div class="card-image">
+              <!-- 组合模式数量标记 - 左上角 -->
+              <div v-if="groupMode && item.item_count > 1" class="item-count-badge">
+                × {{ item.item_count }}
+              </div>
               <img
                 v-if="getWeaponImage(item.steam_hash_name)"
                 :data-src="getWeaponImage(item.steam_hash_name)"
@@ -765,10 +727,10 @@
           </div>
         </div>
         <div class="table-footer">
-          <span>共 {{ componentData.length }} 条数据</span>
+          <span>共 {{ groupMode ? groupedData.length : componentData.length }} 条数据</span>
           <span v-if="hasMore && !loadingMore" style="margin-left: 1rem; color: #999;">滚动加载更多...</span>
           <span v-if="loadingMore" style="margin-left: 1rem; color: #4CAF50;">正在加载更多...</span>
-          <span v-if="!hasMore && componentData.length > 0" style="margin-left: 1rem; color: #999;">已加载全部数据</span>
+          <span v-if="!hasMore && (groupMode ? groupedData.length : componentData.length) > 0" style="margin-left: 1rem; color: #999;">已加载全部数据</span>
         </div>
         <!-- 滚动触发元素 -->
         <div id="load-more-trigger-card" style="height: 1px;"></div>

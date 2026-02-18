@@ -234,7 +234,7 @@ export const API_CONFIG = {
 
     YOUPIN_FETCH_ICONS: '/youpin898SelectWeaponV1/fetchWeaponIcons',   // 批量获取饰品图片
 
-    YOUPIN_DOWNLOAD_ICONS: '/youping898SpiderV1/downloadWeaponIcons',   // 下载武器图标资源
+    YOUPIN_DOWNLOAD_ICONS: '/spiderApiV2/youping/units/settings/dev_tools/downloadWeaponIcons',   // 下载武器图标资源
 
     BUFF_SPIDER: '/buffSpiderV1/NewData',
 
@@ -268,12 +268,6 @@ export const API_CONFIG = {
 
     CSQAQ_TASK_STATUS: '/csqaqSpiderV1/getTaskStatus',  // CSQAQ获取任务状态
 
-    
-
-    // 悠悠有品实时查询
-
-    YOUPIN_REALTIME_LOWEST_PRICE: '/youping898SpiderV1/getRealTimeLowestPrice',  // 实时查询悠悠在售底价
-
     // 悠悠有品求购供应
 
     // 悠悠有品商品搜索 - 求购供应相关（新API V2）
@@ -302,8 +296,6 @@ export const API_CONFIG = {
     CSQAQ_TASK_RESULT: '/csqaqSpiderV1/getTaskResult',  // CSQAQ获取任务结果
 
     CSQAQ_EXPORT: '/csqaqSpiderV1/exportGoods',  // CSQAQ导出商品
-
-    AUTO_BUY_RENAMED_WEAPON: '/youping898SpiderV1/auto_buy_renamed_weapon',  // 自动购买改名饰品
 
     // SteamDT相关
     STEAMDT_MARKET_INDEX: '/steamdtSpiderV1/getMarketIndex',  // 获取SteamDT大盘指数
@@ -495,7 +487,18 @@ export const API_CONFIG = {
 
     UPDATE_EXTRACT: '/api/update/extract',  // 解压更新包
 
-  }
+  },
+
+  // 悠悠有品自动购买相关（V2 API） - 顶层配置
+  YOUPIN_AUTO_BUY_RENAMED_WEAPON: '/spiderApiV2/youping/auto_weapon/autoBuyRenamedWeapon',  // 自动购买改名武器
+  YOUPIN_AUTO_BUY_PENDANT_WEAPON: '/spiderApiV2/youping/auto_weapon/autoBuyPendantWeapon',  // 自动购买挂件武器
+  YOUPIN_STOP_PENDANT_SEARCH: '/spiderApiV2/youping/auto_weapon/stopPendantSearch',  // 停止挂件搜索
+  YOUPIN_GET_PENDANT_SEARCH_PROGRESS: '/spiderApiV2/youping/auto_weapon/getPendantSearchProgress',  // 获取挂件搜索进度
+  YOUPIN_REALTIME_LOWEST_PRICE: '/spiderApiV2/youping/auto_weapon/getRealTimeLowestPrice',  // 实时查询悠悠在售底价
+
+  // 悠悠有品库存租借相关（V2 API） - 顶层配置
+  YOUPIN_GET_INVENTORY_EXTEND_INFO: '/spiderApiV2/youping/units/inventory/lent/getInventoryExtendInfo',  // 获取库存扩展信息
+  YOUPIN_UPLOAD_RENT: '/spiderApiV2/youping/units/inventory/lent/uploadRent'  // 上传租借饰品
 
 }
 

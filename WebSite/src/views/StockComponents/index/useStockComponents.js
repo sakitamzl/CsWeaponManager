@@ -33,9 +33,6 @@ export function useStockComponents() {
   const autoFillLoading = ref(false)
   const platformPriceLoading = ref(false)
   const searchText = ref('')
-  const pendantFilter = ref('')
-  const stickerFilter = ref('')
-  const renameFilter = ref('')
 
   // 视图模式持久化：默认卡片；如果本地保存了选择则恢复
   const persistedDisplayMode = safeGetLocalStorage(STORAGE_KEYS.displayMode)
@@ -44,12 +41,12 @@ export function useStockComponents() {
     : 'card'
   const displayMode = ref(initialDisplayMode)
 
-  // 组合模式只在列表模式下生效：默认 true；如果本地保存了选择则恢复
+  // 组合模式：默认 true；如果本地保存了选择则恢复（卡片模式和列表模式都支持）
   const persistedGroupMode = safeGetLocalStorage(STORAGE_KEYS.groupMode)
   const initialGroupMode = persistedGroupMode === 'true'
     ? true
     : (persistedGroupMode === 'false' ? false : true)
-  const groupMode = ref(displayMode.value === 'list' ? initialGroupMode : false)
+  const groupMode = ref(initialGroupMode)
 
   const showPriceDiff = ref(true)
   const componentData = ref([])
@@ -59,7 +56,8 @@ export function useStockComponents() {
   const weaponNameFilter = ref('') // 磨损等级筛选
   const weaponNames = ref([]) // 磨损等级列表
   const currentPage = ref(1)
-  const pageSize = ref(10) // 列表模式默认每页显示数量（卡片模式会调整）
+  // 根据显示模式设置初始 pageSize：卡片模式100条，列表模式10条
+  const pageSize = ref(initialDisplayMode === 'card' ? 100 : 10)
   const currentOffset = ref(0) // 当前偏移量
   const hasMore = ref(true) // 是否还有更多数据
   const loadingMore = ref(false) // 是否正在加载更多
@@ -344,7 +342,7 @@ export function useStockComponents() {
     }
 
     try {
-      const response = await axios.get(`${API_COMPONENTS}/weapon_names/${selectedSteamId.value}`)
+      const response = await axios.get(`${API_COMPONENTS}/float_ranges/${selectedSteamId.value}`)
       if (response.data.success) {
         weaponNames.value = response.data.data || []
       } else {
@@ -482,83 +480,80 @@ export function useStockComponents() {
       ElMessage.warning('请选择Steam账号')
       return
     }
-    
+
     // 如果是重置，清空数据
     if (reset) {
       componentData.value = []
       currentOffset.value = 0
       hasMore.value = true
     }
-    
+
     loading.value = true
     try {
-      // 计算当前页码
-      const currentPageNum = Math.floor(currentOffset.value / pageSize.value) + 1
-      
-      console.log('正在加载组件数据，Steam ID:', selectedSteamId.value, 'Page:', currentPageNum, 'PageSize:', pageSize.value)
-      
+      // 列表模式：使用 currentPage，卡片模式：使用 offset 计算页码
+      const currentPageNum = displayMode.value === 'list'
+        ? currentPage.value
+        : Math.floor(currentOffset.value / pageSize.value) + 1
+
+      console.log('正在加载组件数据，Steam ID:', selectedSteamId.value, 'Page:', currentPageNum, 'PageSize:', pageSize.value, 'Mode:', displayMode.value)
+
       const params = {
         search: searchText.value,
         page: currentPageNum,
         page_size: pageSize.value,
-        // 服务端排序：默认按“单价/平均购入价”
+        // 服务端排序：默认按"单价/平均购入价"
         order_by: sortBy.value,
         order_dir: sortDir.value
       }
-      
+
       // 如果选择了组件，添加 assetid 参数进行筛选
       if (selectedComponent.value) {
         params.assetid = selectedComponent.value
       }
-      
+
       // 如果选择了武器类型，添加 weapon_type 参数进行筛选
       if (weaponTypeFilter.value) {
         params.weapon_type = weaponTypeFilter.value
       }
 
-      // 如果选择了磨损等级，添加 weapon_name 参数进行筛选
+      // 如果选择了磨损等级，添加 float_range 参数进行筛选
       if (weaponNameFilter.value) {
-        params.weapon_name = weaponNameFilter.value
-      }
-
-      // 添加挂件、印花、改名筛选参数
-      if (pendantFilter.value) {
-        params.pendant_filter = pendantFilter.value
-      }
-      if (stickerFilter.value) {
-        params.sticker_filter = stickerFilter.value
-      }
-      if (renameFilter.value) {
-        params.rename_filter = renameFilter.value
+        params.float_range = weaponNameFilter.value
       }
 
       const response = await axios.get(`${API_COMPONENTS}/components/${selectedSteamId.value}`, {
         params: params
       })
-      
+
       console.log('组件数据响应:', response.data)
-      
+
       if (response.data.success) {
         const newData = response.data.data || []
-        
-        // 追加新数据
-        componentData.value = [...componentData.value, ...newData]
+
+        // 列表模式：替换数据，卡片模式：追加数据
+        if (displayMode.value === 'list') {
+          componentData.value = newData
+        } else {
+          componentData.value = [...componentData.value, ...newData]
+        }
+
         totalItems.value = response.data.total
-        
-        // 检查是否还有更多数据
-        hasMore.value = newData.length === pageSize.value && componentData.value.length < totalItems.value
-        
-        // 更新偏移量
-        currentOffset.value += newData.length
-        
+
+        // 检查是否还有更多数据（仅卡片模式）
+        if (displayMode.value === 'card') {
+          hasMore.value = newData.length === pageSize.value && componentData.value.length < totalItems.value
+          // 更新偏移量
+          currentOffset.value += newData.length
+        }
+
         await loadComponentStats()
-        
+
         if (reset) {
           ElMessage.success(`加载成功，共 ${totalItems.value} 条记录`)
         }
-        
-        console.log('数据已加载，当前:', componentData.value.length, '条，总计:', totalItems.value, '还有更多:', hasMore.value)
-        
+
+        console.log('数据已加载，当前:', componentData.value.length, '条，总计:', totalItems.value, '模式:', displayMode.value)
+
         // 在卡片模式下，数据加载完成后设置观察器
         if (displayMode.value === 'card') {
           setupScrollObserver()
@@ -578,19 +573,31 @@ export function useStockComponents() {
     }
   }
 
-  const loadGroupedData = async () => {
+  const loadGroupedData = async (reset = true) => {
     if (!selectedSteamId.value) {
       ElMessage.warning('请选择Steam账号')
       return
     }
 
+    // 如果是重置，清空数据（卡片模式需要）
+    if (reset && displayMode.value === 'card') {
+      groupedData.value = []
+      currentOffset.value = 0
+      hasMore.value = true
+    }
+
     loading.value = true
     try {
+      // 列表模式：使用 currentPage，卡片模式：使用 offset 计算页码
+      const currentPageNum = displayMode.value === 'list'
+        ? currentPage.value
+        : Math.floor(currentOffset.value / pageSize.value) + 1
+
       const params = {
         search: searchText.value,
-        page: currentPage.value,
+        page: currentPageNum,
         page_size: pageSize.value,
-        // 服务端排序：组合模式价格列按“平均价”排序
+        // 服务端排序：组合模式价格列按"平均价"排序
         order_by: sortBy.value,
         order_dir: sortDir.value
       }
@@ -605,20 +612,9 @@ export function useStockComponents() {
         params.weapon_type = weaponTypeFilter.value
       }
 
-      // 如果选择了磨损等级，添加 weapon_name 参数进行筛选
+      // 如果选择了磨损等级，添加 float_range 参数进行筛选
       if (weaponNameFilter.value) {
-        params.weapon_name = weaponNameFilter.value
-      }
-
-      // 添加挂件、印花、改名筛选参数
-      if (pendantFilter.value) {
-        params.pendant_filter = pendantFilter.value
-      }
-      if (stickerFilter.value) {
-        params.sticker_filter = stickerFilter.value
-      }
-      if (renameFilter.value) {
-        params.rename_filter = renameFilter.value
+        params.float_range = weaponNameFilter.value
       }
 
       const response = await axios.get(`${API_COMPONENTS_GROUPED}/${selectedSteamId.value}`, {
@@ -626,9 +622,9 @@ export function useStockComponents() {
       })
 
       if (response.data.success) {
-        groupedData.value = (response.data.data || []).map(item => ({
+        const newData = (response.data.data || []).map(item => ({
           ...item,
-          // weapon_float 必须保持“磨损值”含义，避免列表磨损值列读错
+          // weapon_float 必须保持"磨损值"含义，避免列表磨损值列读错
           // 组合模式下如果只有 1 件物品，优先取 weapon_floats[0] 作为该行磨损值展示
           weapon_float: (Array.isArray(item.weapon_floats) && item.weapon_floats.length === 1)
             ? item.weapon_floats[0]
@@ -639,12 +635,36 @@ export function useStockComponents() {
           steam_price: item.total_steam_price,
           goods_assetid: item.item_name || item.steam_hash_name || Math.random().toString(36).slice(2)
         }))
+
+        // 列表模式：替换数据，卡片模式：追加数据
+        if (displayMode.value === 'list') {
+          groupedData.value = newData
+        } else {
+          groupedData.value = [...groupedData.value, ...newData]
+        }
+
         totalItems.value = response.data.total || 0
-        
+
+        // 检查是否还有更多数据（仅卡片模式）
+        if (displayMode.value === 'card') {
+          hasMore.value = newData.length === pageSize.value && groupedData.value.length < totalItems.value
+          // 更新偏移量
+          currentOffset.value += newData.length
+        }
+
         // 加载统计数据
         await loadComponentStats()
-        
-        ElMessage.success(`组合加载成功，共 ${groupedData.value.length} 条记录`)
+
+        if (reset) {
+          ElMessage.success(`组合加载成功，共 ${totalItems.value} 条记录`)
+        }
+
+        console.log('组合数据已加载，当前:', groupedData.value.length, '条，总计:', totalItems.value, '模式:', displayMode.value)
+
+        // 在卡片模式下，数据加载完成后设置观察器
+        if (displayMode.value === 'card') {
+          setupScrollObserver()
+        }
       } else {
         ElMessage.error(response.data.error || '加载组合数据失败')
         groupedData.value = []
@@ -677,18 +697,7 @@ export function useStockComponents() {
 
       // 添加磨损等级筛选
       if (weaponNameFilter.value) {
-        params.weapon_name = weaponNameFilter.value
-      }
-
-      // 添加挂件、印花、改名筛选参数
-      if (pendantFilter.value) {
-        params.pendant_filter = pendantFilter.value
-      }
-      if (stickerFilter.value) {
-        params.sticker_filter = stickerFilter.value
-      }
-      if (renameFilter.value) {
-        params.rename_filter = renameFilter.value
+        params.float_range = weaponNameFilter.value
       }
 
       // 添加组件assetid筛选
@@ -738,18 +747,26 @@ export function useStockComponents() {
   }
 
   const handleSizeChange = (val) => {
-    pageSize.value = val
+    // 卡片模式固定使用100条，列表模式使用用户选择的值
+    pageSize.value = displayMode.value === 'card' ? 100 : val
     currentPage.value = 1
-    if (!selectedComponent.value) {
+    currentOffset.value = 0
+    // 列表模式下都需要重新加载数据
+    if (displayMode.value === 'list') {
       groupMode.value ? loadGroupedData() : loadComponentData()
+    } else {
+      // 卡片模式下重新加载数据
+      loadComponentData()
     }
   }
 
   const handleCurrentChange = (val) => {
     currentPage.value = val
-    if (!selectedComponent.value) {
+    // 列表模式下都需要重新加载数据
+    if (displayMode.value === 'list') {
       groupMode.value ? loadGroupedData() : loadComponentData()
     }
+    // 卡片模式使用无限滚动，不需要处理页码变化
   }
 
   // 加载更多数据
@@ -757,10 +774,15 @@ export function useStockComponents() {
     if (loadingMore.value || !hasMore.value) {
       return
     }
-    
+
     loadingMore.value = true
     try {
-      await loadComponentData(false)
+      // 根据组合模式选择加载方法
+      if (groupMode.value) {
+        await loadGroupedData(false)
+      } else {
+        await loadComponentData(false)
+      }
     } finally {
       loadingMore.value = false
     }
@@ -854,9 +876,6 @@ export function useStockComponents() {
     selectedComponent.value = ''
     weaponTypeFilter.value = ''
     weaponNameFilter.value = ''
-    pendantFilter.value = ''
-    stickerFilter.value = ''
-    renameFilter.value = ''
     currentPage.value = 1
     currentOffset.value = 0
 
@@ -927,11 +946,6 @@ export function useStockComponents() {
   }
 
   const handleToggleGroupMode = (val = null) => {
-    // 只在列表模式下才允许切换组合模式
-    if (displayMode.value !== 'list') {
-      return
-    }
-    
     // 按钮直接传 true，开关传布尔值，默认取反
     if (val === true || val === false) {
       groupMode.value = val
@@ -941,7 +955,8 @@ export function useStockComponents() {
     currentPage.value = 1
     currentOffset.value = 0
     selectedComponent.value = ''
-    
+
+    // 根据显示模式加载数据
     if (groupMode.value) {
       loadGroupedData()
     } else {
@@ -954,34 +969,29 @@ export function useStockComponents() {
     // 持久化用户选择
     safeSetLocalStorage(STORAGE_KEYS.displayMode, newMode)
 
-    if (newMode === 'card' && groupMode.value) {
-      // 切换到卡片模式，关闭组合模式
-      groupMode.value = false
+    if (newMode === 'card') {
+      // 切换到卡片模式
       currentOffset.value = 0
       // 卡片模式：增加单次加载数量以优化无限滚动体验
-      if (pageSize.value < 20) {
-        pageSize.value = 50
-      }
-      loadComponentData()
-      // setupScrollObserver 会在 loadComponentData 完成后自动调用
+      pageSize.value = 100
+      // 根据组合模式加载数据
+      groupMode.value ? loadGroupedData() : loadComponentData()
+      // setupScrollObserver 会在 loadComponentData/loadGroupedData 完成后自动调用
     } else if (newMode === 'list' && oldMode === 'card') {
-      // 从卡片模式切换回列表模式：恢复上次的组合/明细选择（默认组合）
-      const saved = safeGetLocalStorage(STORAGE_KEYS.groupMode)
-      groupMode.value = saved === 'false' ? false : true
+      // 从卡片模式切换回列表模式
       currentPage.value = 1
       // 列表模式：恢复默认分页大小
       if (pageSize.value > 20) {
         pageSize.value = 10
       }
-      loadGroupedData()
+      // 根据组合模式加载数据
+      groupMode.value ? loadGroupedData() : loadComponentData()
     }
   })
 
-  // 监听组合模式变化并持久化（仅列表模式）
+  // 监听组合模式变化并持久化
   watch(groupMode, (val) => {
-    if (displayMode.value === 'list') {
-      safeSetLocalStorage(STORAGE_KEYS.groupMode, val ? 'true' : 'false')
-    }
+    safeSetLocalStorage(STORAGE_KEYS.groupMode, val ? 'true' : 'false')
   })
 
   // 监听显示模式变化，重新设置观察器
@@ -1015,21 +1025,8 @@ export function useStockComponents() {
       
       if (response.data.success) {
         const itemCount = response.data.total_items || 0
-        ElMessage.success(`组件物品更新成功! 共更新 ${itemCount} 个物品`)
-        
-        // 自动同步购入价格
-        try {
-          console.log('自动同步购入价格...')
-          const priceResponse = await axios.post(`${API_COMPONENTS}/auto_fill_prices/${selectedSteamId.value}`)
-          if (priceResponse.data.success) {
-            const data = priceResponse.data.data
-            console.log(`购入价格自动同步完成: 成功填充 ${data.filled_count}/${data.total_count}`)
-          }
-        } catch (priceError) {
-          console.error('自动同步购入价格失败:', priceError)
-          // 不阻断主流程，只记录错误
-        }
-        
+        ElMessage.success(`组件物品更新成功! 共更新 ${itemCount} 个物品（已自动同步购入价格）`)
+
         // 更新成功后重新加载数据
         await loadComponentData()
       } else {
@@ -1163,26 +1160,13 @@ export function useStockComponents() {
       const successCount = response.data.success_count || 0
       const failedCount = response.data.failed_count || 0
       const totalItems = response.data.total_items || 0
-      
+
       if (response.data.success) {
-        ElMessage.success(`全部组件更新成功! 成功: ${successCount}/${assetidList.length}, 总物品数: ${totalItems}`)
+        ElMessage.success(`全部组件更新成功! 成功: ${successCount}/${assetidList.length}, 总物品数: ${totalItems}（已自动同步购入价格）`)
       } else {
-        ElMessage.warning(`部分组件更新失败! 成功: ${successCount}, 失败: ${failedCount}, 总物品数: ${totalItems}`)
+        ElMessage.warning(`部分组件更新失败! 成功: ${successCount}, 失败: ${failedCount}, 总物品数: ${totalItems}（已自动同步购入价格）`)
       }
-      
-      // 自动同步购入价格
-      try {
-        console.log('自动同步购入价格...')
-        const priceResponse = await axios.post(`${API_COMPONENTS}/auto_fill_prices/${selectedSteamId.value}`)
-        if (priceResponse.data.success) {
-          const data = priceResponse.data.data
-          console.log(`购入价格自动同步完成: 成功填充 ${data.filled_count}/${data.total_count}`)
-        }
-      } catch (priceError) {
-        console.error('自动同步购入价格失败:', priceError)
-        // 不阻断主流程，只记录错误
-      }
-      
+
       // 更新成功后重新加载数据
       await loadInventoryComponents()
       await loadComponentData()
@@ -1243,26 +1227,13 @@ export function useStockComponents() {
       const successCount = response.data.success_count || 0
       const failedCount = response.data.failed_count || 0
       const totalItems = response.data.total_items || 0
-      
+
       if (response.data.success) {
-        ElMessage.success(`异常组件更新成功! 成功: ${successCount}/${assetidList.length}, 总物品数: ${totalItems}`)
+        ElMessage.success(`异常组件更新成功! 成功: ${successCount}/${assetidList.length}, 总物品数: ${totalItems}（已自动同步购入价格）`)
       } else {
-        ElMessage.warning(`部分异常组件更新失败! 成功: ${successCount}, 失败: ${failedCount}, 总物品数: ${totalItems}`)
+        ElMessage.warning(`部分异常组件更新失败! 成功: ${successCount}, 失败: ${failedCount}, 总物品数: ${totalItems}（已自动同步购入价格）`)
       }
-      
-      // 自动同步购入价格
-      try {
-        console.log('自动同步购入价格...')
-        const priceResponse = await axios.post(`${API_COMPONENTS}/auto_fill_prices/${selectedSteamId.value}`)
-        if (priceResponse.data.success) {
-          const data = priceResponse.data.data
-          console.log(`购入价格自动同步完成: 成功填充 ${data.filled_count}/${data.total_count}`)
-        }
-      } catch (priceError) {
-        console.error('自动同步购入价格失败:', priceError)
-        // 不阻断主流程，只记录错误
-      }
-      
+
       // 更新成功后重新加载数据
       await loadInventoryComponents()
       await loadComponentData()
@@ -1714,47 +1685,18 @@ export function useStockComponents() {
     if (!component) {
       console.warn('组件未找到 - targetAssetId:', targetAssetId)
       console.warn('可用的组件列表:', inventoryComponents.value.map(c => c.assetid))
-
-      // 提供两个选项：直接跳转或刷新列表
-      ElMessageBox.confirm(
-        '该物品所属的组件未在下拉框列表中找到。可能是数据未同步，是否尝试直接跳转？',
-        '提示',
-        {
-          confirmButtonText: '直接跳转',
-          cancelButtonText: '刷新列表',
-          type: 'warning',
-          distinguishCancelAndClose: true
-        }
-      ).then(() => {
-        // 用户选择直接跳转
-        selectedComponent.value = targetAssetId
-        popoverVisible.value = false
-        handleComponentSelect()
-        ElMessage.success('已跳转到该物品所属的组件')
-      }).catch((action) => {
-        if (action === 'cancel') {
-          // 用户选择刷新列表
-          popoverVisible.value = false
-          loadInventoryComponents().then(() => {
-            ElMessage.success('库存组件列表已刷新，请重试')
-          })
-        } else {
-          // 用户关闭对话框
-          popoverVisible.value = false
-        }
-      })
-      return
+      console.log('直接使用物品的assetid进行跳转')
     }
 
-    // 组件存在，正常跳转
-    console.log('找到组件:', component)
+    // 直接跳转（无论组件是否在列表中）
+    console.log('跳转到组件:', targetAssetId)
     selectedComponent.value = targetAssetId
     popoverVisible.value = false
 
     // 加载该组件的数据
     handleComponentSelect()
 
-    ElMessage.success(`已跳转到组件: ${component.item_name || targetAssetId}`)
+    ElMessage.success(`已跳转到组件: ${component?.item_name || targetAssetId}`)
   }
 
   // 关闭 popover
@@ -1785,9 +1727,13 @@ export function useStockComponents() {
           loadComponentData()
         }
       } else {
-        // 卡片模式
-        loadComponentData()
-        // setupScrollObserver 会在 loadComponentData 完成后自动调用
+        // 卡片模式 - 根据组合模式加载数据
+        if (groupMode.value) {
+          loadGroupedData()
+        } else {
+          loadComponentData()
+        }
+        // setupScrollObserver 会在 loadComponentData/loadGroupedData 完成后自动调用
       }
     }
   })
@@ -1859,7 +1805,6 @@ export function useStockComponents() {
     groupMode,
     displayMode,
     showPriceDiff,
-    updateLoading,
     updateAllLoading,
     updateAbnormalLoading,
     platformPriceLoading,
@@ -1873,9 +1818,6 @@ export function useStockComponents() {
     weaponTypes,
     weaponNameFilter,
     weaponNames,
-    pendantFilter,
-    stickerFilter,
-    renameFilter,
     currentPage,
     pageSize,
     totalItems,
@@ -1920,10 +1862,8 @@ export function useStockComponents() {
     handleClearSearch,
     handleWeaponTypeChange,
     handleWeaponNameChange,
-    handleFilterChange,
     handleSteamIdChange,
     handleComponentSelect,
-    handleUpdateComponent,
     handleUpdateAllComponents,
     handleUpdateAbnormalComponents,
     handleToggleGroupMode,

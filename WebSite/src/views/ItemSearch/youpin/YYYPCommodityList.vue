@@ -740,7 +740,8 @@ const props = defineProps({
   yyypTotalCount: Number,
   yyypLoadingMore: Boolean,
   yyypHasMore: Boolean,
-  yyypFilterType: String  // 当前筛选类型
+  yyypFilterType: String,  // 当前筛选类型
+  selectedSteamId: String  // 选中的Steam ID
 })
 
 // 定义事件
@@ -1260,7 +1261,7 @@ const openPresaleBuyDialog = async (item) => {
     // 使用V2 API获取预售详情
     const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/presale/getPresaleDetail`
     const response = await axios.post(url, {
-      steamId: '',
+      steamId: props.selectedSteamId || '',
       commodityId: item.id.toString()
     })
 
@@ -1320,7 +1321,7 @@ const confirmPresaleBuy = async () => {
     // 使用V2 API购买预售商品
     const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/presale/buyPresaleCommodity`
     const response = await axios.post(url, {
-      steamId: '',
+      steamId: props.selectedSteamId || '',
       commodityId: currentPresaleItem.value.id.toString(),
       price: depositAmount.toString(),  // 传入定金金额（元）
       autoConfirmPayment: presaleBuyForm.value.autoConfirmPayment,
@@ -1369,7 +1370,7 @@ const openOnSaleBuyDialog = async (item) => {
     // 使用V2 API获取在售商品详情
     const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/getWeaponDetail`
     const response = await axios.post(url, {
-      steamId: '',
+      steamId: props.selectedSteamId || '',
       commodityId: item.id.toString()
     })
 
@@ -1426,14 +1427,28 @@ const confirmOnSaleBuy = async () => {
   buyingOnSale.value = true
 
   try {
-    // 调用父组件的购买方法
-    emit('buy-commodity', currentOnSaleItem.value)
+    // 使用V2 API购买在售商品
+    const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/buyCommodity`
+    const response = await axios.post(url, {
+      steamId: props.selectedSteamId || '',
+      commodityId: currentOnSaleItem.value.id.toString(),
+      buyQuantity: 1,
+      price: typeof price === 'number' && price > 100 ? price : (price * 100),  // 确保价格单位为分
+      autoConfirmPayment: onSaleBuyForm.value.autoConfirmPayment,
+      paymentChannel: onSaleBuyForm.value.paymentChannel || undefined,
+      pollPayment: onSaleBuyForm.value.pollPayment
+    })
 
-    ElMessage.success('购买请求已发送！')
-    onSaleBuyDialogVisible.value = false
+    if (response.data.success) {
+      ElMessage.success('购买成功！')
+      console.log('购买结果:', response.data.data)
+      onSaleBuyDialogVisible.value = false
 
-    // 刷新列表
-    emit('refresh-yyyp')
+      // 刷新列表
+      emit('refresh-yyyp')
+    } else {
+      throw new Error(response.data.message || '购买失败')
+    }
   } catch (error) {
     console.error('购买在售商品失败:', error)
     const errorMsg = error.response?.data?.message || error.message || '购买失败，请稍后重试'
