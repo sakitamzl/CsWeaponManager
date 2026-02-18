@@ -468,9 +468,11 @@ export const API_CONFIG = {
 
     // 悠悠有品转租相关（新API V2）
     YYYP_CHANGE_SUBLEASE_PRICE: '/spiderApiV2/youping/units/on_sale/sublease/changeSubleasePrice',  // 修改转租价格（0CD改价）
+    YYYP_SUBLEASE_AUTO_PRICING: '/spiderApiV2/youping/units/on_sale/sublease/autoPricing',  // 转租商品自动定价
+    YYYP_SUBLEASE_GET_COMPENSATION_TEXT: '/spiderApiV2/youping/units/on_sale/sublease/getCompensationText',  // 获取转租赔付文本信息
 
     // 悠悠有品出租自动定价（爬虫端）
-    YYYP_RENT_AUTO_PRICING: '/youping898SpiderV1/rentAutoPricing',
+    YYYP_RENT_AUTO_PRICING: '/spiderApiV2/youping/units/on_sale/lent/autoPricing',
 
     
 
@@ -953,6 +955,8 @@ export const apiUrls = {
 
   // 悠悠有品转租API（新API V2）
   yyypChangeSubleasePrice: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_CHANGE_SUBLEASE_PRICE),  // 修改转租价格（0CD改价）
+  yyypSubleaseAutoPricing: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_SUBLEASE_AUTO_PRICING),  // 转租商品自动定价
+  yyypSubleaseGetCompensationText: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_SUBLEASE_GET_COMPENSATION_TEXT),  // 获取转租赔付文本信息
 
   // SteamDT API
   steamdtMarketIndex: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAMDT_MARKET_INDEX),
