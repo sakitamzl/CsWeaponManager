@@ -145,11 +145,28 @@
 
     <!-- 租赁管理组件 -->
     <LeaseManagement
-      v-if="selectedTradeType === 'lease' || selectedTradeType === 'sublease'"
+      v-if="selectedTradeType === 'lease'"
       :loading="loading"
       :display-data="currentDisplayData"
       :display-mode="displayMode"
       :trade-type="selectedTradeType"
+      :is-multi-select-mode="isMultiSelectMode"
+      :selected-items="selectedItems"
+      @update-price="handleUpdatePrice"
+      @remove-from-sale="handleRemoveFromSale"
+      @batch-change-price="handleBatchChangePrice"
+      @batch-remove-from-sale="handleBatchRemoveFromSale"
+      @card-click="handleCardClick"
+      @preview="openPreview"
+      @clear-selection="selectedItems = []"
+    />
+
+    <!-- 转租管理组件 -->
+    <SubleaseManagement
+      v-if="selectedTradeType === 'sublease'"
+      :loading="loading"
+      :display-data="currentDisplayData"
+      :display-mode="displayMode"
       :is-multi-select-mode="isMultiSelectMode"
       :selected-items="selectedItems"
       @update-price="handleUpdatePrice"
@@ -283,6 +300,29 @@
       <div v-else class="loading-placeholder">
         <el-icon class="is-loading"><Loading /></el-icon>
         <span>加载租赁配置中...</span>
+      </div>
+    </el-dialog>
+
+    <!-- 转租改价弹窗 -->
+    <el-dialog
+      v-model="subleasePriceDialogVisible"
+      :title="selectedItem ? `转租改价 - ${getCardTitle(selectedItem)}` : `批量转租改价 - 已选择${selectedItems.length}件物品`"
+      width="900px"
+      :close-on-click-modal="false"
+      class="sublease-price-dialog"
+    >
+      <div v-if="(selectedItem || selectedItems.length > 0) && subleaseInitData" class="sublease-price-content">
+        <RentFormYYYP
+          :items="formattedSubleaseItem"
+          :steamId="steamId"
+          :initData="subleaseInitData"
+          @submit="confirmSubleasePriceUpdate"
+          @cancel="subleasePriceDialogVisible = false"
+        />
+      </div>
+      <div v-else class="loading-placeholder">
+        <el-icon class="is-loading"><Loading /></el-icon>
+        <span>加载转租配置中...</span>
       </div>
     </el-dialog>
 

@@ -9,6 +9,7 @@ import OfferProcessing from './OfferProcessing/index.vue'
 import RentedOut from './RentedOut/index.vue'
 import SaleManagement from './SaleManagement/index.vue'
 import LeaseManagement from './LeaseManagement/index.vue'
+import SubleaseManagement from './SubleaseManagement/index.vue'
 import PresaleManagement from './PresaleManagement/index.vue'
 import InstantPayment from './InstantPayment/index.vue'
 
@@ -23,6 +24,7 @@ export default {
     RentedOut,
     SaleManagement,
     LeaseManagement,
+    SubleaseManagement,
     PresaleManagement,
     InstantPayment
   },
@@ -65,6 +67,7 @@ export default {
     // 弹窗相关
     const updatePriceDialogVisible = ref(false)
     const rentPriceDialogVisible = ref(false)  // 租赁改价对话框
+    const subleasePriceDialogVisible = ref(false)  // 转租改价对话框
     const batchChangePriceDialogVisible = ref(false)  // 批量改价对话框
     const previewVisible = ref(false)
     const selectedItem = ref(null)
@@ -77,6 +80,10 @@ export default {
     const rentPriceFormData = ref(null)  // 租赁改价表单数据
     const rentInitData = ref(null)  // 租赁初始化数据
     const steamId = ref('')  // 当前操作的完整 Steam ID
+
+    // 转租改价相关
+    const subleasePriceFormData = ref(null)  // 转租改价表单数据
+    const subleaseInitData = ref(null)  // 转租初始化数据
 
     // 批量改价相关
     const batchChangePriceForm = ref({
@@ -96,6 +103,7 @@ export default {
           image: getWeaponImage(item.steam_hash_name || item.item_name),
           float: item.weapon_float || item.float,
           paintseed: item.paintseed,
+          trade_type: 'lease',  // 标记为租赁
           weapon_classID: {
             yyyp_Price: item.deposit_amount || item.yyyp_price || item.market_price,
             yyyp_id: item.template_id || item.yyyp_id
@@ -119,11 +127,60 @@ export default {
         image: getWeaponImage(item.steam_hash_name || item.item_name),
         float: item.weapon_float || item.float,
         paintseed: item.paintseed,
+        trade_type: 'lease',  // 标记为租赁
         weapon_classID: {
           yyyp_Price: item.deposit_amount || item.yyyp_price || item.market_price,
           yyyp_id: item.template_id || item.yyyp_id
         },
         // 添加当前租赁配置用于自动填充
+        currentRentDays: item.lease_max_days,
+        currentShortRentPrice: item.short_lease_amount,
+        currentLongRentPrice: item.long_lease_amount,
+        currentDepositPrice: item.deposit_amount
+      }]
+    })
+
+    // 格式化转租改价的 item 数据
+    const formattedSubleaseItem = computed(() => {
+      // 批量改价模式：使用 selectedItems
+      if (selectedItems.value.length > 0 && !selectedItem.value) {
+        return selectedItems.value.map(item => ({
+          assetid: item.assetid || item.id,
+          name: item.item_name || item.steam_hash_name,
+          steam_hash_name: item.steam_hash_name || item.item_name,
+          image: getWeaponImage(item.steam_hash_name || item.item_name),
+          float: item.weapon_float || item.float,
+          paintseed: item.paintseed,
+          trade_type: 'sublease',  // 标记为转租
+          weapon_classID: {
+            yyyp_Price: item.deposit_amount || item.yyyp_price || item.market_price,
+            yyyp_id: item.template_id || item.yyyp_id
+          },
+          // 添加当前转租配置用于自动填充
+          currentRentDays: item.lease_max_days,
+          currentShortRentPrice: item.short_lease_amount,
+          currentLongRentPrice: item.long_lease_amount,
+          currentDepositPrice: item.deposit_amount
+        }))
+      }
+
+      // 单个改价模式：使用 selectedItem
+      if (!selectedItem.value) return []
+
+      const item = selectedItem.value
+      return [{
+        assetid: item.assetid || item.id,
+        name: item.item_name || item.steam_hash_name,
+        steam_hash_name: item.steam_hash_name || item.item_name,
+        image: getWeaponImage(item.steam_hash_name || item.item_name),
+        float: item.weapon_float || item.float,
+        paintseed: item.paintseed,
+        trade_type: 'sublease',  // 标记为转租
+        weapon_classID: {
+          yyyp_Price: item.deposit_amount || item.yyyp_price || item.market_price,
+          yyyp_id: item.template_id || item.yyyp_id
+        },
+        // 添加当前转租配置用于自动填充
         currentRentDays: item.lease_max_days,
         currentShortRentPrice: item.short_lease_amount,
         currentLongRentPrice: item.long_lease_amount,
@@ -746,10 +803,13 @@ export default {
       selectedItem.value = item
       previewVisible.value = false
 
-      // 判断是否为租赁或转租类型
-      if (item.trade_type === 'lease' || item.trade_type === 'sublease') {
+      // 判断交易类型
+      if (item.trade_type === 'lease') {
         // 打开租赁改价对话框
         openRentPriceDialog(item)
+      } else if (item.trade_type === 'sublease') {
+        // 打开转租改价对话框
+        openSubleasePriceDialog(item)
       } else {
         // 打开简单售价改价对话框
         updatePriceForm.value.newPrice = item.sale_price
@@ -869,7 +929,7 @@ export default {
       }
     }
 
-    // 打开租赁改价对话框
+    // 打开租赁改价对话框（仅用于租赁，不包含转租）
     const openRentPriceDialog = async (item) => {
       try {
         loading.value = true
@@ -883,7 +943,75 @@ export default {
           return
         }
 
-        // 获取租赁初始化数据、赔付文本、转租协议和转租详情（并行请求）
+        // 获取租赁初始化数据和赔付文本（并行请求）
+        const [initResponse, compensationResponse] = await Promise.all([
+          axios.post(
+            apiUrls.yyypRentInit(),
+            {
+              steamId: steamId.value,
+              steam_hash_name: [item.steam_hash_name || item.item_name]
+            }
+          ),
+          axios.post(
+            apiUrls.yyypGetCompensationText(),
+            {
+              steamId: steamId.value,
+              itemInfo: {
+                abrade: String(item.weapon_float || item.float || '0'),
+                leaseType: 0,  // 0=租赁
+                marketHashName: item.steam_hash_name || item.item_name,
+                marketPrice: String(item.yyyp_price || item.market_price || '0'),
+                pageSourceType: 10,
+                paintSeed: parseInt(item.paintseed || 0),
+                steamAssetId: parseInt(item.assetid || item.id || 0),
+                supportEasyCompensation: false,
+                templateId: parseInt(item.template_id || item.yyyp_id || 0)
+              }
+            }
+          )
+        ])
+
+        // 解析初始化数据
+        if (initResponse.data && initResponse.data.success) {
+          rentInitData.value = initResponse.data.data
+
+          // 合并赔付文本数据
+          if (compensationResponse.data && compensationResponse.data.success) {
+            const compensationData = compensationResponse.data.data
+            rentInitData.value.compensationRichContent = compensationData.compensationRichContent
+            console.log('[租赁改价] 赔付文本获取成功:', compensationData.compensationRichContent)
+          } else {
+            console.warn('[租赁改价] 赔付文本获取失败:', compensationResponse.data?.message)
+          }
+
+          // 打开租赁改价对话框
+          rentPriceDialogVisible.value = true
+        } else {
+          ElMessage.error(initResponse.data?.message || '获取租赁配置失败')
+        }
+      } catch (error) {
+        console.error('打开租赁改价对话框失败:', error)
+        ElMessage.error('打开租赁改价对话框失败: ' + error.message)
+      } finally {
+        loading.value = false
+      }
+    }
+
+    // 打开转租改价对话框（仅用于转租）
+    const openSubleasePriceDialog = async (item) => {
+      try {
+        loading.value = true
+
+        // 获取完整的 Steam ID（从 accountList 中查找）
+        steamId.value = accountList.value.find(acc => acc.id === selectedAccount.value)?.steam_id || ''
+
+        if (!steamId.value) {
+          ElMessage.error('无法获取Steam ID，请重新选择账号')
+          loading.value = false
+          return
+        }
+
+        // 获取转租所需的所有数据（并行请求）
         const [initResponse, compensationResponse, agreementResponse, detailResponse] = await Promise.all([
           axios.post(
             apiUrls.yyypRentInit(),
@@ -898,7 +1026,7 @@ export default {
               steamId: steamId.value,
               itemInfo: {
                 abrade: String(item.weapon_float || item.float || '0'),
-                leaseType: 0,  // 租赁
+                leaseType: 1,  // 1=转租
                 marketHashName: item.steam_hash_name || item.item_name,
                 marketPrice: String(item.yyyp_price || item.market_price || '0'),
                 pageSourceType: 10,
@@ -926,44 +1054,43 @@ export default {
 
         // 解析初始化数据
         if (initResponse.data && initResponse.data.success) {
-          rentInitData.value = initResponse.data.data
+          subleaseInitData.value = initResponse.data.data
 
           // 合并赔付文本数据
           if (compensationResponse.data && compensationResponse.data.success) {
             const compensationData = compensationResponse.data.data
-            // 保存赔付文本到 initData 中，方便 RentFormYYYP 使用
-            rentInitData.value.compensationRichContent = compensationData.compensationRichContent
-            console.log('[租赁改价] 赔付文本获取成功:', compensationData.compensationRichContent)
+            subleaseInitData.value.compensationRichContent = compensationData.compensationRichContent
+            console.log('[转租改价] 赔付文本获取成功:', compensationData.compensationRichContent)
           } else {
-            console.warn('[租赁改价] 赔付文本获取失败:', compensationResponse.data?.message)
+            console.warn('[转租改价] 赔付文本获取失败:', compensationResponse.data?.message)
           }
 
           // 合并转租协议数据
           if (agreementResponse.data && agreementResponse.data.success) {
             const agreementData = agreementResponse.data.data
-            rentInitData.value.agreementList = agreementData
-            console.log('[租赁改价] 转租协议获取成功:', agreementData)
+            subleaseInitData.value.agreementList = agreementData
+            console.log('[转租改价] 转租协议获取成功:', agreementData)
           } else {
-            console.warn('[租赁改价] 转租协议获取失败:', agreementResponse.data?.message)
+            console.warn('[转租改价] 转租协议获取失败:', agreementResponse.data?.message)
           }
 
           // 合并转租详情数据
           if (detailResponse.data && detailResponse.data.success) {
             const detailData = detailResponse.data.data
-            rentInitData.value.subleaseDetail = detailData
-            console.log('[租赁改价] 转租详情获取成功:', detailData)
+            subleaseInitData.value.subleaseDetail = detailData
+            console.log('[转租改价] 转租详情获取成功:', detailData)
           } else {
-            console.warn('[租赁改价] 转租详情获取失败:', detailResponse.data?.message)
+            console.warn('[转租改价] 转租详情获取失败:', detailResponse.data?.message)
           }
 
-          // 打开租赁改价对话框
-          rentPriceDialogVisible.value = true
+          // 打开转租改价对话框
+          subleasePriceDialogVisible.value = true
         } else {
-          ElMessage.error(initResponse.data?.message || '获取租赁配置失败')
+          ElMessage.error(initResponse.data?.message || '获取转租配置失败')
         }
       } catch (error) {
-        console.error('打开租赁改价对话框失败:', error)
-        ElMessage.error('打开租赁改价对话框失败: ' + error.message)
+        console.error('打开转租改价对话框失败:', error)
+        ElMessage.error('打开转租改价对话框失败: ' + error.message)
       } finally {
         loading.value = false
       }
@@ -1041,6 +1168,83 @@ export default {
       } catch (error) {
         console.error('[租赁改价] 失败:', error)
         ElMessage.error('改价失败: ' + (error.response?.data?.message || error.message))
+      } finally {
+        loading.value = false
+      }
+    }
+
+    // 提交转租改价
+    const confirmSubleasePriceUpdate = async (submitData) => {
+      console.log('[转租改价] 提交数据:', submitData)
+      console.log('[转租改价] 选中项:', selectedItem.value)
+      console.log('[转租改价] 批量选中项:', selectedItems.value)
+
+      try {
+        loading.value = true
+
+        // 判断是批量改价还是单个改价
+        const isBatch = selectedItems.value.length > 0 && !selectedItem.value
+
+        // 统一使用 Commoditys 数组格式（单个和批量都使用同一个API）
+        const itemsToProcess = isBatch ? selectedItems.value : [selectedItem.value]
+
+        const Commoditys = submitData.items.map((formItem, index) => {
+          const originalItem = itemsToProcess[index]
+
+          const config = {
+            CommodityId: parseInt(originalItem.commodity_id || originalItem.id),
+            CompensationType: 7,
+            IsCanLease: true,
+            IsCanSold: submitData.tradeMode === 2,
+            LeaseDeposit: String(formItem.depositPrice),
+            LeaseMaxDays: submitData.rentDays,
+            LeaseUnitPrice: formItem.shortRentPrice,  // 短租单价
+            LongLeaseUnitPrice: formItem.longRentPrice,  // 长租单价
+            NomarlChargePercent: "0.25",
+            OpenLeaseActivity: submitData.services?.rentActivity || false,
+            OriginCompensationType: 7,
+            Remark: "",
+            SupportZeroCD: submitData.services?.zeroCooldown ? 1 : 0,
+            UseDepositSafeguard: 1,
+            VipChargePercent: "0.2",
+            VipSwitchStatus: 1
+          }
+
+          if (submitData.services?.zeroCooldown) {
+            config.ZeroCDConfig = {
+              MinCoefficient: "95",
+              PricingType: 0
+            }
+          }
+
+          return config
+        })
+
+        const requestData = {
+          steamId: steamId.value,
+          commodities: Commoditys
+        }
+
+        // 使用转租改价API
+        const apiUrl = apiUrls.yyypChangeSubleasePrice()
+        console.log(`[转租改价] 调用API: ${apiUrl}`, requestData)
+
+        // 发送改价请求
+        const response = await axios.post(apiUrl, requestData)
+
+        if (response.data && response.data.success) {
+          ElMessage.success(isBatch ? '批量转租改价成功' : '转租改价成功')
+          subleasePriceDialogVisible.value = false
+          selectedItem.value = null
+          selectedItems.value = []
+          // 重新加载在售数据
+          await loadOnSaleData()
+        } else {
+          ElMessage.error(response.data?.message || '转租改价失败')
+        }
+      } catch (error) {
+        console.error('[转租改价] 失败:', error)
+        ElMessage.error('转租改价失败: ' + (error.response?.data?.message || error.message))
       } finally {
         loading.value = false
       }
@@ -1605,13 +1809,16 @@ export default {
       selectedItems,
       updatePriceDialogVisible,
       rentPriceDialogVisible,
+      subleasePriceDialogVisible,
       previewVisible,
       selectedItem,
       previewItem,
       updatePriceForm,
       rentInitData,
+      subleaseInitData,
       steamId,
       formattedRentItem,
+      formattedSubleaseItem,
       onSaleStats,
       currentDisplayData,
       loadOnSaleData,
@@ -1623,6 +1830,7 @@ export default {
       setMarketPrice,
       confirmUpdatePrice,
       confirmRentPriceUpdate,
+      confirmSubleasePriceUpdate,
       handleRemoveFromSale,
       handleBatchChangePrice,
       calculateNewPrice,

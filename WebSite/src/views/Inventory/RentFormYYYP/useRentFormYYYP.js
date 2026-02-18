@@ -5,6 +5,13 @@ import { apiUrls } from '@/config/api'
 export function useRentFormYYYP(props, { emit }) {
   const autoPricingLoading = ref(false)
 
+  // 判断是否为转租模式（从 props.items 中获取 trade_type）
+  const isSubleaseMode = computed(() => {
+    if (!props.items || props.items.length === 0) return false
+    // 检查第一个 item 的 trade_type 是否为 'sublease'
+    return props.items[0]?.trade_type === 'sublease'
+  })
+
   // 全局表单数据（租期）
   const formData = reactive({
     rentDays: 8, // 默认天数
@@ -400,7 +407,12 @@ export function useRentFormYYYP(props, { emit }) {
 
     autoPricingLoading.value = true
     try {
-      const resp = await fetch(apiUrls.yyypRentAutoPricing(), {
+      // 根据是否为转租模式选择不同的API
+      const apiUrl = isSubleaseMode.value
+        ? apiUrls.yyypSubleaseAutoPricing()
+        : apiUrls.yyypRentAutoPricing()
+
+      const resp = await fetch(apiUrl, {
         method: 'POST',
         mode: 'cors',
         headers: {
