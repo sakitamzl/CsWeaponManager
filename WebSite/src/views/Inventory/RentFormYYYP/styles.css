@@ -629,6 +629,17 @@
   opacity: 0.9;
 }
 
+.set-071-btn {
+  background: linear-gradient(135deg, #E6A23C, #F0B85C);
+  color: #fff;
+  border: none;
+}
+
+.set-071-btn:hover {
+  background: linear-gradient(135deg, #F0B85C, #E6A23C);
+  opacity: 0.9;
+}
+
 .cancel-btn {
   background: #3a3a3a;
   color: #fff;

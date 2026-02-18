@@ -141,6 +141,12 @@
       >
         一键定价
       </el-button>
+      <el-button
+        class="footer-btn set-071-btn"
+        @click="handleSet071Price"
+      >
+        设置0.71租金
+      </el-button>
       <el-button class="footer-btn cancel-btn" @click="handleCancel">
         取消
       </el-button>

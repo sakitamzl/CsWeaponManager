@@ -116,14 +116,12 @@ export function useRentFormYYYP(props, { emit }) {
     return compensationMode.depositCompensationRichContent.includes('text-decoration: line-through')
   }
 
-  // 判断指定饰品是否支持0CD（需要同时满足：后端支持 + 有折扣活动）
+  // 判断指定饰品是否支持0CD（只要在 zeroCDRentConfigMap 中存在即可）
   const canItemEnableZeroCD = (assetId) => {
     const config = getItemZeroCDConfig(assetId)
-    const hasDiscount = itemHasStrikethrough(assetId)
 
-    // zeroCDRentSwitch === 1 表示后端支持0CD
-    // 同时需要有折扣活动（赔付文本中有删除线）
-    return config?.zeroCDRentSwitch === 1 && hasDiscount
+    // 只要 zeroCDRentConfigMap 中包含该饰品，就说明可以开启 0CD
+    return config != null
   }
 
   // 最小/最大租赁天数
@@ -535,6 +533,32 @@ export function useRentFormYYYP(props, { emit }) {
     }
   }
 
+  // 设置0.71租金
+  const handleSet071Price = () => {
+    if (!props.items || props.items.length === 0) {
+      ElMessage.warning('没有可设置的饰品')
+      return
+    }
+
+    let successCount = 0
+    props.items.forEach(item => {
+      const itemForm = itemFormMap[item.assetid]
+      if (itemForm) {
+        // 设置短租租金为 0.71
+        itemForm.shortRentPrice = '0.71'
+        // 设置长租租金为 0.71
+        itemForm.longRentPrice = '0.71'
+        successCount++
+      }
+    })
+
+    if (successCount > 0) {
+      ElMessage.success(`已为 ${successCount} 件饰品设置租金为 0.71`)
+    } else {
+      ElMessage.warning('未能设置租金')
+    }
+  }
+
   return {
     formData,
     itemFormMap,
@@ -554,6 +578,7 @@ export function useRentFormYYYP(props, { emit }) {
     handleCancel,
     handleSubmit,
     handleAutoPricing,
+    handleSet071Price,
     autoPricingLoading,
     // 赔付方式相关
     getItemCompensationMode,
