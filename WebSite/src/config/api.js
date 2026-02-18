@@ -427,7 +427,6 @@ export const API_CONFIG = {
 
     YYYP_GET_LEASE_LIST: '/spiderApiV2/youping/units/on_sale/lent/getLeaseList',  // 获取租赁列表（新API）
     YYYP_GET_SUBLEASE_LIST: '/spiderApiV2/youping/units/on_sale/sublease/getSubleaseList',  // 获取转租列表（新API）
-    YYYP_GET_PRESALE_LIST: '/youping898SpiderV1/getPresaleList',  // 获取预售列表
     YYYP_GET_SELL_LIST: '/spiderApiV2/youping/units/on_sale/sell/getSellList',  // 获取出售列表（新API）
     YYYP_GET_RENTED_OUT_LIST: '/spiderApiV2/youping/units/on_sale/rented_out/getRentedOutList',  // 获取已租出列表（新API）
     YYYP_GET_MY_SELL_ORDERS: '/spiderApiV2/youping/units/on_sale/offer_handling/getMySellOrders',  // 获取我的出售订单（报价处理，新API）
@@ -487,16 +486,23 @@ export const API_CONFIG = {
 
     UPDATE_EXTRACT: '/api/update/extract',  // 解压更新包
 
+    // 悠悠有品自动购买相关（V2 API）
+    AUTO_BUY_RENAMED_WEAPON: '/spiderApiV2/youping/auto_weapon/autoBuyRenamedWeapon',  // 自动购买改名武器
+    AUTO_BUY_PENDANT_WEAPON: '/spiderApiV2/youping/auto_weapon/autoBuyPendantWeapon',  // 自动购买挂件武器
+    STOP_PENDANT_SEARCH: '/spiderApiV2/youping/auto_weapon/stopPendantSearch',  // 停止挂件搜索
+    GET_PENDANT_SEARCH_PROGRESS: '/spiderApiV2/youping/auto_weapon/getPendantSearchProgress',  // 获取挂件搜索进度
+    REALTIME_LOWEST_PRICE: '/spiderApiV2/youping/auto_weapon/getRealTimeLowestPrice',  // 实时查询悠悠在售底价
+
   },
 
-  // 悠悠有品自动购买相关（V2 API） - 顶层配置
+  // 悠悠有品自动购买相关（V2 API） - 顶层配置（向后兼容）
   YOUPIN_AUTO_BUY_RENAMED_WEAPON: '/spiderApiV2/youping/auto_weapon/autoBuyRenamedWeapon',  // 自动购买改名武器
   YOUPIN_AUTO_BUY_PENDANT_WEAPON: '/spiderApiV2/youping/auto_weapon/autoBuyPendantWeapon',  // 自动购买挂件武器
   YOUPIN_STOP_PENDANT_SEARCH: '/spiderApiV2/youping/auto_weapon/stopPendantSearch',  // 停止挂件搜索
   YOUPIN_GET_PENDANT_SEARCH_PROGRESS: '/spiderApiV2/youping/auto_weapon/getPendantSearchProgress',  // 获取挂件搜索进度
   YOUPIN_REALTIME_LOWEST_PRICE: '/spiderApiV2/youping/auto_weapon/getRealTimeLowestPrice',  // 实时查询悠悠在售底价
 
-  // 悠悠有品库存租借相关（V2 API） - 顶层配置
+  // 悠悠有品库存租借相关（V2 API） - 顶层配置（向后兼容）
   YOUPIN_GET_INVENTORY_EXTEND_INFO: '/spiderApiV2/youping/units/inventory/lent/getInventoryExtendInfo',  // 获取库存扩展信息
   YOUPIN_UPLOAD_RENT: '/spiderApiV2/youping/units/inventory/lent/uploadRent'  // 上传租借饰品
 

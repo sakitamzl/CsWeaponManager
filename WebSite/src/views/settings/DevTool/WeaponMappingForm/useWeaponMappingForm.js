@@ -87,8 +87,8 @@ export default function useWeaponMappingForm() {
     
     try {
       console.log('开始同步悠悠有品饰品映射, Steam ID:', selectedSteamIdYoupin.value)
-      
-      const response = await axios.post(apiUrls.youpinSyncTemplates(), {
+
+      const response = await axios.post(apiUrls.youpinSyncWeaponTemplates(), {
         steamId: selectedSteamIdYoupin.value
       })
 

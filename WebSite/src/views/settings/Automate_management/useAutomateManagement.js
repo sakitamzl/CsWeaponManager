@@ -640,7 +640,7 @@ export function useAutomateManagement() {
   const syncYoupinPriceMapping = async (steamId, syncHistory = true) => {
     try {
       const response = await axios.post(
-        apiUrls.youpinSyncTemplates(),
+        apiUrls.youpinSyncWeaponTemplates(),
         { steamId, syncHistory }
       )
 

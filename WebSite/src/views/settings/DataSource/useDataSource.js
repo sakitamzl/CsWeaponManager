@@ -1416,9 +1416,9 @@ export function useDataSource() {
       }
       
       console.log('发送给悠悠有品爬虫的数据:', spiderData)
-      
+
       // 调用爬虫API
-      const response = await axios.post(apiUrls.youpinSpider(), spiderData)
+      const response = await axios.post(apiUrls.youpinSyncNewData(), spiderData)
 
       // 后端成功返回 200 状态码和 "获取完成" 消息
       if (response.status === 200) {
@@ -2199,9 +2199,9 @@ export function useDataSource() {
       }
       
       console.log('发送给悠悠有品全部采集爬虫的数据:', spiderData)
-      
+
       // 调用全部采集爬虫API
-      const response = await axios.post(apiUrls.youpinFullSpider(), spiderData)
+      const response = await axios.post(apiUrls.youpinSyncHistoryData(), spiderData)
 
       // 后端成功返回 200 状态码
       if (response.status === 200) {
