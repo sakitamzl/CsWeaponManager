@@ -107,7 +107,7 @@
 
                 <!-- 0CD -->
                 <div
-                  class="service-btn"
+                  class="service-btn zero-cd-btn"
                   :class="{
                     active: itemFormMap[item.assetid].zeroCooldown,
                     disabled: !canItemEnableZeroCD(item.assetid)

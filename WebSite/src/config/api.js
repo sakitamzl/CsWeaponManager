@@ -470,6 +470,7 @@ export const API_CONFIG = {
     YYYP_CHANGE_SUBLEASE_PRICE: '/spiderApiV2/youping/units/on_sale/sublease/changeSubleasePrice',  // 修改转租价格（0CD改价）
     YYYP_SUBLEASE_AUTO_PRICING: '/spiderApiV2/youping/units/on_sale/sublease/autoPricing',  // 转租商品自动定价
     YYYP_SUBLEASE_GET_COMPENSATION_TEXT: '/spiderApiV2/youping/units/on_sale/sublease/getCompensationText',  // 获取转租赔付文本信息
+    YYYP_SUBLEASE_GET_BATCH_COMPENSATION_TEXT: '/spiderApiV2/youping/units/on_sale/sublease/getBatchCompensationText',  // 批量获取转租赔付文本信息
 
     // 悠悠有品出租自动定价（爬虫端）
     YYYP_RENT_AUTO_PRICING: '/spiderApiV2/youping/units/on_sale/lent/autoPricing',
@@ -957,6 +958,7 @@ export const apiUrls = {
   yyypChangeSubleasePrice: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_CHANGE_SUBLEASE_PRICE),  // 修改转租价格（0CD改价）
   yyypSubleaseAutoPricing: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_SUBLEASE_AUTO_PRICING),  // 转租商品自动定价
   yyypSubleaseGetCompensationText: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_SUBLEASE_GET_COMPENSATION_TEXT),  // 获取转租赔付文本信息
+  yyypSubleaseGetBatchCompensationText: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_SUBLEASE_GET_BATCH_COMPENSATION_TEXT),  // 批量获取转租赔付文本信息
 
   // SteamDT API
   steamdtMarketIndex: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAMDT_MARKET_INDEX),

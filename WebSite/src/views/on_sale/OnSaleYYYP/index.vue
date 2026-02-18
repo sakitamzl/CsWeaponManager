@@ -307,7 +307,7 @@
     <el-dialog
       v-model="subleasePriceDialogVisible"
       :title="selectedItem ? `转租改价 - ${getCardTitle(selectedItem)}` : `批量转租改价 - 已选择${selectedItems.length}件物品`"
-      width="900px"
+      width="1000px"
       :close-on-click-modal="false"
       class="sublease-price-dialog"
     >

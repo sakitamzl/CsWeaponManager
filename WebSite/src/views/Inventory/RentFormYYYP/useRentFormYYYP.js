@@ -64,8 +64,20 @@ export function useRentFormYYYP(props, { emit }) {
   })
 
   // 获取指定饰品的扩展信息（赔付方式列表）
+  // 支持两种数据源：1. 库存出租（inventoryExtendInfo） 2. 转租改价（commodityCompensationMap）
   const getItemExtendInfo = (assetId) => {
-    return props.initData?.inventoryExtendInfo?.normalLeaseCompensationMap?.[assetId]
+    // 先尝试从库存出租的数据源获取（使用 assetId）
+    const inventoryData = props.initData?.inventoryExtendInfo?.normalLeaseCompensationMap?.[assetId]
+    if (inventoryData) return inventoryData
+
+    // 如果没有，尝试从转租改价的数据源获取（使用 commodity_id）
+    // 找到对应的 item，获取其 commodity_id
+    const item = props.items.find(i => i.assetid === assetId)
+    if (item?.commodity_id) {
+      return props.initData?.commodityCompensationMap?.[String(item.commodity_id)]
+    }
+
+    return null
   }
 
   // 获取指定饰品当前的赔付方式详情（根据 compensationTypeCode）
@@ -80,7 +92,18 @@ export function useRentFormYYYP(props, { emit }) {
 
   // 获取指定饰品的0CD配置
   const getItemZeroCDConfig = (assetId) => {
-    return props.initData?.inventoryExtendInfo?.zeroCDRentConfigMap?.[assetId]
+    // 先尝试从库存出租的数据源获取
+    const inventoryConfig = props.initData?.inventoryExtendInfo?.zeroCDRentConfigMap?.[assetId]
+    if (inventoryConfig) return inventoryConfig
+
+    // 如果没有，尝试从转租改价的数据源获取
+    const item = props.items.find(i => i.assetid === assetId)
+    if (item?.commodity_id) {
+      const commodityData = props.initData?.commodityCompensationMap?.[String(item.commodity_id)]
+      return commodityData?.zeroCDRentConfig
+    }
+
+    return null
   }
 
   // 检测指定饰品的赔付文本中是否有删除线（表示有折扣活动）

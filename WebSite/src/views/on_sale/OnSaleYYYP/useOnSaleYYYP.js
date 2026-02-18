@@ -146,6 +146,7 @@ export default {
       if (selectedItems.value.length > 0 && !selectedItem.value) {
         return selectedItems.value.map(item => ({
           assetid: item.assetid || item.id,
+          commodity_id: item.commodity_id || item.id,  // 添加 commodity_id 用于查找赔付文本
           name: item.item_name || item.steam_hash_name,
           steam_hash_name: item.steam_hash_name || item.item_name,
           image: getWeaponImage(item.steam_hash_name || item.item_name),
@@ -170,6 +171,7 @@ export default {
       const item = selectedItem.value
       return [{
         assetid: item.assetid || item.id,
+        commodity_id: item.commodity_id || item.id,  // 添加 commodity_id 用于查找赔付文本
         name: item.item_name || item.steam_hash_name,
         steam_hash_name: item.steam_hash_name || item.item_name,
         image: getWeaponImage(item.steam_hash_name || item.item_name),
@@ -1012,6 +1014,7 @@ export default {
         }
 
         // 获取转租所需的所有数据（并行请求）
+        const commodityId = String(item.commodity_id || item.id)
         const [initResponse, compensationResponse, agreementResponse, detailResponse] = await Promise.all([
           axios.post(
             apiUrls.yyypRentInit(),
@@ -1021,20 +1024,11 @@ export default {
             }
           ),
           axios.post(
-            apiUrls.yyypGetCompensationText(),
+            apiUrls.yyypSubleaseGetBatchCompensationText(),
             {
               steamId: steamId.value,
-              itemInfo: {
-                abrade: String(item.weapon_float || item.float || '0'),
-                leaseType: 1,  // 1=转租
-                marketHashName: item.steam_hash_name || item.item_name,
-                marketPrice: String(item.yyyp_price || item.market_price || '0'),
-                pageSourceType: 10,
-                paintSeed: parseInt(item.paintseed || 0),
-                steamAssetId: parseInt(item.assetid || item.id || 0),
-                supportEasyCompensation: false,
-                templateId: parseInt(item.template_id || item.yyyp_id || 0)
-              }
+              commodityIds: [commodityId],
+              gameId: '730'
             }
           ),
           axios.post(
@@ -1047,7 +1041,7 @@ export default {
             apiUrls.yyypGetSubleaseDetail(),
             {
               steamId: steamId.value,
-              commodityIds: [String(item.commodity_id || item.id)]
+              commodityIds: [commodityId]
             }
           )
         ])
@@ -1059,8 +1053,13 @@ export default {
           // 合并赔付文本数据
           if (compensationResponse.data && compensationResponse.data.success) {
             const compensationData = compensationResponse.data.data
-            subleaseInitData.value.compensationRichContent = compensationData.compensationRichContent
-            console.log('[转租改价] 赔付文本获取成功:', compensationData.compensationRichContent)
+            subleaseInitData.value.commodityCompensationMap = compensationData.commodityCompensationMap
+            subleaseInitData.value.leasingModelConfigMap = compensationData.leasingModelConfigMap
+            // 为了向后兼容，保留单个商品的 compensationRichContent
+            if (compensationData.commodityCompensationMap && compensationData.commodityCompensationMap[commodityId]) {
+              subleaseInitData.value.compensationRichContent = compensationData.commodityCompensationMap[commodityId].compensationRichContent
+            }
+            console.log('[转租改价] 赔付文本获取成功:', compensationData.commodityCompensationMap)
           } else {
             console.warn('[转租改价] 赔付文本获取失败:', compensationResponse.data?.message)
           }
@@ -1319,9 +1318,9 @@ export default {
       // 检查第一个选中项的类型
       const firstItem = selectedItems.value[0]
 
-      // 判断是否为租赁或转租类型
-      if (firstItem.trade_type === 'lease' || firstItem.trade_type === 'sublease') {
-        // 租赁/转租类型：打开租赁改价对话框
+      // 判断是租赁类型
+      if (firstItem.trade_type === 'lease') {
+        // 租赁类型：打开租赁改价对话框
         try {
           loading.value = true
 
@@ -1358,8 +1357,87 @@ export default {
             ElMessage.error(initResponse.data?.message || '获取租赁配置失败')
           }
         } catch (error) {
-          console.error('[批量改价] 打开租赁改价对话框失败:', error)
+          console.error('[批量租赁改价] 打开租赁改价对话框失败:', error)
           ElMessage.error('打开租赁改价对话框失败: ' + error.message)
+        } finally {
+          loading.value = false
+        }
+      } else if (firstItem.trade_type === 'sublease') {
+        // 转租类型：打开转租改价对话框
+        try {
+          loading.value = true
+
+          // 获取完整的 Steam ID
+          steamId.value = accountList.value.find(acc => acc.id === selectedAccount.value)?.steam_id || ''
+
+          if (!steamId.value) {
+            ElMessage.error('无法获取Steam ID，请重新选择账号')
+            loading.value = false
+            return
+          }
+
+          // 获取选中项的 steam_hash_name 用于初始化
+          const hashNames = selectedItems.value.map(item => item.steam_hash_name || item.item_name)
+          const commodityIds = selectedItems.value.map(item => String(item.commodity_id || item.id))
+
+          // 获取转租所需的所有数据（并行请求）
+          const [initResponse, agreementResponse, compensationResponse] = await Promise.all([
+            axios.post(
+              apiUrls.yyypRentInit(),
+              {
+                steamId: steamId.value,
+                steam_hash_name: hashNames
+              }
+            ),
+            axios.post(
+              apiUrls.yyypGetSubleaseAgreement(),
+              {
+                steamId: steamId.value
+              }
+            ),
+            axios.post(
+              apiUrls.yyypSubleaseGetBatchCompensationText(),
+              {
+                steamId: steamId.value,
+                commodityIds: commodityIds,
+                gameId: '730'
+              }
+            )
+          ])
+
+          if (initResponse.data && initResponse.data.success) {
+            subleaseInitData.value = initResponse.data.data
+
+            // 合并转租协议数据
+            if (agreementResponse.data && agreementResponse.data.success) {
+              const agreementData = agreementResponse.data.data
+              subleaseInitData.value.agreementList = agreementData
+              console.log('[批量转租改价] 转租协议获取成功:', agreementData)
+            } else {
+              console.warn('[批量转租改价] 转租协议获取失败:', agreementResponse.data?.message)
+            }
+
+            // 合并批量赔付文本数据
+            if (compensationResponse.data && compensationResponse.data.success) {
+              const compensationData = compensationResponse.data.data
+              subleaseInitData.value.commodityCompensationMap = compensationData.commodityCompensationMap
+              subleaseInitData.value.leasingModelConfigMap = compensationData.leasingModelConfigMap
+              console.log('[批量转租改价] 赔付文本获取成功:', compensationData.commodityCompensationMap)
+            } else {
+              console.warn('[批量转租改价] 赔付文本获取失败:', compensationResponse.data?.message)
+            }
+
+            // 清空 selectedItem，表示这是批量操作
+            selectedItem.value = null
+
+            // 打开转租改价对话框
+            subleasePriceDialogVisible.value = true
+          } else {
+            ElMessage.error(initResponse.data?.message || '获取转租配置失败')
+          }
+        } catch (error) {
+          console.error('[批量转租改价] 打开转租改价对话框失败:', error)
+          ElMessage.error('打开转租改价对话框失败: ' + error.message)
         } finally {
           loading.value = false
         }
