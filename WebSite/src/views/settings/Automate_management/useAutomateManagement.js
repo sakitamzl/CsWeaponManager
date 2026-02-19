@@ -619,7 +619,7 @@ export function useAutomateManagement() {
       }
       
       const response = await axios.post(
-        `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/NewData`,
+        `${API_CONFIG.SPIDER_BASE_URL}${API_CONFIG.ENDPOINTS.YOUPIN_SYNC_NEW_DATA}`,
         spiderData
       )
       

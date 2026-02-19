@@ -214,13 +214,21 @@ export const API_CONFIG = {
     RENTAL_STATS_BY_TIME: (startDate, endDate) => `/webRentalV1/getRentalStatsByTimeRange/${startDate}/${endDate}`,
     RENTAL_COUNT: '/webRentalV1/countRentalNumber',
 
-    // AES工具相关
+    // AES工具相关（V2 API - 新版本）
 
-    AES_DECRYPT: '/aesToolsV1/decrypt',
+    AES_DECRYPT: '/spiderApiV2/youping/units/settings/dev_tools/aesDecrypt',
 
-    AES_CHECK_LICENSE: '/aesToolsV1/check-license',
+    AES_CHECK_LICENSE: '/spiderApiV2/youping/units/settings/dev_tools/aesCheckLicense',
 
-    AES_HEALTH: '/aesToolsV1/health',
+    AES_HEALTH: '/spiderApiV2/youping/units/settings/dev_tools/aesHealth',
+
+    // AES工具相关（V1 API - 已废弃，保留向后兼容）
+
+    AES_DECRYPT_V1: '/aesToolsV1/decrypt',
+
+    AES_CHECK_LICENSE_V1: '/aesToolsV1/check-license',
+
+    AES_HEALTH_V1: '/aesToolsV1/health',
 
 
 

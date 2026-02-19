@@ -2249,7 +2249,7 @@ const openYYYPBuyDialog = async (item) => {
 
   try {
     const response = await axios.post(
-      `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/getPresaleDetail`,
+      `${API_CONFIG.SPIDER_BASE_URL}${API_CONFIG.ENDPOINTS.YYYP_GET_PRESALE_DETAIL}`,
       {
         steamId: '',
         commodityId: item.id.toString()
@@ -2319,7 +2319,7 @@ const confirmYYYPBuy = async () => {
     }
 
     const response = await axios.post(
-      `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/buyCommodity`,
+      `${API_CONFIG.SPIDER_BASE_URL}${API_CONFIG.ENDPOINTS.YYYP_ITEM_SEARCH_BUY_COMMODITY}`,
       requestData
     )
 

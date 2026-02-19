@@ -1454,7 +1454,7 @@ export function useInventory() {
         // 并发请求 - 使用 Promise.allSettled 确保即使扩展信息获取失败也能打开出租表单
         const [initResult, extendInfoResult] = await Promise.allSettled([
           axios.post(
-            `${API_CONFIG.SPIDER_BASE_URL}/youping898SpiderV1/rentInit`,
+            `${API_CONFIG.SPIDER_BASE_URL}${API_CONFIG.ENDPOINTS.YYYP_RENT_INIT}`,
             {
               steamId: selectedSteamId.value,
               steam_hash_name: selectedItems.value.map(item => item.steam_hash_name)
