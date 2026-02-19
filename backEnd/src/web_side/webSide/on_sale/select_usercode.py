@@ -142,11 +142,11 @@ def get_on_sale_items():
         
         # 根据交易类型选择不同的Spider API
         spider_endpoint_map = {
-            'sale': '/youping898SpiderV1/getSellList',
-            'lease': '/youping898SpiderV1/getLeaseList',
-            'sublease': '/youping898SpiderV1/getSubleaseList',
-            'presale': '/youping898SpiderV1/getPresaleList',
-            'transfer': '/youping898SpiderV1/getTransferList'
+            'sale': '/spiderApiV2/youping/units/on_sale/sell/getSellList',
+            'lease': '/spiderApiV2/youping/units/on_sale/lent/getLeaseList',
+            'sublease': '/spiderApiV2/youping/units/on_sale/sublease/getSubleaseList',
+            'presale': '/spiderApiV2/youping/units/on_sale/presale/getPresaleList',
+            'transfer': '/spiderApiV2/youping/units/on_sale/transfer/getTransferList'
         }
         
         spider_endpoint = spider_endpoint_map.get(trade_type)
@@ -298,7 +298,7 @@ def remove_from_sale():
         
         # 调用Spider服务下架商品
         try:
-            spider_url = f"{SPIDER_API_ADDRESS}/youping898SpiderV1/offShelfItems"
+            spider_url = f"{SPIDER_API_ADDRESS}/spiderApiV2/youping/units/on_sale/sell/offShelf"
             spider_response = requests.post(
                 spider_url,
                 json={
