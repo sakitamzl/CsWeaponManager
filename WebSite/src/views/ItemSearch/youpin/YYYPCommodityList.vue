@@ -45,9 +45,10 @@
           </button>
           <span class="filter-divider">|</span>
           <button
-            class="filter-btn"
+            class="filter-btn disabled"
             :class="{ active: yyypFilterType === 'sold' }"
-            @click.stop="handleFilterChange('sold')"
+            @click.stop=""
+            disabled
           >
             成交
           </button>

@@ -9,8 +9,8 @@
         <li
           v-for="item in menuItems"
           :key="item.path"
-          :class="{ active: isMenuItemActive(item.path) }"
-          @click.stop="handleMenuClick(item.path)"
+          :class="{ active: isMenuItemActive(item.path), disabled: item.disabled }"
+          @click.stop="item.disabled ? null : handleMenuClick(item.path)"
           :title="isCollapsed ? item.title : ''"
         >
           <img :src="item.icon" :alt="item.title" class="menu-icon">

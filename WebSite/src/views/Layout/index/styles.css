@@ -68,6 +68,21 @@
   box-sizing: border-box;
 }
 
+/* 禁用状态的菜单项 */
+.sidebar li.disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.sidebar li.disabled .menu-icon {
+  filter: grayscale(100%);
+}
+
+.sidebar li.disabled .menu-text {
+  color: #666;
+}
+
 /* 收缩状态下的菜单项 - 保持相同高度和左对齐 */
 .sidebar.collapsed li {
   padding: 0.625rem 0.5rem !important;
