@@ -443,13 +443,15 @@ export const API_CONFIG = {
     YYYP_GET_PURCHASE_ORDERS: '/spiderApiV2/youping/units/on_sale/purchase_request/getPurchaseOrders',  // 获取求购订单（求购中/暂停中，新API）
     YYYP_GET_PENDING_PAYMENT_ORDERS: '/spiderApiV2/youping/units/on_sale/purchase_request/getPendingPaymentOrders',  // 获取待支付订单（新API）
     YYYP_PAUSE_PURCHASE_ORDER: '/spiderApiV2/youping/units/on_sale/purchase_request/purchasing/pauseOrder',  // 暂停求购订单（新API）
-    YYYP_RESUME_PURCHASE_ORDER: '/spiderApiV2/youping/units/on_sale/purchase_request/purchasing/resumeOrder',  // 恢复求购订单（新API）
+    YYYP_OPEN_PURCHASE_ORDER: '/spiderApiV2/youping/units/on_sale/purchase_request/paused/openOrder',  // 开启暂停中的求购订单
     YYYP_DELETE_PURCHASE_ORDER: '/spiderApiV2/youping/units/on_sale/purchase_request/purchasing/deleteOrder',  // 删除求购订单（新API）
     YYYP_GET_ORDER_INFO: '/spiderApiV2/youping/units/on_sale/purchase_request/purchasing/getOrderInfo',  // 获取订单详情（新API）
     YYYP_PRE_UPDATE_CHECK: '/spiderApiV2/youping/units/on_sale/purchase_request/purchasing/preUpdateCheck',  // 修改前置检查（新API）
     YYYP_EDIT_PURCHASE_ORDER: '/spiderApiV2/youping/units/on_sale/purchase_request/purchasing/editOrder',  // 修改求购订单（新API）
     YYYP_QUICK_PRICE_INCREASE: '/spiderApiV2/youping/units/on_sale/purchase_request/purchasing/quickIncrease',  // 一键加价预检查（新API）
     YYYP_CONFIRM_PRICE_INCREASE: '/spiderApiV2/youping/units/on_sale/purchase_request/purchasing/confirmQuickIncrease',  // 确认一键加价（新API）
+    YYYP_GET_PURCHASE_RECORDS: '/spiderApiV2/youping/units/on_sale/purchase_request/history/getRecords',  // 获取求购记录（分页）
+    YYYP_SEARCH_PURCHASE_TEMPLATE: '/spiderApiV2/youping/units/on_sale/purchase_request/search/queryTemplate',  // 搜索求购饰品模板
     YYYP_OFF_SHELF: '/spiderApiV2/youping/units/on_sale/sell/offShelf',  // 下架商品（新API）
     YYYP_CANCEL_SUBLEASE: '/spiderApiV2/youping/units/on_sale/sublease/cancelSublease',  // 取消转租（新API）
     YYYP_CHANGE_PRICE: '/spiderApiV2/youping/units/on_sale/sell/changePrice',  // 改价（售卖商品，新API）
@@ -958,13 +960,15 @@ export const apiUrls = {
   yyypGetPurchaseOrders: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_PURCHASE_ORDERS),  // 获取求购订单（求购中/暂停中）
   yyypGetPendingPaymentOrders: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_PENDING_PAYMENT_ORDERS),  // 获取待支付订单
   yyypPausePurchaseOrder: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_PAUSE_PURCHASE_ORDER),  // 暂停求购订单
-  yyypResumePurchaseOrder: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_RESUME_PURCHASE_ORDER),  // 恢复求购订单
+  yyypOpenPurchaseOrder: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_OPEN_PURCHASE_ORDER),  // 开启暂停中的求购订单
   yyypDeletePurchaseOrder: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_DELETE_PURCHASE_ORDER),  // 删除求购订单
   yyypGetOrderInfo: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_ORDER_INFO),  // 获取订单详情
   yyypPreUpdateCheck: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_PRE_UPDATE_CHECK),  // 修改前置检查
   yyypEditPurchaseOrder: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_EDIT_PURCHASE_ORDER),  // 修改求购订单
   yyypQuickPriceIncrease: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_QUICK_PRICE_INCREASE),  // 一键加价预检查
   yyypConfirmPriceIncrease: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_CONFIRM_PRICE_INCREASE),  // 确认一键加价
+  yyypGetPurchaseRecords: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_PURCHASE_RECORDS),  // 获取求购记录
+  yyypSearchPurchaseTemplate: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_SEARCH_PURCHASE_TEMPLATE),  // 搜索求购饰品模板
   yyypOffShelf: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_OFF_SHELF),
   yyypCancelSublease: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_CANCEL_SUBLEASE),
   yyypChangePrice: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_CHANGE_PRICE),  // 售卖商品改价

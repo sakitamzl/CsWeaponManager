@@ -19,7 +19,8 @@ export default {
     const subTabs = ref([
       { value: 'purchasing', label: '求购中' },
       { value: 'paused', label: '暂停中' },
-      { value: 'pending_payment', label: '待支付' }
+      { value: 'pending_payment', label: '待支付' },
+      { value: 'history', label: '求购记录' }
     ])
     const activeSubTab = ref('purchasing')
 
@@ -35,6 +36,26 @@ export default {
     const currentEditOrderNo = ref('')
     const editOrderData = ref(null)
 
+    // 求购记录分页状态
+    const historyPage = ref(1)
+    const historyHasMore = ref(true)
+    const historyLoading = ref(false)
+
+    // 求购中分页状态
+    const purchasingPage = ref(1)
+    const purchasingHasMore = ref(true)
+    const purchasingLoading = ref(false)
+
+    // 暂停中分页状态
+    const pausedPage = ref(1)
+    const pausedHasMore = ref(true)
+    const pausedLoading = ref(false)
+
+    // 发布求购：搜索状态
+    const searchKeyword = ref('')
+    const searchResults = ref([])
+    const searchLoading = ref(false)
+
     // 倒计时定时器
     let countdownTimer = null
 
@@ -43,12 +64,13 @@ export default {
       return [...purchasingItems.value, ...pausedItems.value, ...pendingPaymentItems.value]
     })
 
-    // 计算属性 - 筛选后的历史记录
+    // 计算属性 - 筛选后的历史记录（按 API 数字状态码过滤）
     const filteredHistoryItems = computed(() => {
-      if (historyFilter.value === 'all') {
-        return historyItems.value
-      }
-      return historyItems.value.filter(item => item.status === historyFilter.value)
+      if (historyFilter.value === 'all') return historyItems.value
+      const statusCodeMap = { 'completed': 40, 'deleted': 1 }
+      const targetStatus = statusCodeMap[historyFilter.value]
+      if (targetStatus === undefined) return historyItems.value
+      return historyItems.value.filter(item => item.status === targetStatus)
     })
 
     // 获取子标签计数
@@ -60,6 +82,8 @@ export default {
           return pausedItems.value.length
         case 'pending_payment':
           return pendingPaymentItems.value.length
+        case 'history':
+          return historyItems.value.length
         default:
           return 0
       }
@@ -88,54 +112,78 @@ export default {
       })
     }
 
-    // 加载求购中订单
-    const loadPurchasingOrders = async () => {
-      if (!props.steamId) {
-        return { success: true, count: 0 }
-      }
+    // 加载更多求购中订单（无限滚动追加）
+    const loadMorePurchasing = async () => {
+      if (purchasingLoading.value || !purchasingHasMore.value) return
+      if (!props.steamId) return
 
+      purchasingLoading.value = true
       try {
         const response = await axios.post(apiUrls.yyypGetPurchaseOrders(), {
           steamId: props.steamId,
-          status: 20  // 20 = 求购中
+          status: 20,
+          pageIndex: purchasingPage.value
         })
 
         if (response.data && response.data.code === 200) {
-          purchasingItems.value = response.data.data?.orders || []
-          return { success: true, count: purchasingItems.value.length }
+          const result = response.data.data
+          purchasingItems.value = [...purchasingItems.value, ...(result.orders || [])]
+          purchasingHasMore.value = result.has_more || false
+          purchasingPage.value++
         } else {
+          purchasingHasMore.value = false
           console.error('加载求购中订单失败:', response.data?.message)
-          return { success: false, error: response.data?.message || '未知错误' }
         }
       } catch (error) {
         console.error('加载求购中订单异常:', error)
-        return { success: false, error: error.message }
+        purchasingHasMore.value = false
+      } finally {
+        purchasingLoading.value = false
       }
     }
 
-    // 加载暂停中订单
-    const loadPausedOrders = async () => {
-      if (!props.steamId) {
-        return { success: true, count: 0 }
-      }
+    // 重置求购中列表
+    const resetPurchasing = () => {
+      purchasingItems.value = []
+      purchasingPage.value = 1
+      purchasingHasMore.value = true
+    }
 
+    // 加载更多暂停中订单（无限滚动追加）
+    const loadMorePaused = async () => {
+      if (pausedLoading.value || !pausedHasMore.value) return
+      if (!props.steamId) return
+
+      pausedLoading.value = true
       try {
         const response = await axios.post(apiUrls.yyypGetPurchaseOrders(), {
           steamId: props.steamId,
-          status: 30  // 30 = 暂停中
+          status: 30,
+          pageIndex: pausedPage.value
         })
 
         if (response.data && response.data.code === 200) {
-          pausedItems.value = response.data.data?.orders || []
-          return { success: true, count: pausedItems.value.length }
+          const result = response.data.data
+          pausedItems.value = [...pausedItems.value, ...(result.orders || [])]
+          pausedHasMore.value = result.has_more || false
+          pausedPage.value++
         } else {
+          pausedHasMore.value = false
           console.error('加载暂停中订单失败:', response.data?.message)
-          return { success: false, error: response.data?.message || '未知错误' }
         }
       } catch (error) {
         console.error('加载暂停中订单异常:', error)
-        return { success: false, error: error.message }
+        pausedHasMore.value = false
+      } finally {
+        pausedLoading.value = false
       }
+    }
+
+    // 重置暂停中列表
+    const resetPaused = () => {
+      pausedItems.value = []
+      pausedPage.value = 1
+      pausedHasMore.value = true
     }
 
     // 加载待支付订单
@@ -171,28 +219,31 @@ export default {
 
       loading.value = true
       try {
-        let result = null
-
         switch (activeSubTab.value) {
           case 'purchasing':
-            result = await loadPurchasingOrders()
+            resetPurchasing()
+            await loadMorePurchasing()
             break
           case 'paused':
-            result = await loadPausedOrders()
+            resetPaused()
+            await loadMorePaused()
             break
-          case 'pending_payment':
-            result = await loadPendingPaymentOrders()
+          case 'pending_payment': {
+            const result = await loadPendingPaymentOrders()
+            if (result && !result.success) {
+              ElMessage.error(`加载失败: ${result.error}`)
+              emit('update:count', 0)
+              return
+            }
+            break
+          }
+          case 'history':
+            resetHistory()
+            await loadMoreHistory()
             break
         }
-
-        if (result && !result.success) {
-          ElMessage.error(`加载失败: ${result.error}`)
-          emit('update:count', 0)
-        } else if (result) {
-          // 成功加载，更新总计数
-          const totalCount = purchasingItems.value.length + pausedItems.value.length + pendingPaymentItems.value.length
-          emit('update:count', totalCount)
-        }
+        const totalCount = purchasingItems.value.length + pausedItems.value.length + pendingPaymentItems.value.length
+        emit('update:count', totalCount)
       } catch (error) {
         console.error('加载求购数据失败:', error)
         ElMessage.error('加载失败: ' + error.message)
@@ -202,24 +253,95 @@ export default {
       }
     }
 
-    // 获取历史状态类型
+    // 无限滚动：路由到当前标签对应的加载器
+    const loadMoreCurrentTab = () => {
+      if (activeSubTab.value === 'purchasing') loadMorePurchasing()
+      else if (activeSubTab.value === 'paused') loadMorePaused()
+      else if (activeSubTab.value === 'history') loadMoreHistory()
+    }
+
+    // 当前标签是否禁用滚动加载
+    const currentTabScrollDisabled = computed(() => {
+      if (activeSubTab.value === 'purchasing') return !purchasingHasMore.value || purchasingLoading.value
+      if (activeSubTab.value === 'paused') return !pausedHasMore.value || pausedLoading.value
+      if (activeSubTab.value === 'history') return !historyHasMore.value || historyLoading.value
+      return true
+    })
+
+    // 获取历史状态类型（按 API 状态码）
     const getHistoryStatusType = (status) => {
-      const statusMap = {
-        'completed': 'success',
-        'cancelled': 'info',
-        'timeout': 'danger'
-      }
+      const statusMap = { 40: 'success', 20: 'warning', 1: 'danger' }
       return statusMap[status] || 'info'
     }
 
-    // 获取历史状态标签
-    const getHistoryStatusLabel = (status) => {
-      const labelMap = {
-        'completed': '已完成',
-        'cancelled': '已取消',
-        'timeout': '已超时'
+    // 加载更多求购记录（无限滚动）
+    const loadMoreHistory = async () => {
+      if (historyLoading.value || !historyHasMore.value) return
+      if (!props.steamId) return
+
+      historyLoading.value = true
+      try {
+        const response = await axios.post(apiUrls.yyypGetPurchaseRecords(), {
+          steamId: props.steamId,
+          pageIndex: historyPage.value
+        })
+
+        if (response.data && response.data.code === 200) {
+          const result = response.data.data
+          historyItems.value = [...historyItems.value, ...(result.records || [])]
+          historyHasMore.value = result.has_more || false
+          historyPage.value++
+        } else {
+          historyHasMore.value = false
+        }
+      } catch (error) {
+        console.error('加载求购记录失败:', error)
+        historyHasMore.value = false
+      } finally {
+        historyLoading.value = false
       }
-      return labelMap[status] || '未知'
+    }
+
+    // 重置求购记录（切换账号时调用）
+    const resetHistory = () => {
+      historyItems.value = []
+      historyPage.value = 1
+      historyHasMore.value = true
+    }
+
+    // 搜索求购饰品模板
+    const handleSearchTemplate = async () => {
+      if (!searchKeyword.value.trim()) {
+        ElMessage.warning('请输入搜索关键词')
+        return
+      }
+      if (!props.steamId) {
+        ElMessage.warning('请选择账号')
+        return
+      }
+
+      searchLoading.value = true
+      searchResults.value = []
+      try {
+        const response = await axios.post(apiUrls.yyypSearchPurchaseTemplate(), {
+          steamId: props.steamId,
+          keyWords: searchKeyword.value.trim()
+        })
+
+        if (response.data && response.data.code === 200) {
+          searchResults.value = response.data.data?.items || []
+          if (searchResults.value.length === 0) {
+            ElMessage.info('未找到相关饰品')
+          }
+        } else {
+          ElMessage.error(`搜索失败: ${response.data?.message || '未知错误'}`)
+        }
+      } catch (error) {
+        console.error('搜索饰品失败:', error)
+        ElMessage.error(`搜索失败: ${error.message}`)
+      } finally {
+        searchLoading.value = false
+      }
     }
 
     // 批量处理正在求购
@@ -433,12 +555,12 @@ export default {
       }
     }
 
-    // 恢复求购（用于暂停中列表）
+    // 开启求购（用于暂停中列表）
     const handleResumeRequest = async (item) => {
       try {
         await ElMessageBox.confirm(
-          `确定要恢复求购 "${item.item_name}" 吗?`,
-          '确认恢复',
+          `确定要开启求购 "${item.item_name}" 吗?`,
+          '确认开启',
           {
             confirmButtonText: '确定',
             cancelButtonText: '取消',
@@ -447,22 +569,26 @@ export default {
         )
 
         loading.value = true
-        const response = await axios.post(apiUrls.yyypPausePurchaseOrder(), {
+        const response = await axios.post(apiUrls.yyypOpenPurchaseOrder(), {
           steamId: props.steamId,
           orderNo: item.order_no
         })
 
         if (response.data && response.data.code === 200) {
-          ElMessage.success('恢复求购成功')
-          // 刷新数据
-          await loadCurrentTabData()
+          const result = response.data.data
+          if (result.success) {
+            ElMessage.success('开启求购成功')
+            await loadCurrentTabData()
+          } else {
+            ElMessage.error(`开启求购失败: ${result.message || '未知错误'}`)
+          }
         } else {
-          ElMessage.error(`恢复求购失败: ${response.data?.message || '未知错误'}`)
+          ElMessage.error(`开启求购失败: ${response.data?.message || '未知错误'}`)
         }
       } catch (error) {
         if (error !== 'cancel') {
-          console.error('恢复求购失败:', error)
-          ElMessage.error(`恢复求购失败: ${error.message}`)
+          console.error('开启求购失败:', error)
+          ElMessage.error(`开启求购失败: ${error.message}`)
         }
       } finally {
         loading.value = false
@@ -590,12 +716,27 @@ export default {
       // TODO: 打开发布求购对话框，自动填充物品信息
     }
 
+    // 从搜索结果发布求购
+    const handlePublishRequest = (item) => {
+      ElMessage.info(`发布求购: ${item.item_name}`)
+      // TODO: 打开发布求购对话框，预填物品模板信息
+    }
+
+    // 查看市场（从搜索结果）
+    const handleViewMarket = (item) => {
+      ElMessage.info(`查看市场: ${item.item_name}`)
+      // TODO: 打开市场列表页面
+    }
+
     // 监听 steamId 变化，重新加载数据
     watch(() => props.steamId, (newSteamId) => {
       if (newSteamId) {
         // 重置到第一个标签页并加载数据
         activeSubTab.value = 'purchasing'
+        resetPaused()
         loadCurrentTabData()
+        // 重置求购记录，触发无限滚动重新加载
+        resetHistory()
       }
     }, { immediate: true })
 
@@ -637,7 +778,6 @@ export default {
       getSubTabCount,
       formatCountdown,
       getHistoryStatusType,
-      getHistoryStatusLabel,
       handleBatchProcessActive,
       handleDeleteRequest,
       handleQuickPriceIncrease,
@@ -652,7 +792,25 @@ export default {
       editDialogVisible,
       editOrderData,
       handleCloseEditDialog,
-      handleSubmitEdit
+      handleSubmitEdit,
+      // 求购记录无限滚动
+      historyLoading,
+      historyHasMore,
+      loadMoreHistory,
+      // 求购中/暂停中无限滚动
+      purchasingLoading,
+      purchasingHasMore,
+      pausedLoading,
+      pausedHasMore,
+      loadMoreCurrentTab,
+      currentTabScrollDisabled,
+      // 发布求购：搜索
+      searchKeyword,
+      searchResults,
+      searchLoading,
+      handleSearchTemplate,
+      handlePublishRequest,
+      handleViewMarket
     }
   }
 }
