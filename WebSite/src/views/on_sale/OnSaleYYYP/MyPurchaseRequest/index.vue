@@ -395,8 +395,26 @@
         </div>
       </div>
     </div>
+
+    <!-- 修改求购对话框 -->
+    <EditPurchaseOrderDialog
+      v-model:visible="editDialogVisible"
+      :order-data="editOrderData"
+      @submit="handleSubmitEdit"
+    />
   </div>
 </template>
 
-<script src="./useMyPurchaseRequest.js"></script>
+<script>
+import EditPurchaseOrderDialog from './EditPurchaseOrderDialog.vue'
+import useMyPurchaseRequest from './useMyPurchaseRequest.js'
+
+export default {
+  name: 'MyPurchaseRequest',
+  components: {
+    EditPurchaseOrderDialog
+  },
+  ...useMyPurchaseRequest
+}
+</script>
 <style scoped src="./styles.css"></style>

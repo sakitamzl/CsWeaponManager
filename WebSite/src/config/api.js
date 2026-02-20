@@ -445,6 +445,8 @@ export const API_CONFIG = {
     YYYP_PAUSE_PURCHASE_ORDER: '/spiderApiV2/youping/units/on_sale/purchase_request/purchasing/pauseOrder',  // 暂停求购订单（新API）
     YYYP_RESUME_PURCHASE_ORDER: '/spiderApiV2/youping/units/on_sale/purchase_request/purchasing/resumeOrder',  // 恢复求购订单（新API）
     YYYP_DELETE_PURCHASE_ORDER: '/spiderApiV2/youping/units/on_sale/purchase_request/purchasing/deleteOrder',  // 删除求购订单（新API）
+    YYYP_GET_ORDER_INFO: '/spiderApiV2/youping/units/on_sale/purchase_request/purchasing/getOrderInfo',  // 获取订单详情（新API）
+    YYYP_PRE_UPDATE_CHECK: '/spiderApiV2/youping/units/on_sale/purchase_request/purchasing/preUpdateCheck',  // 修改前置检查（新API）
     YYYP_EDIT_PURCHASE_ORDER: '/spiderApiV2/youping/units/on_sale/purchase_request/purchasing/editOrder',  // 修改求购订单（新API）
     YYYP_QUICK_PRICE_INCREASE: '/spiderApiV2/youping/units/on_sale/purchase_request/purchasing/quickIncrease',  // 一键加价预检查（新API）
     YYYP_CONFIRM_PRICE_INCREASE: '/spiderApiV2/youping/units/on_sale/purchase_request/purchasing/confirmQuickIncrease',  // 确认一键加价（新API）
@@ -958,6 +960,8 @@ export const apiUrls = {
   yyypPausePurchaseOrder: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_PAUSE_PURCHASE_ORDER),  // 暂停求购订单
   yyypResumePurchaseOrder: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_RESUME_PURCHASE_ORDER),  // 恢复求购订单
   yyypDeletePurchaseOrder: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_DELETE_PURCHASE_ORDER),  // 删除求购订单
+  yyypGetOrderInfo: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_ORDER_INFO),  // 获取订单详情
+  yyypPreUpdateCheck: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_PRE_UPDATE_CHECK),  // 修改前置检查
   yyypEditPurchaseOrder: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_EDIT_PURCHASE_ORDER),  // 修改求购订单
   yyypQuickPriceIncrease: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_QUICK_PRICE_INCREASE),  // 一键加价预检查
   yyypConfirmPriceIncrease: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_CONFIRM_PRICE_INCREASE),  // 确认一键加价

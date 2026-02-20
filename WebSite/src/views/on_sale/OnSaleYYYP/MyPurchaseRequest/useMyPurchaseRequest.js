@@ -30,6 +30,11 @@ export default {
     const historyItems = ref([])     // 求购记录
     const historyFilter = ref('all') // 历史筛选
 
+    // 修改求购对话框相关状态
+    const editDialogVisible = ref(false)
+    const currentEditOrderNo = ref('')
+    const editOrderData = ref(null)
+
     // 倒计时定时器
     let countdownTimer = null
 
@@ -465,9 +470,100 @@ export default {
     }
 
     // 修改求购
-    const handleEditRequest = (item) => {
-      ElMessage.info(`修改求购: ${item.item_name}`)
-      // TODO: 打开修改求购对话框
+    const handleEditRequest = async (item) => {
+      try {
+        loading.value = true
+
+        // 获取订单详情
+        const response = await axios.post(apiUrls.yyypGetOrderInfo(), {
+          steamId: props.steamId,
+          orderNo: item.order_no
+        })
+
+        if (response.data && response.data.code === 200) {
+          const result = response.data.data
+
+          if (result.success) {
+            // 保存订单数据并打开对话框
+            editOrderData.value = result.data
+            currentEditOrderNo.value = item.order_no
+            editDialogVisible.value = true
+          } else {
+            ElMessage.error(`获取订单详情失败: ${result.message || '未知错误'}`)
+          }
+        } else {
+          ElMessage.error(`获取订单详情失败: ${response.data?.message || '未知错误'}`)
+        }
+      } catch (error) {
+        console.error('获取订单详情失败:', error)
+        ElMessage.error(`获取订单详情失败: ${error.message}`)
+      } finally {
+        loading.value = false
+      }
+    }
+
+    // 关闭修改对话框
+    const handleCloseEditDialog = () => {
+      editDialogVisible.value = false
+      currentEditOrderNo.value = ''
+      editOrderData.value = null
+    }
+
+    // 提交修改（两步流程：前置检查 → 确认修改）
+    const handleSubmitEdit = async (editData) => {
+      try {
+        loading.value = true
+
+        // 步骤1：前置检查
+        const checkResponse = await axios.post(apiUrls.yyypPreUpdateCheck(), {
+          steamId: props.steamId,
+          orderNo: currentEditOrderNo.value,
+          unitPrice: editData.unitPrice,
+          quantity: editData.quantity,
+          autoReceived: editData.autoReceived,
+          orderData: editOrderData.value
+        })
+
+        if (!checkResponse.data || checkResponse.data.code !== 200) {
+          ElMessage.error(`前置检查失败: ${checkResponse.data?.message || '未知错误'}`)
+          return
+        }
+
+        const checkResult = checkResponse.data.data
+        if (!checkResult.success) {
+          ElMessage.error(`前置检查失败: ${checkResult.message || '未知错误'}`)
+          return
+        }
+
+        // 步骤2：确认修改
+        const editResponse = await axios.post(apiUrls.yyypEditPurchaseOrder(), {
+          steamId: props.steamId,
+          orderNo: currentEditOrderNo.value,
+          unitPrice: editData.unitPrice,
+          quantity: editData.quantity,
+          autoReceived: editData.autoReceived,
+          orderData: editOrderData.value,
+          checkData: checkResult.data
+        })
+
+        if (editResponse.data && editResponse.data.code === 200) {
+          const result = editResponse.data.data
+          if (result.success) {
+            ElMessage.success('修改求购成功')
+            handleCloseEditDialog()
+            await loadCurrentTabData()
+          } else {
+            ElMessage.error(`修改求购失败: ${result.message || '未知错误'}`)
+          }
+        } else {
+          ElMessage.error(`修改求购失败: ${editResponse.data?.message || '未知错误'}`)
+        }
+      } catch (error) {
+        console.error('修改求购失败:', error)
+        ElMessage.error(`修改求购失败: ${error.message}`)
+      } finally {
+        loading.value = false
+      }
     }
 
     // 立即支付
@@ -550,7 +646,12 @@ export default {
       handlePayNow,
       handleViewDetails,
       handleViewHistoryDetails,
-      handleRepurchase
+      handleRepurchase,
+      // 修改对话框相关
+      editDialogVisible,
+      editOrderData,
+      handleCloseEditDialog,
+      handleSubmitEdit
     }
   }
 }
