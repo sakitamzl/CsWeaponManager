@@ -633,6 +633,7 @@ export default {
       historyFilter,
       activePurchaseRequests,
       filteredHistoryItems,
+      loadCurrentTabData,
       getSubTabCount,
       formatCountdown,
       getHistoryStatusType,

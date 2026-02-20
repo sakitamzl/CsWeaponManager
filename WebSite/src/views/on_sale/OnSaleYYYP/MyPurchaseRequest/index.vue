@@ -6,12 +6,11 @@
         <div class="purchase-request-header">
           <h3>正在求购</h3>
           <el-button
-            v-if="activePurchaseRequests.length > 0"
-            type="primary"
             size="small"
-            @click="handleBatchProcessActive"
+            :loading="loading"
+            @click="loadCurrentTabData"
           >
-            批量处理
+            刷新列表
           </el-button>
         </div>
 
