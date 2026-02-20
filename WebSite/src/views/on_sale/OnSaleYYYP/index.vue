@@ -119,6 +119,14 @@
       </div>
     </div>
 
+    <!-- 我的求购列表显示（特殊布局） -->
+    <MyPurchaseRequest
+      v-if="selectedTradeType === 'purchase_request'"
+      :steam-id="accountList.find(acc => acc.id === selectedAccount)?.steam_id || ''"
+      :key="selectedAccount"
+      @update:count="handlePurchaseRequestCountUpdate"
+    />
+
     <!-- 报价处理列表显示（特殊布局） -->
     <OfferProcessing
       v-if="selectedTradeType === 'offer'"

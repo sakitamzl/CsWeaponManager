@@ -608,7 +608,6 @@ def get_components_grouped(steam_id):
             weapon_type,
             weapon_level,
             float_range,
-            MIN(classid) AS classid,
             COUNT(*) AS item_count,
             SUM(CAST(weapon_float AS REAL)) AS total_quantity,
             SUM(CAST(buy_price AS REAL)) AS total_buy_price,
@@ -616,7 +615,6 @@ def get_components_grouped(steam_id):
             SUM(CAST(buff_price AS REAL)) AS total_buff_price,
             SUM(CAST(steam_price AS REAL)) AS total_steam_price,
             GROUP_CONCAT(goods_assetid) AS goods_assetids,
-            GROUP_CONCAT(assetid) AS assetids,
             GROUP_CONCAT(weapon_float) AS weapon_floats,
             GROUP_CONCAT(buy_price) AS buy_prices,
             GROUP_CONCAT(yyyp_price) AS yyyp_prices,
@@ -637,19 +635,15 @@ def get_components_grouped(steam_id):
         grouped_list = []
         for row in rows or []:
             # 安全地处理可能为None的字段
-            goods_assetids = str(row[13]).split(',') if row[13] and row[13] != 'None' else []
-            assetids = str(row[14]).split(',') if row[14] and row[14] != 'None' else []
-            weapon_floats = str(row[15]).split(',') if row[15] and row[15] != 'None' else []
-            buy_prices = str(row[16]).split(',') if row[16] and row[16] != 'None' else []
-            yyyp_prices = str(row[17]).split(',') if row[17] and row[17] != 'None' else []
-            buff_prices = str(row[18]).split(',') if row[18] and row[18] != 'None' else []
-            steam_prices = str(row[19]).split(',') if row[19] and row[19] != 'None' else []
-            stickers = str(row[20]).split('|||') if row[20] and row[20] != 'None' else []
-            pendants = str(row[21]).split('|||') if row[21] and row[21] != 'None' else []
-            renames = str(row[22]).split('|||') if row[22] and row[22] != 'None' else []
-            
-            # 获取第一个有效的 assetid (用于跳转功能)
-            first_assetid = assetids[0] if assetids and assetids[0] and assetids[0] != 'None' else None
+            goods_assetids = str(row[12]).split(',') if row[12] and row[12] != 'None' else []
+            weapon_floats = str(row[13]).split(',') if row[13] and row[13] != 'None' else []
+            buy_prices = str(row[14]).split(',') if row[14] and row[14] != 'None' else []
+            yyyp_prices = str(row[15]).split(',') if row[15] and row[15] != 'None' else []
+            buff_prices = str(row[16]).split(',') if row[16] and row[16] != 'None' else []
+            steam_prices = str(row[17]).split(',') if row[17] and row[17] != 'None' else []
+            stickers = str(row[18]).split('|||') if row[18] and row[18] != 'None' else []
+            pendants = str(row[19]).split('|||') if row[19] and row[19] != 'None' else []
+            renames = str(row[20]).split('|||') if row[20] and row[20] != 'None' else []
             
             grouped_list.append({
                 "item_name": row[0],
@@ -658,16 +652,13 @@ def get_components_grouped(steam_id):
                 "weapon_type": row[3],
                 "weapon_level": row[4],
                 "float_range": row[5],
-                "classid": row[6],
-                "item_count": row[7] or 0,
-                "total_quantity": round(row[8] or 0, 2),
-                "total_buy_price": round(row[9] or 0, 2),
-                "total_yyyp_price": round(row[10] or 0, 2),
-                "total_buff_price": round(row[11] or 0, 2),
-                "total_steam_price": round(row[12] or 0, 2),
+                "item_count": row[6] or 0,
+                "total_quantity": round(row[7] or 0, 2),
+                "total_buy_price": round(row[8] or 0, 2),
+                "total_yyyp_price": round(row[9] or 0, 2),
+                "total_buff_price": round(row[10] or 0, 2),
+                "total_steam_price": round(row[11] or 0, 2),
                 "goods_assetids": goods_assetids,
-                "assetids": assetids,
-                "assetid": first_assetid,
                 "weapon_floats": weapon_floats,
                 "buy_prices": buy_prices,
                 "yyyp_prices": yyyp_prices,

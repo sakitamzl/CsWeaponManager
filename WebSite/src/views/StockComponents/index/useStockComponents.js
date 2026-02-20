@@ -84,6 +84,11 @@ export function useStockComponents() {
   const popoverVisible = ref(false)
   const popoverItem = ref(null)
   const popoverPosition = ref({ x: 0, y: 0 })
+
+  // 移出数量对话框相关
+  const removeQuantityDialogVisible = ref(false)
+  const removeQuantity = ref(0)
+  const maxRemoveQuantity = ref(0)
   
   // 图片观察器
   let imageObserver = null
@@ -359,10 +364,10 @@ export function useStockComponents() {
     currentOffset.value = 0
 
     // 根据当前显示模式决定加载哪个数据
-    if (displayMode.value === 'card') {
-      loadComponentData()
+    if (groupMode.value) {
+      loadGroupedData()
     } else {
-      groupMode.value ? loadGroupedData() : loadComponentData()
+      loadComponentData()
     }
 
     // 重新加载统计数据
@@ -374,10 +379,10 @@ export function useStockComponents() {
     currentOffset.value = 0
 
     // 根据当前显示模式决定加载哪个数据
-    if (displayMode.value === 'card') {
-      loadComponentData()
+    if (groupMode.value) {
+      loadGroupedData()
     } else {
-      groupMode.value ? loadGroupedData() : loadComponentData()
+      loadComponentData()
     }
 
     // 重新加载统计数据
@@ -390,10 +395,10 @@ export function useStockComponents() {
     currentOffset.value = 0
 
     // 根据当前显示模式决定加载哪个数据
-    if (displayMode.value === 'card') {
-      loadComponentData()
+    if (groupMode.value) {
+      loadGroupedData()
     } else {
-      groupMode.value ? loadGroupedData() : loadComponentData()
+      loadComponentData()
     }
 
     // 重新加载统计数据
@@ -445,11 +450,11 @@ export function useStockComponents() {
       currentPage.value = 1
       currentOffset.value = 0
       // 根据当前显示模式决定加载哪个数据
-      if (displayMode.value === 'card') {
-        loadComponentData()
-      } else {
-        groupMode.value ? loadGroupedData() : loadComponentData()
-      }
+      if (groupMode.value) {
+      loadGroupedData()
+    } else {
+      loadComponentData()
+    }
       // 重新加载统计数据
       loadComponentStats()
       return
@@ -464,11 +469,11 @@ export function useStockComponents() {
     currentPage.value = 1
     currentOffset.value = 0
 
-    // 根据当前显示模式决定加载哪个数据
-    if (displayMode.value === 'card') {
-      loadComponentData()
+    // 根据分组模式决定加载哪个数据（不再仅根据显示模式）
+    if (groupMode.value) {
+      loadGroupedData()
     } else {
-      groupMode.value ? loadGroupedData() : loadComponentData()
+      loadComponentData()
     }
 
     // 重新加载统计数据
@@ -617,9 +622,13 @@ export function useStockComponents() {
         params.float_range = weaponNameFilter.value
       }
 
+      console.log('加载分组数据 - 请求参数:', params)
+
       const response = await axios.get(`${API_COMPONENTS_GROUPED}/${selectedSteamId.value}`, {
         params: params
       })
+
+      console.log('分组数据响应:', response.data)
 
       if (response.data.success) {
         const newData = (response.data.data || []).map(item => ({
@@ -633,7 +642,8 @@ export function useStockComponents() {
           yyyp_price: item.total_yyyp_price,
           buff_price: item.total_buff_price,
           steam_price: item.total_steam_price,
-          goods_assetid: item.item_name || item.steam_hash_name || Math.random().toString(36).slice(2)
+          // 使用 classid 作为唯一标识，如果没有则使用 item_name
+          goods_assetid: item.classid || item.item_name || item.steam_hash_name || Math.random().toString(36).slice(2)
         }))
 
         // 列表模式：替换数据，卡片模式：追加数据
@@ -860,10 +870,10 @@ export function useStockComponents() {
     selectedComponent.value = ''
     
     // 根据当前显示模式决定加载哪个数据
-    if (displayMode.value === 'card') {
-      loadComponentData()
+    if (groupMode.value) {
+      loadGroupedData()
     } else {
-      groupMode.value ? loadGroupedData() : loadComponentData()
+      loadComponentData()
     }
     
     // 重新加载统计数据
@@ -880,10 +890,10 @@ export function useStockComponents() {
     currentOffset.value = 0
 
     // 根据当前显示模式决定加载哪个数据
-    if (displayMode.value === 'card') {
-      loadComponentData()
+    if (groupMode.value) {
+      loadGroupedData()
     } else {
-      groupMode.value ? loadGroupedData() : loadComponentData()
+      loadComponentData()
     }
 
     // 重新加载统计数据
@@ -1535,7 +1545,13 @@ export function useStockComponents() {
     if (index > -1) {
       selectedItems.value.splice(index, 1)
     } else {
-      selectedItems.value.push(item)
+      // 组合模式下只允许选中一个
+      if (groupMode.value) {
+        selectedItems.value = [item]
+        ElMessage.info('组合模式下只能选择一个组合')
+      } else {
+        selectedItems.value.push(item)
+      }
     }
   }
 
@@ -1594,6 +1610,16 @@ export function useStockComponents() {
       return
     }
 
+    // 组合模式下，弹出数量输入对话框
+    if (groupMode.value && selectedItems.value.length === 1) {
+      const selectedItem = selectedItems.value[0]
+      maxRemoveQuantity.value = selectedItem.item_count || 1
+      removeQuantity.value = maxRemoveQuantity.value
+      removeQuantityDialogVisible.value = true
+      return
+    }
+
+    // 明细模式或多选模式，直接确认移出
     try {
       await ElMessageBox.confirm(
         `确定要将选中的 ${selectedItems.value.length} 件物品移出组件吗？`,
@@ -1605,11 +1631,20 @@ export function useStockComponents() {
         }
       )
 
-      removeLoading.value = true
+      await executeRemoveFromComponent(selectedItems.value.map(item => item.goods_assetid))
+    } catch (error) {
+      if (error !== 'cancel') {
+        console.error('移出组件失败:', error)
+        ElMessage.error('移出失败：' + (error.response?.data?.message || error.message))
+      }
+    }
+  }
 
-      // 获取所有选中物品的 goods_assetid
-      const itemIds = selectedItems.value.map(item => item.goods_assetid)
+  // 执行移出组件操作
+  const executeRemoveFromComponent = async (itemIds) => {
+    removeLoading.value = true
 
+    try {
       const response = await axios.post(`${API_SPIDER}/prefectWorldSpiderV1/depositToComponent`, {
         steamId: selectedSteamId.value,
         itemIds: itemIds,
@@ -1618,32 +1653,64 @@ export function useStockComponents() {
       })
 
       if (response.data.success) {
-        ElMessage.success(`成功移出 ${selectedItems.value.length} 件物品`)
-        
+        ElMessage.success(`成功移出 ${itemIds.length} 件物品`)
+
         // 清空选择
         clearSelection()
-        
+
         // 重新加载数据
         currentOffset.value = 0
-        if (displayMode.value === 'card') {
-          loadComponentData()
+        if (groupMode.value) {
+          loadGroupedData()
         } else {
-          groupMode.value ? loadGroupedData() : loadComponentData()
+          loadComponentData()
         }
-        
+
         // 重新加载组件列表
         await loadInventoryComponents()
       } else {
         ElMessage.error(response.data.message || '移出失败')
       }
     } catch (error) {
-      if (error !== 'cancel') {
-        console.error('移出组件失败:', error)
-        ElMessage.error('移出失败：' + (error.response?.data?.message || error.message))
-      }
+      console.error('移出组件失败:', error)
+      ElMessage.error('移出失败：' + (error.response?.data?.message || error.message))
     } finally {
       removeLoading.value = false
     }
+  }
+
+  // 确认移出指定数量
+  const confirmRemoveQuantity = async () => {
+    if (removeQuantity.value <= 0) {
+      ElMessage.warning('移出数量必须大于0')
+      return
+    }
+
+    if (removeQuantity.value > maxRemoveQuantity.value) {
+      ElMessage.warning(`移出数量不能超过 ${maxRemoveQuantity.value}`)
+      return
+    }
+
+    removeQuantityDialogVisible.value = false
+
+    // 获取选中组合中的物品ID列表
+    const selectedItem = selectedItems.value[0]
+    const allItemIds = selectedItem.goods_assetids || []
+
+    if (allItemIds.length === 0) {
+      ElMessage.error('未找到可移出的物品')
+      return
+    }
+
+    // 根据数量取前N个物品ID
+    const itemIdsToRemove = allItemIds.slice(0, removeQuantity.value)
+
+    await executeRemoveFromComponent(itemIdsToRemove)
+  }
+
+  // 设置移出数量百分比
+  const setRemoveQuantityPercent = (percent) => {
+    removeQuantity.value = Math.ceil(maxRemoveQuantity.value * percent)
   }
 
   // 处理卡片点击事件
@@ -1671,6 +1738,16 @@ export function useStockComponents() {
     const targetAssetId = popoverItem.value.assetid
 
     console.log('跳转到组件 - targetAssetId:', targetAssetId)
+    console.log('物品信息:', popoverItem.value)
+
+    // 检查 assetid 是否存在
+    if (!targetAssetId) {
+      ElMessage.error('该物品没有所属组件信息，无法跳转')
+      console.error('物品缺少 assetid 字段:', popoverItem.value)
+      popoverVisible.value = false
+      return
+    }
+
     console.log('当前库存组件列表:', inventoryComponents.value)
 
     // 如果库存组件列表为空，先加载
@@ -1690,11 +1767,20 @@ export function useStockComponents() {
 
     // 直接跳转（无论组件是否在列表中）
     console.log('跳转到组件:', targetAssetId)
+
+    // 清空之前的数据
+    componentData.value = []
+    groupedData.value = []
+
     selectedComponent.value = targetAssetId
     popoverVisible.value = false
 
-    // 加载该组件的数据
-    handleComponentSelect()
+    // 重置页码和偏移量
+    currentPage.value = 1
+    currentOffset.value = 0
+
+    // 加载该组件的数据（保持当前的分组模式状态）
+    await handleComponentSelect()
 
     ElMessage.success(`已跳转到组件: ${component?.item_name || targetAssetId}`)
   }
@@ -1837,6 +1923,9 @@ export function useStockComponents() {
     popoverVisible,
     popoverItem,
     popoverPosition,
+    removeQuantityDialogVisible,
+    removeQuantity,
+    maxRemoveQuantity,
     hasMore,
     loadingMore,
     formatTime,
@@ -1887,6 +1976,8 @@ export function useStockComponents() {
     clearSelection,
     selectAllCurrentPage,
     removeFromComponent,
+    confirmRemoveQuantity,
+    setRemoveQuantityPercent,
     jumpToComponent,
     closePopover,
     handleJumpToItemSearchBySticker,

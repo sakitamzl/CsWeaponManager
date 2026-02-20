@@ -12,6 +12,7 @@ import LeaseManagement from './LeaseManagement/index.vue'
 import SubleaseManagement from './SubleaseManagement/index.vue'
 import PresaleManagement from './PresaleManagement/index.vue'
 import InstantPayment from './InstantPayment/index.vue'
+import MyPurchaseRequest from './MyPurchaseRequest/index.vue'
 
 export default {
   name: 'OnSale',
@@ -26,7 +27,8 @@ export default {
     LeaseManagement,
     SubleaseManagement,
     PresaleManagement,
-    InstantPayment
+    InstantPayment,
+    MyPurchaseRequest
   },
   setup() {
     const loading = ref(false)
@@ -52,6 +54,7 @@ export default {
       { value: 'sublease', label: '转租', icon: '🔁' },
       { value: 'presale', label: '预售', icon: '⏰' },
       { value: 'transfer', label: '过户', icon: '📝' },
+      { value: 'purchase_request', label: '我的求购', icon: '🛒' },
       { value: 'offer', label: '报价处理', icon: '💬' },
       { value: 'rented_out', label: '已租出', icon: '📦' },
       { value: 'instant', label: '秒到账', icon: '⚡' }
@@ -303,6 +306,11 @@ export default {
     // 处理已租出数量更新
     const handleRentedOutCountUpdate = (count) => {
       cacheTradeTypeCount('rented_out', count)
+    }
+
+    // 处理我的求购数量更新
+    const handlePurchaseRequestCountUpdate = (count) => {
+      cacheTradeTypeCount('purchase_request', count)
     }
 
     // 处理秒到账数量更新
@@ -1935,6 +1943,7 @@ export default {
       handleTradeTypeChange,
       handleOfferCountUpdate,
       handleRentedOutCountUpdate,
+      handlePurchaseRequestCountUpdate,
       handleInstantCountUpdate,
       batchChangePriceDialogVisible,
       batchChangePriceForm,

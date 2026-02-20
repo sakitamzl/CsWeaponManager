@@ -765,6 +765,47 @@
 
     <!-- 点击遮罩关闭 popover -->
     <div v-if="popoverVisible" class="popover-overlay" @click="closePopover"></div>
+
+    <!-- 移出数量选择对话框 -->
+    <el-dialog
+      v-model="removeQuantityDialogVisible"
+      title="选择移出数量"
+      width="500px"
+      :close-on-click-modal="false"
+    >
+      <div style="padding: 20px;">
+        <div style="margin-bottom: 20px;">
+          <div style="font-size: 14px; color: #606266; margin-bottom: 10px;">
+            当前组合共有 <span style="font-weight: bold; color: #409EFF;">{{ maxRemoveQuantity }}</span> 件物品
+          </div>
+          <el-input-number
+            v-model="removeQuantity"
+            :min="1"
+            :max="maxRemoveQuantity"
+            :step="1"
+            style="width: 100%;"
+          />
+        </div>
+
+        <div style="margin-bottom: 10px; font-size: 14px; color: #606266;">快速选择：</div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <el-button size="small" @click="setRemoveQuantityPercent(0.1)">10%</el-button>
+          <el-button size="small" @click="setRemoveQuantityPercent(0.25)">25%</el-button>
+          <el-button size="small" @click="setRemoveQuantityPercent(0.5)">50%</el-button>
+          <el-button size="small" @click="setRemoveQuantityPercent(0.75)">75%</el-button>
+          <el-button size="small" @click="setRemoveQuantityPercent(1)">全部</el-button>
+        </div>
+      </div>
+
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="removeQuantityDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="confirmRemoveQuantity" :loading="removeLoading">
+            确定移出
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
