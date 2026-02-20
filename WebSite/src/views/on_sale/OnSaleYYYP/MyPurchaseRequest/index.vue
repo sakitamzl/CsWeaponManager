@@ -459,21 +459,7 @@
                   <div class="request-item-name">{{ item.item_name }}</div>
                   <div class="request-item-details">
                     <el-tag
-                      v-if="item.rarity"
-                      :style="{ color: '#' + item.rarity_color, borderColor: '#' + item.rarity_color }"
-                      size="small"
-                    >
-                      {{ item.rarity }}
-                    </el-tag>
-                    <el-tag
-                      v-if="item.exterior"
-                      :style="{ color: '#' + item.exterior_color, borderColor: '#' + item.exterior_color }"
-                      size="small"
-                    >
-                      {{ item.exterior }}
-                    </el-tag>
-                    <el-tag
-                      v-if="item.quality && item.quality !== '普通'"
+                      v-if="item.quality && item.quality !== '普通' && item.quality !== 'StatTrak™'"
                       :style="{ color: '#' + item.quality_color, borderColor: '#' + item.quality_color }"
                       size="small"
                     >
@@ -487,8 +473,10 @@
                       <span class="price-label">在售:</span>
                       <span class="price-value">{{ item.on_sale_count }}</span>
                     </span>
+                    <span v-if="item.purchase_count_text" class="search-result-purchasing">
+                      {{ item.purchase_count_text }}
+                    </span>
                   </div>
-                  <div class="record-time">{{ item.purchase_count_text }}</div>
                 </div>
               </div>
               <div class="request-item-right">
@@ -530,18 +518,27 @@
       :order-data="editOrderData"
       @submit="handleSubmitEdit"
     />
+
+    <!-- 发布求购对话框 -->
+    <PublishPurchaseDialog
+      v-model:visible="publishDialogVisible"
+      :template-data="publishDialogData"
+      @submit="handleSubmitPublish"
+    />
   </div>
 </template>
 
 <script>
 import { Loading } from '@element-plus/icons-vue'
 import EditPurchaseOrderDialog from './EditPurchaseOrderDialog.vue'
+import PublishPurchaseDialog from './PublishPurchaseDialog.vue'
 import useMyPurchaseRequest from './useMyPurchaseRequest.js'
 
 export default {
   name: 'MyPurchaseRequest',
   components: {
     EditPurchaseOrderDialog,
+    PublishPurchaseDialog,
     Loading
   },
   ...useMyPurchaseRequest

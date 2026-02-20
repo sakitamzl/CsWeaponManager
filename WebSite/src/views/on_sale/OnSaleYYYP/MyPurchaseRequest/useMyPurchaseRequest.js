@@ -56,6 +56,10 @@ export default {
     const searchResults = ref([])
     const searchLoading = ref(false)
 
+    // 发布求购：对话框状态
+    const publishDialogVisible = ref(false)
+    const publishDialogData = ref(null)
+
     // 倒计时定时器
     let countdownTimer = null
 
@@ -716,10 +720,39 @@ export default {
       // TODO: 打开发布求购对话框，自动填充物品信息
     }
 
-    // 从搜索结果发布求购
-    const handlePublishRequest = (item) => {
-      ElMessage.info(`发布求购: ${item.item_name}`)
-      // TODO: 打开发布求购对话框，预填物品模板信息
+    // 从搜索结果发布求购：获取发布详情并打开对话框
+    const handlePublishRequest = async (item) => {
+      if (!props.steamId) {
+        ElMessage.warning('请选择账号')
+        return
+      }
+
+      loading.value = true
+      try {
+        const response = await axios.post(apiUrls.yyypGetTemplatePurchaseInfo(), {
+          steamId: props.steamId,
+          templateId: item.id
+        })
+
+        if (response.data && response.data.code === 200) {
+          publishDialogData.value = response.data.data
+          publishDialogVisible.value = true
+        } else {
+          ElMessage.error(`获取发布详情失败: ${response.data?.message || '未知错误'}`)
+        }
+      } catch (error) {
+        console.error('获取发布详情失败:', error)
+        ElMessage.error(`获取发布详情失败: ${error.message}`)
+      } finally {
+        loading.value = false
+      }
+    }
+
+    // 提交发布求购
+    const handleSubmitPublish = (submitData) => {
+      // TODO: 调用发布求购 API
+      ElMessage.info(`发布求购: ¥${submitData.unitPrice} × ${submitData.quantity}`)
+      publishDialogVisible.value = false
     }
 
     // 查看市场（从搜索结果）
@@ -810,7 +843,11 @@ export default {
       searchLoading,
       handleSearchTemplate,
       handlePublishRequest,
-      handleViewMarket
+      handleViewMarket,
+      // 发布求购对话框
+      publishDialogVisible,
+      publishDialogData,
+      handleSubmitPublish
     }
   }
 }
