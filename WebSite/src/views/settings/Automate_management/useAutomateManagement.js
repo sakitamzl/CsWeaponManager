@@ -1,4 +1,4 @@
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
@@ -1180,41 +1180,70 @@ export function useAutomateManagement() {
     editingTaskId.value = null
   }
   
+  // 加载正在执行的任务
+  const loadExecutingTasks = async () => {
+    try {
+      const response = await axios.get(`${API_CONFIG.BASE_URL}/autoManagerPageV1/api/auto-manager/executing-tasks`)
+
+      if (response.data.success && Array.isArray(response.data.data)) {
+        return response.data.data
+      }
+      return []
+    } catch (error) {
+      console.error('加载正在执行的任务失败:', error)
+      return []
+    }
+  }
+
   // 加载已保存的任务 (任务在后端运行)
   const loadSavedTasks = async () => {
     try {
-      const response = await axios.get(`${API_CONFIG.BASE_URL}/autoManagerPageV1/api/auto-manager/tasks`)
-      
-      if (response.data.success && Array.isArray(response.data.data)) {
+      // 同时加载任务列表和正在执行的任务
+      const [tasksResponse, executingTasks] = await Promise.all([
+        axios.get(`${API_CONFIG.BASE_URL}/autoManagerPageV1/api/auto-manager/tasks`),
+        loadExecutingTasks()
+      ])
+
+      if (tasksResponse.data.success && Array.isArray(tasksResponse.data.data)) {
         let enabledCount = 0
-        
+
         // 清空现有任务列表
         runningTasks.value = []
-        
+
+        // 创建正在执行的任务ID集合，方便快速查找
+        const executingTaskIds = new Set(executingTasks.map(t => t.taskId))
+
         // 加载所有任务 (包括已停止的)
-        for (const savedTask of response.data.data) {
+        for (const savedTask of tasksResponse.data.data) {
+          // 判断任务是否正在执行
+          const isExecuting = executingTaskIds.has(savedTask.taskId)
+          const executingInfo = executingTasks.find(t => t.taskId === savedTask.taskId)
+
           const taskInfo = {
             id: savedTask.taskId,
             type: typeLabelMap[savedTask.automateType] || savedTask.automateType,
             taskName: savedTask.taskName,
             targetInfo: getTaskTargetInfo(savedTask),
             interval: savedTask.config.interval,
-            status: savedTask.enabled ? '运行中' : '已停止',
+            status: isExecuting ? '执行中' : (savedTask.enabled ? '运行中' : '已停止'),
             lastRun: savedTask.lastRun || '-',
             nextRun: savedTask.nextRun || (savedTask.enabled ? calculateNextRun(savedTask.config.interval) : '-'),
-            config: savedTask.config // 保存配置供后续使用
+            config: savedTask.config, // 保存配置供后续使用
+            isExecuting: isExecuting,
+            executingDuration: executingInfo ? Math.floor(executingInfo.duration) : 0
           }
-          
+
           runningTasks.value.push(taskInfo)
-          
+
           if (savedTask.enabled) {
             enabledCount++
           }
         }
-        
+
         // 只在首次加载时显示成功消息
         if (runningTasks.value.length > 0 && !isEditing.value) {
-          console.log(`已加载 ${runningTasks.value.length} 个任务，其中 ${enabledCount} 个正在后台运行`)
+          const executingCount = executingTaskIds.size
+          console.log(`已加载 ${runningTasks.value.length} 个任务，其中 ${enabledCount} 个已启用，${executingCount} 个正在执行`)
         }
       }
     } catch (error) {
@@ -1425,6 +1454,38 @@ export function useAutomateManagement() {
     }
   }
   
+  // 格式化执行时长
+  const formatDuration = (seconds) => {
+    if (seconds < 60) {
+      return `${seconds}秒`
+    } else if (seconds < 3600) {
+      const minutes = Math.floor(seconds / 60)
+      const secs = seconds % 60
+      return `${minutes}分${secs}秒`
+    } else {
+      const hours = Math.floor(seconds / 3600)
+      const minutes = Math.floor((seconds % 3600) / 60)
+      return `${hours}小时${minutes}分`
+    }
+  }
+
+  // 定时刷新正在执行的任务状态
+  let refreshTimer = null
+
+  const startAutoRefresh = () => {
+    // 每5秒刷新一次
+    refreshTimer = setInterval(() => {
+      loadSavedTasks()
+    }, 5000)
+  }
+
+  const stopAutoRefresh = () => {
+    if (refreshTimer) {
+      clearInterval(refreshTimer)
+      refreshTimer = null
+    }
+  }
+
   // 组件挂载时加载数据
   onMounted(async () => {
     await loadSteamConfigs()
@@ -1434,6 +1495,11 @@ export function useAutomateManagement() {
     await loadRenameSearchConfigs()
     await loadPendantSearchConfigs()
     await loadSavedTasks()
+    startAutoRefresh()
+  })
+
+  onUnmounted(() => {
+    stopAutoRefresh()
   })
   
   return {
@@ -1460,6 +1526,7 @@ export function useAutomateManagement() {
     availableTasks,
     filteredDataSources,
     formatInterval,
+    formatDuration,
     handleTypeChange,
     applyCustomInterval,
     handleExecute,

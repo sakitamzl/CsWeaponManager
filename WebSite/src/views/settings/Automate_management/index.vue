@@ -187,11 +187,16 @@
             {{ formatInterval(row.interval) }}
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="100" align="center">
+        <el-table-column prop="status" label="状态" width="180" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.status === '运行中' ? 'success' : 'info'">
-              {{ row.status }}
-            </el-tag>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+              <el-tag :type="row.status === '执行中' ? 'warning' : (row.status === '运行中' ? 'success' : 'info')">
+                {{ row.status }}
+              </el-tag>
+              <span v-if="row.isExecuting && row.executingDuration > 0" style="font-size: 12px; color: #909399;">
+                已执行 {{ formatDuration(row.executingDuration) }}
+              </span>
+            </div>
           </template>
         </el-table-column>
         <el-table-column prop="lastRun" label="最后执行时间" min-width="160" />

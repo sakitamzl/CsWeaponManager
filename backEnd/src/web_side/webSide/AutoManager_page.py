@@ -6,6 +6,26 @@ import json
 
 autoManagerPage = Blueprint('autoManagerPage', __name__)
 
+
+@autoManagerPage.route('/api/auto-manager/executing-tasks', methods=['GET'])
+def get_executing_tasks():
+    """获取正在执行的任务列表"""
+    try:
+        scheduler = get_scheduler()
+        executing_tasks = scheduler.get_currently_executing_tasks()
+
+        return jsonify({
+            'success': True,
+            'data': executing_tasks
+        }), 200
+
+    except Exception as e:
+        Log().write_log(f"获取正在执行的任务失败: {str(e)}", 'error')
+        return jsonify({
+            'success': False,
+            'message': f'获取失败: {str(e)}'
+        }), 500
+
 @autoManagerPage.route('/api/auto-manager/tasks', methods=['GET'])
 def get_auto_manager_tasks():
     """获取所有自动化管理任务配置"""

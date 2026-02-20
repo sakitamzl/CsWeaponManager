@@ -678,10 +678,10 @@
       </template>
     </el-dialog>
 
-    <!-- 悠悠有品购买确认对话框 -->
+    <!-- 购买确认对话框 -->
     <el-dialog
       v-model="yyypBuyDialogVisible"
-      title="购买商品"
+      title="确认付款"
       width="600px"
       :close-on-click-modal="false"
       class="yyyp-buy-dialog"
@@ -701,9 +701,14 @@
             <div class="commodity-info-details">
               <h3>{{ yyypBuyDetail.commodity.commodityName }}</h3>
               <el-descriptions :column="1" border size="small">
+                <el-descriptions-item label="订单号" v-if="yyypBuyDetail.orderNo">
+                  <span style="color: #409eff; font-size: 14px;">
+                    {{ yyypBuyDetail.orderNo }}
+                  </span>
+                </el-descriptions-item>
                 <el-descriptions-item label="价格">
                   <span style="color: #f56c6c; font-size: 18px; font-weight: bold;">
-                    {{ yyypBuyDetail.commodity.sellPrice }}
+                    ¥{{ yyypBuyDetail.commodity.sellPrice }}
                   </span>
                 </el-descriptions-item>
                 <el-descriptions-item label="品质">
@@ -754,14 +759,14 @@
 
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="yyypBuyDialogVisible = false">取消</el-button>
+          <el-button @click="cancelYYYPOrder">取消订单</el-button>
           <el-button
             type="primary"
             :loading="buyingYYYP"
             :disabled="!yyypBuyDetail || yyypBuyDetailLoading || !isYYYPBalanceSufficient"
             @click="confirmYYYPBuy"
           >
-            {{ isYYYPBalanceSufficient ? '确认购买' : '余额不足' }}
+            {{ isYYYPBalanceSufficient ? '确认付款' : '余额不足' }}
           </el-button>
         </span>
       </template>

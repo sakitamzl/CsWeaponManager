@@ -18,6 +18,7 @@ class TaskScheduler:
         self.tasks = {}  # {task_id: {'timer': threading.Timer, 'config': {...}}}
         self.lock = threading.Lock()
         self.execution_lock = threading.Lock()  # 任务执行互斥锁
+        self.currently_executing = {}  # {task_id: {'task_name': str, 'start_time': datetime, 'config': dict}}
         self.log = Log()
         
     def start(self):
@@ -175,23 +176,36 @@ class TaskScheduler:
                     try:
                         # 尝试获取执行锁（阻塞等待，直到可以执行）
                         self.execution_lock.acquire()
-                        
+
+                        # 记录开始执行
+                        with self.lock:
+                            self.currently_executing[task['task_id']] = {
+                                'task_name': task['task_name'],
+                                'automate_type': task['automate_type'],
+                                'start_time': datetime.now(),
+                                'config': task['config']
+                            }
+
                         self.log.write_log(
-                            f"开始执行到期任务: {task['task_name']} (ID: {task['task_id']}, 计划时间: {task['next_run']})", 
+                            f"开始执行到期任务: {task['task_name']} (ID: {task['task_id']}, 计划时间: {task['next_run']})",
                             'info'
                         )
-                        
+
                         # 执行任务
                         self._execute_task(task)
-                        
+
                         # 更新执行时间
                         self._update_task_execution_time(task['task_id'])
-                        
+
                         self.log.write_log(f"任务 {task['task_name']} 执行完成", 'info')
-                        
+
                     except Exception as e:
                         self.log.write_log(f"执行任务失败 ({task['task_name']}): {str(e)}", 'error')
                     finally:
+                        # 移除执行记录
+                        with self.lock:
+                            self.currently_executing.pop(task['task_id'], None)
+
                         # 释放执行锁
                         self.execution_lock.release()
                 
@@ -777,6 +791,21 @@ class TaskScheduler:
             self.log.write_log(f"Steam认证更新请求失败: {steam_id}, 错误: {str(e)}", 'error')
         except Exception as e:
             self.log.write_log(f"Steam认证更新异常: {steam_id}, 错误: {str(e)}", 'error')
+
+    def get_currently_executing_tasks(self):
+        """获取正在执行的任务列表"""
+        with self.lock:
+            result = []
+            for task_id, task_info in self.currently_executing.items():
+                result.append({
+                    'taskId': task_id,
+                    'taskName': task_info['task_name'],
+                    'automateType': task_info['automate_type'],
+                    'startTime': task_info['start_time'].strftime('%Y-%m-%d %H:%M:%S'),
+                    'duration': (datetime.now() - task_info['start_time']).total_seconds(),
+                    'config': task_info['config']
+                })
+            return result
 
 
 # 全局调度器实例
