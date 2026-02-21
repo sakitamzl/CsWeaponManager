@@ -419,6 +419,16 @@
       <div class="purchase-request-section">
         <div class="purchase-request-header">
           <h3>发布求购</h3>
+          <div class="header-actions">
+            <div class="balance-display">
+              <span class="balance-label">求购余额</span>
+              <span class="balance-value" v-loading="balanceLoading">
+                ¥{{ purchaseBalance !== null ? purchaseBalance.balance_yuan.toFixed(2) : '--' }}
+              </span>
+            </div>
+            <el-button size="small" type="primary" @click="handleTransferIn">从钱包余额转入</el-button>
+            <el-button size="small" type="warning" @click="handleTransferOut">转出到钱包</el-button>
+          </div>
         </div>
         <div class="publish-search-area">
           <el-input
@@ -525,6 +535,20 @@
       :template-data="publishDialogData"
       @submit="handleSubmitPublish"
     />
+
+    <!-- 从钱包转入对话框 -->
+    <TransferInDialog
+      v-model:visible="transferInDialogVisible"
+      :available-yuan="transferInAvailableYuan"
+      @confirm="handleTransferInConfirm"
+    />
+
+    <!-- 转出到钱包对话框 -->
+    <TransferOutDialog
+      v-model:visible="transferOutDialogVisible"
+      :available-yuan="purchaseBalance ? purchaseBalance.balance_yuan : 0"
+      @confirm="handleTransferOutConfirm"
+    />
   </div>
 </template>
 
@@ -532,6 +556,8 @@
 import { Loading } from '@element-plus/icons-vue'
 import EditPurchaseOrderDialog from './EditPurchaseOrderDialog.vue'
 import PublishPurchaseDialog from './PublishPurchaseDialog.vue'
+import TransferInDialog from './TransferInDialog.vue'
+import TransferOutDialog from './TransferOutDialog.vue'
 import useMyPurchaseRequest from './useMyPurchaseRequest.js'
 
 export default {
@@ -539,6 +565,8 @@ export default {
   components: {
     EditPurchaseOrderDialog,
     PublishPurchaseDialog,
+    TransferInDialog,
+    TransferOutDialog,
     Loading
   },
   ...useMyPurchaseRequest

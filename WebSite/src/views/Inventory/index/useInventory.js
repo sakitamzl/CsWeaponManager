@@ -1,6 +1,6 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, watch, h } from 'vue'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
-import { ArrowDown, Loading, Close, Star, Box, Upload, InfoFilled } from '@element-plus/icons-vue'
+import { ArrowDown, ArrowLeft, ArrowRight, Loading, Close, Star, Box, Upload, InfoFilled } from '@element-plus/icons-vue'
 import axios from 'axios'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
 import PlatformSelectDialog from '../PlatformSelectDialog/index.vue'
@@ -59,8 +59,9 @@ export function useInventory() {
   const pendantPriceInfo = ref(null) // 挂件价格信息
 
   // 多选模式相关
-  const isMultiSelectMode = ref(false) // 默认为详情模式（非多选模式）
+  const isMultiSelectMode = ref(true) // 默认为多选模式
   const selectedItems = ref([])
+  const detailCurrentIndex = ref(0) // 详情浏览当前索引
   
   // 组件选择对话框相关
   const itemsToDeposit = ref([])
@@ -1140,15 +1141,6 @@ export function useInventory() {
     displayMode.value = displayMode.value === 'list' ? 'card' : 'list'
   }
   
-  // 切换多选模式
-  const toggleMultiSelectMode = () => {
-    isMultiSelectMode.value = !isMultiSelectMode.value
-    if (!isMultiSelectMode.value) {
-      // 退出多选模式时清空选择
-      selectedItems.value = []
-    }
-  }
-  
   // 判断物品是否有交易限制
   const hasTradeRestriction = (item) => {
     if (!item.remark) return false
@@ -1253,14 +1245,8 @@ export function useInventory() {
       return
     }
     
-    // 原有的卡片点击逻辑
-    if (isMultiSelectMode.value) {
-      // 多选模式下切换选中状态
-      toggleItemSelection(item)
-    } else {
-      // 普通模式下打开预览
-      openPreview(item)
-    }
+    // 卡片模式下始终切换选中状态
+    toggleItemSelection(item)
   }
   
   // 初始化物品表单
@@ -1847,6 +1833,52 @@ export function useInventory() {
     // 加载印花和挂件价格信息
     loadStickersPriceInfo(item.sticker)
     loadPendantPriceInfo(item.pendant)
+  }
+
+  // 从选中物品列表打开详情
+  const openDetailFromSelection = () => {
+    if (selectedItems.value.length === 0) return
+    detailCurrentIndex.value = 0
+    const item = selectedItems.value[0]
+    previewItem.value = item
+    previewVisible.value = true
+    loadStickersPriceInfo(item.sticker)
+    loadPendantPriceInfo(item.pendant)
+  }
+
+  // 切换到上一个选中物品
+  const prevDetailItem = () => {
+    if (detailCurrentIndex.value > 0) {
+      detailCurrentIndex.value--
+      const item = selectedItems.value[detailCurrentIndex.value]
+      previewItem.value = item
+      loadStickersPriceInfo(item.sticker)
+      loadPendantPriceInfo(item.pendant)
+    }
+  }
+
+  // 切换到下一个选中物品
+  const nextDetailItem = () => {
+    if (detailCurrentIndex.value < selectedItems.value.length - 1) {
+      detailCurrentIndex.value++
+      const item = selectedItems.value[detailCurrentIndex.value]
+      previewItem.value = item
+      loadStickersPriceInfo(item.sticker)
+      loadPendantPriceInfo(item.pendant)
+    }
+  }
+
+  // 预览弹窗鼠标滚轮切换
+  let wheelThrottleTimer = null
+  const handlePreviewWheel = (e) => {
+    if (selectedItems.value.length <= 1) return
+    if (wheelThrottleTimer) return
+    wheelThrottleTimer = setTimeout(() => { wheelThrottleTimer = null }, 300)
+    if (e.deltaY > 0) {
+      nextDetailItem()
+    } else if (e.deltaY < 0) {
+      prevDetailItem()
+    }
   }
 
   // 加载印花价格信息
@@ -2654,13 +2686,18 @@ export function useInventory() {
     isMultiSelectMode,
     selectedItems,
     toggleDisplayMode,
-    toggleMultiSelectMode,
     isItemSelected,
     hasTradeRestriction,
     toggleItemSelection,
     clearSelection,
     selectAllDisplayed,
     handleCardClick,
+    // 详情导航相关
+    detailCurrentIndex,
+    openDetailFromSelection,
+    prevDetailItem,
+    nextDetailItem,
+    handlePreviewWheel,
     // 出售/出租相关
     sellRentDialogVisible,
     sellRentDialogTitle,
@@ -2723,6 +2760,8 @@ export function useInventory() {
     saveRemark,
     // 图标组件
     ArrowDown,
+    ArrowLeft,
+    ArrowRight,
     InfoFilled,
     isSelectingComponent,
     itemsToDeposit,

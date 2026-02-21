@@ -97,14 +97,7 @@
             inactive-text="明细模式"
             @change="handleToggleGroupMode"
           />
-          <el-button 
-            v-if="displayMode === 'card'"
-            :type="isMultiSelectMode ? 'warning' : 'info'" 
-            @click="toggleMultiSelectMode"
-          >
-            {{ isMultiSelectMode ? '取消多选' : '多选' }}
-          </el-button>
-          <el-button 
+          <el-button
             :type="displayMode === 'list' ? 'primary' : ''" 
             @click="toggleDisplayMode"
           >
@@ -567,16 +560,17 @@
       </div>
 
     <!-- 多选模式下的操作按钮 -->
-    <div v-if="isMultiSelectMode && selectedItems.length > 0 && !isSelectingComponent" class="multi-select-actions">
+    <div v-if="selectedItems.length > 0 && !isSelectingComponent" class="multi-select-actions">
       <div class="selected-count">
         已选择 {{ selectedItems.length }} 件物品
       </div>
       <div class="action-buttons">
         <el-button type="info" @click="selectAllDisplayed">全选</el-button>
+        <el-button @click="clearSelection">清空选择</el-button>
         <el-button type="primary" @click="showSellDialog">出售</el-button>
         <el-button type="primary" @click="showRentDialog">出租</el-button>
         <el-button type="success" @click="moveToComponent">存入组件</el-button>
-        <el-button @click="clearSelection">清空选择</el-button>
+        <el-button color="#00bcd4" @click="openDetailFromSelection">详情</el-button>
       </div>
     </div>
 
@@ -598,10 +592,10 @@
           v-for="item in currentDisplayData"
           :key="item.assetid"
           class="inventory-card"
-          :class="{ 
-            'selected': isItemSelected(item.assetid), 
-            'multi-select-mode': isMultiSelectMode,
-            'trade-restricted': hasTradeRestriction(item) && isMultiSelectMode,
+          :class="{
+            'selected': isItemSelected(item.assetid),
+            'multi-select-mode': true,
+            'trade-restricted': hasTradeRestriction(item),
             'component-full': isSelectingComponent && parseFloat(item.weapon_float || 0) >= 1000
           }"
           :data-assetid="item.assetid"
@@ -1157,13 +1151,17 @@
     <!-- 预览弹窗 -->
     <el-dialog
       v-model="previewVisible"
-      :title="previewItem ? getCardTitle(previewItem) : ''"
       width="800px"
       :close-on-click-modal="true"
       :close-on-press-escape="true"
       class="preview-dialog"
     >
-      <div v-if="previewItem" class="preview-content">
+      <template #header>
+        <div class="preview-dialog-header">
+          <span class="preview-dialog-title">{{ previewItem ? getCardTitle(previewItem) : '' }}</span>
+        </div>
+      </template>
+      <div v-if="previewItem" class="preview-content" @wheel.prevent="handlePreviewWheel">
         <div class="preview-main-layout">
           <!-- 左侧区域 -->
           <div class="preview-left-section">
@@ -1360,6 +1358,12 @@
             </div>
           </div>
         </div>
+        <!-- 底部导航栏 -->
+        <div v-if="selectedItems.length > 1" class="preview-nav-bar">
+          <el-button :icon="ArrowLeft" size="small" :disabled="detailCurrentIndex <= 0" @click="prevDetailItem">上一个</el-button>
+          <span class="preview-nav-index">{{ detailCurrentIndex + 1 }} / {{ selectedItems.length }}</span>
+          <el-button size="small" :disabled="detailCurrentIndex >= selectedItems.length - 1" @click="nextDetailItem">下一个<el-icon class="el-icon--right"><ArrowRight /></el-icon></el-button>
+        </div>
       </div>
     </el-dialog>
 
@@ -1403,7 +1407,7 @@
 
 
 <script>
-import { InfoFilled, Loading, ArrowDown } from '@element-plus/icons-vue'
+import { InfoFilled, Loading, ArrowDown, ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 import PlatformSelectDialog from '../PlatformSelectDialog/index.vue'
 import RentFormYYYP from '../RentFormYYYP/index.vue'
 import { useInventory } from './useInventory.js'
@@ -1414,6 +1418,8 @@ export default {
     InfoFilled,
     Loading,
     ArrowDown,
+    ArrowLeft,
+    ArrowRight,
     PlatformSelectDialog,
     RentFormYYYP
   },

@@ -60,6 +60,17 @@ export default {
     const publishDialogVisible = ref(false)
     const publishDialogData = ref(null)
 
+    // 求购余额
+    const purchaseBalance = ref(null)
+    const balanceLoading = ref(false)
+
+    // 从钱包转入对话框
+    const transferInDialogVisible = ref(false)
+    const transferInAvailableYuan = ref(0)
+
+    // 转出到钱包对话框
+    const transferOutDialogVisible = ref(false)
+
     // 倒计时定时器
     let countdownTimer = null
 
@@ -665,6 +676,17 @@ export default {
           return
         }
 
+        // 余额检查：只要 needPaymentAmount 超过当前余额就拦截
+        const needAmount = parseFloat(checkResult.data?.needPaymentAmount || 0)
+        const currentBalance = purchaseBalance.value ? purchaseBalance.value.balance_yuan : 0
+        if (needAmount > currentBalance) {
+          ElMessage.warning(
+            `求购余额不足（需 ¥${needAmount.toFixed(2)}，当前余额 ¥${currentBalance.toFixed(2)}），请先转入求购余额`
+          )
+          await handleTransferIn()
+          return
+        }
+
         // 步骤2：确认修改
         const editResponse = await axios.post(apiUrls.yyypEditPurchaseOrder(), {
           steamId: props.steamId,
@@ -788,6 +810,17 @@ export default {
 
         const preCheckResult = preCheckResponse.data.data
 
+        // 余额检查：needPaymentAmount 与当前求购余额比较
+        const needAmount = parseFloat(preCheckResult.needPaymentAmount)
+        const currentBalance = purchaseBalance.value ? purchaseBalance.value.balance_yuan : 0
+        if (needAmount > currentBalance) {
+          ElMessage.warning(
+            `求购余额不足（需 ¥${needAmount.toFixed(2)}，当前余额 ¥${currentBalance.toFixed(2)}），请先转入求购余额`
+          )
+          await handleTransferIn()
+          return
+        }
+
         // 步骤2：确认弹框
         await ElMessageBox.confirm(
           `确定发布求购吗？<br>` +
@@ -856,6 +889,112 @@ export default {
       // TODO: 打开市场列表页面
     }
 
+    // 获取求购余额
+    const fetchPurchaseBalance = async () => {
+      if (!props.steamId) return
+      balanceLoading.value = true
+      try {
+        const response = await axios.post(apiUrls.yyypGetPurchaseBalance(), {
+          steamId: props.steamId
+        })
+        if (response.data && response.data.code === 200) {
+          purchaseBalance.value = response.data.data
+        } else {
+          console.error('获取求购余额失败:', response.data?.message)
+        }
+      } catch (error) {
+        console.error('获取求购余额异常:', error)
+      } finally {
+        balanceLoading.value = false
+      }
+    }
+
+    // 从钱包余额转入：打开对话框前先查询可用余额
+    const handleTransferIn = async () => {
+      if (!props.steamId) {
+        ElMessage.warning('请选择账号')
+        return
+      }
+
+      loading.value = true
+      try {
+        const queryResponse = await axios.post(apiUrls.yyypQueryTransferInBalance(), {
+          steamId: props.steamId
+        })
+
+        if (!queryResponse.data || queryResponse.data.code !== 200) {
+          ElMessage.error(`查询余额失败: ${queryResponse.data?.message || '未知错误'}`)
+          return
+        }
+
+        transferInAvailableYuan.value = queryResponse.data.data.available_yuan
+        transferInDialogVisible.value = true
+      } catch (error) {
+        ElMessage.error(`查询余额失败: ${error.message}`)
+      } finally {
+        loading.value = false
+      }
+    }
+
+    // 确认转入（由 TransferInDialog emit）
+    const handleTransferInConfirm = async (transferMoney) => {
+      transferInDialogVisible.value = false
+      loading.value = true
+      try {
+        const confirmResponse = await axios.post(apiUrls.yyypConfirmTransferIn(), {
+          steamId: props.steamId,
+          transferMoney
+        })
+
+        if (confirmResponse.data && confirmResponse.data.code === 200) {
+          ElMessage.success(`成功转入 ¥${parseFloat(transferMoney).toFixed(2)} 到求购余额`)
+          await fetchPurchaseBalance()
+        } else {
+          ElMessage.error(`转入失败: ${confirmResponse.data?.message || '未知错误'}`)
+        }
+      } catch (error) {
+        ElMessage.error(`转入失败: ${error.message}`)
+      } finally {
+        loading.value = false
+      }
+    }
+
+    // 转出到钱包：打开对话框
+    const handleTransferOut = () => {
+      if (!props.steamId) {
+        ElMessage.warning('请选择账号')
+        return
+      }
+      if (!purchaseBalance.value || purchaseBalance.value.balance_yuan <= 0) {
+        ElMessage.warning('求购余额不足，无法转出')
+        return
+      }
+      transferOutDialogVisible.value = true
+    }
+
+    // 确认转出（由 TransferOutDialog emit）
+    const handleTransferOutConfirm = async (transferMoney) => {
+      transferOutDialogVisible.value = false
+      loading.value = true
+      try {
+        const confirmResponse = await axios.post(apiUrls.yyypConfirmTransferOut(), {
+          steamId: props.steamId,
+          transferMoney
+        })
+
+        if (confirmResponse.data && confirmResponse.data.code === 200) {
+          ElMessage.success(`成功转出 ¥${parseFloat(transferMoney).toFixed(2)} 到钱包`)
+          await fetchPurchaseBalance()
+        } else {
+          ElMessage.error(`转出失败: ${confirmResponse.data?.message || '未知错误'}`)
+        }
+      } catch (error) {
+        ElMessage.error(`转出失败: ${error.message}`)
+      } finally {
+        loading.value = false
+      }
+    }
+
     // 监听 steamId 变化，重新加载数据
     watch(() => props.steamId, (newSteamId) => {
       if (newSteamId) {
@@ -865,6 +1004,8 @@ export default {
         loadCurrentTabData()
         // 重置求购记录，触发无限滚动重新加载
         resetHistory()
+        // 加载求购余额
+        fetchPurchaseBalance()
       }
     }, { immediate: true })
 
@@ -942,7 +1083,20 @@ export default {
       // 发布求购对话框
       publishDialogVisible,
       publishDialogData,
-      handleSubmitPublish
+      handleSubmitPublish,
+      // 求购余额
+      purchaseBalance,
+      balanceLoading,
+      fetchPurchaseBalance,
+      handleTransferIn,
+      handleTransferOut,
+      // 从钱包转入对话框
+      transferInDialogVisible,
+      transferInAvailableYuan,
+      handleTransferInConfirm,
+      // 转出到钱包对话框
+      transferOutDialogVisible,
+      handleTransferOutConfirm
     }
   }
 }

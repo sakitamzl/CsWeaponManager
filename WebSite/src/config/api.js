@@ -455,6 +455,10 @@ export const API_CONFIG = {
     YYYP_GET_TEMPLATE_PURCHASE_INFO: '/spiderApiV2/youping/units/on_sale/purchase_request/search/getTemplateInfo',  // 获取求购发布详情
     YYYP_PRE_PURCHASE_ORDER_CHECK: '/spiderApiV2/youping/units/on_sale/purchase_request/search/preCheck',  // 求购预检查
     YYYP_SAVE_PURCHASE_ORDER: '/spiderApiV2/youping/units/on_sale/purchase_request/search/saveOrder',  // 提交求购订单
+    YYYP_GET_PURCHASE_BALANCE: '/spiderApiV2/youping/units/on_sale/purchase_request/search/getBalance',  // 获取求购余额
+    YYYP_QUERY_TRANSFER_IN_BALANCE: '/spiderApiV2/youping/units/on_sale/purchase_request/search/queryTransferInBalance',  // 查询钱包可转入余额
+    YYYP_CONFIRM_TRANSFER_IN: '/spiderApiV2/youping/units/on_sale/purchase_request/search/confirmTransferIn',  // 确认从钱包转入
+    YYYP_CONFIRM_TRANSFER_OUT: '/spiderApiV2/youping/units/on_sale/purchase_request/search/confirmTransferOut',  // 确认转出到钱包
     YYYP_OFF_SHELF: '/spiderApiV2/youping/units/on_sale/sell/offShelf',  // 下架商品（新API）
     YYYP_CANCEL_SUBLEASE: '/spiderApiV2/youping/units/on_sale/sublease/cancelSublease',  // 取消转租（新API）
     YYYP_CHANGE_PRICE: '/spiderApiV2/youping/units/on_sale/sell/changePrice',  // 改价（售卖商品，新API）
@@ -975,6 +979,10 @@ export const apiUrls = {
   yyypGetTemplatePurchaseInfo: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_TEMPLATE_PURCHASE_INFO),  // 获取求购发布详情
   yyypPrePurchaseOrderCheck: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_PRE_PURCHASE_ORDER_CHECK),  // 求购预检查
   yyypSavePurchaseOrder: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_SAVE_PURCHASE_ORDER),  // 提交求购订单
+  yyypGetPurchaseBalance: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_PURCHASE_BALANCE),  // 获取求购余额
+  yyypQueryTransferInBalance: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_QUERY_TRANSFER_IN_BALANCE),  // 查询钱包可转入余额
+  yyypConfirmTransferIn: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_CONFIRM_TRANSFER_IN),  // 确认从钱包转入
+  yyypConfirmTransferOut: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_CONFIRM_TRANSFER_OUT),  // 确认转出到钱包
   yyypOffShelf: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_OFF_SHELF),
   yyypCancelSublease: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_CANCEL_SUBLEASE),
   yyypChangePrice: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_CHANGE_PRICE),  // 售卖商品改价

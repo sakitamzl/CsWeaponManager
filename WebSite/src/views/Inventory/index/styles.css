@@ -1699,6 +1699,39 @@
   font-size: 1.1rem;
 }
 
+/* 预览弹窗自定义标题栏 */
+.preview-dialog-header {
+  display: flex;
+  align-items: center;
+}
+
+.preview-dialog-title {
+  color: #fff;
+  font-weight: bold;
+  font-size: 1.1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 预览弹窗底部导航栏 */
+.preview-nav-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding-top: 1rem;
+  margin-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.preview-nav-index {
+  color: #ccc;
+  font-size: 0.9rem;
+  min-width: 3em;
+  text-align: center;
+}
+
 .preview-dialog :deep(.el-dialog__body) {
   background: var(--bg-secondary);
   padding: 1.5rem;
