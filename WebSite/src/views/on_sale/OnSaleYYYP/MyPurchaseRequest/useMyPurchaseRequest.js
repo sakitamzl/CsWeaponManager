@@ -748,11 +748,106 @@ export default {
       }
     }
 
-    // 提交发布求购
-    const handleSubmitPublish = (submitData) => {
-      // TODO: 调用发布求购 API
-      ElMessage.info(`发布求购: ¥${submitData.unitPrice} × ${submitData.quantity}`)
-      publishDialogVisible.value = false
+    // 提交发布求购（两步：预检查 → 确认 → 提交）
+    const handleSubmitPublish = async (submitData) => {
+      const { unitPrice, quantity, autoReceived, templateData } = submitData
+      const purchasePrice = parseFloat(unitPrice)
+      const purchaseNum = parseInt(quantity)
+      const totalAmount = purchasePrice * purchaseNum
+      const incrementServiceCode = autoReceived ? [1001] : []
+
+      const ti = templateData.template_info
+
+      // 步骤1：预检查
+      loading.value = true
+      try {
+        const preCheckResponse = await axios.post(apiUrls.yyypPrePurchaseOrderCheck(), {
+          steamId: props.steamId,
+          orderData: {
+            specialStyleObj: {},
+            isCheckMaxPrice: false,
+            templateHashName: ti.template_hash_name,
+            totalAmount,
+            referencePrice: ti.reference_price,
+            purchasePrice,
+            purchaseNum,
+            discountAmount: 0,
+            minSellPrice: parseFloat(ti.min_sell_price),
+            maxPurchasePrice: parseFloat(ti.max_purchase_price),
+            templateId: String(ti.template_id),
+            incrementServiceCode
+          }
+        })
+
+        loading.value = false
+
+        if (!preCheckResponse.data || preCheckResponse.data.code !== 200) {
+          ElMessage.error(`预检查失败: ${preCheckResponse.data?.message || '未知错误'}`)
+          return
+        }
+
+        const preCheckResult = preCheckResponse.data.data
+
+        // 步骤2：确认弹框
+        await ElMessageBox.confirm(
+          `确定发布求购吗？<br>` +
+          `单价：<span style="color:#F56C6C;font-weight:bold;">¥${purchasePrice}</span>，` +
+          `数量：<span style="font-weight:bold;">${purchaseNum}</span><br>` +
+          `需支付：<span style="color:#F56C6C;font-weight:bold;">¥${preCheckResult.needPaymentAmount}</span>`,
+          '确认发布求购',
+          {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning',
+            dangerouslyUseHTMLString: true
+          }
+        )
+
+        // 步骤3：提交订单
+        loading.value = true
+        const saveResponse = await axios.post(apiUrls.yyypSavePurchaseOrder(), {
+          steamId: props.steamId,
+          orderData: {
+            templateId: ti.template_id,
+            templateHashName: ti.template_hash_name,
+            commodityName: ti.commodity_name,
+            referencePrice: ti.reference_price,
+            minSellPrice: ti.min_sell_price,
+            maxPurchasePrice: ti.max_purchase_price,
+            purchasePrice,
+            purchaseNum,
+            needPaymentAmount: preCheckResult.needPaymentAmount,
+            incrementServiceCode,
+            totalAmount: preCheckResult.totalAmount,
+            templateName: preCheckResult.templateName,
+            priceDifference: preCheckResult.priceDifference,
+            discountAmount: 0,
+            payConfirmFlag: false,
+            repeatOrderCancelFlag: false
+          }
+        })
+
+        if (saveResponse.data && saveResponse.data.code === 200) {
+          const saveResult = saveResponse.data.data
+          ElMessage.success(`发布求购成功！订单号：${saveResult.orderNo}`)
+          publishDialogVisible.value = false
+          // 刷新求购中列表
+          resetPurchasing()
+          await loadMorePurchasing()
+          if (activeSubTab.value !== 'purchasing') {
+            activeSubTab.value = 'purchasing'
+          }
+        } else {
+          ElMessage.error(`提交求购失败: ${saveResponse.data?.message || '未知错误'}`)
+        }
+      } catch (error) {
+        if (error !== 'cancel') {
+          console.error('发布求购失败:', error)
+          ElMessage.error(`发布求购失败: ${error.message}`)
+        }
+      } finally {
+        loading.value = false
+      }
     }
 
     // 查看市场（从搜索结果）

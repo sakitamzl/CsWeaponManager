@@ -55,7 +55,6 @@
           <el-input
             v-model="formData.unitPrice"
             :placeholder="`最低¥${templateData.purchase_info.min_price}`"
-            type="number"
             @input="onPriceInput"
           />
         </div>
@@ -71,7 +70,6 @@
           <el-input
             v-model="formData.quantity"
             placeholder="请输入求购数量"
-            type="number"
             @input="onQuantityInput"
           />
         </div>
