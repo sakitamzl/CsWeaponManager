@@ -2,7 +2,7 @@
 echo Starting PyInstaller packaging process...
 
 :: Set version number (modify this for each release)
-set VERSION=v2.4.0
+set VERSION=v2.4.1
 
 :: Sync version to package.json
 echo Syncing version to package.json...
@@ -149,6 +149,14 @@ if exist "Releases\conf.ini" (
     echo conf.ini copied successfully
 ) else (
     echo Warning: conf.ini not found in Releases folder
+)
+
+:: Copy update.bat
+if exist "update.bat" (
+    copy "update.bat" "Releases\%VERSION%\update.bat"
+    echo update.bat copied successfully
+) else (
+    echo Warning: update.bat not found in root folder
 )
 
 :: Copy Documents folder
