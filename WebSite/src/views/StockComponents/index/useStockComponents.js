@@ -1026,7 +1026,7 @@ export function useStockComponents() {
     try {
       console.log('更新组件 - steamId:', selectedSteamId.value, 'assetid:', [selectedComponent.value])
       
-      const response = await axios.post(`${API_SPIDER}/prefectWorldSpiderV1/getInventoryComponent`, {
+      const response = await axios.post(apiUrls.pwGetInventoryComponent(), {
         steamId: selectedSteamId.value,
         assetid: [selectedComponent.value]  // 传递数组
       })
@@ -1160,7 +1160,7 @@ export function useStockComponents() {
       
       ElMessage.info(`开始更新 ${assetidList.length} 个组件，请稍候...`)
       
-      const response = await axios.post(`${API_SPIDER}/prefectWorldSpiderV1/getInventoryComponent`, {
+      const response = await axios.post(apiUrls.pwGetInventoryComponent(), {
         steamId: selectedSteamId.value,
         assetid: assetidList
       })
@@ -1227,7 +1227,7 @@ export function useStockComponents() {
       
       ElMessage.info(`开始更新 ${assetidList.length} 个异常组件，请稍候...`)
       
-      const response = await axios.post(`${API_SPIDER}/prefectWorldSpiderV1/getInventoryComponent`, {
+      const response = await axios.post(apiUrls.pwGetInventoryComponent(), {
         steamId: selectedSteamId.value,
         assetid: assetidList
       })
@@ -1645,7 +1645,7 @@ export function useStockComponents() {
     removeLoading.value = true
 
     try {
-      const response = await axios.post(`${API_SPIDER}/prefectWorldSpiderV1/depositToComponent`, {
+      const response = await axios.post(apiUrls.pwDepositToComponent(), {
         steamId: selectedSteamId.value,
         itemIds: itemIds,
         storageUnitId: selectedComponent.value,

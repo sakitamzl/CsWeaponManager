@@ -264,6 +264,10 @@ export const API_CONFIG = {
     CSFLOAT_SYNC_NEW_DATA: '/spiderApiV2/src/web_site/csfloat/units/settings/data_source/syncNewData',  // CSFloat增量采集
     CSFLOAT_SYNC_HISTORY_DATA: '/spiderApiV2/src/web_site/csfloat/units/settings/data_source/syncHistoryData',  // CSFloat全量采集
 
+    // 完美世界 库存组件（V2 API）
+    PW_GET_INVENTORY_COMPONENT: '/spiderApiV2/src/web_site/prefectworld/units/stock_components/get_component/getInventoryComponent',  // 获取库存组件数据
+    PW_DEPOSIT_TO_COMPONENT: '/spiderApiV2/src/web_site/prefectworld/units/stock_components/move_component/depositToComponent',  // 存入/取出物品到组件
+
     STEAM_SPIDER: '/steamSpiderV1/getNewData',  // Steam增量采集（获取新数据）
 
     STEAM_FULL_SPIDER: '/steamSpiderV1/NoneData',  // Steam全量采集
@@ -892,6 +896,10 @@ export const apiUrls = {
   csfloatSyncNewData: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSFLOAT_SYNC_NEW_DATA),
 
   csfloatSyncHistoryData: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSFLOAT_SYNC_HISTORY_DATA),
+
+  pwGetInventoryComponent: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.PW_GET_INVENTORY_COMPONENT),
+
+  pwDepositToComponent: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.PW_DEPOSIT_TO_COMPONENT),
 
   getAppTokenProxyStatus: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.GET_APP_TOKEN_PROXY_STATUS),
 

@@ -2151,7 +2151,7 @@ export function useInventory() {
       const itemIds = items.map(item => item.assetid)
       
       const response = await axios.post(
-        `${API_CONFIG.SPIDER_BASE_URL}/prefectWorldSpiderV1/depositToComponent`,
+        apiUrls.pwDepositToComponent(),
         {
           steamId: selectedSteamId.value,
           itemIds: itemIds,
