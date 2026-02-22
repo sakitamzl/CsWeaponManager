@@ -344,43 +344,43 @@ export const API_CONFIG = {
 
     
 
-    // GetAppToken 相关接口
+    // GetAppToken 相关接口（V2）
 
-    GET_APP_TOKEN_START_BUFF: '/getAppTokenV1/start_buff_proxy',  // 启动BUFF代理
+    GET_APP_TOKEN_START_BUFF: '/spiderApiV2/src/get_app_token/units/settings/data_source/buff/start_proxy',  // 启动BUFF代理
 
-    GET_APP_TOKEN_STOP_BUFF: '/getAppTokenV1/stop_buff_proxy',  // 停止BUFF代理
+    GET_APP_TOKEN_STOP_BUFF: '/spiderApiV2/src/get_app_token/units/settings/data_source/buff/stop_proxy',  // 停止BUFF代理
 
-    GET_APP_TOKEN_GET_BUFF_DATA: '/getAppTokenV1/get_buff_data',  // 获取BUFF数据
+    GET_APP_TOKEN_GET_BUFF_DATA: '/spiderApiV2/src/get_app_token/units/settings/data_source/buff/get_data',  // 获取BUFF数据
 
-    GET_APP_TOKEN_CLEAR_BUFF_DATA: '/getAppTokenV1/clear_buff_data',  // 清除BUFF数据
+    GET_APP_TOKEN_CLEAR_BUFF_DATA: '/spiderApiV2/src/get_app_token/units/settings/data_source/buff/clear_data',  // 清除BUFF数据
 
-    GET_APP_TOKEN_START_YYYP: '/getAppTokenV1/start_yyyp_proxy',  // 启动悠悠有品代理
+    GET_APP_TOKEN_START_YYYP: '/spiderApiV2/src/get_app_token/units/settings/data_source/yyyp/start_proxy',  // 启动悠悠有品代理
 
-    GET_APP_TOKEN_STOP_YYYP: '/getAppTokenV1/stop_yyyp_proxy',  // 停止悠悠有品代理
+    GET_APP_TOKEN_STOP_YYYP: '/spiderApiV2/src/get_app_token/units/settings/data_source/yyyp/stop_proxy',  // 停止悠悠有品代理
 
-    GET_APP_TOKEN_GET_YYYP_DATA: '/getAppTokenV1/get_yyyp_data',  // 获取悠悠有品数据
+    GET_APP_TOKEN_GET_YYYP_DATA: '/spiderApiV2/src/get_app_token/units/settings/data_source/yyyp/get_data',  // 获取悠悠有品数据
 
-    GET_APP_TOKEN_CLEAR_YYYP_DATA: '/getAppTokenV1/clear_yyyp_data',  // 清除悠悠有品数据
+    GET_APP_TOKEN_CLEAR_YYYP_DATA: '/spiderApiV2/src/get_app_token/units/settings/data_source/yyyp/clear_data',  // 清除悠悠有品数据
 
-    GET_APP_TOKEN_START_PERFECTWORLD: '/getAppTokenV1/start_perfectworld_proxy',  // 启动完美世界APP代理
+    GET_APP_TOKEN_START_PERFECTWORLD: '/spiderApiV2/src/get_app_token/units/settings/data_source/perfectworld/start_proxy',  // 启动完美世界APP代理
 
-    GET_APP_TOKEN_STOP_PERFECTWORLD: '/getAppTokenV1/stop_perfectworld_proxy',  // 停止完美世界APP代理
+    GET_APP_TOKEN_STOP_PERFECTWORLD: '/spiderApiV2/src/get_app_token/units/settings/data_source/perfectworld/stop_proxy',  // 停止完美世界APP代理
 
-    GET_APP_TOKEN_GET_PERFECTWORLD_DATA: '/getAppTokenV1/get_perfectworld_data',  // 获取完美世界APP数据
+    GET_APP_TOKEN_GET_PERFECTWORLD_DATA: '/spiderApiV2/src/get_app_token/units/settings/data_source/perfectworld/get_data',  // 获取完美世界APP数据
 
-    GET_APP_TOKEN_CLEAR_PERFECTWORLD_DATA: '/getAppTokenV1/clear_perfectworld_data',  // 清除完美世界APP数据
+    GET_APP_TOKEN_CLEAR_PERFECTWORLD_DATA: '/spiderApiV2/src/get_app_token/units/settings/data_source/perfectworld/clear_data',  // 清除完美世界APP数据
 
-    GET_APP_TOKEN_START_CSFLOAT: '/getAppTokenV1/start_csfloat_proxy',  // 启动CsFloat代理
+    GET_APP_TOKEN_START_CSFLOAT: '/spiderApiV2/src/get_app_token/units/settings/data_source/csfloat/start_proxy',  // 启动CsFloat代理
 
-    GET_APP_TOKEN_STOP_CSFLOAT: '/getAppTokenV1/stop_csfloat_proxy',  // 停止CsFloat代理
+    GET_APP_TOKEN_STOP_CSFLOAT: '/spiderApiV2/src/get_app_token/units/settings/data_source/csfloat/stop_proxy',  // 停止CsFloat代理
 
-    GET_APP_TOKEN_GET_CSFLOAT_DATA: '/getAppTokenV1/get_csfloat_data',  // 获取CsFloat数据
+    GET_APP_TOKEN_GET_CSFLOAT_DATA: '/spiderApiV2/src/get_app_token/units/settings/data_source/csfloat/get_data',  // 获取CsFloat数据
 
-    GET_APP_TOKEN_CLEAR_CSFLOAT_DATA: '/getAppTokenV1/clear_csfloat_data',  // 清除CsFloat数据
+    GET_APP_TOKEN_CLEAR_CSFLOAT_DATA: '/spiderApiV2/src/get_app_token/units/settings/data_source/csfloat/clear_data',  // 清除CsFloat数据
 
-    GET_APP_TOKEN_PROXY_STATUS: '/getAppTokenV1/proxy_status',  // 查询代理状态
+    GET_APP_TOKEN_PROXY_STATUS: '/spiderApiV2/src/get_app_token/units/settings/data_source/proxy_status',  // 查询代理状态
 
-    GET_APP_TOKEN_HELP: '/getAppTokenV1/help',  // 获取帮助信息
+    GET_APP_TOKEN_HELP: '/spiderApiV2/src/get_app_token/units/settings/data_source/help',  // 获取帮助信息
 
     
 
