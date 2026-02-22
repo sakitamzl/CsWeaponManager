@@ -2405,7 +2405,7 @@ export function useInventory() {
       
       // 调用Spider API获取BUFF价格
       const response = await axios.post(
-        `${API_CONFIG.SPIDER_BASE_URL}/buffSpiderV1/getBUFFPrice`,
+        apiUrls.buffGetPrice(),
         {
           steamId: selectedSteamId.value
         }

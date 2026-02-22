@@ -248,6 +248,13 @@ export const API_CONFIG = {
     BUFF_SYNC_NEW_DATA: '/spiderApiV2/src/web_site/buff/units/settings/data_source/syncNewData',  // 同步新增数据
     BUFF_SYNC_HISTORY_DATA: '/spiderApiV2/src/web_site/buff/units/settings/data_source/syncHistoryData',  // 同步历史数据
 
+    // BUFF消息同步（V2 API）
+    BUFF_SYNC_NEW_MESSAGES: '/spiderApiV2/src/web_site/buff/units/settings/buff_message_box/syncNewMessages',  // 同步新消息（增量）
+    BUFF_SYNC_HISTORY_MESSAGES: '/spiderApiV2/src/web_site/buff/units/settings/buff_message_box/syncHistoryMessages',  // 同步历史消息（全量）
+
+    // BUFF库存（V2 API）
+    BUFF_GET_PRICE: '/spiderApiV2/src/web_site/buff/units/inventory/getBUFFPrice',  // 获取BUFF库存价格
+
     BUFF_SYNC_TEMPLATES: '/buffSpiderV1/syncBuffTemplates',  // 同步BUFF饰品映射
 
     CSFLOAT_SPIDER: '/csfloatSpiderV1/NewData',
@@ -776,6 +783,9 @@ export const apiUrls = {
   downloadWeaponIcons: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YOUPIN_DOWNLOAD_ICONS),
   buffSyncNewData: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.BUFF_SYNC_NEW_DATA),
   buffSyncHistoryData: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.BUFF_SYNC_HISTORY_DATA),
+  buffSyncNewMessages: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.BUFF_SYNC_NEW_MESSAGES),
+  buffSyncHistoryMessages: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.BUFF_SYNC_HISTORY_MESSAGES),
+  buffGetPrice: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.BUFF_GET_PRICE),
 
   buffSyncTemplates: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.BUFF_SYNC_TEMPLATES),
 

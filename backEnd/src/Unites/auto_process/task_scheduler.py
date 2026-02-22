@@ -494,7 +494,7 @@ class TaskScheduler:
                 # 获取BUFF价格 - 与前端 Inventory.vue 的 fetchBuffPrice 方法一致
                 self.log.write_log(f"开始获取BUFF价格: {steam_id}", 'info')
                 response = requests.post(
-                    f"{spider_base_url}/buffSpiderV1/getBUFFPrice",
+                    f"{spider_base_url}/spiderApiV2/src/web_site/buff/units/inventory/getBUFFPrice",
                     json={'steamId': steam_id},
                     timeout=300
                 )

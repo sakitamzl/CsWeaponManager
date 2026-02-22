@@ -546,7 +546,7 @@ export function useAutomateManagement() {
   const fetchBuffPrice = async (steamId) => {
     try {
       const response = await axios.post(
-        `${API_CONFIG.SPIDER_BASE_URL}/buffSpiderV1/getBUFFPrice`,
+        apiUrls.buffGetPrice(),
         { steamId }
       )
   
