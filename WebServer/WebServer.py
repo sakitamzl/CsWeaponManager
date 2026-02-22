@@ -47,7 +47,11 @@ def proxy_api(path):
     """代理 /api/* 请求到后端服务器 (9001)"""
     try:
         url = f'{BACKEND_URL}/{path}'
-        
+
+        # 检查是否为流式端点
+        is_stream = path in ('api/update/download',)
+        timeout = 600 if is_stream else 30
+
         # 转发请求
         resp = requests.request(
             method=request.method,
@@ -56,14 +60,18 @@ def proxy_api(path):
             data=request.get_data(),
             params=request.args,
             allow_redirects=False,
-            timeout=30
+            timeout=timeout,
+            stream=is_stream
         )
-        
+
         # 返回响应
         excluded_headers = ['content-encoding', 'content-length', 'transfer-encoding', 'connection']
         headers = [(name, value) for name, value in resp.raw.headers.items()
                   if name.lower() not in excluded_headers]
-        
+
+        if is_stream:
+            return Response(resp.iter_content(chunk_size=1024), resp.status_code, headers)
+
         return Response(resp.content, resp.status_code, headers)
     except Exception as e:
         print(f"API代理错误: {e}")

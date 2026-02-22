@@ -20,7 +20,17 @@ export default defineConfig({
       '/api': {
         target: 'http://127.0.0.1:9001',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '')
+        rewrite: (path) => path.replace(/^\/api/, ''),
+        configure: (proxy) => {
+          proxy.on('proxyRes', (proxyRes, req) => {
+            // 对 SSE 流式端点禁用缓冲
+            if (req.url && req.url.includes('/api/update/download')) {
+              proxyRes.headers['cache-control'] = 'no-cache'
+              proxyRes.headers['x-accel-buffering'] = 'no'
+              proxyRes.headers['connection'] = 'keep-alive'
+            }
+          })
+        }
       },
       '/spider': {
         target: 'http://127.0.0.1:9002',

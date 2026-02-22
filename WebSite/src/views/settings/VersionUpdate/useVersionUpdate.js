@@ -556,21 +556,32 @@ export function useVersionUpdate() {
     }
   }
 
-  // 立即更新按钮（本地已有更新包时直接调用）
+  // 立即更新按钮
   const handleApplyUpdate = async () => {
-    try {
-      await ElMessageBox.confirm(
-        '确定要立即更新吗？更新将重启应用。',
-        '确认更新',
-        {
-          confirmButtonText: '立即更新',
-          cancelButtonText: '取消',
-          type: 'warning'
+    if (localUpdateExists.value) {
+      // 本地有更新包，让用户选择
+      try {
+        await ElMessageBox({
+          title: '选择更新方式',
+          message: '检测到本地已有更新包，请选择更新方式：',
+          showCancelButton: true,
+          distinguishCancelAndClose: true,
+          confirmButtonText: '使用本地更新包',
+          cancelButtonText: '下载最新更新包',
+          type: 'info'
+        })
+        // 用户点击了"使用本地更新包"
+        await doApplyUpdate()
+      } catch (action) {
+        if (action === 'cancel') {
+          // 用户点击了"下载最新更新包"
+          await handleDownloadUpdate()
         }
-      )
-      await doApplyUpdate()
-    } catch (err) {
-      if (err === 'cancel') return
+        // action === 'close' 则关闭弹窗，不做任何操作
+      }
+    } else {
+      // 没有本地更新包，直接下载
+      await handleDownloadUpdate()
     }
   }
 

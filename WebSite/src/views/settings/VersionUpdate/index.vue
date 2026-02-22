@@ -66,21 +66,6 @@
               </div>
             </div>
 
-            <!-- 本地已有更新包（未检查更新时显示） -->
-            <div v-else-if="localUpdateExists && !checkedOnce" class="update-alert">
-              <div style="font-size: 12px; color: #ccc;">
-                <div>检测到本地更新包 ({{ localUpdateSize }})</div>
-                <el-button
-                  type="success"
-                  size="small"
-                  style="width: 100%; margin-top: 10px;"
-                  @click="handleApplyUpdate"
-                >
-                  立即更新
-                </el-button>
-              </div>
-            </div>
-
             <!-- 无更新提示 -->
             <div v-else-if="!checkingUpdate && checkedOnce" class="no-update">
               <span style="font-size: 12px; color: #67c23a;">已是最新版本</span>
