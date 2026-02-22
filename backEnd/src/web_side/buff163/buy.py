@@ -1,7 +1,7 @@
 from flask import jsonify, request, Blueprint
 from src.execution_db import Date_base
-from backEnd.src.db_manager.index.model.buy import BuyModel
-from backEnd.src.db_manager.index.model.weapon_classID import WeaponClassIDModel
+from src.db_manager.index.model.buy import BuyModel
+from src.db_manager.index.model.weapon_classID import WeaponClassIDModel
 import json
 
 buff163BuyV1 = Blueprint('buff163BuyV1', __name__)

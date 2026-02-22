@@ -1,5 +1,5 @@
 from flask import jsonify, request, Blueprint
-from src.db_manager.buff.buff_messagebox import BuffMessageboxModel
+from src.db_manager.BUFF.model.buff_messagebox import BuffMessageboxModel
 from datetime import datetime
 
 buff163MessageV1 = Blueprint('buff163MessageV1', __name__)

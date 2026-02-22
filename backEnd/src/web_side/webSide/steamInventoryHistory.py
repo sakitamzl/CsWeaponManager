@@ -1,7 +1,7 @@
 from flask import jsonify, request, Blueprint
 from src.log import Log
 from src.execution_db import Date_base
-from backEnd.src.db_manager.steam.model.steam_inventory_history import SteamInventoryHistoryModel
+from src.db_manager.steam.model.steam_inventory_history import SteamInventoryHistoryModel
 import traceback
 
 webSteamInventoryHistoryV1 = Blueprint('webSteamInventoryHistoryV1', __name__)

@@ -3,8 +3,8 @@ import sys
 from pathlib import Path
 from flask import Blueprint, jsonify, request
 
-from backEnd.src.db_manager.csfloat.model import CsFloatSellModel
-from backEnd.src.db_manager.index.model.sell import SellModel
+from src.db_manager.csfloat.model import CsFloatSellModel
+from src.db_manager.index.model.sell import SellModel
 
 # 导入状态映射模块
 # 添加 Spider 目录到路径以便导入
@@ -192,7 +192,7 @@ def delete_recent_days(user_id, days):
     """
     try:
         from datetime import datetime, timedelta
-        from backEnd.src.db_manager.index.model.sell import SellModel
+        from src.db_manager.index.model.sell import SellModel
         
         # 计算N天前的时间
         cutoff_time = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d %H:%M:%S')

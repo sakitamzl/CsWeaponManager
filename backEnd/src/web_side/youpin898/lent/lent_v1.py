@@ -1,8 +1,8 @@
 from flask import jsonify, request, Blueprint
 from src.log import Log
 from src.now_time import today
-from backEnd.src.db_manager.youpin.model.yyyp_lent import YyypLentModel
-from backEnd.src.db_manager.index.model.lent import LentModel
+from src.db_manager.youpin.model.yyyp_lent import YyypLentModel
+from src.db_manager.index.model.lent import LentModel
 import requests
 
 youpin898LentV1 = Blueprint('youpin898LentV1', __name__)

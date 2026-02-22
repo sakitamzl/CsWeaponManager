@@ -5,7 +5,7 @@ import logging
 # 设置日志
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-from backEnd.src.db_manager.index.model.buy import BuyModel
+from src.db_manager.index.model.buy import BuyModel
 
 webBuyPageV1 = Blueprint('webBuyPageV1', __name__)
 

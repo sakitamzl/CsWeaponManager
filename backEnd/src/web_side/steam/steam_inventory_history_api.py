@@ -1,7 +1,7 @@
 from flask import jsonify, request, Blueprint
-from backEnd.src.db_manager.steam.model.steam_inventory_history import SteamInventoryHistoryModel
-from backEnd.src.db_manager.steam.model.steam_inventory_history_index import SteamInventoryHistoryIndexModel
-from backEnd.src.db_manager.index.model.weapon_classID import WeaponClassIDModel
+from src.db_manager.steam.model.steam_inventory_history import SteamInventoryHistoryModel
+from src.db_manager.steam.model.steam_inventory_history_index import SteamInventoryHistoryIndexModel
+from src.db_manager.index.model.weapon_classID import WeaponClassIDModel
 from datetime import datetime
 import json
 import traceback

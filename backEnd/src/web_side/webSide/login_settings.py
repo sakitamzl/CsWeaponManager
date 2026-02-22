@@ -6,7 +6,7 @@ key1 = 'user', key2 = 'login', value = JSON格式存储用户名和密码
 
 from flask import jsonify, request, Blueprint
 from src.log import Log
-from backEnd.src.db_manager.index.model.config import ConfigModel
+from src.db_manager.index.model.config import ConfigModel
 import json
 import hashlib
 import traceback

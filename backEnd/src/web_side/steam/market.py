@@ -1,7 +1,7 @@
 from flask import jsonify, request, Blueprint
-from backEnd.src.db_manager.steam.model.steam_market import SteamMarketModel
-from backEnd.src.db_manager.index.model.buy import BuyModel
-from backEnd.src.db_manager.index.model.sell import SellModel
+from src.db_manager.steam.model.steam_market import SteamMarketModel
+from src.db_manager.index.model.buy import BuyModel
+from src.db_manager.index.model.sell import SellModel
 from datetime import datetime
 import re
 

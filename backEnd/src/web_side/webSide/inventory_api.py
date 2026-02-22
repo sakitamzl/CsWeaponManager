@@ -1,5 +1,5 @@
 from flask import jsonify, request, Blueprint
-from backEnd.src.db_manager.steam.model.steam_inventory import SteamInventoryModel
+from src.db_manager.steam.model.steam_inventory import SteamInventoryModel
 from src.db_manager.database import DatabaseManager
 
 webInventoryV1 = Blueprint('webInventoryV1', __name__)

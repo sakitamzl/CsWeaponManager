@@ -2,7 +2,7 @@ from flask import jsonify, request, Blueprint
 from src.log import Log
 from src.execution_db import Date_base
 from src.now_time import today
-from backEnd.src.db_manager.index.model.sell import SellModel
+from src.db_manager.index.model.sell import SellModel
 import requests
 
 webSellV1 = Blueprint('webSellV1', __name__)

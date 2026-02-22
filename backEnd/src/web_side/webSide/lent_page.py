@@ -1,6 +1,6 @@
 from flask import jsonify, request, Blueprint
 from src.execution_db import Date_base
-from backEnd.src.db_manager.index.model.lease import LeaseModel
+from src.db_manager.index.model.lease import LeaseModel
 
 webLentPageV1 = Blueprint('webLentPageV1', __name__)
 
