@@ -6,8 +6,9 @@
 - 需要下载图包：[点击下载](https://drive.google.com/file/d/1Jz50N_op51l2xjMPzFX5SKO9rQMNr4nP/view?usp=drive_link)
 - 查看详细的版本更新记录：[更新日志](Documents/updateLog.md)
 - 使用指南 : [使用指南](Documents/首次使用指南.md)
-- 系统更新方法 ： 1、 点击 其他功能-系统更新-检查更新进行更新
-                 2、 将Releases压缩包放在根目录下运行 update.bat
+- 系统更新方法 ： =、 
+   - 点击 其他功能-系统更新-检查更新进行更新
+   - 将Releases压缩包放在根目录下运行 update.bat
 - 本项目不建议部署到公网 目前没有做任何加密传输 可能回造成数据泄露
 - 目前只支持 win10 11 win server 2022以上版本运行 不支持LIUNX 
 
