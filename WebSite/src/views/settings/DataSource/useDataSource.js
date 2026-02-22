@@ -1547,7 +1547,7 @@ export function useDataSource() {
       const spiderData = { steamId }
       console.log('发送给CsFloat爬虫的数据:', spiderData)
 
-      const response = await axios.post(apiUrls.csfloatSpider(), spiderData)
+      const response = await axios.post(apiUrls.csfloatSyncNewData(), spiderData)
 
       if (response.status === 200) {
         const result = response.data || {}
@@ -2342,7 +2342,7 @@ export function useDataSource() {
 
       ElMessage.info(`开始执行CsFloat全部采集: ${editForm.value.name}`)
 
-      const response = await axios.post(apiUrls.csfloatFullSpider(), {
+      const response = await axios.post(apiUrls.csfloatSyncHistoryData(), {
         steamId,
       })
 

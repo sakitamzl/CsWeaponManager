@@ -260,9 +260,9 @@ export const API_CONFIG = {
     // BUFF商品搜索（V2 API）
     BUFF_GET_COMMODITIES: '/spiderApiV2/src/web_site/buff/units/item_search/on_sale/getCommoditiesByGoodsId',  // 获取BUFF商品在售列表
 
-    CSFLOAT_SPIDER: '/csfloatSpiderV1/NewData',
-
-    CSFLOAT_FULL_SPIDER: '/csfloatSpiderV1/NoneData',
+    // CSFloat 数据同步（V2 API）
+    CSFLOAT_SYNC_NEW_DATA: '/spiderApiV2/src/web_site/csfloat/units/settings/data_source/syncNewData',  // CSFloat增量采集
+    CSFLOAT_SYNC_HISTORY_DATA: '/spiderApiV2/src/web_site/csfloat/units/settings/data_source/syncHistoryData',  // CSFloat全量采集
 
     STEAM_SPIDER: '/steamSpiderV1/getNewData',  // Steam增量采集（获取新数据）
 
@@ -889,9 +889,9 @@ export const apiUrls = {
 
   getAppTokenClearCsfloatData: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.GET_APP_TOKEN_CLEAR_CSFLOAT_DATA),
 
-  csfloatSpider: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSFLOAT_SPIDER),
+  csfloatSyncNewData: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSFLOAT_SYNC_NEW_DATA),
 
-  csfloatFullSpider: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSFLOAT_FULL_SPIDER),
+  csfloatSyncHistoryData: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSFLOAT_SYNC_HISTORY_DATA),
 
   getAppTokenProxyStatus: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.GET_APP_TOKEN_PROXY_STATUS),
 
