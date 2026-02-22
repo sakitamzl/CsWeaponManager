@@ -286,7 +286,8 @@ export const API_CONFIG = {
     STEAM_MINE_INVENTORY: '/spiderApiV2/src/web_site/steam/units/mining/mineInventory',  // 库存挖掘
     STEAM_CANCEL_MINING: '/spiderApiV2/src/web_site/steam/units/mining/cancelMining',  // 取消挖掘
 
-    CSQAQ_MARKET_INDEX: '/csqaqSpiderV1/getMarketIndex',  // CSQAQ市场指数
+    CSQAQ_MARKET_INDEX: '/spiderApiV2/src/web_site/csqaq/units/home/market_index/getMarketIndex',  // CSQAQ市场指数（V2 API）
+    CSQAQ_KLINE: '/spiderApiV2/src/web_site/csqaq/units/data_website/market_overview/getKline',  // CSQAQ K线数据（V2 API）
 
     CSQAQ_GET_GOODS: '/csqaqSpiderV1/getGoodsList',  // CSQAQ同步获取商品
 
@@ -323,8 +324,10 @@ export const API_CONFIG = {
 
     CSQAQ_EXPORT: '/csqaqSpiderV1/exportGoods',  // CSQAQ导出商品
 
-    // SteamDT相关
-    STEAMDT_MARKET_INDEX: '/steamdtSpiderV1/getMarketIndex',  // 获取SteamDT大盘指数
+    // SteamDT相关（V2 API）
+    STEAMDT_MARKET_INDEX: '/spiderApiV2/src/web_site/steamdt/units/home/market_index/getMarketIndex',  // 获取SteamDT大盘指数
+    STEAMDT_MARKET_INDEX_HEADLESS: '/spiderApiV2/src/web_site/steamdt/units/home/market_index/getMarketIndexHeadless',  // 获取SteamDT大盘指数（无头浏览器）
+    STEAMDT_KLINE: '/spiderApiV2/src/web_site/steamdt/units/data_website/market_overview/getKline',  // 获取SteamDT K线数据
     STEAMDT_HOMEPAGE_DATA: '/steamdtApiV1/api/steamdt/homepage-data',  // 获取SteamDT首页数据（饰品成交额等）
 
 
@@ -805,6 +808,7 @@ export const apiUrls = {
   steamCancelMining: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_CANCEL_MINING),
 
   csqaqMarketIndex: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_MARKET_INDEX),
+  csqaqKline: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_KLINE),
 
   csqaqGetGoods: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_GET_GOODS),
 
@@ -1032,6 +1036,8 @@ export const apiUrls = {
 
   // SteamDT API
   steamdtMarketIndex: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAMDT_MARKET_INDEX),
+  steamdtMarketIndexHeadless: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAMDT_MARKET_INDEX_HEADLESS),
+  steamdtKline: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAMDT_KLINE),
   steamdtHomepageData: () => getApiUrl(API_CONFIG.ENDPOINTS.STEAMDT_HOMEPAGE_DATA),
 
 

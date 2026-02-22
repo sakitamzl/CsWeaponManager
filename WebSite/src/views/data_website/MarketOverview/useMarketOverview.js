@@ -3,6 +3,7 @@ import { ElMessage } from 'element-plus'
 import { Refresh, WarningFilled } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import axios from 'axios'
+import { apiUrls } from '@/config/api'
 
 export function useMarketOverview() {
   const loading = ref(false)
@@ -247,7 +248,7 @@ export function useMarketOverview() {
     
     loadingSteamDT.value = true
     try {
-      const response = await axios.get('/spider/steamdtSpiderV1/getKline', {
+      const response = await axios.get(apiUrls.steamdtKline(), {
         params: {
           period: queryForm.period
         }
@@ -272,7 +273,7 @@ export function useMarketOverview() {
   const fetchCSQAQData = async () => {
     loadingCSQAQ.value = true
     try {
-      const response = await axios.get('/spider/csqaqSpiderV1/getKline', {
+      const response = await axios.get(apiUrls.csqaqKline(), {
         params: {
           period: queryForm.period
         }
