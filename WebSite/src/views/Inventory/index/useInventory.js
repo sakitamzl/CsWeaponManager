@@ -2338,7 +2338,7 @@ export function useInventory() {
       // 直接调用Spider接口，只传steamId
       // Spider会自己调用后端API查询config表获取cookie
       const spiderResponse = await axios.post(
-        `${API_CONFIG.SPIDER_BASE_URL}/steamSpiderV1/getInventory`,
+        apiUrls.steamGetInventory(),
         {
           steamId: selectedSteamId.value
         }

@@ -268,19 +268,23 @@ export const API_CONFIG = {
     PW_GET_INVENTORY_COMPONENT: '/spiderApiV2/src/web_site/prefectworld/units/stock_components/get_component/getInventoryComponent',  // 获取库存组件数据
     PW_DEPOSIT_TO_COMPONENT: '/spiderApiV2/src/web_site/prefectworld/units/stock_components/move_component/depositToComponent',  // 存入/取出物品到组件
 
-    STEAM_SPIDER: '/steamSpiderV1/getNewData',  // Steam增量采集（获取新数据）
+    // Steam 数据同步（V2 API）
+    STEAM_SYNC_NEW_DATA: '/spiderApiV2/src/web_site/steam/units/settings/data_source/syncNewData',  // Steam增量采集
+    STEAM_SYNC_HISTORY_DATA: '/spiderApiV2/src/web_site/steam/units/settings/data_source/syncHistoryData',  // Steam全量采集
 
-    STEAM_FULL_SPIDER: '/steamSpiderV1/NoneData',  // Steam全量采集
+    // Steam 库存（V2 API）
+    STEAM_GET_INVENTORY: '/spiderApiV2/src/web_site/steam/units/inventory/getInventory',  // 获取Steam库存
 
-    STEAM_COLLECT_HASH_NAMES: '/steamSpiderV1/collectMarketHashNames',  // 采集Steam市场Hash Names
+    // Steam 市场（V2 API）
+    STEAM_COLLECT_HASH_NAMES: '/spiderApiV2/src/web_site/steam/units/market/hash_name/collectMarketHashNames',  // 采集Steam市场Hash Names
+    STEAM_FETCH_HASH_NAMES: '/spiderApiV2/src/web_site/steam/units/market/hash_name/fetchSteamHashNames',  // 获取Steam饰品哈希（批量）
+    STEAM_FETCH_HASH_NAMES_BY_WEAPON: '/spiderApiV2/src/web_site/steam/units/market/hash_name/fetchSteamHashNamesByWeapon',  // 获取Steam饰品哈希（单个武器）
+    STEAM_SEARCH_RENAME: '/spiderApiV2/src/web_site/steam/units/mining/search_rename/searchRenameWeapon',  // Steam 改名饰品搜索
+    STEAM_BUY_MARKET_ITEM: '/spiderApiV2/src/web_site/steam/units/market/buy/buyMarketItem',  // Steam 市场购买物品
 
-    STEAM_FETCH_HASH_NAMES: '/steamSpiderV1/fetchSteamHashNames',  // 获取Steam饰品哈希（批量）
-
-    STEAM_FETCH_HASH_NAMES_BY_WEAPON: '/steamSpiderV1/fetchSteamHashNamesByWeapon',  // 获取Steam饰品哈希（单个武器）
-
-    STEAM_SEARCH_RENAME: '/steamSpiderV1/searchRenameWeapon',  // Steam 改名饰品搜索
-
-    STEAM_BUY_MARKET_ITEM: '/steamSpiderV1/buyMarketItem',  // Steam 市场购买物品
+    // Steam 库存挖掘（V2 API）
+    STEAM_MINE_INVENTORY: '/spiderApiV2/src/web_site/steam/units/mining/mineInventory',  // 库存挖掘
+    STEAM_CANCEL_MINING: '/spiderApiV2/src/web_site/steam/units/mining/cancelMining',  // 取消挖掘
 
     CSQAQ_MARKET_INDEX: '/csqaqSpiderV1/getMarketIndex',  // CSQAQ市场指数
 
@@ -325,21 +329,15 @@ export const API_CONFIG = {
 
 
 
-    // Steam登录相关
-
-    STEAM_LOGIN: '/steamLoginV1/login',
-
-    STEAM_LOGIN_VERIFY: '/steamLoginV1/verify',
-
-    STEAM_LOGIN_REFRESH: '/steamLoginV1/refresh',
-
-    STEAM_LOGIN_CAPTCHA: (captchaGid) => `/steamLoginV1/captcha/${captchaGid}`,
-
-    STEAM_LOGIN_GENERATE_CODE: '/steamLoginV1/generate_code',
-
-    STEAM_QR_GENERATE: '/steamLoginV1/qrcode/generate',
-
-    STEAM_QR_POLL: '/steamLoginV1/qrcode/poll',
+    // Steam登录相关（V2 API）
+    STEAM_LOGIN: '/spiderApiV2/src/web_site/steam/units/settings/data_source/auth/login',
+    STEAM_LOGIN_VERIFY: '/spiderApiV2/src/web_site/steam/units/settings/data_source/auth/verify',
+    STEAM_LOGIN_REFRESH: '/spiderApiV2/src/web_site/steam/units/settings/data_source/auth/refresh',
+    STEAM_LOGIN_REFRESH_AUTO: '/spiderApiV2/src/web_site/steam/units/settings/data_source/auth/refresh_auto',
+    STEAM_LOGIN_CAPTCHA: (captchaGid) => `/spiderApiV2/src/web_site/steam/units/settings/data_source/auth/captcha/${captchaGid}`,
+    STEAM_LOGIN_GENERATE_CODE: '/spiderApiV2/src/web_site/steam/units/settings/data_source/auth/generate_code',
+    STEAM_QR_GENERATE: '/spiderApiV2/src/web_site/steam/units/settings/data_source/auth/qrcode/generate',
+    STEAM_QR_POLL: '/spiderApiV2/src/web_site/steam/units/settings/data_source/auth/qrcode/poll',
 
     
 
@@ -797,15 +795,14 @@ export const apiUrls = {
   buffSyncTemplates: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.BUFF_SYNC_TEMPLATES),
   buffGetCommodities: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.BUFF_GET_COMMODITIES),
 
-  steamSpider: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_SPIDER),
-
-  steamFullSpider: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_FULL_SPIDER),
-
+  steamSyncNewData: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_SYNC_NEW_DATA),
+  steamSyncHistoryData: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_SYNC_HISTORY_DATA),
+  steamGetInventory: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_GET_INVENTORY),
   steamCollectHashNames: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_COLLECT_HASH_NAMES),
-
   steamFetchHashNames: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_FETCH_HASH_NAMES),
-
   steamFetchHashNamesByWeapon: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_FETCH_HASH_NAMES_BY_WEAPON),
+  steamMineInventory: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_MINE_INVENTORY),
+  steamCancelMining: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_CANCEL_MINING),
 
   csqaqMarketIndex: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_MARKET_INDEX),
 
@@ -844,17 +841,12 @@ export const apiUrls = {
   // Steam登录API
 
   steamLogin: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_LOGIN),
-
   steamLoginVerify: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_LOGIN_VERIFY),
-
   steamLoginRefresh: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_LOGIN_REFRESH),
-
+  steamLoginRefreshAuto: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_LOGIN_REFRESH_AUTO),
   steamLoginCaptcha: (captchaGid) => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_LOGIN_CAPTCHA(captchaGid)),
-
   steamLoginGenerateCode: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_LOGIN_GENERATE_CODE),
-
   steamQRGenerate: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_QR_GENERATE),
-
   steamQRPoll: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_QR_POLL),
 
   

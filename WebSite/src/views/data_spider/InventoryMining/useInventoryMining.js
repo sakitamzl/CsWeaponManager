@@ -115,7 +115,7 @@ export function useInventoryMining() {
 
     try {
       // 调用Spider的挖掘接口（异步执行）
-      const response = await axios.post(`${API_CONFIG.SPIDER_BASE_URL}/steamSpiderV1/mineInventory`, {
+      const response = await axios.post(apiUrls.steamMineInventory(), {
         steamId: steamId,
         include_friends: true,
         max_friends: 999  // 获取所有好友的库存
@@ -550,7 +550,7 @@ export function useInventoryMining() {
     
     // 1. 调用后端取消接口
     try {
-      await axios.post(`${API_CONFIG.SPIDER_BASE_URL}/steamSpiderV1/cancelMining`, {
+      await axios.post(apiUrls.steamCancelMining(), {
         steamId: currentMiningId.value
       })
       console.log('[前端] 已发送取消请求到后端')

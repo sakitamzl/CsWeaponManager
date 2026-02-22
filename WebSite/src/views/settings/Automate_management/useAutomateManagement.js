@@ -504,7 +504,7 @@ export function useAutomateManagement() {
   const updateSteamInventory = async (steamId) => {
     try {
       const response = await axios.post(
-        `${API_CONFIG.SPIDER_BASE_URL}/steamSpiderV1/getInventory`,
+        apiUrls.steamGetInventory(),
         { steamId }
       )
       
@@ -567,7 +567,7 @@ export function useAutomateManagement() {
   const refreshSteamAuth = async (steamId) => {
     try {
       const response = await axios.post(
-        `${API_CONFIG.SPIDER_BASE_URL}/steamLoginV1/refresh_auto`,
+        apiUrls.steamLoginRefreshAuto(),
         { steam_id: steamId }
       )
   

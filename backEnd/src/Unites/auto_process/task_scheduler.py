@@ -458,7 +458,7 @@ class TaskScheduler:
                 # 更新Steam库存 - 调用Spider接口，与前端Inventory页面逻辑一致
                 self.log.write_log(f"开始更新Steam库存: {steam_id}", 'info')
                 response = requests.post(
-                    f"{spider_base_url}/steamSpiderV1/getInventory",
+                    f"{spider_base_url}/spiderApiV2/src/web_site/steam/units/inventory/getInventory",
                     json={'steamId': steam_id},
                     timeout=300  # 5分钟超时
                 )
@@ -765,7 +765,7 @@ class TaskScheduler:
         try:
             self.log.write_log(f"开始更新Steam认证: {steam_id}", 'info')
             response = requests.post(
-                f"{spider_base_url}/steamLoginV1/refresh_auto",
+                f"{spider_base_url}/spiderApiV2/src/web_site/steam/units/settings/data_source/auth/refresh_auto",
                 json={'steam_id': steam_id},
                 timeout=120  # 2分钟超时
             )

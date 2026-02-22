@@ -2043,7 +2043,7 @@ const handleBuyWeapon = async (item) => {
       }, 1200)
       
       // 调用Steam市场购买接口 - 对接 market_buy.py 中的 SteamMarketBuyer
-      // 接口路径: /steamSpiderV1/buyMarketItem -> steam_index.py -> SteamMarketBuyer (market_buy.py)
+      // 接口路径: /spiderApiV2/.../steam/units/market/buy/buyMarketItem -> buy.py -> SteamMarketBuyer (market_buy.py)
       let response
       try {
         response = await axios.post(

@@ -1622,7 +1622,7 @@ export function useDataSource() {
       }
       
       // 调用增量采集爬虫API（getNewData接口）
-      const response = await axios.post(apiUrls.steamSpider(), spiderData)
+      const response = await axios.post(apiUrls.steamSyncNewData(), spiderData)
 
       // 后端成功返回 200 状态码
       if (response.status === 200) {
@@ -2414,7 +2414,7 @@ export function useDataSource() {
       console.log('发送给Steam全量采集爬虫的数据:', spiderData)
       
       // 调用全量采集爬虫API（NoneData接口）
-      const response = await axios.post(apiUrls.steamFullSpider(), spiderData)
+      const response = await axios.post(apiUrls.steamSyncHistoryData(), spiderData)
 
       // 后端成功返回 200 状态码
       if (response.status === 200) {
