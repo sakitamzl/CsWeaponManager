@@ -255,7 +255,10 @@ export const API_CONFIG = {
     // BUFF库存（V2 API）
     BUFF_GET_PRICE: '/spiderApiV2/src/web_site/buff/units/inventory/getBUFFPrice',  // 获取BUFF库存价格
 
-    BUFF_SYNC_TEMPLATES: '/buffSpiderV1/syncBuffTemplates',  // 同步BUFF饰品映射
+    BUFF_SYNC_TEMPLATES: '/spiderApiV2/src/web_site/buff/units/settings/dev_tools/syncBuffTemplates',  // 同步BUFF饰品映射
+
+    // BUFF商品搜索（V2 API）
+    BUFF_GET_COMMODITIES: '/spiderApiV2/src/web_site/buff/units/item_search/on_sale/getCommoditiesByGoodsId',  // 获取BUFF商品在售列表
 
     CSFLOAT_SPIDER: '/csfloatSpiderV1/NewData',
 
@@ -788,6 +791,7 @@ export const apiUrls = {
   buffGetPrice: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.BUFF_GET_PRICE),
 
   buffSyncTemplates: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.BUFF_SYNC_TEMPLATES),
+  buffGetCommodities: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.BUFF_GET_COMMODITIES),
 
   steamSpider: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_SPIDER),
 

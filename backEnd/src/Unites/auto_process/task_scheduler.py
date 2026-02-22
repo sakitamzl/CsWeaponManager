@@ -552,7 +552,7 @@ class TaskScheduler:
             
             if selected_task == 'collect_buff' and data_type == 'buff':
                 # 采集BUFF数据
-                url = f"{spider_base_url}/buffSpiderV1/NewData"
+                url = f"{spider_base_url}/spiderApiV2/src/web_site/buff/units/settings/data_source/syncNewData"
                 data = {'steamID': steam_id}
                 self.log.write_log(f"请求BUFF采集 - URL: {url}, 数据: {data}", 'info')
                 
@@ -628,7 +628,7 @@ class TaskScheduler:
                     self.log.write_log(f"数据源类型与任务不匹配: 期望buff, 实际 {data_type}", 'warning')
                     return
                 
-                url = f"{spider_base_url}/buffSpiderV1/syncBuffTemplates"
+                url = f"{spider_base_url}/spiderApiV2/src/web_site/buff/units/settings/dev_tools/syncBuffTemplates"
                 payload = {'steamId': steam_id}
                 self.log.write_log(f"开始更新BUFF饰品价格: {data_name}, URL: {url}", 'info')
                 response = requests.post(url, json=payload, timeout=600)

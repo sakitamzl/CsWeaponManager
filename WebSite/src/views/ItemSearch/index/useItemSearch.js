@@ -739,7 +739,7 @@ export function useItemSearch() {
         pageIndex: nextPage
       }
       
-      const apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/buffSpiderV1/getCommoditiesByGoodsId`
+      const apiUrl = apiUrls.buffGetCommodities()
       const response = await axios.post(apiUrl, requestData)
       
       if (response.data.success) {
@@ -1826,7 +1826,7 @@ export function useItemSearch() {
         goodsId: row.buff_id
       }
       
-      const apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/buffSpiderV1/getCommoditiesByGoodsId`
+      const apiUrl = apiUrls.buffGetCommodities()
       
       console.log('请求URL:', apiUrl)
       console.log('请求数据:', requestData)
