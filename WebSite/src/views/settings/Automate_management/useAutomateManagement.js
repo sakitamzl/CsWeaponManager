@@ -525,7 +525,7 @@ export function useAutomateManagement() {
   const fetchYYYPPrice = async (steamId) => {
     try {
       const response = await axios.post(
-        `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/settings/dev_tools/syncWeaponPrice`,
+        `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/settings/dev_tools/syncWeaponPrice`,
         { steamId }
       )
       
@@ -588,7 +588,7 @@ export function useAutomateManagement() {
   const collectBuffData = async (dataSource) => {
     try {
       const response = await axios.post(
-        `${API_CONFIG.SPIDER_BASE_URL}/buffSpiderV1/NewData`,
+        apiUrls.buffSyncNewData(),
         { steamID: dataSource.steamID || '' }
       )
       

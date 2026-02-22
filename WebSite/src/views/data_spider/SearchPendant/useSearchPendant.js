@@ -2275,7 +2275,7 @@ const openYYYPBuyDialog = async (item) => {
     if (platformType === 'youpin') {
       // 悠悠有品：使用在售商品详情API
       response = await axios.post(
-        `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/getWeaponDetail`,
+        `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/getWeaponDetail`,
         {
           steamId: '',
           commodityId: item.id.toString()
@@ -2364,7 +2364,7 @@ const confirmYYYPBuy = async () => {
         return
       }
 
-      const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/confirmPayment`
+      const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/confirmPayment`
       response = await axios.post(url, {
         steamId: crawlForm.value.steamId || '',
         orderNo: orderNo,
@@ -2446,7 +2446,7 @@ const cancelYYYPOrder = async () => {
     )
 
     // 调用取消订单API
-    const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/cancelOrder`
+    const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/cancelOrder`
     const response = await axios.post(url, {
       steamId: crawlForm.value.steamId || '',
       orderNo: orderNo

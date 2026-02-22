@@ -914,7 +914,7 @@ const loadPriceTrend = async () => {
 
   try {
     // 使用V2 API
-    const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/price_trend/getPriceTrend`
+    const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/price_trend/getPriceTrend`
     const response = await axios.post(url, {
       yyypId: props.yyypCurrentWeapon.yyyp_id,
       day: selectedDays.value
@@ -1265,7 +1265,7 @@ const openPresaleBuyDialog = async (item) => {
 
   try {
     // 使用V2 API获取预售详情
-    const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/presale/getPresaleDetail`
+    const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/presale/getPresaleDetail`
     const response = await axios.post(url, {
       steamId: props.selectedSteamId || '',
       commodityId: item.id.toString()
@@ -1325,7 +1325,7 @@ const confirmPresaleBuy = async () => {
 
   try {
     // 使用V2 API购买预售商品
-    const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/presale/buyPresaleCommodity`
+    const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/presale/buyPresaleCommodity`
     const response = await axios.post(url, {
       steamId: props.selectedSteamId || '',
       commodityId: currentPresaleItem.value.id.toString(),
@@ -1374,7 +1374,7 @@ const openOnSaleBuyDialog = async (item) => {
 
   try {
     // 使用V2 API获取在售商品详情
-    const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/getWeaponDetail`
+    const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/getWeaponDetail`
     const response = await axios.post(url, {
       steamId: props.selectedSteamId || '',
       commodityId: item.id.toString()
@@ -1415,7 +1415,7 @@ const cancelOnSaleOrder = async () => {
 
     // 调用取消订单接口
     try {
-      const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/cancelOrder`
+      const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/cancelOrder`
       const response = await axios.post(url, {
         steamId: props.selectedSteamId || '',
         orderNo: onSaleDetail.value.orderNo
@@ -1466,7 +1466,7 @@ const confirmOnSalePayment = async () => {
 
   try {
     // 调用付款接口
-    const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/confirmPayment`
+    const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/confirmPayment`
     const response = await axios.post(url, {
       steamId: props.selectedSteamId || '',
       orderNo: orderNo,

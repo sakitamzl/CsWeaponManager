@@ -556,19 +556,19 @@ export function useItemSearch() {
       let apiUrl
       switch (yyypFilterType.value) {
         case 'on_sale':
-          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/getCommodityList`
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/getCommodityList`
           break
         case 'on_lease':
-          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_lease/getCommodityList`
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_lease/getCommodityList`
           break
         case 'presale':
-          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/presale/getCommodityList`
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/presale/getCommodityList`
           break
         case 'wanted':
-          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/purchase_order/getCommodityList`
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/purchase_order/getCommodityList`
           break
         default:
-          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/getCommodityList`
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/getCommodityList`
       }
       
       console.log('请求URL:', apiUrl)
@@ -658,19 +658,19 @@ export function useItemSearch() {
       let apiUrl
       switch (yyypFilterType.value) {
         case 'on_sale':
-          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/getCommodityList`
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/getCommodityList`
           break
         case 'on_lease':
-          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_lease/getCommodityList`
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_lease/getCommodityList`
           break
         case 'presale':
-          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/presale/getCommodityList`
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/presale/getCommodityList`
           break
         case 'wanted':
-          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/purchase_order/getCommodityList`
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/purchase_order/getCommodityList`
           break
         default:
-          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/getCommodityList`
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/getCommodityList`
       }
       const response = await axios.post(apiUrl, requestData)
       
@@ -847,7 +847,7 @@ export function useItemSearch() {
       
       // 调用完整购买接口（创建订单+自动支付）- 使用V2 API
       const response = await axios.post(
-        `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/buyCommodity`,
+        `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/buyCommodity`,
         requestData
       )
       
@@ -1375,7 +1375,7 @@ export function useItemSearch() {
       
       // 调用接口获取详细信息 - 使用V2 API
       const response = await axios.post(
-        `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/getWeaponDetail`,
+        `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/getWeaponDetail`,
         {
           steamId: selectedSteamId.value,
           id: commodity.id
@@ -1411,7 +1411,7 @@ export function useItemSearch() {
 
       // 调用接口获取详细信息 - 使用V2 API
       const response = await axios.post(
-        `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/getWeaponDetail`,
+        `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/getWeaponDetail`,
         {
           steamId: selectedSteamId.value,
           id: commodity.id
@@ -2198,7 +2198,7 @@ export function useItemSearch() {
             }
             
             const response = await axios.post(
-              `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/buyCommodity`,
+              `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/buyCommodity`,
               requestData
             )
             
@@ -2447,19 +2447,19 @@ export function useItemSearch() {
       let apiUrl
       switch (filterType) {
         case 'on_sale':
-          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/getCommodityList`
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/getCommodityList`
           break
         case 'on_lease':
-          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_lease/getCommodityList`
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_lease/getCommodityList`
           break
         case 'presale':
-          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/presale/getCommodityList`
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/presale/getCommodityList`
           break
         case 'wanted':
-          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/purchase_order/getCommodityList`
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/purchase_order/getCommodityList`
           break
         default:
-          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/item_search/on_sale/getCommodityList`
+          apiUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/getCommodityList`
       }
       const response = await axios.post(apiUrl, requestData)
 

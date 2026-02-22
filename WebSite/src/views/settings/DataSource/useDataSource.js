@@ -1480,7 +1480,7 @@ export function useDataSource() {
       console.log('发送给BUFF爬虫的数据:', spiderData)
       
       // 调用爬虫API
-      const response = await axios.post(apiUrls.buffSpider(), spiderData)
+      const response = await axios.post(apiUrls.buffSyncNewData(), spiderData)
 
       // 后端成功返回 200 状态码和 "获取完成" 消息
       if (response.status === 200) {
@@ -2276,7 +2276,7 @@ export function useDataSource() {
       console.log('发送给BUFF全部获取爬虫的数据:', spiderData)
       
       // 调用全部获取爬虫API
-      const response = await axios.post(apiUrls.buffFullSpider(), spiderData)
+      const response = await axios.post(apiUrls.buffSyncHistoryData(), spiderData)
 
       // 后端成功返回 200 状态码
       if (response.status === 200) {

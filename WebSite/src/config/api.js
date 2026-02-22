@@ -216,11 +216,11 @@ export const API_CONFIG = {
 
     // AES工具相关（V2 API - 新版本）
 
-    AES_DECRYPT: '/spiderApiV2/youping/units/settings/dev_tools/aesDecrypt',
+    AES_DECRYPT: '/spiderApiV2/src/web_site/youping/units/settings/dev_tools/aesDecrypt',
 
-    AES_CHECK_LICENSE: '/spiderApiV2/youping/units/settings/dev_tools/aesCheckLicense',
+    AES_CHECK_LICENSE: '/spiderApiV2/src/web_site/youping/units/settings/dev_tools/aesCheckLicense',
 
-    AES_HEALTH: '/spiderApiV2/youping/units/settings/dev_tools/aesHealth',
+    AES_HEALTH: '/spiderApiV2/src/web_site/youping/units/settings/dev_tools/aesHealth',
 
     // AES工具相关（V1 API - 已废弃，保留向后兼容）
 
@@ -235,18 +235,18 @@ export const API_CONFIG = {
     // 爬虫相关
 
     // 悠悠有品数据同步（V2 API）
-    YOUPIN_SYNC_NEW_DATA: '/spiderApiV2/youping/units/settings/data_source/syncNewData',  // 同步新增数据
-    YOUPIN_SYNC_HISTORY_DATA: '/spiderApiV2/youping/units/settings/data_source/syncHistoryData',  // 同步历史数据
-    YOUPIN_SYNC_WEAPON_PRICE: '/spiderApiV2/youping/units/settings/dev_tools/syncWeaponPrice',  // 同步价格数据
-    YOUPIN_SYNC_WEAPON_TEMPLATES: '/spiderApiV2/youping/units/settings/dev_tools/syncWeaponTemplates',  // 同步武器模板
+    YOUPIN_SYNC_NEW_DATA: '/spiderApiV2/src/web_site/youping/units/settings/data_source/syncNewData',  // 同步新增数据
+    YOUPIN_SYNC_HISTORY_DATA: '/spiderApiV2/src/web_site/youping/units/settings/data_source/syncHistoryData',  // 同步历史数据
+    YOUPIN_SYNC_WEAPON_PRICE: '/spiderApiV2/src/web_site/youping/units/settings/dev_tools/syncWeaponPrice',  // 同步价格数据
+    YOUPIN_SYNC_WEAPON_TEMPLATES: '/spiderApiV2/src/web_site/youping/units/settings/dev_tools/syncWeaponTemplates',  // 同步武器模板
 
     YOUPIN_FETCH_ICONS: '/youpin898SelectWeaponV1/fetchWeaponIcons',   // 批量获取饰品图片
 
-    YOUPIN_DOWNLOAD_ICONS: '/spiderApiV2/youping/units/settings/dev_tools/downloadWeaponIcons',   // 下载武器图标资源
+    YOUPIN_DOWNLOAD_ICONS: '/spiderApiV2/src/web_site/youping/units/settings/dev_tools/downloadWeaponIcons',   // 下载武器图标资源
 
-    BUFF_SPIDER: '/buffSpiderV1/NewData',
-
-    BUFF_FULL_SPIDER: '/buffSpiderV1/allDate',
+    // BUFF数据同步（V2 API）
+    BUFF_SYNC_NEW_DATA: '/spiderApiV2/src/web_site/buff/units/settings/data_source/syncNewData',  // 同步新增数据
+    BUFF_SYNC_HISTORY_DATA: '/spiderApiV2/src/web_site/buff/units/settings/data_source/syncHistoryData',  // 同步历史数据
 
     BUFF_SYNC_TEMPLATES: '/buffSpiderV1/syncBuffTemplates',  // 同步BUFF饰品映射
 
@@ -279,27 +279,27 @@ export const API_CONFIG = {
     // 悠悠有品求购供应
 
     // 悠悠有品商品搜索 - 求购供应相关（新API V2）
-    YOUPIN_GET_SUPPLY_LIST: '/spiderApiV2/youping/units/item_search/purchase_order/supply/getSupplyList',  // 获取可供应的库存列表
-    YOUPIN_SUBMIT_SUPPLY: '/spiderApiV2/youping/units/item_search/purchase_order/supply/submitSupply',  // 提交供应（查询手续费）
-    YOUPIN_CONFIRM_SUPPLY: '/spiderApiV2/youping/units/item_search/purchase_order/supply/confirmSupply',  // 确认供应
-    YOUPIN_SEND_OFFER: '/spiderApiV2/youping/units/item_search/purchase_order/supply/sendOffer',  // 发送报价
+    YOUPIN_GET_SUPPLY_LIST: '/spiderApiV2/src/web_site/youping/units/item_search/purchase_order/supply/getSupplyList',  // 获取可供应的库存列表
+    YOUPIN_SUBMIT_SUPPLY: '/spiderApiV2/src/web_site/youping/units/item_search/purchase_order/supply/submitSupply',  // 提交供应（查询手续费）
+    YOUPIN_CONFIRM_SUPPLY: '/spiderApiV2/src/web_site/youping/units/item_search/purchase_order/supply/confirmSupply',  // 确认供应
+    YOUPIN_SEND_OFFER: '/spiderApiV2/src/web_site/youping/units/item_search/purchase_order/supply/sendOffer',  // 发送报价
 
     // 悠悠有品商品搜索 - ItemSearch页面相关（新API V2，按商品类型组织）
-    YYYP_ITEM_SEARCH_ON_SALE_LIST: '/spiderApiV2/youping/units/item_search/on_sale/getCommodityList',  // 在售商品列表
-    YYYP_ITEM_SEARCH_ON_SALE_DETAIL: '/spiderApiV2/youping/units/item_search/on_sale/getWeaponDetail',  // 在售商品详情
-    YYYP_ITEM_SEARCH_BUY_COMMODITY: '/spiderApiV2/youping/units/item_search/on_sale/buyCommodity',  // 购买在售商品
+    YYYP_ITEM_SEARCH_ON_SALE_LIST: '/spiderApiV2/src/web_site/youping/units/item_search/on_sale/getCommodityList',  // 在售商品列表
+    YYYP_ITEM_SEARCH_ON_SALE_DETAIL: '/spiderApiV2/src/web_site/youping/units/item_search/on_sale/getWeaponDetail',  // 在售商品详情
+    YYYP_ITEM_SEARCH_BUY_COMMODITY: '/spiderApiV2/src/web_site/youping/units/item_search/on_sale/buyCommodity',  // 购买在售商品
 
-    YYYP_ITEM_SEARCH_ON_LEASE_LIST: '/spiderApiV2/youping/units/item_search/on_lease/getCommodityList',  // 在租商品列表
+    YYYP_ITEM_SEARCH_ON_LEASE_LIST: '/spiderApiV2/src/web_site/youping/units/item_search/on_lease/getCommodityList',  // 在租商品列表
 
-    YYYP_ITEM_SEARCH_PRESALE_LIST: '/spiderApiV2/youping/units/item_search/presale/getCommodityList',  // 预售商品列表
-    YYYP_ITEM_SEARCH_PRESALE_DETAIL: '/spiderApiV2/youping/units/item_search/presale/getPresaleDetail',  // 预售详情
-    YYYP_ITEM_SEARCH_BUY_PRESALE: '/spiderApiV2/youping/units/item_search/presale/buyPresaleCommodity',  // 购买预售商品
+    YYYP_ITEM_SEARCH_PRESALE_LIST: '/spiderApiV2/src/web_site/youping/units/item_search/presale/getCommodityList',  // 预售商品列表
+    YYYP_ITEM_SEARCH_PRESALE_DETAIL: '/spiderApiV2/src/web_site/youping/units/item_search/presale/getPresaleDetail',  // 预售详情
+    YYYP_ITEM_SEARCH_BUY_PRESALE: '/spiderApiV2/src/web_site/youping/units/item_search/presale/buyPresaleCommodity',  // 购买预售商品
 
-    YYYP_ITEM_SEARCH_PURCHASE_ORDER_LIST: '/spiderApiV2/youping/units/item_search/purchase_order/getCommodityList',  // 求购订单列表
+    YYYP_ITEM_SEARCH_PURCHASE_ORDER_LIST: '/spiderApiV2/src/web_site/youping/units/item_search/purchase_order/getCommodityList',  // 求购订单列表
 
-    YYYP_ITEM_SEARCH_PRICE_TREND: '/spiderApiV2/youping/units/item_search/price_trend/getPriceTrend',  // 价格走势
+    YYYP_ITEM_SEARCH_PRICE_TREND: '/spiderApiV2/src/web_site/youping/units/item_search/price_trend/getPriceTrend',  // 价格走势
 
-    YOUPIN_SELL_INVENTORY_ITEM: '/spiderApiV2/youping/units/inventory/sell/sellInventoryItem',  // 上架单个库存饰品（新版API）
+    YOUPIN_SELL_INVENTORY_ITEM: '/spiderApiV2/src/web_site/youping/units/inventory/sell/sellInventoryItem',  // 上架单个库存饰品（新版API）
 
     CSQAQ_TASK_RESULT: '/csqaqSpiderV1/getTaskResult',  // CSQAQ获取任务结果
 
@@ -433,65 +433,65 @@ export const API_CONFIG = {
 
     // 悠悠有品租赁相关
 
-    YYYP_GET_LEASE_LIST: '/spiderApiV2/youping/units/on_sale/lent/getLeaseList',  // 获取租赁列表（新API）
-    YYYP_GET_SUBLEASE_LIST: '/spiderApiV2/youping/units/on_sale/sublease/getSubleaseList',  // 获取转租列表（新API）
-    YYYP_GET_SELL_LIST: '/spiderApiV2/youping/units/on_sale/sell/getSellList',  // 获取出售列表（新API）
-    YYYP_GET_RENTED_OUT_LIST: '/spiderApiV2/youping/units/on_sale/rented_out/getRentedOutList',  // 获取已租出列表（新API）
-    YYYP_GET_MY_SELL_ORDERS: '/spiderApiV2/youping/units/on_sale/offer_handling/getMySellOrders',  // 获取我的出售订单（报价处理，新API）
-    YYYP_GET_MY_BUY_ORDERS: '/spiderApiV2/youping/units/on_sale/offer_handling/getMyBuyOrders',  // 获取我的收货订单（报价处理，新API）
-    YYYP_PROCESS_OFFER_BUTTON: '/spiderApiV2/youping/units/on_sale/offer_handling/processOfferButton',  // 处理报价按钮操作（新API）
-    YYYP_GET_PURCHASE_ORDERS: '/spiderApiV2/youping/units/on_sale/purchase_request/getPurchaseOrders',  // 获取求购订单（求购中/暂停中，新API）
-    YYYP_GET_PENDING_PAYMENT_ORDERS: '/spiderApiV2/youping/units/on_sale/purchase_request/getPendingPaymentOrders',  // 获取待支付订单（新API）
-    YYYP_PAUSE_PURCHASE_ORDER: '/spiderApiV2/youping/units/on_sale/purchase_request/purchasing/pauseOrder',  // 暂停求购订单（新API）
-    YYYP_OPEN_PURCHASE_ORDER: '/spiderApiV2/youping/units/on_sale/purchase_request/paused/openOrder',  // 开启暂停中的求购订单
-    YYYP_DELETE_PURCHASE_ORDER: '/spiderApiV2/youping/units/on_sale/purchase_request/purchasing/deleteOrder',  // 删除求购订单（新API）
-    YYYP_GET_ORDER_INFO: '/spiderApiV2/youping/units/on_sale/purchase_request/purchasing/getOrderInfo',  // 获取订单详情（新API）
-    YYYP_PRE_UPDATE_CHECK: '/spiderApiV2/youping/units/on_sale/purchase_request/purchasing/preUpdateCheck',  // 修改前置检查（新API）
-    YYYP_EDIT_PURCHASE_ORDER: '/spiderApiV2/youping/units/on_sale/purchase_request/purchasing/editOrder',  // 修改求购订单（新API）
-    YYYP_QUICK_PRICE_INCREASE: '/spiderApiV2/youping/units/on_sale/purchase_request/purchasing/quickIncrease',  // 一键加价预检查（新API）
-    YYYP_CONFIRM_PRICE_INCREASE: '/spiderApiV2/youping/units/on_sale/purchase_request/purchasing/confirmQuickIncrease',  // 确认一键加价（新API）
-    YYYP_GET_PURCHASE_RECORDS: '/spiderApiV2/youping/units/on_sale/purchase_request/history/getRecords',  // 获取求购记录（分页）
-    YYYP_SEARCH_PURCHASE_TEMPLATE: '/spiderApiV2/youping/units/on_sale/purchase_request/search/queryTemplate',  // 搜索求购饰品模板
-    YYYP_GET_TEMPLATE_PURCHASE_INFO: '/spiderApiV2/youping/units/on_sale/purchase_request/search/getTemplateInfo',  // 获取求购发布详情
-    YYYP_PRE_PURCHASE_ORDER_CHECK: '/spiderApiV2/youping/units/on_sale/purchase_request/search/preCheck',  // 求购预检查
-    YYYP_SAVE_PURCHASE_ORDER: '/spiderApiV2/youping/units/on_sale/purchase_request/search/saveOrder',  // 提交求购订单
-    YYYP_GET_PURCHASE_BALANCE: '/spiderApiV2/youping/units/on_sale/purchase_request/search/getBalance',  // 获取求购余额
-    YYYP_QUERY_TRANSFER_IN_BALANCE: '/spiderApiV2/youping/units/on_sale/purchase_request/search/queryTransferInBalance',  // 查询钱包可转入余额
-    YYYP_CONFIRM_TRANSFER_IN: '/spiderApiV2/youping/units/on_sale/purchase_request/search/confirmTransferIn',  // 确认从钱包转入
-    YYYP_CONFIRM_TRANSFER_OUT: '/spiderApiV2/youping/units/on_sale/purchase_request/search/confirmTransferOut',  // 确认转出到钱包
-    YYYP_OFF_SHELF: '/spiderApiV2/youping/units/on_sale/sell/offShelf',  // 下架商品（新API）
-    YYYP_CANCEL_SUBLEASE: '/spiderApiV2/youping/units/on_sale/sublease/cancelSublease',  // 取消转租（新API）
-    YYYP_CHANGE_PRICE: '/spiderApiV2/youping/units/on_sale/sell/changePrice',  // 改价（售卖商品，新API）
-    YYYP_BATCH_CHANGE_PRICE: '/spiderApiV2/youping/units/on_sale/sell/batchChangePrice',  // 批量改价（售卖商品，新API）
-    YYYP_CHANGE_RENT_PRICE: '/spiderApiV2/youping/units/on_sale/lent/changePrice',  // 改价（租赁/转租，支持单个和批量，新API）
-    YYYP_GET_INSTANT_PAYMENT_LIST: '/spiderApiV2/youping/units/on_sale/instant/getInstantPaymentList',  // 获取0CD(秒到账)订单列表（新API）
-    YYYP_GET_SUBLEASE_AGREEMENT: '/spiderApiV2/youping/units/on_sale/sublease/getSubleaseAgreement',  // 获取转租协议（新API）
-    YYYP_GET_SUBLEASE_DETAIL: '/spiderApiV2/youping/units/on_sale/sublease/getSubleaseDetail',  // 获取转租详情（新API）
-    YYYP_RENT_INIT: '/spiderApiV2/youping/units/on_sale/lent/rentInit',  // 获取出租初始化配置（新API）
-    YYYP_GET_COMPENSATION_TEXT: '/spiderApiV2/youping/units/on_sale/lent/getCompensationText',  // 获取赔付文本信息（新API）
+    YYYP_GET_LEASE_LIST: '/spiderApiV2/src/web_site/youping/units/on_sale/lent/getLeaseList',  // 获取租赁列表（新API）
+    YYYP_GET_SUBLEASE_LIST: '/spiderApiV2/src/web_site/youping/units/on_sale/sublease/getSubleaseList',  // 获取转租列表（新API）
+    YYYP_GET_SELL_LIST: '/spiderApiV2/src/web_site/youping/units/on_sale/sell/getSellList',  // 获取出售列表（新API）
+    YYYP_GET_RENTED_OUT_LIST: '/spiderApiV2/src/web_site/youping/units/on_sale/rented_out/getRentedOutList',  // 获取已租出列表（新API）
+    YYYP_GET_MY_SELL_ORDERS: '/spiderApiV2/src/web_site/youping/units/on_sale/offer_handling/getMySellOrders',  // 获取我的出售订单（报价处理，新API）
+    YYYP_GET_MY_BUY_ORDERS: '/spiderApiV2/src/web_site/youping/units/on_sale/offer_handling/getMyBuyOrders',  // 获取我的收货订单（报价处理，新API）
+    YYYP_PROCESS_OFFER_BUTTON: '/spiderApiV2/src/web_site/youping/units/on_sale/offer_handling/processOfferButton',  // 处理报价按钮操作（新API）
+    YYYP_GET_PURCHASE_ORDERS: '/spiderApiV2/src/web_site/youping/units/on_sale/purchase_request/getPurchaseOrders',  // 获取求购订单（求购中/暂停中，新API）
+    YYYP_GET_PENDING_PAYMENT_ORDERS: '/spiderApiV2/src/web_site/youping/units/on_sale/purchase_request/getPendingPaymentOrders',  // 获取待支付订单（新API）
+    YYYP_PAUSE_PURCHASE_ORDER: '/spiderApiV2/src/web_site/youping/units/on_sale/purchase_request/purchasing/pauseOrder',  // 暂停求购订单（新API）
+    YYYP_OPEN_PURCHASE_ORDER: '/spiderApiV2/src/web_site/youping/units/on_sale/purchase_request/paused/openOrder',  // 开启暂停中的求购订单
+    YYYP_DELETE_PURCHASE_ORDER: '/spiderApiV2/src/web_site/youping/units/on_sale/purchase_request/purchasing/deleteOrder',  // 删除求购订单（新API）
+    YYYP_GET_ORDER_INFO: '/spiderApiV2/src/web_site/youping/units/on_sale/purchase_request/purchasing/getOrderInfo',  // 获取订单详情（新API）
+    YYYP_PRE_UPDATE_CHECK: '/spiderApiV2/src/web_site/youping/units/on_sale/purchase_request/purchasing/preUpdateCheck',  // 修改前置检查（新API）
+    YYYP_EDIT_PURCHASE_ORDER: '/spiderApiV2/src/web_site/youping/units/on_sale/purchase_request/purchasing/editOrder',  // 修改求购订单（新API）
+    YYYP_QUICK_PRICE_INCREASE: '/spiderApiV2/src/web_site/youping/units/on_sale/purchase_request/purchasing/quickIncrease',  // 一键加价预检查（新API）
+    YYYP_CONFIRM_PRICE_INCREASE: '/spiderApiV2/src/web_site/youping/units/on_sale/purchase_request/purchasing/confirmQuickIncrease',  // 确认一键加价（新API）
+    YYYP_GET_PURCHASE_RECORDS: '/spiderApiV2/src/web_site/youping/units/on_sale/purchase_request/history/getRecords',  // 获取求购记录（分页）
+    YYYP_SEARCH_PURCHASE_TEMPLATE: '/spiderApiV2/src/web_site/youping/units/on_sale/purchase_request/search/queryTemplate',  // 搜索求购饰品模板
+    YYYP_GET_TEMPLATE_PURCHASE_INFO: '/spiderApiV2/src/web_site/youping/units/on_sale/purchase_request/search/getTemplateInfo',  // 获取求购发布详情
+    YYYP_PRE_PURCHASE_ORDER_CHECK: '/spiderApiV2/src/web_site/youping/units/on_sale/purchase_request/search/preCheck',  // 求购预检查
+    YYYP_SAVE_PURCHASE_ORDER: '/spiderApiV2/src/web_site/youping/units/on_sale/purchase_request/search/saveOrder',  // 提交求购订单
+    YYYP_GET_PURCHASE_BALANCE: '/spiderApiV2/src/web_site/youping/units/on_sale/purchase_request/search/getBalance',  // 获取求购余额
+    YYYP_QUERY_TRANSFER_IN_BALANCE: '/spiderApiV2/src/web_site/youping/units/on_sale/purchase_request/search/queryTransferInBalance',  // 查询钱包可转入余额
+    YYYP_CONFIRM_TRANSFER_IN: '/spiderApiV2/src/web_site/youping/units/on_sale/purchase_request/search/confirmTransferIn',  // 确认从钱包转入
+    YYYP_CONFIRM_TRANSFER_OUT: '/spiderApiV2/src/web_site/youping/units/on_sale/purchase_request/search/confirmTransferOut',  // 确认转出到钱包
+    YYYP_OFF_SHELF: '/spiderApiV2/src/web_site/youping/units/on_sale/sell/offShelf',  // 下架商品（新API）
+    YYYP_CANCEL_SUBLEASE: '/spiderApiV2/src/web_site/youping/units/on_sale/sublease/cancelSublease',  // 取消转租（新API）
+    YYYP_CHANGE_PRICE: '/spiderApiV2/src/web_site/youping/units/on_sale/sell/changePrice',  // 改价（售卖商品，新API）
+    YYYP_BATCH_CHANGE_PRICE: '/spiderApiV2/src/web_site/youping/units/on_sale/sell/batchChangePrice',  // 批量改价（售卖商品，新API）
+    YYYP_CHANGE_RENT_PRICE: '/spiderApiV2/src/web_site/youping/units/on_sale/lent/changePrice',  // 改价（租赁/转租，支持单个和批量，新API）
+    YYYP_GET_INSTANT_PAYMENT_LIST: '/spiderApiV2/src/web_site/youping/units/on_sale/instant/getInstantPaymentList',  // 获取0CD(秒到账)订单列表（新API）
+    YYYP_GET_SUBLEASE_AGREEMENT: '/spiderApiV2/src/web_site/youping/units/on_sale/sublease/getSubleaseAgreement',  // 获取转租协议（新API）
+    YYYP_GET_SUBLEASE_DETAIL: '/spiderApiV2/src/web_site/youping/units/on_sale/sublease/getSubleaseDetail',  // 获取转租详情（新API）
+    YYYP_RENT_INIT: '/spiderApiV2/src/web_site/youping/units/on_sale/lent/rentInit',  // 获取出租初始化配置（新API）
+    YYYP_GET_COMPENSATION_TEXT: '/spiderApiV2/src/web_site/youping/units/on_sale/lent/getCompensationText',  // 获取赔付文本信息（新API）
 
     // 悠悠有品消息盒子相关（新API V2）
-    YYYP_GET_NEW_MESSAGES: '/spiderApiV2/youping/units/settings/yyyp_message_box/getNewMessages',  // 获取新消息（增量采集）
-    YYYP_GET_ALL_MESSAGES: '/spiderApiV2/youping/units/settings/yyyp_message_box/getAllMessages',  // 获取所有消息（全量采集）
-    YYYP_MARK_MESSAGE_READ: '/spiderApiV2/youping/units/settings/yyyp_message_box/markMessageRead',  // 标记消息为已读
-    YYYP_DELETE_MESSAGE: '/spiderApiV2/youping/units/settings/yyyp_message_box/deleteMessage',  // 删除消息
+    YYYP_GET_NEW_MESSAGES: '/spiderApiV2/src/web_site/youping/units/settings/yyyp_message_box/getNewMessages',  // 获取新消息（增量采集）
+    YYYP_GET_ALL_MESSAGES: '/spiderApiV2/src/web_site/youping/units/settings/yyyp_message_box/getAllMessages',  // 获取所有消息（全量采集）
+    YYYP_MARK_MESSAGE_READ: '/spiderApiV2/src/web_site/youping/units/settings/yyyp_message_box/markMessageRead',  // 标记消息为已读
+    YYYP_DELETE_MESSAGE: '/spiderApiV2/src/web_site/youping/units/settings/yyyp_message_box/deleteMessage',  // 删除消息
 
     // 悠悠有品预售相关（新API V2）
-    YYYP_GET_PRESALE_LIST: '/spiderApiV2/youping/units/on_sale/presale/getPresaleList',  // 获取预售列表
-    YYYP_GET_PRESALE_DETAIL: '/spiderApiV2/youping/units/item_search/presale/getPresaleDetail',  // 获取预售详情
-    YYYP_BUY_PRESALE_COMMODITY: '/spiderApiV2/youping/units/item_search/presale/buyPresaleCommodity',  // 购买预售商品
+    YYYP_GET_PRESALE_LIST: '/spiderApiV2/src/web_site/youping/units/on_sale/presale/getPresaleList',  // 获取预售列表
+    YYYP_GET_PRESALE_DETAIL: '/spiderApiV2/src/web_site/youping/units/item_search/presale/getPresaleDetail',  // 获取预售详情
+    YYYP_BUY_PRESALE_COMMODITY: '/spiderApiV2/src/web_site/youping/units/item_search/presale/buyPresaleCommodity',  // 购买预售商品
 
     // 悠悠有品过户相关（新API V2）
-    YYYP_GET_TRANSFER_LIST: '/spiderApiV2/youping/units/on_sale/transfer/getTransferList',  // 获取过户列表
+    YYYP_GET_TRANSFER_LIST: '/spiderApiV2/src/web_site/youping/units/on_sale/transfer/getTransferList',  // 获取过户列表
 
     // 悠悠有品转租相关（新API V2）
-    YYYP_CHANGE_SUBLEASE_PRICE: '/spiderApiV2/youping/units/on_sale/sublease/changeSubleasePrice',  // 修改转租价格（0CD改价）
-    YYYP_SUBLEASE_AUTO_PRICING: '/spiderApiV2/youping/units/on_sale/sublease/autoPricing',  // 转租商品自动定价
-    YYYP_SUBLEASE_GET_COMPENSATION_TEXT: '/spiderApiV2/youping/units/on_sale/sublease/getCompensationText',  // 获取转租赔付文本信息
-    YYYP_SUBLEASE_GET_BATCH_COMPENSATION_TEXT: '/spiderApiV2/youping/units/on_sale/sublease/getBatchCompensationText',  // 批量获取转租赔付文本信息
+    YYYP_CHANGE_SUBLEASE_PRICE: '/spiderApiV2/src/web_site/youping/units/on_sale/sublease/changeSubleasePrice',  // 修改转租价格（0CD改价）
+    YYYP_SUBLEASE_AUTO_PRICING: '/spiderApiV2/src/web_site/youping/units/on_sale/sublease/autoPricing',  // 转租商品自动定价
+    YYYP_SUBLEASE_GET_COMPENSATION_TEXT: '/spiderApiV2/src/web_site/youping/units/on_sale/sublease/getCompensationText',  // 获取转租赔付文本信息
+    YYYP_SUBLEASE_GET_BATCH_COMPENSATION_TEXT: '/spiderApiV2/src/web_site/youping/units/on_sale/sublease/getBatchCompensationText',  // 批量获取转租赔付文本信息
 
     // 悠悠有品出租自动定价（爬虫端）
-    YYYP_RENT_AUTO_PRICING: '/spiderApiV2/youping/units/on_sale/lent/autoPricing',
+    YYYP_RENT_AUTO_PRICING: '/spiderApiV2/src/web_site/youping/units/on_sale/lent/autoPricing',
 
     
 
@@ -516,24 +516,24 @@ export const API_CONFIG = {
     UPDATE_APPLY: '/api/update/apply',  // 执行更新
 
     // 悠悠有品自动购买相关（V2 API）
-    AUTO_BUY_RENAMED_WEAPON: '/spiderApiV2/youping/auto_weapon/autoBuyRenamedWeapon',  // 自动购买改名武器
-    AUTO_BUY_PENDANT_WEAPON: '/spiderApiV2/youping/auto_weapon/autoBuyPendantWeapon',  // 自动购买挂件武器
-    STOP_PENDANT_SEARCH: '/spiderApiV2/youping/auto_weapon/stopPendantSearch',  // 停止挂件搜索
-    GET_PENDANT_SEARCH_PROGRESS: '/spiderApiV2/youping/auto_weapon/getPendantSearchProgress',  // 获取挂件搜索进度
-    REALTIME_LOWEST_PRICE: '/spiderApiV2/youping/auto_weapon/getRealTimeLowestPrice',  // 实时查询悠悠在售底价
+    AUTO_BUY_RENAMED_WEAPON: '/spiderApiV2/src/web_site/youping/auto_weapon/autoBuyRenamedWeapon',  // 自动购买改名武器
+    AUTO_BUY_PENDANT_WEAPON: '/spiderApiV2/src/web_site/youping/auto_weapon/autoBuyPendantWeapon',  // 自动购买挂件武器
+    STOP_PENDANT_SEARCH: '/spiderApiV2/src/web_site/youping/auto_weapon/stopPendantSearch',  // 停止挂件搜索
+    GET_PENDANT_SEARCH_PROGRESS: '/spiderApiV2/src/web_site/youping/auto_weapon/getPendantSearchProgress',  // 获取挂件搜索进度
+    REALTIME_LOWEST_PRICE: '/spiderApiV2/src/web_site/youping/auto_weapon/getRealTimeLowestPrice',  // 实时查询悠悠在售底价
 
   },
 
   // 悠悠有品自动购买相关（V2 API） - 顶层配置（向后兼容）
-  YOUPIN_AUTO_BUY_RENAMED_WEAPON: '/spiderApiV2/youping/auto_weapon/autoBuyRenamedWeapon',  // 自动购买改名武器
-  YOUPIN_AUTO_BUY_PENDANT_WEAPON: '/spiderApiV2/youping/auto_weapon/autoBuyPendantWeapon',  // 自动购买挂件武器
-  YOUPIN_STOP_PENDANT_SEARCH: '/spiderApiV2/youping/auto_weapon/stopPendantSearch',  // 停止挂件搜索
-  YOUPIN_GET_PENDANT_SEARCH_PROGRESS: '/spiderApiV2/youping/auto_weapon/getPendantSearchProgress',  // 获取挂件搜索进度
-  YOUPIN_REALTIME_LOWEST_PRICE: '/spiderApiV2/youping/auto_weapon/getRealTimeLowestPrice',  // 实时查询悠悠在售底价
+  YOUPIN_AUTO_BUY_RENAMED_WEAPON: '/spiderApiV2/src/web_site/youping/auto_weapon/autoBuyRenamedWeapon',  // 自动购买改名武器
+  YOUPIN_AUTO_BUY_PENDANT_WEAPON: '/spiderApiV2/src/web_site/youping/auto_weapon/autoBuyPendantWeapon',  // 自动购买挂件武器
+  YOUPIN_STOP_PENDANT_SEARCH: '/spiderApiV2/src/web_site/youping/auto_weapon/stopPendantSearch',  // 停止挂件搜索
+  YOUPIN_GET_PENDANT_SEARCH_PROGRESS: '/spiderApiV2/src/web_site/youping/auto_weapon/getPendantSearchProgress',  // 获取挂件搜索进度
+  YOUPIN_REALTIME_LOWEST_PRICE: '/spiderApiV2/src/web_site/youping/auto_weapon/getRealTimeLowestPrice',  // 实时查询悠悠在售底价
 
   // 悠悠有品库存租借相关（V2 API） - 顶层配置（向后兼容）
-  YOUPIN_GET_INVENTORY_EXTEND_INFO: '/spiderApiV2/youping/units/inventory/lent/getInventoryExtendInfo',  // 获取库存扩展信息
-  YOUPIN_UPLOAD_RENT: '/spiderApiV2/youping/units/inventory/lent/uploadRent'  // 上传租借饰品
+  YOUPIN_GET_INVENTORY_EXTEND_INFO: '/spiderApiV2/src/web_site/youping/units/inventory/lent/getInventoryExtendInfo',  // 获取库存扩展信息
+  YOUPIN_UPLOAD_RENT: '/spiderApiV2/src/web_site/youping/units/inventory/lent/uploadRent'  // 上传租借饰品
 
 }
 
@@ -774,9 +774,8 @@ export const apiUrls = {
 
   fetchWeaponIcons: () => getApiUrl(API_CONFIG.ENDPOINTS.YOUPIN_FETCH_ICONS),
   downloadWeaponIcons: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YOUPIN_DOWNLOAD_ICONS),
-  buffSpider: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.BUFF_SPIDER),
-
-  buffFullSpider: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.BUFF_FULL_SPIDER),
+  buffSyncNewData: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.BUFF_SYNC_NEW_DATA),
+  buffSyncHistoryData: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.BUFF_SYNC_HISTORY_DATA),
 
   buffSyncTemplates: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.BUFF_SYNC_TEMPLATES),
 

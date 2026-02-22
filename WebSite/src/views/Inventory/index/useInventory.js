@@ -2371,7 +2371,7 @@ export function useInventory() {
       
       // 调用Spider API获取悠悠有品价格（V2 API）
       const response = await axios.post(
-        `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/youping/units/settings/dev_tools/syncWeaponPrice`,
+        `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/settings/dev_tools/syncWeaponPrice`,
         {
           steamId: selectedSteamId.value
         }
