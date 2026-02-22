@@ -10,7 +10,7 @@ from .manager import DBManager, init_database, get_db_manager
 
 # 导入所有模型
 from .index import ConfigModel, FundsModel, BuyModel, SellModel, LeaseModel, AutoSearchWeaponModel, SysMessageModel
-from .yyyp import YyypBuyModel
+from .youpin import YyypBuyModel
 from .steam import SteamBuyModel, SteamSellModel, SteamMarketModel, SteamInventoryHistoryModel, SteamInventoryModel, SteamStockComponentsModel
 from .csfloat import CsFloatBuyModel, CsFloatSellModel
 

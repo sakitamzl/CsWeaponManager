@@ -5,7 +5,7 @@
 """
 from flask import Blueprint, request, jsonify
 from src.log import Log
-from src.db_manager.index import AutoSearchWeaponModel
+from backEnd.src.db_manager.index.model import AutoSearchWeaponModel
 from src.db_manager import get_db_manager
 
 search_rename_bp = Blueprint('search_rename', __name__, url_prefix='/searchRename')

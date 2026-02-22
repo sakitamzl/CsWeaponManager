@@ -4,7 +4,7 @@
 """
 
 from flask import jsonify, request, Blueprint
-from src.db_manager.steam.user_inventory_mining import UserInventoryMiningModel
+from backEnd.src.db_manager.steam.model.user_inventory_mining import UserInventoryMiningModel
 from src.db_manager.database import DatabaseManager
 from src.log import Log
 from datetime import datetime

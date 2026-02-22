@@ -1,5 +1,5 @@
 from flask import jsonify, request, Blueprint
-from src.db_manager.index.weapon_classID import WeaponClassIDModel
+from backEnd.src.db_manager.index.model.weapon_classID import WeaponClassIDModel
 from src.log import Log
 
 logger = Log()

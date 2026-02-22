@@ -1,7 +1,7 @@
 from flask import jsonify, request, Blueprint
 from src.log import Log
 from src.now_time import today
-from src.db_manager.index.rental import RentalModel
+from backEnd.src.db_manager.index.model.rental import RentalModel
 import requests
 
 youpin898RentalV1 = Blueprint('youpin898RentalV1', __name__)

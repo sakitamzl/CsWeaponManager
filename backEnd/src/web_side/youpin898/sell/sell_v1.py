@@ -1,8 +1,8 @@
 from flask import jsonify, request, Blueprint
 from src.log import Log
 from src.execution_db import Date_base
-from src.db_manager.yyyp.yyyp_sell import YyypSellModel
-from src.db_manager.index.sell import SellModel
+from backEnd.src.db_manager.youpin.model.yyyp_sell import YyypSellModel
+from backEnd.src.db_manager.index.model.sell import SellModel
 import requests
 
 youpin898SellV1 = Blueprint('youpin898SellV1/', __name__)

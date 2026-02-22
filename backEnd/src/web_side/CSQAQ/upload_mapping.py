@@ -6,7 +6,7 @@ CSQAQ映射文件上传处理
 
 import json
 from typing import Dict, Any
-from ...db_manager.index.weapon_classID import WeaponClassIDModel
+from ...db_manager.index.model.weapon_classID import WeaponClassIDModel
 
 
 def process_csqaq_mapping_file(file_content: str) -> Dict[str, Any]:

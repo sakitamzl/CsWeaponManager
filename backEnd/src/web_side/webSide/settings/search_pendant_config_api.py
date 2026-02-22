@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from src.log import Log
-from src.db_manager.index.config import ConfigModel
+from backEnd.src.db_manager.index.model.config import ConfigModel
 import json
 
 

@@ -5,7 +5,7 @@ CSQAQ API路由
 
 from flask import Blueprint, request, jsonify
 from .upload_mapping import process_csqaq_mapping_file
-from src.db_manager.index.config import ConfigModel
+from backEnd.src.db_manager.index.model.config import ConfigModel
 import json
 
 csqaqApiV1 = Blueprint('csqaqApiV1', __name__)

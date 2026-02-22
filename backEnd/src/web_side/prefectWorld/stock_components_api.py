@@ -8,7 +8,7 @@ from flask import Blueprint, request, jsonify
 import sys
 sys.path.append('..')
 
-from src.db_manager.steam import SteamStockComponentsModel
+from backEnd.src.db_manager.steam.model import SteamStockComponentsModel
 
 prefectWorldStockComponentsV1 = Blueprint('prefectWorldStockComponentsV1', __name__)
 

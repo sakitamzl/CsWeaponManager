@@ -5,7 +5,7 @@ Steam武器Hash Name管理API
 """
 
 from flask import jsonify, request, Blueprint
-from src.db_manager.index.weapon_classID import WeaponClassIDModel
+from backEnd.src.db_manager.index.model.weapon_classID import WeaponClassIDModel
 
 steamSelectWeaponHashNameV1 = Blueprint('steamSelectWeaponHashNameV1', __name__)
 

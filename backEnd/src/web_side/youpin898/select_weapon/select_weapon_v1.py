@@ -1,6 +1,6 @@
 from flask import jsonify, request, Blueprint
-from src.db_manager.index.weapon_classID import WeaponClassIDModel
-from src.db_manager.index.yyyp_weapon_price_history import YyypWeaponPriceHistoryModel
+from backEnd.src.db_manager.index.model.weapon_classID import WeaponClassIDModel
+from backEnd.src.db_manager.youpin.model.yyyp_weapon_price_history import YyypWeaponPriceHistoryModel
 from datetime import datetime
 
 youpin898SelectWeaponV1 = Blueprint('youpin898SelectWeaponV1', __name__)

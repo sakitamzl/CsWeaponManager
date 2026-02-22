@@ -5,7 +5,7 @@
 """
 
 from flask import Blueprint, request, jsonify
-from src.db_manager.index.weapon_classID import WeaponClassIDModel
+from backEnd.src.db_manager.index.model.weapon_classID import WeaponClassIDModel
 from src.log import Log
 
 itemSearchApiV1 = Blueprint('itemSearchApiV1', __name__)
@@ -220,7 +220,7 @@ def get_csqaq_detail():
     """
     try:
         import requests
-        from src.db_manager.index.config import ConfigModel
+        from backEnd.src.db_manager.index.model.config import ConfigModel
         import json
         
         csqaq_id = request.args.get('id')

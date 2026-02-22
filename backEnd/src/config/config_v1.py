@@ -2,8 +2,8 @@ from flask import jsonify, request, Blueprint
 from src.log import Log
 from src.execution_db import Date_base
 from src.read_conf import read_conf
-from src.db_manager.index.config import ConfigModel
-from src.db_manager.index.auto_search_weapon import AutoSearchWeaponModel
+from backEnd.src.db_manager.index.model.config import ConfigModel
+from backEnd.src.db_manager.index.model.auto_search_weapon import AutoSearchWeaponModel
 import requests
 import json
 

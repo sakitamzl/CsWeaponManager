@@ -1,6 +1,6 @@
 from flask import jsonify, request, Blueprint
 from src.execution_db import Date_base
-from src.db_manager.steam.steam_inventory_history import SteamInventoryHistoryModel
+from backEnd.src.db_manager.steam.model.steam_inventory_history import SteamInventoryHistoryModel
 
 steamInventoryHistoryV1 = Blueprint('steamInventoryHistoryV1', __name__)
 

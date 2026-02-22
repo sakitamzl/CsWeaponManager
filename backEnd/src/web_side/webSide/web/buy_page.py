@@ -2,7 +2,7 @@ from flask import jsonify, request, Blueprint
 from src.log import Log
 from src.execution_db import Date_base
 from src.now_time import today
-from src.db_manager.index.buy import BuyModel
+from backEnd.src.db_manager.index.model.buy import BuyModel
 import requests
 
 webBuyV1 = Blueprint('webBuyV1', __name__)
@@ -372,7 +372,7 @@ def get_yyyp_price_info(steam_hash_name):
     根据 steam_hash_name 查询 weapon_classID 表中的价格信息（包括悠悠有品和BUFF）
     """
     try:
-        from src.db_manager.index.weapon_classID import WeaponClassIDModel
+        from backEnd.src.db_manager.index.model.weapon_classID import WeaponClassIDModel
 
         # 查询 weapon_classID 表
         results = WeaponClassIDModel.find_by_steam_hash_name(steam_hash_name)

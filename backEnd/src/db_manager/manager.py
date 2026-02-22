@@ -8,11 +8,11 @@ from .base_model import BaseModel
 from .database import DatabaseManager
 
 # 导入所有模型
-from .index import ConfigModel, FundsModel, BuyModel, SellModel, LeaseModel, LentModel, RentalModel, WeaponClassIDModel, AutoSearchWeaponModel, YyypWeaponPriceHistoryModel, SysMessageModel
-from .yyyp import YyypBuyModel, YyypSellModel, YyypLentModel, YyypMessageboxModel
-from .buff import BuffLentModel, BuffMessageboxModel
-from .csfloat import CsFloatBuyModel, CsFloatSellModel
-from .steam import SteamMarketModel, SteamInventoryHistoryModel, SteamInventoryHistoryIndexModel, SteamInventoryModel, SteamStockComponentsModel, UserInventoryMiningModel
+from .index.model import ConfigModel, FundsModel, BuyModel, SellModel, LeaseModel, LentModel, RentalModel, WeaponClassIDModel, AutoSearchWeaponModel, YyypWeaponPriceHistoryModel, SysMessageModel
+from .youpin.model import YyypBuyModel, YyypSellModel, YyypLentModel, YyypMessageboxModel
+from .BUFF.model import BuffLentModel, BuffMessageboxModel
+from .csfloat.model import CsFloatBuyModel, CsFloatSellModel
+from .steam.model import SteamMarketModel, SteamInventoryHistoryModel, SteamInventoryHistoryIndexModel, SteamInventoryModel, SteamStockComponentsModel, UserInventoryMiningModel
 
 
 class DBManager:
