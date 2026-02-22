@@ -1877,7 +1877,7 @@ export function useDataSource() {
       editForm.value.cookies = inventoryCookies
       editForm.value.steamID = config.steamID || ''
       // 使用配置中记录的 Cookie 获取方式，支持 password
-      const cookieMethod = config.steamCookieMethod || 'manual'
+      const cookieMethod = config.steamCookieMethod || 'qrcode'
       editForm.value.steamCookieMethod = cookieMethod
       editForm.value.steamUsername = config.steamUsername || ''
       editForm.value.steamPassword = config.steamPassword || ''
@@ -1904,7 +1904,7 @@ export function useDataSource() {
       } else if (config.steamUsername) {
         cookieMethod = 'password'
       } else {
-        cookieMethod = 'manual'
+        cookieMethod = 'qrcode'
       }
       // 直接使用推断出的 cookie 获取方式，允许 password
       editForm.value.steamCookieMethod = cookieMethod
@@ -2038,7 +2038,7 @@ export function useDataSource() {
       steamID: '',
       // Steam特有字段
       cookies: '',
-      steamCookieMethod: 'manual',
+      steamCookieMethod: 'qrcode',
       steamUsername: '',
       steamPassword: '',
       steamTwofactorCode: '',

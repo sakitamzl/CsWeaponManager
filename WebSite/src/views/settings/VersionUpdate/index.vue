@@ -28,49 +28,62 @@
               </el-button>
             </div>
 
-            <!-- 更新提示（紧凑版） -->
+            <!-- 发现新版本 -->
             <div v-if="updateInfo" class="update-alert">
-              <el-alert
-                type="success"
-                :closable="false"
-              >
-                <template #title>
-                  <div style="font-size: 13px; font-weight: 600;">
-                    发现新版本 v{{ updateInfo.latest_version }}
-                  </div>
-                </template>
-                <div style="font-size: 12px; margin-top: 8px;">
-                  <div>发布日期: {{ updateInfo.release_date }}</div>
-                  <div style="margin-top: 4px;">大小: {{ updateInfo.file_size }}</div>
-                  <el-button
-                    type="success"
-                    size="small"
-                    style="width: 100%; margin-top: 10px;"
-                    @click="handleStartUpdate"
-                    :loading="updating"
-                  >
-                    {{ updating ? '更新中...' : '立即更新' }}
-                  </el-button>
-                  <div v-if="updating" style="margin-top: 10px;">
-                    <el-progress :percentage="updateProgress" :status="updateStatus" />
-                    <div style="font-size: 11px; text-align: center; margin-top: 4px; color: #999;">
-                      {{ updateStatusText }}
-                    </div>
+              <div style="font-size: 13px; font-weight: 600; color: #67c23a;">
+                发现新版本 v{{ updateInfo.latest_version }}
+              </div>
+              <div style="font-size: 12px; margin-top: 8px; color: #ccc;">
+                <div>发布日期: {{ updateInfo.release_date }}</div>
+                <div style="margin-top: 4px;">大小: {{ updateInfo.file_size }}</div>
+                <!-- 已下载：显示立即更新 -->
+                <el-button
+                  v-if="downloaded || localUpdateExists"
+                  type="success"
+                  size="small"
+                  style="width: 100%; margin-top: 10px;"
+                  @click="handleApplyUpdate"
+                >
+                  立即更新
+                </el-button>
+                <!-- 未下载：显示下载按钮 -->
+                <el-button
+                  v-else
+                  type="success"
+                  size="small"
+                  style="width: 100%; margin-top: 10px;"
+                  @click="handleDownloadUpdate"
+                  :loading="updating"
+                >
+                  {{ updating ? updateStatusText : '下载更新' }}
+                </el-button>
+                <div v-if="updating" style="margin-top: 10px;">
+                  <el-progress :percentage="updateProgress" :status="updateStatus" />
+                  <div v-if="downloadSpeed" style="font-size: 11px; color: #999; margin-top: 4px; text-align: center;">
+                    {{ updateStatusText }} · {{ downloadSpeed }}
                   </div>
                 </div>
-              </el-alert>
+              </div>
+            </div>
+
+            <!-- 本地已有更新包（未检查更新时显示） -->
+            <div v-else-if="localUpdateExists && !checkedOnce" class="update-alert">
+              <div style="font-size: 12px; color: #ccc;">
+                <div>检测到本地更新包 ({{ localUpdateSize }})</div>
+                <el-button
+                  type="success"
+                  size="small"
+                  style="width: 100%; margin-top: 10px;"
+                  @click="handleApplyUpdate"
+                >
+                  立即更新
+                </el-button>
+              </div>
             </div>
 
             <!-- 无更新提示 -->
             <div v-else-if="!checkingUpdate && checkedOnce" class="no-update">
-              <el-alert
-                type="success"
-                :closable="false"
-              >
-                <template #title>
-                  <div style="font-size: 12px;">已是最新版本</div>
-                </template>
-              </el-alert>
+              <span style="font-size: 12px; color: #67c23a;">已是最新版本</span>
             </div>
           </div>
 

@@ -15,14 +15,10 @@ export function useVersionUpdate() {
   const updateProgress = ref(0)
   const updateStatus = ref('')
   const updateStatusText = ref('')
-
-  // 更新按钮文本
-  const updateButtonText = computed(() => {
-    if (updating.value) {
-      return updateStatusText.value || '更新中...'
-    }
-    return '立即更新'
-  })
+  const downloadSpeed = ref('')
+  const localUpdateExists = ref(false)
+  const localUpdateSize = ref('')
+  const downloaded = ref(false)
   const headingIds = new Map()
   let currentFilePath = ''
 
@@ -424,8 +420,9 @@ export function useVersionUpdate() {
       }
     } catch (err) {
       console.error('检查更新失败:', err)
-      if (err.response?.status === 503) {
-        ElMessage.error('无法连接到更新服务器，请检查更新服务是否启动')
+      const serverMsg = err.response?.data?.error
+      if (serverMsg) {
+        ElMessage.error(serverMsg)
       } else {
         ElMessage.error('检查更新失败，请稍后重试')
       }
@@ -434,85 +431,96 @@ export function useVersionUpdate() {
     }
   }
 
-  // 开始更新
-  const handleStartUpdate = async () => {
+  // 下载更新包（SSE 流式进度）
+  const handleDownloadUpdate = async () => {
     try {
-      // 确认更新
-      await ElMessageBox.confirm(
-        `确定要更新到版本 v${updateInfo.value.latest_version} 吗？更新完成后需要重启应用。`,
-        '确认更新',
-        {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          type: 'warning'
-        }
-      )
-
       updating.value = true
       updateProgress.value = 0
       updateStatus.value = ''
-      updateStatusText.value = '准备下载...'
+      updateStatusText.value = '正在连接...'
+      downloadSpeed.value = ''
 
-      // 步骤1：下载更新包
-      updateProgress.value = 10
-      updateStatusText.value = '正在下载更新包...'
-
-      const downloadResponse = await axios.post(apiUrls.downloadUpdate())
-
-      if (!downloadResponse.data.success) {
-        throw new Error(downloadResponse.data.error || '下载失败')
-      }
-
-      const { file_path, md5 } = downloadResponse.data.data
-
-      updateProgress.value = 60
-      updateStatusText.value = '下载完成，正在解压更新包...'
-
-      // 步骤2：解压更新包
-      const extractResponse = await axios.post(apiUrls.extractUpdate(), {
-        file_path: file_path,
-        verify_md5: md5
+      const response = await fetch(apiUrls.downloadUpdate(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ download_url: updateInfo.value.download_url })
       })
 
-      if (!extractResponse.data.success) {
-        throw new Error(extractResponse.data.error || '解压失败')
+      if (!response.ok) {
+        throw new Error(`服务器响应异常: ${response.status}`)
       }
 
-      updateProgress.value = 100
-      updateStatus.value = 'success'
-      updateStatusText.value = '更新完成！'
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
 
-      // 显示成功消息
-      await ElMessageBox.alert(
-        '更新已完成，请重启应用以应用更新。',
-        '更新成功',
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() // 保留未完成的行
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          try {
+            const event = JSON.parse(line.slice(6))
+
+            if (event.type === 'progress') {
+              updateProgress.value = event.progress
+              downloadSpeed.value = event.speed
+              const dlSize = format_file_size(event.downloaded)
+              const totalSize = format_file_size(event.total)
+              updateStatusText.value = `${dlSize} / ${totalSize}`
+            } else if (event.type === 'complete') {
+              updateProgress.value = 100
+              updateStatus.value = 'success'
+              updateStatusText.value = '下载完成'
+              downloadSpeed.value = ''
+              downloaded.value = true
+            } else if (event.type === 'error') {
+              throw new Error(event.error)
+            }
+          } catch (parseErr) {
+            if (parseErr.message && !parseErr.message.includes('JSON')) {
+              throw parseErr
+            }
+          }
+        }
+      }
+
+      if (!downloaded.value) {
+        throw new Error('下载异常中断')
+      }
+
+      // 下载完成后弹出是否立即更新
+      await ElMessageBox.confirm(
+        '更新包下载完成，是否立即更新？更新将重启应用。',
+        '下载完成',
         {
-          confirmButtonText: '知道了',
+          confirmButtonText: '立即更新',
+          cancelButtonText: '稍后更新',
           type: 'success'
         }
       )
 
-      // 重置状态
-      updating.value = false
-      updateInfo.value = null
-      checkedOnce.value = false
-
-      // 重新加载版本信息
-      await loadCurrentVersion()
+      // 用户点击了立即更新
+      await doApplyUpdate()
 
     } catch (err) {
       if (err === 'cancel') {
-        // 用户取消
+        // 用户选择稍后更新，保持下载完成状态
+        updating.value = false
         return
       }
 
-      console.error('更新失败:', err)
+      console.error('下载更新失败:', err)
       updateStatus.value = 'exception'
-      updateStatusText.value = '更新失败'
+      updateStatusText.value = '下载失败'
+      downloadSpeed.value = ''
+      ElMessage.error(err.message || '下载更新失败，请稍后重试')
 
-      ElMessage.error(err.message || '更新失败，请稍后重试')
-
-      // 延迟重置状态
       setTimeout(() => {
         updating.value = false
         updateProgress.value = 0
@@ -522,15 +530,73 @@ export function useVersionUpdate() {
     }
   }
 
+  // 前端格式化文件大小
+  const format_file_size = (bytes) => {
+    let size = bytes
+    for (const unit of ['B', 'KB', 'MB', 'GB']) {
+      if (size < 1024.0) return `${size.toFixed(1)} ${unit}`
+      size /= 1024.0
+    }
+    return `${size.toFixed(1)} TB`
+  }
+
+  // 执行更新（调用 update.bat）
+  const doApplyUpdate = async () => {
+    try {
+      const response = await axios.post(apiUrls.applyUpdate())
+      if (response.data.success) {
+        ElMessage.success('更新程序已启动，应用即将重启')
+      } else {
+        throw new Error(response.data.error || '启动更新失败')
+      }
+    } catch (err) {
+      console.error('执行更新失败:', err)
+      const serverMsg = err.response?.data?.error
+      ElMessage.error(serverMsg || err.message || '执行更新失败')
+    }
+  }
+
+  // 立即更新按钮（本地已有更新包时直接调用）
+  const handleApplyUpdate = async () => {
+    try {
+      await ElMessageBox.confirm(
+        '确定要立即更新吗？更新将重启应用。',
+        '确认更新',
+        {
+          confirmButtonText: '立即更新',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      )
+      await doApplyUpdate()
+    } catch (err) {
+      if (err === 'cancel') return
+    }
+  }
+
   // 取消更新
   const handleCancelUpdate = () => {
     updateInfo.value = null
     checkedOnce.value = false
   }
 
+  // 检查本地是否已有更新包
+  const checkLocalUpdate = async () => {
+    try {
+      const response = await axios.get(apiUrls.checkLocalUpdate())
+      if (response.data.success && response.data.data.exists) {
+        localUpdateExists.value = true
+        localUpdateSize.value = response.data.data.file_size
+      }
+    } catch (err) {
+      console.error('检查本地更新包失败:', err)
+    }
+  }
+
   onMounted(() => {
     loadFileTree()
     loadCurrentVersion()
+    checkLocalUpdate()
   })
 
   return {
@@ -556,9 +622,13 @@ export function useVersionUpdate() {
     updateProgress,
     updateStatus,
     updateStatusText,
-    updateButtonText,
+    downloadSpeed,
+    localUpdateExists,
+    localUpdateSize,
+    downloaded,
     handleCheckUpdate,
-    handleStartUpdate,
+    handleDownloadUpdate,
+    handleApplyUpdate,
     handleCancelUpdate
   }
 }

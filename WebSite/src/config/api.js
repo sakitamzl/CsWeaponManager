@@ -511,7 +511,9 @@ export const API_CONFIG = {
 
     UPDATE_DOWNLOAD: '/api/update/download',  // 下载更新包
 
-    UPDATE_EXTRACT: '/api/update/extract',  // 解压更新包
+    UPDATE_CHECK_LOCAL: '/api/update/check-local',  // 检查本地更新包
+
+    UPDATE_APPLY: '/api/update/apply',  // 执行更新
 
     // 悠悠有品自动购买相关（V2 API）
     AUTO_BUY_RENAMED_WEAPON: '/spiderApiV2/youping/auto_weapon/autoBuyRenamedWeapon',  // 自动购买改名武器
@@ -1029,7 +1031,9 @@ export const apiUrls = {
 
   downloadUpdate: () => getApiUrl(API_CONFIG.ENDPOINTS.UPDATE_DOWNLOAD),  // 下载更新包
 
-  extractUpdate: () => getApiUrl(API_CONFIG.ENDPOINTS.UPDATE_EXTRACT),  // 解压更新包
+  checkLocalUpdate: () => getApiUrl(API_CONFIG.ENDPOINTS.UPDATE_CHECK_LOCAL),  // 检查本地更新包
+
+  applyUpdate: () => getApiUrl(API_CONFIG.ENDPOINTS.UPDATE_APPLY),  // 执行更新
 
 }
 

@@ -103,7 +103,7 @@
             <el-icon :size="18">
               <Refresh />
             </el-icon>
-            <span>更新日志</span>
+            <span>系统更新</span>
           </li>
         </ul>
       </div>

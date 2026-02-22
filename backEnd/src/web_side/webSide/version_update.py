@@ -5,13 +5,33 @@ import zipfile
 import shutil
 import hashlib
 from flask import Blueprint, jsonify, request, Response, stream_with_context
-
 version_update_bp = Blueprint('version_update', __name__)
 
-# 更新服务器配置
-# 生产环境使用域名，开发环境可以使用本地地址
-UPDATE_SERVER_URL = 'http://makurochan.com:9004'
-# UPDATE_SERVER_URL = 'http://127.0.0.1:9004'  # 本地开发
+# GitHub 仓库配置
+GITHUB_REPO = 'henntaidesu/CsWeaponManager'
+GITHUB_API_URL = f'https://api.github.com/repos/{GITHUB_REPO}/releases/latest'
+
+
+
+def compare_versions(current, latest):
+    """比较两个语义化版本号，返回 True 表示 latest 更新"""
+    def parse_version(v):
+        v = v.lstrip('v')
+        return [int(x) for x in v.split('.')]
+    try:
+        return parse_version(latest) > parse_version(current)
+    except (ValueError, AttributeError):
+        return False
+
+
+def format_file_size(size_bytes):
+    """格式化文件大小"""
+    size = size_bytes
+    for unit in ['B', 'KB', 'MB', 'GB']:
+        if size < 1024.0:
+            return f"{size:.1f} {unit}"
+        size /= 1024.0
+    return f"{size:.1f} TB"
 
 def get_base_dir():
     """获取程序运行的基础目录"""
@@ -250,72 +270,94 @@ def get_update_log():
 
 def get_current_version():
     """获取当前应用版本"""
-    try:
-        # 从 package.json 读取版本号
-        base_dir = get_base_dir()
-        package_json_path = os.path.join(base_dir, 'WebSite', 'package.json')
-
-        if os.path.exists(package_json_path):
-            import json
-            with open(package_json_path, 'r', encoding='utf-8') as f:
-                package_data = json.load(f)
-                return package_data.get('version', '0.0.0')
-
-        return '0.0.0'
-    except Exception as e:
-        print(f"❌ 获取当前版本失败: {e}")
-        return '0.0.0'
+    from backEnd import CURRENT_VERSION
+    return CURRENT_VERSION
 
 
 @version_update_bp.route('/api/update/check', methods=['GET'])
 def check_update():
     """
-    检查更新
-
-    返回：
-    {
-        "success": true,
-        "has_update": true/false,
-        "data": {
-            "current_version": "2.3.5",
-            "latest_version": "2.3.6",
-            "release_date": "2026-02-10",
-            "file_size": "125.5 MB",
-            "changelog": ["新增：...", "优化：...", "修复：..."],
-            "required": false
-        }
-    }
+    检查更新 - 通过 GitHub Releases 检查是否有新版本
     """
     try:
-        # 获取当前版本
         current_version = get_current_version()
 
-        # 请求更新服务器
+        # 请求 GitHub API 获取最新 release
+        headers = {'Accept': 'application/vnd.github.v3+json'}
         response = requests.get(
-            f'{UPDATE_SERVER_URL}/api/update/check',
-            params={'current_version': current_version},
-            timeout=10
+            GITHUB_API_URL,
+            headers=headers,
+            timeout=15
         )
 
         if response.status_code == 200:
-            data = response.json()
-            return jsonify(data)
+            release_data = response.json()
+
+            latest_version = release_data.get('tag_name', '').lstrip('v')
+            has_update = compare_versions(current_version, latest_version)
+
+            # 解析发布日期
+            published_at = release_data.get('published_at', '')
+            release_date = published_at[:10] if published_at else ''
+
+            # 解析更新日志（从 release body 按行拆分）
+            body = release_data.get('body', '') or ''
+            changelog = [line.strip() for line in body.split('\n') if line.strip()]
+
+            # 查找下载资源（优先找 CsWeaponManager.zip）
+            download_url = ''
+            file_size = ''
+            assets = release_data.get('assets', [])
+            for asset in assets:
+                asset_name = asset.get('name', '')
+                if asset_name.endswith('.zip'):
+                    download_url = asset.get('browser_download_url', '')
+                    file_size = format_file_size(asset.get('size', 0))
+                    break
+
+            # 如果没有找到 asset，使用 source code zip
+            if not download_url:
+                download_url = release_data.get('zipball_url', '')
+
+            return jsonify({
+                'success': True,
+                'has_update': has_update,
+                'data': {
+                    'current_version': current_version,
+                    'latest_version': latest_version,
+                    'release_date': release_date,
+                    'file_size': file_size,
+                    'changelog': changelog,
+                    'download_url': download_url
+                }
+            })
+
+        elif response.status_code == 404:
+            return jsonify({
+                'success': True,
+                'has_update': False,
+                'data': {
+                    'current_version': current_version,
+                    'latest_version': current_version,
+                    'message': '暂无发布版本'
+                }
+            })
         else:
             return jsonify({
                 'success': False,
-                'error': '更新服务器响应异常'
+                'error': f'GitHub API 响应异常: {response.status_code}'
             }), response.status_code
 
     except requests.exceptions.ConnectionError:
         return jsonify({
             'success': False,
-            'error': '无法连接到更新服务器，请检查网络或服务器是否运行'
+            'error': '无法连接到 GitHub，请检查网络连接或代理设置'
         }), 503
 
     except requests.exceptions.Timeout:
         return jsonify({
             'success': False,
-            'error': '连接更新服务器超时'
+            'error': '连接 GitHub 超时，请检查网络连接或代理设置'
         }), 504
 
     except Exception as e:
@@ -326,251 +368,161 @@ def check_update():
         }), 500
 
 
-@version_update_bp.route('/api/update/download-stream', methods=['GET'])
-def download_update_stream():
-    """
-    下载更新包（流式传输）
-
-    返回：二进制流
-    """
-    try:
-        def generate():
-            # 请求更新服务器下载更新包
-            response = requests.get(
-                f'{UPDATE_SERVER_URL}/api/update/download',
-                stream=True,
-                timeout=300
-            )
-
-            if response.status_code != 200:
-                yield b''
-                return
-
-            # 流式传输
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    yield chunk
-
-        return Response(
-            stream_with_context(generate()),
-            mimetype='application/zip',
-            headers={
-                'Content-Disposition': 'attachment; filename=update.zip'
-            }
-        )
-
-    except Exception as e:
-        print(f"❌ 下载更新包失败: {e}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-
 @version_update_bp.route('/api/update/download', methods=['POST'])
 def download_update():
     """
-    下载更新包到本地
+    从 GitHub 下载更新包到本地（SSE 流式返回下载进度）
 
-    返回：
+    请求体：
     {
-        "success": true,
-        "data": {
-            "file_path": "/path/to/update.zip",
-            "file_size": "125.5 MB",
-            "md5": "abc123..."
-        }
+        "download_url": "https://github.com/.../CsWeaponManager.zip"
     }
+
+    SSE 事件格式：
+    data: {"type":"progress","downloaded":1024,"total":102400,"progress":1,"speed":"125.0 KB/s"}
+    data: {"type":"complete","file_size":"100.0 KB","md5":"abc123"}
+    data: {"type":"error","error":"错误信息"}
     """
-    try:
-        base_dir = get_base_dir()
-        temp_dir = os.path.join(base_dir, 'temp')
-        os.makedirs(temp_dir, exist_ok=True)
+    import json
+    import time
 
-        update_file_path = os.path.join(temp_dir, 'update.zip')
+    data = request.get_json()
+    download_url = data.get('download_url', '') if data else ''
 
-        # 下载更新包
-        print("📥 开始下载更新包...")
-        response = requests.get(
-            f'{UPDATE_SERVER_URL}/api/update/download',
-            stream=True,
-            timeout=300
-        )
-
-        if response.status_code != 200:
-            return jsonify({
-                'success': False,
-                'error': '更新服务器返回错误'
-            }), response.status_code
-
-        # 保存文件
-        total_size = 0
-        with open(update_file_path, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    f.write(chunk)
-                    total_size += len(chunk)
-
-        print(f"✅ 下载完成，文件大小: {total_size} 字节")
-
-        # 计算MD5
-        md5_hash = hashlib.md5()
-        with open(update_file_path, 'rb') as f:
-            for chunk in iter(lambda: f.read(4096), b""):
-                md5_hash.update(chunk)
-        md5_value = md5_hash.hexdigest()
-
-        # 格式化文件大小
-        size = total_size
-        for unit in ['B', 'KB', 'MB', 'GB']:
-            if size < 1024.0:
-                file_size = f"{size:.1f} {unit}"
-                break
-            size /= 1024.0
-        else:
-            file_size = f"{size:.1f} TB"
-
-        return jsonify({
-            'success': True,
-            'data': {
-                'file_path': update_file_path,
-                'file_size': file_size,
-                'md5': md5_value
-            }
-        })
-
-    except requests.exceptions.ConnectionError:
+    if not download_url:
         return jsonify({
             'success': False,
-            'error': '无法连接到更新服务器'
-        }), 503
+            'error': '未提供下载地址'
+        }), 400
+
+    def generate():
+        try:
+            base_dir = get_base_dir()
+            update_file_path = os.path.join(base_dir, 'CsWeaponManager.zip')
+
+            print(f"📥 开始从 GitHub 下载更新包: {download_url}")
+            resp = requests.get(
+                download_url,
+                stream=True,
+                timeout=300,
+                headers={'Accept': 'application/octet-stream'}
+            )
+
+            if resp.status_code != 200:
+                yield f"data: {json.dumps({'type': 'error', 'error': f'下载失败，HTTP 状态码: {resp.status_code}'})}\n\n"
+                return
+
+            total = int(resp.headers.get('content-length', 0))
+            downloaded = 0
+            start_time = time.time()
+            last_report_time = start_time
+
+            with open(update_file_path, 'wb') as f:
+                for chunk in resp.iter_content(chunk_size=65536):
+                    if chunk:
+                        f.write(chunk)
+                        downloaded += len(chunk)
+
+                        now = time.time()
+                        # 每 0.3 秒汇报一次进度
+                        if now - last_report_time >= 0.3 or downloaded == total:
+                            elapsed = now - start_time
+                            speed = downloaded / elapsed if elapsed > 0 else 0
+                            progress = int(downloaded * 100 / total) if total > 0 else 0
+
+                            yield f"data: {json.dumps({'type': 'progress', 'downloaded': downloaded, 'total': total, 'progress': progress, 'speed': format_file_size(int(speed)) + '/s'})}\n\n"
+                            last_report_time = now
+
+            print(f"✅ 下载完成，文件大小: {downloaded} 字节")
+
+            # 计算 MD5
+            md5_hash = hashlib.md5()
+            with open(update_file_path, 'rb') as f:
+                for chunk in iter(lambda: f.read(4096), b""):
+                    md5_hash.update(chunk)
+            md5_value = md5_hash.hexdigest()
+
+            yield f"data: {json.dumps({'type': 'complete', 'file_size': format_file_size(downloaded), 'md5': md5_value})}\n\n"
+
+        except requests.exceptions.ConnectionError:
+            yield f"data: {json.dumps({'type': 'error', 'error': '无法连接到 GitHub，请检查网络连接或代理设置'})}\n\n"
+        except Exception as e:
+            print(f"❌ 下载更新包失败: {e}")
+            yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
+
+    return Response(stream_with_context(generate()), mimetype='text/event-stream', headers={
+        'Cache-Control': 'no-cache',
+        'X-Accel-Buffering': 'no'
+    })
+
+
+@version_update_bp.route('/api/update/check-local', methods=['GET'])
+def check_local_update():
+    """检查本地是否存在已下载的更新包"""
+    try:
+        base_dir = get_base_dir()
+        update_file_path = os.path.join(base_dir, 'CsWeaponManager.zip')
+
+        if os.path.exists(update_file_path):
+            file_size = os.path.getsize(update_file_path)
+            return jsonify({
+                'success': True,
+                'data': {
+                    'exists': True,
+                    'file_size': format_file_size(file_size)
+                }
+            })
+        else:
+            return jsonify({
+                'success': True,
+                'data': {
+                    'exists': False
+                }
+            })
 
     except Exception as e:
-        print(f"❌ 下载更新包失败: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
 
 
-@version_update_bp.route('/api/update/extract', methods=['POST'])
-def extract_update():
-    """
-    解压更新包
-
-    请求体：
-    {
-        "file_path": "/path/to/update.zip",
-        "verify_md5": "abc123..."
-    }
-
-    返回：
-    {
-        "success": true,
-        "message": "更新包解压完成，请重启应用"
-    }
-    """
+@version_update_bp.route('/api/update/apply', methods=['POST'])
+def apply_update():
+    """调用 update.bat 执行更新"""
     try:
-        data = request.get_json()
-        file_path = data.get('file_path')
-        expected_md5 = data.get('verify_md5')
+        import subprocess
 
-        if not file_path or not os.path.exists(file_path):
+        base_dir = get_base_dir()
+        update_bat = os.path.join(base_dir, 'update.bat')
+        update_zip = os.path.join(base_dir, 'CsWeaponManager.zip')
+
+        if not os.path.exists(update_zip):
             return jsonify({
                 'success': False,
-                'error': '更新包文件不存在'
+                'error': '更新包不存在，请先下载更新'
             }), 400
 
-        # 验证MD5（可选）
-        if expected_md5:
-            print("🔍 验证文件完整性...")
-            md5_hash = hashlib.md5()
-            with open(file_path, 'rb') as f:
-                for chunk in iter(lambda: f.read(4096), b""):
-                    md5_hash.update(chunk)
-            actual_md5 = md5_hash.hexdigest()
+        if not os.path.exists(update_bat):
+            return jsonify({
+                'success': False,
+                'error': 'update.bat 不存在'
+            }), 400
 
-            if actual_md5 != expected_md5:
-                return jsonify({
-                    'success': False,
-                    'error': 'MD5 校验失败，文件可能已损坏'
-                }), 400
-            print("✅ MD5 校验通过")
-
-        # 备份当前版本（可选）
-        base_dir = get_base_dir()
-        backup_dir = os.path.join(base_dir, 'backup')
-        os.makedirs(backup_dir, exist_ok=True)
-
-        print("📦 开始解压更新包...")
-
-        # 解压到临时目录
-        temp_extract_dir = os.path.join(base_dir, 'temp', 'update_extract')
-        if os.path.exists(temp_extract_dir):
-            shutil.rmtree(temp_extract_dir)
-        os.makedirs(temp_extract_dir, exist_ok=True)
-
-        with zipfile.ZipFile(file_path, 'r') as zip_ref:
-            zip_ref.extractall(temp_extract_dir)
-
-        print("✅ 解压完成")
-        print("📝 准备应用更新...")
-
-        # 复制文件到程序目录
-        for item in os.listdir(temp_extract_dir):
-            src = os.path.join(temp_extract_dir, item)
-            dst = os.path.join(base_dir, item)
-
-            # 跳过某些目录/文件
-            skip_items = ['conf.ini', 'csweaponmanager.db', 'log', 'backup', 'temp', 'UpdateServer']
-            if item in skip_items:
-                print(f"⏭️  跳过: {item}")
-                continue
-
-            try:
-                if os.path.isdir(src):
-                    # 备份旧目录
-                    if os.path.exists(dst):
-                        backup_path = os.path.join(backup_dir, f"{item}_backup")
-                        if os.path.exists(backup_path):
-                            shutil.rmtree(backup_path)
-                        shutil.copytree(dst, backup_path)
-                        shutil.rmtree(dst)
-
-                    shutil.copytree(src, dst)
-                    print(f"✅ 更新目录: {item}")
-                else:
-                    # 备份旧文件
-                    if os.path.exists(dst):
-                        backup_path = os.path.join(backup_dir, f"{item}_backup")
-                        shutil.copy2(dst, backup_path)
-                        os.remove(dst)
-
-                    shutil.copy2(src, dst)
-                    print(f"✅ 更新文件: {item}")
-            except Exception as e:
-                print(f"⚠️  更新 {item} 失败: {e}")
-
-        # 清理临时文件
-        print("🧹 清理临时文件...")
-        shutil.rmtree(temp_extract_dir)
-        os.remove(file_path)
-
-        print("✅ 更新完成！")
+        print("🚀 启动 update.bat 执行更新...")
+        subprocess.Popen(
+            ['cmd.exe', '/c', 'start', '', update_bat],
+            cwd=base_dir,
+            creationflags=subprocess.CREATE_NEW_CONSOLE
+        )
 
         return jsonify({
             'success': True,
-            'message': '更新包已解压并应用，请重启应用生效'
+            'message': '更新程序已启动'
         })
 
-    except zipfile.BadZipFile:
-        return jsonify({
-            'success': False,
-            'error': '更新包文件损坏，无法解压'
-        }), 400
-
     except Exception as e:
-        print(f"❌ 解压更新包失败: {e}")
+        print(f"❌ 启动更新失败: {e}")
         return jsonify({
             'success': False,
             'error': str(e)

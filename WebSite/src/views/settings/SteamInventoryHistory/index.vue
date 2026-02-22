@@ -50,9 +50,6 @@
           </div>
         </div>
         
-        <!-- 分隔线 -->
-        <div class="search-stats-divider"></div>
-        
         <!-- 当前筛选状态 -->
         <div class="filter-status" v-if="hasAdvancedFilters">
           <span class="filter-label">当前筛选：</span>
@@ -65,39 +62,6 @@
           <el-tag v-if="dateRange && dateRange.length === 2" type="danger" size="small" closable @close="dateRange = null">
             时间: {{ dateRange[0] }} ~ {{ dateRange[1] }}
           </el-tag>
-        </div>
-        
-        <!-- 统计数据 -->
-        <div class="stats-container">
-          <div class="stats-section">
-            <h3>统计数据</h3>
-            <div class="stats-grid-3x2">
-              <div class="stat-item">
-                <span class="stat-label">总记录数:</span>
-                <span class="stat-value">{{ totalCount }} 条</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">获得记录:</span>
-                <span class="stat-value gain">{{ gainCount }} 条</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">失去记录:</span>
-                <span class="stat-value loss">{{ lossCount }} 条</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">当前页记录:</span>
-                <span class="stat-value">{{ tableData.length }} 条</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">获得占比:</span>
-                <span class="stat-value">{{ gainPercentage }}%</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">失去占比:</span>
-                <span class="stat-value">{{ lossPercentage }}%</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -257,10 +221,6 @@ const {
   tradeTypeFilter,
   dateRange,
   hasAdvancedFilters,
-  gainCount,
-  lossCount,
-  gainPercentage,
-  lossPercentage,
   formatDateTime,
   handleSearch,
   handleClearSearch,

@@ -55,6 +55,9 @@ from src.web_side.webSide.on_sale.select_usercode import webOnSaleV1
 from src.db_manager import init_database
 from src.Unites.auto_process.task_scheduler import get_scheduler
 
+# 当前版本号
+CURRENT_VERSION = '2.4.1'
+
 app = Flask(__name__)
 CORS(app)
 
