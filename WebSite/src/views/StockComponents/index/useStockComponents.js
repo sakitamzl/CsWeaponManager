@@ -1,7 +1,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
-import { API_CONFIG, apiUrls } from '@/config/api.js'
+import { apiUrls } from '@/config/api.js'
 import { applyDeviceClass, watchDeviceType } from '@/utils/deviceDetect.js'
 
 export function useStockComponents() {
@@ -98,12 +98,6 @@ export function useStockComponents() {
   const editingPrice = ref('')
   const originalPrice = ref('')
   
-  // API 基础地址
-  const API_BASE = `${API_CONFIG.BASE_URL}/webInventoryV1`
-  const API_PERFECTWORLD = `${API_CONFIG.BASE_URL}/prefectWorldConfigV1`
-  const API_COMPONENTS = `${API_CONFIG.BASE_URL}/webStockComponentsV1`
-  const API_COMPONENTS_GROUPED = `${API_CONFIG.BASE_URL}/webStockComponentsV1/components/grouped`
-  const API_SPIDER = API_CONFIG.SPIDER_BASE_URL
   
   // classid常量 - 组件的classid
   const COMPONENT_CLASSID = '3604678661'
@@ -291,7 +285,7 @@ export function useStockComponents() {
   const loadSteamIdList = async () => {
     try {
       // 从完美世界配置中获取账号列表，传递classid参数统计库存组件数量
-      const response = await axios.get(`${API_PERFECTWORLD}/configs`, {
+      const response = await axios.get(apiUrls.stockComponentsSteamIds(), {
         params: {
           classid: COMPONENT_CLASSID
         }
@@ -328,7 +322,7 @@ export function useStockComponents() {
     }
     
     try {
-      const response = await axios.get(`${API_COMPONENTS}/weapon_types/${selectedSteamId.value}`)
+      const response = await axios.get(apiUrls.stockComponentsWeaponTypes(selectedSteamId.value))
       if (response.data.success) {
         weaponTypes.value = response.data.data || []
       } else {
@@ -347,7 +341,7 @@ export function useStockComponents() {
     }
 
     try {
-      const response = await axios.get(`${API_COMPONENTS}/float_ranges/${selectedSteamId.value}`)
+      const response = await axios.get(apiUrls.stockComponentsFloatRanges(selectedSteamId.value))
       if (response.data.success) {
         weaponNames.value = response.data.data || []
       } else {
@@ -414,7 +408,7 @@ export function useStockComponents() {
       console.log('正在加载库存组件列表，Steam ID:', selectedSteamId.value, 'ClassID:', COMPONENT_CLASSID)
       
       // 从 steam_inventory 表获取组件列表用于下拉框
-      const response = await axios.get(`${API_BASE}/inventory/${selectedSteamId.value}`, {
+      const response = await axios.get(apiUrls.stockComponentsInventory(selectedSteamId.value), {
         params: {
           classid: COMPONENT_CLASSID,
           limit: 9999,
@@ -526,7 +520,7 @@ export function useStockComponents() {
         params.float_range = weaponNameFilter.value
       }
 
-      const response = await axios.get(`${API_COMPONENTS}/components/${selectedSteamId.value}`, {
+      const response = await axios.get(apiUrls.stockComponentsData(selectedSteamId.value), {
         params: params
       })
 
@@ -624,7 +618,7 @@ export function useStockComponents() {
 
       console.log('加载分组数据 - 请求参数:', params)
 
-      const response = await axios.get(`${API_COMPONENTS_GROUPED}/${selectedSteamId.value}`, {
+      const response = await axios.get(apiUrls.stockComponentsGrouped(selectedSteamId.value), {
         params: params
       })
 
@@ -717,10 +711,10 @@ export function useStockComponents() {
 
       // 并行请求：统计数据 + 组件数量
       const [statsResponse, countResponse] = await Promise.all([
-        axios.get(`${API_COMPONENTS}/components/stats/${selectedSteamId.value}`, {
+        axios.get(apiUrls.stockComponentsStats(selectedSteamId.value), {
           params: params
         }),
-        axios.get(`${API_COMPONENTS}/components/count/${selectedSteamId.value}`)
+        axios.get(apiUrls.stockComponentsCount(selectedSteamId.value))
       ])
       
       console.log('统计数据响应:', statsResponse.data)
@@ -1098,7 +1092,7 @@ export function useStockComponents() {
     // 异步发送请求到后端
     try {
       const response = await axios.put(
-        `${API_COMPONENTS}/update/buy_price/${selectedSteamId.value}/${currentGoodsAssetId}`,
+        apiUrls.stockComponentsUpdateBuyPrice(selectedSteamId.value, currentGoodsAssetId),
         { buy_price: newPrice }
       )
 
@@ -1268,7 +1262,7 @@ export function useStockComponents() {
       
       ElMessage.info('正在自动获取购入价格，请稍候...')
       
-      const response = await axios.post(`${API_COMPONENTS}/auto_fill_prices/${selectedSteamId.value}`)
+      const response = await axios.post(apiUrls.stockComponentsAutoFillPrices(selectedSteamId.value))
       
       console.log('自动填充价格响应:', response.data)
       
@@ -1309,7 +1303,7 @@ export function useStockComponents() {
       ElMessage.info(`正在同步${label}价格，请稍候...`)
 
       const response = await axios.post(
-        `${API_COMPONENTS}/fill_reference_price/${selectedSteamId.value}/${source}`
+        apiUrls.stockComponentsFillReferencePrice(selectedSteamId.value, source)
       )
 
       if (response.data.success) {
@@ -1343,12 +1337,12 @@ export function useStockComponents() {
 
       // 依次调用悠悠有品和BUFF价格接口，强制重新获取最新价格
       const yyypResponse = await axios.post(
-        `${API_COMPONENTS}/fill_reference_price/${selectedSteamId.value}/yyyp`,
+        apiUrls.stockComponentsFillReferencePrice(selectedSteamId.value, 'yyyp'),
         { force_update: true }
       )
 
       const buffResponse = await axios.post(
-        `${API_COMPONENTS}/fill_reference_price/${selectedSteamId.value}/buff`,
+        apiUrls.stockComponentsFillReferencePrice(selectedSteamId.value, 'buff'),
         { force_update: true }
       )
 

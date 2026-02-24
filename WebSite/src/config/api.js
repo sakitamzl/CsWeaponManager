@@ -455,7 +455,34 @@ export const API_CONFIG = {
 
     ON_SALE_REMOVE: '/backENDV2/src/web_display/on_sale/units/items/removeFromSale',  // 下架商品
 
-    
+
+
+    // 库存相关（V2 API）
+
+    INVENTORY_STEAM_IDS: '/backENDV2/src/web_display/inventory/units/accounts/getSteamIds',  // 获取Steam账号列表
+
+    INVENTORY_DATA: (steamId) => `/backENDV2/src/web_display/inventory/units/data/getInventory/${steamId}`,  // 获取库存数据
+
+    INVENTORY_GROUPED: (steamId) => `/backENDV2/src/web_display/inventory/units/data/getGroupedInventory/${steamId}`,  // 获取分组库存数据
+
+    INVENTORY_STATS: (steamId) => `/backENDV2/src/web_display/inventory/units/stats/getInventoryStats/${steamId}`,  // 获取库存统计
+
+    INVENTORY_UPDATE_BUY_PRICE: (steamId, assetid) => `/backENDV2/src/web_display/inventory/units/data/updateBuyPrice/${steamId}/${assetid}`,  // 更新购入价格
+
+    INVENTORY_YYYP_LOWEST_PRICE: '/backENDV2/src/web_display/inventory/units/price/getYYYPLowestPrice',  // 获取悠悠有品底价
+
+    // 库存组件相关（V2 API）
+    STOCK_COMPONENTS_STEAM_IDS: '/backENDV2/src/web_display/stock_components/units/accounts/getSteamIds',
+    STOCK_COMPONENTS_COUNT: (steamId) => `/backENDV2/src/web_display/stock_components/units/accounts/getComponentCount/${steamId}`,
+    STOCK_COMPONENTS_WEAPON_TYPES: (steamId) => `/backENDV2/src/web_display/stock_components/units/filters/getWeaponTypes/${steamId}`,
+    STOCK_COMPONENTS_FLOAT_RANGES: (steamId) => `/backENDV2/src/web_display/stock_components/units/filters/getFloatRanges/${steamId}`,
+    STOCK_COMPONENTS_INVENTORY: (steamId) => `/backENDV2/src/web_display/stock_components/units/data/getComponentInventory/${steamId}`,
+    STOCK_COMPONENTS_DATA: (steamId) => `/backENDV2/src/web_display/stock_components/units/data/getComponents/${steamId}`,
+    STOCK_COMPONENTS_GROUPED: (steamId) => `/backENDV2/src/web_display/stock_components/units/data/getGroupedComponents/${steamId}`,
+    STOCK_COMPONENTS_STATS: (steamId) => `/backENDV2/src/web_display/stock_components/units/stats/getComponentsStats/${steamId}`,
+    STOCK_COMPONENTS_UPDATE_BUY_PRICE: (steamId, goodsAssetId) => `/backENDV2/src/web_display/stock_components/units/price/updateBuyPrice/${steamId}/${goodsAssetId}`,
+    STOCK_COMPONENTS_AUTO_FILL_PRICES: (steamId) => `/backENDV2/src/web_display/stock_components/units/price/autoFillPrices/${steamId}`,
+    STOCK_COMPONENTS_FILL_REFERENCE_PRICE: (steamId, source) => `/backENDV2/src/web_display/stock_components/units/price/fillReferencePrice/${steamId}/${source}`,
 
     // 悠悠有品租赁相关
 
@@ -999,7 +1026,34 @@ export const apiUrls = {
 
   removeFromSale: () => getApiUrl(API_CONFIG.ENDPOINTS.ON_SALE_REMOVE),
 
-  
+
+
+  // 库存API（V2）
+
+  inventorySteamIds: () => getApiUrl(API_CONFIG.ENDPOINTS.INVENTORY_STEAM_IDS),
+
+  inventoryData: (steamId) => getApiUrl(API_CONFIG.ENDPOINTS.INVENTORY_DATA(steamId)),
+
+  inventoryGrouped: (steamId) => getApiUrl(API_CONFIG.ENDPOINTS.INVENTORY_GROUPED(steamId)),
+
+  inventoryStats: (steamId) => getApiUrl(API_CONFIG.ENDPOINTS.INVENTORY_STATS(steamId)),
+
+  inventoryUpdateBuyPrice: (steamId, assetid) => getApiUrl(API_CONFIG.ENDPOINTS.INVENTORY_UPDATE_BUY_PRICE(steamId, assetid)),
+
+  inventoryYyypLowestPrice: () => getApiUrl(API_CONFIG.ENDPOINTS.INVENTORY_YYYP_LOWEST_PRICE),
+
+  // 库存组件API（V2）
+  stockComponentsSteamIds: () => getApiUrl(API_CONFIG.ENDPOINTS.STOCK_COMPONENTS_STEAM_IDS),
+  stockComponentsCount: (steamId) => getApiUrl(API_CONFIG.ENDPOINTS.STOCK_COMPONENTS_COUNT(steamId)),
+  stockComponentsWeaponTypes: (steamId) => getApiUrl(API_CONFIG.ENDPOINTS.STOCK_COMPONENTS_WEAPON_TYPES(steamId)),
+  stockComponentsFloatRanges: (steamId) => getApiUrl(API_CONFIG.ENDPOINTS.STOCK_COMPONENTS_FLOAT_RANGES(steamId)),
+  stockComponentsInventory: (steamId) => getApiUrl(API_CONFIG.ENDPOINTS.STOCK_COMPONENTS_INVENTORY(steamId)),
+  stockComponentsData: (steamId) => getApiUrl(API_CONFIG.ENDPOINTS.STOCK_COMPONENTS_DATA(steamId)),
+  stockComponentsGrouped: (steamId) => getApiUrl(API_CONFIG.ENDPOINTS.STOCK_COMPONENTS_GROUPED(steamId)),
+  stockComponentsStats: (steamId) => getApiUrl(API_CONFIG.ENDPOINTS.STOCK_COMPONENTS_STATS(steamId)),
+  stockComponentsUpdateBuyPrice: (steamId, goodsAssetId) => getApiUrl(API_CONFIG.ENDPOINTS.STOCK_COMPONENTS_UPDATE_BUY_PRICE(steamId, goodsAssetId)),
+  stockComponentsAutoFillPrices: (steamId) => getApiUrl(API_CONFIG.ENDPOINTS.STOCK_COMPONENTS_AUTO_FILL_PRICES(steamId)),
+  stockComponentsFillReferencePrice: (steamId, source) => getApiUrl(API_CONFIG.ENDPOINTS.STOCK_COMPONENTS_FILL_REFERENCE_PRICE(steamId, source)),
 
   // 悠悠有品租赁API
 

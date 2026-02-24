@@ -388,14 +388,9 @@ export function useInventory() {
   // 懒加载图片观察器
   let imageObserver = null
 
-  // API 基础地址
-  const API_BASE = `${API_CONFIG.BASE_URL}/webInventoryV1`
-  const API_GROUPED = `${API_CONFIG.BASE_URL}/webInventoryV1/inventory/grouped`
-  const CONFIG_API = `${API_CONFIG.BASE_URL}/configV1`
-
   const loadSteamIdList = async () => {
     try {
-      const response = await axios.get(`${API_BASE}/steam_ids`)
+      const response = await axios.get(apiUrls.inventorySteamIds())
       console.log('Steam ID列表响应:', response.data)
       if (response.data.success) {
         steamIdList.value = response.data.data
@@ -455,7 +450,7 @@ export function useInventory() {
         params.search = searchText.value
       }
       
-      const url = `${API_BASE}/inventory/${selectedSteamId.value}`
+      const url = apiUrls.inventoryData(selectedSteamId.value)
       console.log('请求URL:', url, '参数:', params)
       const response = await axios.get(url, { params })
       console.log('数据响应:', response.data)
@@ -527,7 +522,7 @@ export function useInventory() {
         offset: currentOffset.value
       }
 
-      const response = await axios.get(`${API_GROUPED}/${selectedSteamId.value}`, { params })
+      const response = await axios.get(apiUrls.inventoryGrouped(selectedSteamId.value), { params })
       console.log('组合数据响应:', response.data)
 
       if (response.data.success) {
@@ -703,7 +698,7 @@ export function useInventory() {
         params.search = searchText.value
       }
 
-      const response = await axios.get(`${API_BASE}/inventory/stats/${selectedSteamId.value}`, { params })
+      const response = await axios.get(apiUrls.inventoryStats(selectedSteamId.value), { params })
       console.log('统计数据响应:', response.data)
       if (response.data.success) {
         statsData.value = response.data.data
@@ -1042,7 +1037,7 @@ export function useInventory() {
     // 异步发送请求到后端
     try {
       const response = await axios.put(
-        `${API_CONFIG.BASE_URL}/webInventoryV1/inventory/buy_price/${selectedSteamId.value}/${currentAssetId}`,
+        apiUrls.inventoryUpdateBuyPrice(selectedSteamId.value, currentAssetId),
         { buy_price: newPrice }
       )
       
@@ -1269,7 +1264,7 @@ export function useInventory() {
     try {
       // 通过steam_hash_name查询yyyp_id
       const response = await axios.post(
-        `${API_CONFIG.BASE_URL}/webSelectWeaponV1/getYYYPLowestPrice`,
+        apiUrls.inventoryYyypLowestPrice(),
         { steamHashName: item.steam_hash_name }
       )
       
@@ -2314,7 +2309,7 @@ export function useInventory() {
       }
       
       const statsResponse = await axios.get(
-        `${API_CONFIG.BASE_URL}/webInventoryV1/inventory/stats/${selectedSteamId.value}`,
+        apiUrls.inventoryStats(selectedSteamId.value),
         { params }
       )
       if (statsResponse.data.success) {
