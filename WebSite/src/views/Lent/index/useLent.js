@@ -387,7 +387,7 @@ export function useLent() {
   const loadFilteredStats = async () => {
     try {
       const filters = buildStatFilters()
-      const response = await fetch('/api/webLentPageV1/getLentStatsFiltered', {
+      const response = await fetch(apiUrls.lentStatsFiltered(), {
         method: 'POST',
         mode: 'cors',
         signal: createAbortSignal(statsController),
@@ -560,12 +560,11 @@ export function useLent() {
       console.log(`正在请求数据... 页码: ${currentPage.value}, 每页: ${pageSize.value}, min: ${min}, max: ${max}`)
       
       // 根据状态/子状态筛选选择不同的API（子状态优先）
-      let apiUrl = `/api/webLentV1/getLentData/${min}/${max}`
+      let apiUrl = apiUrls.lentData(min, max)
       if (statusSubFilter.value && statusSubFilter.value !== 'all') {
-        apiUrl = `/api/webLentV1/getLentDataByStatusSub/${encodeURIComponent(statusSubFilter.value)}/${min}/${max}`
+        apiUrl = apiUrls.lentDataByStatusSub(statusSubFilter.value, min, max)
       } else if (statusFilter.value && statusFilter.value !== 'all') {
-        const statusParam = encodeURIComponent(statusFilter.value)
-        apiUrl = `/api/webLentV1/getLentDataByStatus/${statusParam}/${min}/${max}`
+        apiUrl = apiUrls.lentDataByStatus(statusFilter.value, min, max)
       }
       
       const response = await fetch(apiUrl, {
@@ -819,7 +818,7 @@ export function useLent() {
       const [startDate, endDate] = dateRange.value
       console.log('按时间搜索:', startDate, '至', endDate)
       
-      const response = await fetch(`/api/webLentV1/searchLentByTimeRange/${startDate}/${endDate}`, {
+      const response = await fetch(apiUrls.lentSearchByTime(startDate, endDate), {
         method: 'GET',
         mode: 'cors',
         signal: createAbortSignal(dataController),
@@ -904,7 +903,7 @@ export function useLent() {
     try {
       console.log('正在获取时间范围统计...', { startDate, endDate })
       
-      const response = await fetch(`/api/webLentV1/getLentStatsByTimeRange/${startDate}/${endDate}`, {
+      const response = await fetch(apiUrls.lentStatsByTime(startDate, endDate), {
         method: 'GET',
         mode: 'cors',
         signal: createAbortSignal(statsController),

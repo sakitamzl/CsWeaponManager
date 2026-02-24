@@ -75,9 +75,14 @@ export const API_CONFIG = {
 
     BUY_STATS_TIME_RANGE: (startDate, endDate) => `/backENDV2/src/web_display/buy/units/stats/getBuyStatsByTimeRange/${startDate}/${endDate}`,
 
-    LENT_STATS_FILTERED: '/webLentPageV1/getLentStatsFiltered',
-
-    LENT_DATA_FILTERED: '/webLentPageV1/getLentDataFiltered',
+    // 出租数据查询（V2 API）
+    LENT_DATA: (min, max) => `/backENDV2/src/web_display/lent/units/data/getLentData/${min}/${max}`,
+    LENT_DATA_BY_STATUS: (status, min, max) => `/backENDV2/src/web_display/lent/units/data/getLentDataByStatus/${encodeURIComponent(status)}/${min}/${max}`,
+    LENT_DATA_BY_STATUS_SUB: (statusSub, min, max) => `/backENDV2/src/web_display/lent/units/data/getLentDataByStatusSub/${encodeURIComponent(statusSub)}/${min}/${max}`,
+    LENT_SEARCH_BY_TIME: (startDate, endDate) => `/backENDV2/src/web_display/lent/units/data/searchLentByTimeRange/${startDate}/${endDate}`,
+    LENT_STATS_BY_TIME: (startDate, endDate) => `/backENDV2/src/web_display/lent/units/stats/getLentStatsByTimeRange/${startDate}/${endDate}`,
+    LENT_STATS_FILTERED: '/backENDV2/src/web_display/lent/units/stats/getLentStatsFiltered',
+    LENT_DATA_FILTERED: '/backENDV2/src/web_display/lent/units/data/getLentDataFiltered',
 
 
 
@@ -171,21 +176,21 @@ export const API_CONFIG = {
 
 
 
-    LENT_WEAPON_TYPES: '/webLentPageV1/getWeaponTypes',
+    LENT_WEAPON_TYPES: '/backENDV2/src/web_display/lent/units/filters/getWeaponTypes',
 
-    LENT_FLOAT_RANGES: '/webLentPageV1/getFloatRanges',
+    LENT_FLOAT_RANGES: '/backENDV2/src/web_display/lent/units/filters/getFloatRanges',
 
-    LENT_STATUS_LIST: '/webLentPageV1/getStatusList',
+    LENT_STATUS_LIST: '/backENDV2/src/web_display/lent/units/filters/getStatusList',
 
-    LENT_STATUS_SUB_LIST: (status) => `/webLentPageV1/getStatusSubList?status=${encodeURIComponent(status)}`,
+    LENT_STATUS_SUB_LIST: (status) => `/backENDV2/src/web_display/lent/units/filters/getStatusSubList?status=${encodeURIComponent(status)}`,
 
-    LENT_PLATFORM_LIST: '/webLentPageV1/getPlatformList',
+    LENT_PLATFORM_LIST: '/backENDV2/src/web_display/lent/units/filters/getPlatformList',
 
-    LENT_LENTER_LIST: '/webLentPageV1/getLenterList',
+    LENT_LENTER_LIST: '/backENDV2/src/web_display/lent/units/filters/getLenterList',
 
-    LENT_SEARCH_BY_TYPE_WEAR: '/webLentPageV1/searchByTypeAndWear',
+    LENT_SEARCH_BY_TYPE_WEAR: '/backENDV2/src/web_display/lent/units/data/searchByTypeAndWear',
 
-    LENT_STATS_BY_TYPE_WEAR: '/webLentPageV1/getStatsByTypeAndWear',
+    LENT_STATS_BY_TYPE_WEAR: '/backENDV2/src/web_display/lent/units/stats/getStatsByTypeAndWear',
 
     
 
@@ -630,13 +635,18 @@ export const apiUrls = {
 
   
 
-  // 租赁数据
+  // 租赁数据（V2 API）
+  lentData: (min, max) => getApiUrl(API_CONFIG.ENDPOINTS.LENT_DATA(min, max)),
+  lentDataByStatus: (status, min, max) => getApiUrl(API_CONFIG.ENDPOINTS.LENT_DATA_BY_STATUS(status, min, max)),
+  lentDataByStatusSub: (statusSub, min, max) => getApiUrl(API_CONFIG.ENDPOINTS.LENT_DATA_BY_STATUS_SUB(statusSub, min, max)),
+  lentSearchByTime: (startDate, endDate) => getApiUrl(API_CONFIG.ENDPOINTS.LENT_SEARCH_BY_TIME(startDate, endDate)),
+  lentStatsByTime: (startDate, endDate) => getApiUrl(API_CONFIG.ENDPOINTS.LENT_STATS_BY_TIME(startDate, endDate)),
 
   lentStatsFiltered: () => getApiUrl(API_CONFIG.ENDPOINTS.LENT_STATS_FILTERED),
 
   lentDataFiltered: () => getApiUrl(API_CONFIG.ENDPOINTS.LENT_DATA_FILTERED),
 
-  
+
 
   // 消息数据
 

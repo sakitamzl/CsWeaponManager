@@ -12,7 +12,6 @@ from src.web_side.youpin898.select_weapon.select_weapon_v1 import youpin898Selec
 from src.web_side.webSide.web.index_page import indexPage
 from src.web_side.webSide.web.buy_page import webBuyV1
 from src.web_side.webSide.web.sell_page import webSellV1
-from src.web_side.webSide.web.lent import webLentV1
 from src.web_side.webSide.web.select_weapon import webSelectWeaponV1
 from src.web_side.webSide.DataSource_page import dataSourcePage
 from src.web_side.webSide.AutoManager_page import autoManagerPage
@@ -30,7 +29,6 @@ from src.web_side.steam.select_weapon_hash_name import steamSelectWeaponHashName
 from src.web_side.steam.inventory_mining import inventoryMiningV1
 from src.web_side.webSide.steamMarket import webSteamMarketV1
 from src.web_side.webSide.steamInventoryHistory import webSteamInventoryHistoryV1
-from src.web_side.webSide.lent_page import webLentPageV1
 from src.web_side.webSide.message_box_page import webMessageBoxPageV1
 from src.web_side.webSide.sys_message_page import webSysMessagePageV1
 from src.web_side.webSide.inventory_api import webInventoryV1
@@ -81,7 +79,6 @@ def blankEndApi():
     app.register_blueprint(indexPage, url_prefix = '/indexPage')
     app.register_blueprint(webBuyV1, url_prefix = '/webBuyV1')
     app.register_blueprint(webSellV1, url_prefix = '/webSellV1')
-    app.register_blueprint(webLentV1, url_prefix = '/webLentV1')
     app.register_blueprint(webSelectWeaponV1, url_prefix = '/webSelectWeaponV1')
     app.register_blueprint(dataSourcePage, url_prefix='/dataSourcePageV1')
     app.register_blueprint(autoManagerPage, url_prefix='/autoManagerPageV1')
@@ -99,7 +96,6 @@ def blankEndApi():
     app.register_blueprint(inventoryMiningV1, url_prefix = '/api/v1/steam/inventory/mining')
     app.register_blueprint(webSteamMarketV1, url_prefix = '/webSteamMarketV1')
     app.register_blueprint(webSteamInventoryHistoryV1, url_prefix = '/webSteamInventoryHistoryV1')
-    app.register_blueprint(webLentPageV1, url_prefix = '/webLentPageV1')
     app.register_blueprint(webMessageBoxPageV1, url_prefix = '/webMessageBoxPageV1')
     app.register_blueprint(webSysMessagePageV1, url_prefix = '/api')
     app.register_blueprint(webInventoryV1, url_prefix = '/webInventoryV1')
