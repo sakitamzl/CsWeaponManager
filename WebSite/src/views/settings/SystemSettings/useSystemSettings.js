@@ -73,7 +73,7 @@ export function useSystemSettings() {
         }
       }
       
-      const response = await axios.post(apiUrls.loginSettings(), {
+      const response = await axios.post(apiUrls.loginSettingsSave(), {
         enableLogin: basicSettings.value.enableLogin,
         username: basicSettings.value.username,
         password: basicSettings.value.password,

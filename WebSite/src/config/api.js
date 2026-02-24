@@ -37,7 +37,18 @@ export const API_CONFIG = {
 
     DATA_SOURCE_V2_TOGGLE: (id) => `/backENDV2/src/web_display/settings/data_source/units/ops/toggleDataSource/${id}`,
 
-    
+    // 自动化管理相关（V2 API）
+    AUTO_MANAGER_V2_TASK_LIST: '/backENDV2/src/web_display/settings/auto_manager/units/data/getTaskList',
+    AUTO_MANAGER_V2_CREATE_TASK: '/backENDV2/src/web_display/settings/auto_manager/units/data/createTask',
+    AUTO_MANAGER_V2_UPDATE_TASK: (id) => `/backENDV2/src/web_display/settings/auto_manager/units/data/updateTask/${id}`,
+    AUTO_MANAGER_V2_DELETE_TASK: (id) => `/backENDV2/src/web_display/settings/auto_manager/units/data/deleteTask/${id}`,
+    AUTO_MANAGER_V2_TOGGLE_TASK: (id) => `/backENDV2/src/web_display/settings/auto_manager/units/ops/toggleTask/${id}`,
+    AUTO_MANAGER_V2_EXECUTING_TASKS: '/backENDV2/src/web_display/settings/auto_manager/units/ops/getExecutingTasks',
+    AUTO_MANAGER_V2_STEAM_ACCOUNTS: '/backENDV2/src/web_display/settings/auto_manager/units/filters/getSteamAccounts',
+    AUTO_MANAGER_V2_SEARCH_CONFIGS: '/backENDV2/src/web_display/settings/auto_manager/units/filters/getSearchConfigs',
+
+    // Steam库存历史相关（V2 API）
+    STEAM_INVENTORY_HISTORY_V2_LIST: '/backENDV2/src/web_display/settings/steam_inventory_history/units/data/getList',
 
     // 购买数据相关（V2 API）
 
@@ -389,33 +400,36 @@ export const API_CONFIG = {
 
     
 
-    // ADB工具相关
+    // ADB工具相关（V2 API）
 
-    ADB_SCAN: '/adbToolsV1/api/adb/scan',  // 扫描局域网设备
+    ADB_SCAN: '/backENDV2/src/web_display/settings/dev_tools/units/adb/scan',  // 扫描局域网设备
 
-    ADB_CONNECT: '/adbToolsV1/api/adb/connect',  // 连接设备
+    ADB_CONNECT: '/backENDV2/src/web_display/settings/dev_tools/units/adb/connect',  // 连接设备
 
-    ADB_DISCONNECT: '/adbToolsV1/api/adb/disconnect',  // 断开设备连接
+    ADB_DISCONNECT: '/backENDV2/src/web_display/settings/dev_tools/units/adb/disconnect',  // 断开设备连接
 
-    ADB_DEVICES: '/adbToolsV1/api/adb/devices',  // 获取ADB设备列表
+    ADB_DEVICES: '/backENDV2/src/web_display/settings/dev_tools/units/adb/devices',  // 获取ADB设备列表
 
-    ADB_DEVICE_INFO: (serial) => `/adbToolsV1/api/adb/device/${serial}/info`,  // 获取设备信息
+    ADB_DEVICE_INFO: (serial) => `/backENDV2/src/web_display/settings/dev_tools/units/adb/device/${serial}/info`,  // 获取设备信息
 
-    ADB_CERT_STATUS: '/adbToolsV1/api/adb/cert/status',  // 检查证书状态
+    ADB_CERT_STATUS: '/backENDV2/src/web_display/settings/dev_tools/units/cert/status',  // 检查证书状态
 
-    ADB_CERT_INSTALL: '/adbToolsV1/api/adb/cert/install',  // 安装证书
+    ADB_CERT_INSTALL: '/backENDV2/src/web_display/settings/dev_tools/units/cert/install',  // 安装证书
 
-    ADB_CERT_UNINSTALL: '/adbToolsV1/api/adb/cert/uninstall',  // 卸载证书
+    ADB_CERT_UNINSTALL: '/backENDV2/src/web_display/settings/dev_tools/units/cert/uninstall',  // 卸载证书
 
-    ADB_CERT_INFO: '/adbToolsV1/api/adb/cert/info',  // 获取证书信息
+    ADB_CERT_INFO: '/backENDV2/src/web_display/settings/dev_tools/units/cert/info',  // 获取证书信息
 
-    ADB_SHELL: (serial) => `/adbToolsV1/api/adb/device/${serial}/shell`,  // 执行Shell命令
+    ADB_SHELL: (serial) => `/backENDV2/src/web_display/settings/dev_tools/units/adb/device/${serial}/shell`,  // 执行Shell命令
 
-    
 
-    // CSQAQ相关
 
-    CSQAQ_UPLOAD_MAPPING: '/csqaqApiV1/api/csqaq/upload-mapping',  // 上传CSQAQ映射文件
+    // CSQAQ相关（V2 API）
+
+    CSQAQ_UPLOAD_MAPPING: '/backENDV2/src/web_display/settings/dev_tools/units/csqaq/uploadMapping',  // 上传CSQAQ映射文件
+
+    // DevTools筛选数据（V2 API）
+    DEV_TOOLS_V2_STEAM_ACCOUNTS: '/backENDV2/src/web_display/settings/dev_tools/units/filters/getSteamAccounts',
 
     
 
@@ -556,9 +570,9 @@ export const API_CONFIG = {
 
     // 登录设置相关
 
-    LOGIN_SETTINGS: '/loginSettingsV1/api/login-settings',  // 获取/保存登录设置
-
-    LOGIN_VERIFY: '/loginSettingsV1/api/login-settings/verify',  // 验证登录
+    LOGIN_SETTINGS: '/backENDV2/src/web_display/settings/system_settings/units/login/getSettings',  // 获取登录设置
+    LOGIN_SETTINGS_SAVE: '/backENDV2/src/web_display/settings/system_settings/units/login/saveSettings',  // 保存登录设置
+    LOGIN_VERIFY: '/backENDV2/src/web_display/settings/system_settings/units/login/verify',  // 验证登录
 
 
 
@@ -640,7 +654,18 @@ export const apiUrls = {
 
   dataSourceToggle: (id) => getApiUrl(API_CONFIG.ENDPOINTS.DATA_SOURCE_V2_TOGGLE(id)),
 
-  
+  // 自动化管理（V2 API）
+  autoManagerTaskList: () => getApiUrl(API_CONFIG.ENDPOINTS.AUTO_MANAGER_V2_TASK_LIST),
+  autoManagerCreateTask: () => getApiUrl(API_CONFIG.ENDPOINTS.AUTO_MANAGER_V2_CREATE_TASK),
+  autoManagerUpdateTask: (id) => getApiUrl(API_CONFIG.ENDPOINTS.AUTO_MANAGER_V2_UPDATE_TASK(id)),
+  autoManagerDeleteTask: (id) => getApiUrl(API_CONFIG.ENDPOINTS.AUTO_MANAGER_V2_DELETE_TASK(id)),
+  autoManagerToggleTask: (id) => getApiUrl(API_CONFIG.ENDPOINTS.AUTO_MANAGER_V2_TOGGLE_TASK(id)),
+  autoManagerExecutingTasks: () => getApiUrl(API_CONFIG.ENDPOINTS.AUTO_MANAGER_V2_EXECUTING_TASKS),
+  autoManagerSteamAccounts: () => getApiUrl(API_CONFIG.ENDPOINTS.AUTO_MANAGER_V2_STEAM_ACCOUNTS),
+  autoManagerSearchConfigs: () => getApiUrl(API_CONFIG.ENDPOINTS.AUTO_MANAGER_V2_SEARCH_CONFIGS),
+
+  // Steam库存历史（V2 API）
+  steamInventoryHistoryList: () => getApiUrl(API_CONFIG.ENDPOINTS.STEAM_INVENTORY_HISTORY_V2_LIST),
 
   // 购买数据（V2 API）
 
@@ -983,7 +1008,7 @@ export const apiUrls = {
   // 登录设置API
 
   loginSettings: () => getApiUrl(API_CONFIG.ENDPOINTS.LOGIN_SETTINGS),
-
+  loginSettingsSave: () => getApiUrl(API_CONFIG.ENDPOINTS.LOGIN_SETTINGS_SAVE),
   loginVerify: () => getApiUrl(API_CONFIG.ENDPOINTS.LOGIN_VERIFY),
 
   
@@ -992,7 +1017,10 @@ export const apiUrls = {
 
   csqaqUploadMapping: () => getApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_UPLOAD_MAPPING),
 
-  
+  // DevTools 筛选数据（V2 API）
+  devToolsSteamAccounts: () => getApiUrl(API_CONFIG.ENDPOINTS.DEV_TOOLS_V2_STEAM_ACCOUNTS),
+
+
 
   // 图片API
 

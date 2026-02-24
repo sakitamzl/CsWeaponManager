@@ -1,7 +1,7 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { API_CONFIG, apiUrls } from '@/config/api.js'
+import { apiUrls } from '@/config/api.js'
 
 export default function useWeaponMappingForm() {
   const selectedSteamIdYoupin = ref('')
@@ -35,7 +35,7 @@ export default function useWeaponMappingForm() {
   // 加载Steam ID列表
   const loadSteamIdList = async () => {
     try {
-      const response = await axios.get(`${API_CONFIG.BASE_URL}/webInventoryV1/steam_ids`)
+      const response = await axios.get(apiUrls.devToolsSteamAccounts())
       if (response.data.success && response.data.data.length > 0) {
         steamIdList.value = response.data.data
         console.log('已加载 Steam ID 列表:', steamIdList.value)

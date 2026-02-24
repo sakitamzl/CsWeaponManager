@@ -198,7 +198,7 @@ export function useAutomateManagement() {
   // 加载 Steam 配置列表（key1='steam'，用于"更新Steam库存"）
   const loadSteamConfigs = async () => {
     try {
-      const response = await axios.get(`${API_CONFIG.BASE_URL}/webInventoryV1/steam_ids`)
+      const response = await axios.get(apiUrls.autoManagerSteamAccounts())
       console.log('Steam配置API响应:', response.data)
       
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
@@ -273,7 +273,7 @@ export function useAutomateManagement() {
   
   const fetchSearchConfigs = async (key1) => {
     try {
-      const response = await axios.get(`${API_CONFIG.BASE_URL}/configV1/list`, {
+      const response = await axios.get(apiUrls.autoManagerSearchConfigs(), {
         params: { key1 }
       })
   
@@ -765,7 +765,7 @@ export function useAutomateManagement() {
       }
       
       const response = await axios.post(
-        `${API_CONFIG.BASE_URL}/autoManagerPageV1/api/auto-manager/task`,
+        apiUrls.autoManagerCreateTask(),
         {
           taskName: automateForm.value.taskName, // 使用用户输入的任务名称
           automateType: automateForm.value.automateType,
@@ -820,7 +820,7 @@ export function useAutomateManagement() {
       }
       
       // 调用后端API切换状态为启用
-      const response = await axios.post(`${API_CONFIG.BASE_URL}/autoManagerPageV1/api/auto-manager/task/${task.id}/toggle`)
+      const response = await axios.post(apiUrls.autoManagerToggleTask(task.id))
       
       if (response.data.success) {
         // 更新前端显示
@@ -868,7 +868,7 @@ export function useAutomateManagement() {
     const { silent = false } = options
     try {
       // 调用后端API停止任务
-      const response = await axios.post(`${API_CONFIG.BASE_URL}/autoManagerPageV1/api/auto-manager/task/${taskId}/toggle`)
+      const response = await axios.post(apiUrls.autoManagerToggleTask(taskId))
       
       if (response.data.success) {
         // 更新前端显示
@@ -1029,7 +1029,7 @@ export function useAutomateManagement() {
       }
       
       const response = await axios.put(
-        `${API_CONFIG.BASE_URL}/autoManagerPageV1/api/auto-manager/task/${editingTaskId.value}`,
+        apiUrls.autoManagerUpdateTask(editingTaskId.value),
         taskConfig
       )
       
@@ -1082,7 +1082,7 @@ export function useAutomateManagement() {
     ).then(async () => {
       try {
         // 调用后端API删除任务 (后端会自动停止定时器)
-        const response = await axios.delete(`${API_CONFIG.BASE_URL}/autoManagerPageV1/api/auto-manager/task/${taskId}`)
+        const response = await axios.delete(apiUrls.autoManagerDeleteTask(taskId))
         
         // 从列表中移除
         runningTasks.value = runningTasks.value.filter(t => t.id !== taskId)
@@ -1183,7 +1183,7 @@ export function useAutomateManagement() {
   // 加载正在执行的任务
   const loadExecutingTasks = async () => {
     try {
-      const response = await axios.get(`${API_CONFIG.BASE_URL}/autoManagerPageV1/api/auto-manager/executing-tasks`)
+      const response = await axios.get(apiUrls.autoManagerExecutingTasks())
 
       if (response.data.success && Array.isArray(response.data.data)) {
         return response.data.data
@@ -1200,7 +1200,7 @@ export function useAutomateManagement() {
     try {
       // 同时加载任务列表和正在执行的任务
       const [tasksResponse, executingTasks] = await Promise.all([
-        axios.get(`${API_CONFIG.BASE_URL}/autoManagerPageV1/api/auto-manager/tasks`),
+        axios.get(apiUrls.autoManagerTaskList()),
         loadExecutingTasks()
       ])
 

@@ -1,13 +1,10 @@
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
-import { API_CONFIG } from '@/config/api'
+import { apiUrls } from '@/config/api'
 
 
 export function useSteamInventoryHistory() {
-  // 配置
-  const API_BASE_URL = API_CONFIG.BASE_URL
-  const API_PREFIX = '/webSteamInventoryHistoryV1' // 使用变量统一管理API前缀
 
   // 数据
   const tableData = ref([])
@@ -61,7 +58,7 @@ export function useSteamInventoryHistory() {
       })
 
       // 调用后端API
-      const response = await axios.get(`${API_BASE_URL}${API_PREFIX}/list`, { params })
+      const response = await axios.get(apiUrls.steamInventoryHistoryList(), { params })
 
       if (response.data.success) {
         tableData.value = response.data.data.records

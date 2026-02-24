@@ -13,7 +13,6 @@ from src.web_side.webSide.web.index_page import indexPage
 from src.web_side.webSide.web.buy_page import webBuyV1
 from src.web_side.webSide.web.sell_page import webSellV1
 from src.web_side.webSide.web.select_weapon import webSelectWeaponV1
-from src.web_side.webSide.AutoManager_page import autoManagerPage
 from src.web_side.buff163.buy import buff163BuyV1
 from src.web_side.buff163.sell import buff163SellV1
 from src.web_side.buff163.select_weapon import buff163SelectWeaponV1
@@ -27,15 +26,14 @@ from src.web_side.steam.inventory import steamInventoryV1
 from src.web_side.steam.select_weapon_hash_name import steamSelectWeaponHashNameV1
 from src.web_side.steam.inventory_mining import inventoryMiningV1
 from src.web_side.webSide.steamMarket import webSteamMarketV1
-from src.web_side.webSide.steamInventoryHistory import webSteamInventoryHistoryV1
+
 from src.web_side.webSide.message_box_page import webMessageBoxPageV1
 from src.web_side.webSide.sys_message_page import webSysMessagePageV1
 from src.web_side.webSide.inventory_api import webInventoryV1
 from src.web_side.webSide.stock_components import webStockComponentsV1
 from src.web_side.prefectWorld.prefectworld_config import prefectWorldConfigV1
 from src.web_side.prefectWorld.stock_components_api import prefectWorldStockComponentsV1
-from src.web_side.webSide.adb_tools import adbToolsPage
-from src.web_side.webSide.login_settings import loginSettingsPage
+
 from src.web_side.webSide.settings.database_manager import database_manager_bp
 from src.web_side.webSide.settings.search_pendant_config_api import search_pendant_config_bp
 from src.web_side.webSide.settings.auto_search_weapon_api import search_rename_bp
@@ -78,7 +76,6 @@ def blankEndApi():
     app.register_blueprint(webBuyV1, url_prefix = '/webBuyV1')
     app.register_blueprint(webSellV1, url_prefix = '/webSellV1')
     app.register_blueprint(webSelectWeaponV1, url_prefix = '/webSelectWeaponV1')
-    app.register_blueprint(autoManagerPage, url_prefix='/autoManagerPageV1')
     app.register_blueprint(buff163BuyV1, url_prefix = '/buff163BuyV1')
     app.register_blueprint(buff163SellV1, url_prefix = '/buff163SellV1')
     app.register_blueprint(buff163SelectWeaponV1, url_prefix = '/buff163SelectWeaponV1')
@@ -92,7 +89,7 @@ def blankEndApi():
     app.register_blueprint(steamSelectWeaponHashNameV1, url_prefix = '/steamSelectWeaponHashNameV1')
     app.register_blueprint(inventoryMiningV1, url_prefix = '/api/v1/steam/inventory/mining')
     app.register_blueprint(webSteamMarketV1, url_prefix = '/webSteamMarketV1')
-    app.register_blueprint(webSteamInventoryHistoryV1, url_prefix = '/webSteamInventoryHistoryV1')
+
     app.register_blueprint(webMessageBoxPageV1, url_prefix = '/webMessageBoxPageV1')
     app.register_blueprint(webSysMessagePageV1, url_prefix = '/api')
     app.register_blueprint(webInventoryV1, url_prefix = '/webInventoryV1')
@@ -100,8 +97,7 @@ def blankEndApi():
 
     app.register_blueprint(prefectWorldConfigV1, url_prefix = '/prefectWorldConfigV1')
     app.register_blueprint(prefectWorldStockComponentsV1, url_prefix = '/prefectWorldStockComponentsV1')
-    app.register_blueprint(adbToolsPage, url_prefix = '/adbToolsV1')
-    app.register_blueprint(loginSettingsPage, url_prefix = '/loginSettingsV1')
+
     app.register_blueprint(database_manager_bp)
     # 挂件搜索配置进度保存 API
     app.register_blueprint(search_pendant_config_bp)
