@@ -418,7 +418,7 @@ export function useBuy() {
   const loadTotalCount = async () => {
     try {
       console.log('正在获取总数...')
-      const response = await fetch('/api/webBuyV1/countBuyNumber', {
+      const response = await fetch(apiUrls.buyCountNumber(), {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -676,7 +676,7 @@ export function useBuy() {
       const [startDate, endDate] = dateRange.value
       console.log('按时间搜索:', startDate, '至', endDate)
 
-      const response = await fetch(`/api/webBuyV1/searchBuyByTimeRange/${startDate}/${endDate}`, {
+      const response = await fetch(apiUrls.buySearchTimeRange(startDate, endDate), {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -746,7 +746,7 @@ export function useBuy() {
     try {
       console.log('正在获取时间范围统计...', { startDate, endDate })
 
-      const response = await fetch(`/api/webBuyV1/getBuyStatsByTimeRange/${startDate}/${endDate}`, {
+      const response = await fetch(apiUrls.buyStatsTimeRange(startDate, endDate), {
         method: 'GET',
         mode: 'cors',
         headers: {

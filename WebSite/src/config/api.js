@@ -33,23 +33,9 @@ export const API_CONFIG = {
 
     
 
-    // 购买数据相关
+    // 购买数据相关（V2 API）
 
-    BUY_DATA: (page, limit) => `/webBuyV1/getBuyData/${page}/${limit}`,
-
-    BUY_STATS: '/webBuyV1/getBuyStats',
-
-    BUY_SOURCE_LIST: '/webBuyV1/getSourceList',
-
-    BUY_DATA_BY_SOURCE: (source, page, limit) => `/webBuyV1/getBuyDataBySource/${encodeURIComponent(source)}/${page}/${limit}`,
-
-    BUY_STATS_BY_SOURCE: (source) => `/webBuyV1/getBuyStatsBySource/${encodeURIComponent(source)}`,
-
-    BUY_DATA_USER_LIST: '/webBuyV1/getDataUserList',
-
-    BUY_DATA_BY_USER: (user, page, limit) => `/webBuyV1/getBuyDataByDataUser/${encodeURIComponent(user)}/${page}/${limit}`,
-
-    BUY_STATS_BY_USER: (user) => `/webBuyV1/getBuyStatsByDataUser/${encodeURIComponent(user)}`,
+    BUY_DATA_USER_LIST: '/backENDV2/src/web_display/buy/units/filters/getDataUserList',
 
     
 
@@ -65,9 +51,15 @@ export const API_CONFIG = {
 
     SELL_STATS_BY_SOURCE: (source) => `/webSellV1/getSellStatsBySource/${encodeURIComponent(source)}`,
 
-    BUY_STATS_FILTERED: '/webBuyV1/getBuyStatsFiltered',
+    BUY_STATS_FILTERED: '/backENDV2/src/web_display/buy/units/stats/getBuyStatsFiltered',
 
-    BUY_DATA_FILTERED: '/webBuyV1/getBuyDataFiltered',
+    BUY_DATA_FILTERED: '/backENDV2/src/web_display/buy/units/data/getBuyDataFiltered',
+
+    BUY_COUNT_NUMBER: '/backENDV2/src/web_display/buy/units/data/countBuyNumber',
+
+    BUY_SEARCH_TIME_RANGE: (startDate, endDate) => `/backENDV2/src/web_display/buy/units/data/searchBuyByTimeRange/${startDate}/${endDate}`,
+
+    BUY_STATS_TIME_RANGE: (startDate, endDate) => `/backENDV2/src/web_display/buy/units/stats/getBuyStatsByTimeRange/${startDate}/${endDate}`,
 
     SELL_STATS_FILTERED: '/webSellV1/getSellStatsFiltered',
 
@@ -155,19 +147,19 @@ export const API_CONFIG = {
 
     // 类型和磨损等级搜索相关
 
-    BUY_WEAPON_TYPES: '/webBuyPageV1/getWeaponTypes',
+    BUY_WEAPON_TYPES: '/backENDV2/src/web_display/buy/units/filters/getWeaponTypes',
 
-    BUY_FLOAT_RANGES: '/webBuyPageV1/getFloatRanges',
+    BUY_FLOAT_RANGES: '/backENDV2/src/web_display/buy/units/filters/getFloatRanges',
 
-    BUY_STATUS_LIST: '/webBuyPageV1/getStatusList',
+    BUY_STATUS_LIST: '/backENDV2/src/web_display/buy/units/filters/getStatusList',
 
-    BUY_STATUS_SUB_LIST: (status) => `/webBuyPageV1/getStatusSubList?status=${encodeURIComponent(status)}`,
+    BUY_STATUS_SUB_LIST: (status) => `/backENDV2/src/web_display/buy/units/filters/getStatusSubList?status=${encodeURIComponent(status)}`,
 
-    BUY_SEARCH_BY_TYPE_WEAR: '/webBuyPageV1/searchByTypeAndWear',
+    BUY_SEARCH_BY_TYPE_WEAR: '/backENDV2/src/web_display/buy/units/data/searchByTypeAndWear',
 
-    BUY_STATS_BY_TYPE_WEAR: '/webBuyPageV1/getStatsByTypeAndWear',
+    BUY_STATS_BY_TYPE_WEAR: '/backENDV2/src/web_display/buy/units/stats/getStatsByTypeAndWear',
 
-    BUY_YYYP_PRICE_INFO: (steamHashName) => `/webBuyV1/getYyypPriceInfo/${encodeURIComponent(steamHashName)}`,
+    BUY_YYYP_PRICE_INFO: (steamHashName) => `/backENDV2/src/web_display/buy/units/price_info/getYyypPriceInfo/${encodeURIComponent(steamHashName)}`,
 
 
 
@@ -606,21 +598,17 @@ export const apiUrls = {
 
   
 
-  // 购买数据
-
-  buyData: (page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.BUY_DATA(page, limit)),
-
-  buyStats: () => getApiUrl(API_CONFIG.ENDPOINTS.BUY_STATS),
-
-  buySourceList: () => getApiUrl(API_CONFIG.ENDPOINTS.BUY_SOURCE_LIST),
-
-  buyDataBySource: (source, page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.BUY_DATA_BY_SOURCE(source, page, limit)),
-
-  buyStatsBySource: (source) => getApiUrl(API_CONFIG.ENDPOINTS.BUY_STATS_BY_SOURCE(source)),
+  // 购买数据（V2 API）
 
   buyStatsFiltered: () => getApiUrl(API_CONFIG.ENDPOINTS.BUY_STATS_FILTERED),
 
   buyDataFiltered: () => getApiUrl(API_CONFIG.ENDPOINTS.BUY_DATA_FILTERED),
+
+  buyCountNumber: () => getApiUrl(API_CONFIG.ENDPOINTS.BUY_COUNT_NUMBER),
+
+  buySearchTimeRange: (startDate, endDate) => getApiUrl(API_CONFIG.ENDPOINTS.BUY_SEARCH_TIME_RANGE(startDate, endDate)),
+
+  buyStatsTimeRange: (startDate, endDate) => getApiUrl(API_CONFIG.ENDPOINTS.BUY_STATS_TIME_RANGE(startDate, endDate)),
 
   buyDataUserList: () => getApiUrl(API_CONFIG.ENDPOINTS.BUY_DATA_USER_LIST),
 
