@@ -13,7 +13,6 @@ from src.web_side.webSide.web.index_page import indexPage
 from src.web_side.webSide.web.buy_page import webBuyV1
 from src.web_side.webSide.web.sell_page import webSellV1
 from src.web_side.webSide.web.lent import webLentV1
-from src.web_side.webSide.web.rental import webRentalV1
 from src.web_side.webSide.web.select_weapon import webSelectWeaponV1
 from src.web_side.webSide.DataSource_page import dataSourcePage
 from src.web_side.webSide.AutoManager_page import autoManagerPage
@@ -83,7 +82,6 @@ def blankEndApi():
     app.register_blueprint(webBuyV1, url_prefix = '/webBuyV1')
     app.register_blueprint(webSellV1, url_prefix = '/webSellV1')
     app.register_blueprint(webLentV1, url_prefix = '/webLentV1')
-    app.register_blueprint(webRentalV1, url_prefix = '/webRentalV1')
     app.register_blueprint(webSelectWeaponV1, url_prefix = '/webSelectWeaponV1')
     app.register_blueprint(dataSourcePage, url_prefix='/dataSourcePageV1')
     app.register_blueprint(autoManagerPage, url_prefix='/autoManagerPageV1')

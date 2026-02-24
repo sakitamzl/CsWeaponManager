@@ -189,16 +189,24 @@ export const API_CONFIG = {
 
     
 
-    // 租赁（借入）数据相关
-    RENTAL_DATA: (min, max) => `/webRentalV1/getRentalData/${min}/${max}`,
-    RENTAL_STATS: '/webRentalV1/getRentalStats',
-    RENTAL_DATA_BY_STATUS: (status, min, max) => `/webRentalV1/getRentalDataByStatus/${encodeURIComponent(status)}/${min}/${max}`,
-    RENTAL_DATA_BY_STATUS_SUB: (statusSub, min, max) => `/webRentalV1/getRentalDataByStatusSub/${encodeURIComponent(statusSub)}/${min}/${max}`,
-    RENTAL_STATS_BY_STATUS_SUB: (statusSub) => `/webRentalV1/getRentalStatsByStatusSub/${encodeURIComponent(statusSub)}`,
-    RENTAL_SEARCH_BY_NAME: (itemName) => `/webRentalV1/selectRentalWeaponName/${encodeURIComponent(itemName)}`,
-    RENTAL_SEARCH_BY_TIME: (startDate, endDate) => `/webRentalV1/searchRentalByTimeRange/${startDate}/${endDate}`,
-    RENTAL_STATS_BY_TIME: (startDate, endDate) => `/webRentalV1/getRentalStatsByTimeRange/${startDate}/${endDate}`,
-    RENTAL_COUNT: '/webRentalV1/countRentalNumber',
+    // 借入数据查询（V2 API）
+    RENTAL_DATA: (min, max) => `/backENDV2/src/web_display/rental/units/data/getRentalData/${min}/${max}`,
+    RENTAL_DATA_BY_STATUS: (status, min, max) => `/backENDV2/src/web_display/rental/units/data/getRentalDataByStatus/${encodeURIComponent(status)}/${min}/${max}`,
+    RENTAL_DATA_BY_STATUS_SUB: (statusSub, min, max) => `/backENDV2/src/web_display/rental/units/data/getRentalDataByStatusSub/${encodeURIComponent(statusSub)}/${min}/${max}`,
+    RENTAL_SEARCH_BY_NAME: (itemName) => `/backENDV2/src/web_display/rental/units/data/selectRentalWeaponName/${encodeURIComponent(itemName)}`,
+    RENTAL_SEARCH_BY_TIME: (startDate, endDate) => `/backENDV2/src/web_display/rental/units/data/searchRentalByTimeRange/${startDate}/${endDate}`,
+
+    // 借入统计（V2 API）
+    RENTAL_STATS: '/backENDV2/src/web_display/rental/units/stats/getRentalStats',
+    RENTAL_STATS_BY_TIME: (startDate, endDate) => `/backENDV2/src/web_display/rental/units/stats/getRentalStatsByTimeRange/${startDate}/${endDate}`,
+
+    // 借入筛选选项（V2 API）
+    RENTAL_WEAPON_TYPES: '/backENDV2/src/web_display/rental/units/filters/getRentalWeaponTypes',
+    RENTAL_FLOAT_RANGES: '/backENDV2/src/web_display/rental/units/filters/getRentalFloatRanges',
+    RENTAL_STATUS_LIST: '/backENDV2/src/web_display/rental/units/filters/getRentalStatusList',
+    RENTAL_STATUS_SUB_LIST: (status) => `/backENDV2/src/web_display/rental/units/filters/getRentalStatusSubList/${encodeURIComponent(status)}`,
+    RENTAL_PLATFORM_LIST: '/backENDV2/src/web_display/rental/units/filters/getRentalPlatformList',
+    RENTAL_USER_LIST: '/backENDV2/src/web_display/rental/units/filters/getRentalUserList',
 
     // AES工具相关（V2 API - 新版本）
 
@@ -745,16 +753,20 @@ export const apiUrls = {
   lentStatsByTypeWear: () => getApiUrl(API_CONFIG.ENDPOINTS.LENT_STATS_BY_TYPE_WEAR),
 
   
-  // 租赁（借入）数据
+  // 借入数据（V2 API）
   rentalData: (min, max) => getApiUrl(API_CONFIG.ENDPOINTS.RENTAL_DATA(min, max)),
   rentalStats: () => getApiUrl(API_CONFIG.ENDPOINTS.RENTAL_STATS),
   rentalDataByStatus: (status, min, max) => getApiUrl(API_CONFIG.ENDPOINTS.RENTAL_DATA_BY_STATUS(status, min, max)),
   rentalDataByStatusSub: (statusSub, min, max) => getApiUrl(API_CONFIG.ENDPOINTS.RENTAL_DATA_BY_STATUS_SUB(statusSub, min, max)),
-  rentalStatsByStatusSub: (statusSub) => getApiUrl(API_CONFIG.ENDPOINTS.RENTAL_STATS_BY_STATUS_SUB(statusSub)),
   rentalSearchByName: (itemName) => getApiUrl(API_CONFIG.ENDPOINTS.RENTAL_SEARCH_BY_NAME(itemName)),
   rentalSearchByTime: (startDate, endDate) => getApiUrl(API_CONFIG.ENDPOINTS.RENTAL_SEARCH_BY_TIME(startDate, endDate)),
   rentalStatsByTime: (startDate, endDate) => getApiUrl(API_CONFIG.ENDPOINTS.RENTAL_STATS_BY_TIME(startDate, endDate)),
-  rentalCount: () => getApiUrl(API_CONFIG.ENDPOINTS.RENTAL_COUNT),
+  rentalWeaponTypes: () => getApiUrl(API_CONFIG.ENDPOINTS.RENTAL_WEAPON_TYPES),
+  rentalFloatRanges: () => getApiUrl(API_CONFIG.ENDPOINTS.RENTAL_FLOAT_RANGES),
+  rentalStatusList: () => getApiUrl(API_CONFIG.ENDPOINTS.RENTAL_STATUS_LIST),
+  rentalStatusSubList: (status) => getApiUrl(API_CONFIG.ENDPOINTS.RENTAL_STATUS_SUB_LIST(status)),
+  rentalPlatformList: () => getApiUrl(API_CONFIG.ENDPOINTS.RENTAL_PLATFORM_LIST),
+  rentalUserList: () => getApiUrl(API_CONFIG.ENDPOINTS.RENTAL_USER_LIST),
 
   
 

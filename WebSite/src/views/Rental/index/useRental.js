@@ -386,7 +386,7 @@ export function useRental() {
   const loadFilteredStats = async () => {
     try {
       // 使用 rental 统计接口
-      const response = await fetch('/api/webRentalV1/getRentalStats', {
+      const response = await fetch(apiUrls.rentalStats(), {
         method: 'GET',
         mode: 'cors',
         signal: createAbortSignal(statsController),
@@ -462,7 +462,7 @@ export function useRental() {
   }
 
   const fetchRentalDataFiltered = async ({ min, max, keywordOverride = null, storeInSearch = false }) => {
-    const response = await fetch(`/api/webRentalV1/selectRentalWeaponName/${encodeURIComponent(keywordOverride || searchText.value.trim())}`, {
+    const response = await fetch(apiUrls.rentalSearchByName(keywordOverride || searchText.value.trim()), {
       method: 'GET',
       mode: 'cors',
       signal: createAbortSignal(dataController),
@@ -549,11 +549,11 @@ export function useRental() {
       console.log(`正在请求数据... 页码: ${currentPage.value}, 每页: ${pageSize.value}, min: ${min}, max: ${max}`)
       
       // 根据状态/子状态筛选选择不同的API（子状态优先）
-      let apiUrl = `/api/webRentalV1/getRentalData/${min}/${max}`
+      let apiUrl = apiUrls.rentalData(min, max)
       if (statusSubFilter.value && statusSubFilter.value !== 'all') {
-        apiUrl = `/api/webRentalV1/getRentalDataByStatusSub/${encodeURIComponent(statusSubFilter.value)}/${min}/${max}`
+        apiUrl = apiUrls.rentalDataByStatusSub(statusSubFilter.value, min, max)
       } else if (statusFilter.value && statusFilter.value !== 'all') {
-        apiUrl = `/api/webRentalV1/getRentalDataByStatus/${statusFilter.value}/${min}/${max}`
+        apiUrl = apiUrls.rentalDataByStatus(statusFilter.value, min, max)
       }
       
       const response = await fetch(apiUrl, {
@@ -807,7 +807,7 @@ export function useRental() {
       const [startDate, endDate] = dateRange.value
       console.log('按时间搜索:', startDate, '至', endDate)
       
-      const response = await fetch(`/api/webRentalV1/searchRentalByTimeRange/${startDate}/${endDate}`, {
+      const response = await fetch(apiUrls.rentalSearchByTime(startDate, endDate), {
         method: 'GET',
         mode: 'cors',
         signal: createAbortSignal(dataController),
@@ -892,7 +892,7 @@ export function useRental() {
     try {
       console.log('正在获取时间范围统计...', { startDate, endDate })
       
-      const response = await fetch(`/api/webRentalV1/getRentalStatsByTimeRange/${startDate}/${endDate}`, {
+      const response = await fetch(apiUrls.rentalStatsByTime(startDate, endDate), {
         method: 'GET',
         mode: 'cors',
         signal: createAbortSignal(statsController),
@@ -954,7 +954,7 @@ export function useRental() {
         return
       }
 
-      const response = await fetch('/api/webRentalV1/getRentalWeaponTypes')
+      const response = await fetch(apiUrls.rentalWeaponTypes())
       const result = await response.json()
       if (result.success) {
         weaponTypes.value = result.data
@@ -975,7 +975,7 @@ export function useRental() {
         return
       }
 
-      const response = await fetch('/api/webRentalV1/getRentalFloatRanges')
+      const response = await fetch(apiUrls.rentalFloatRanges())
       const result = await response.json()
       if (result.success) {
         floatRanges.value = result.data
@@ -996,7 +996,7 @@ export function useRental() {
         return
       }
 
-      const response = await fetch('/api/webRentalV1/getRentalStatusList')
+      const response = await fetch(apiUrls.rentalStatusList())
       const result = await response.json()
       console.log('借入 status 列表原始返回:', result)
       if (result && result.success && Array.isArray(result.data)) {
@@ -1014,7 +1014,7 @@ export function useRental() {
   const loadStatusSubList = async () => {
     try {
       const statusParam = statusFilter.value || 'all'
-      const response = await fetch(`/api/webRentalV1/getRentalStatusSubList/${statusParam}`)
+      const response = await fetch(apiUrls.rentalStatusSubList(statusParam))
       const result = await response.json()
       console.log('借入 status_sub 列表原始返回:', statusParam, result)
       if (result && result.success && Array.isArray(result.data)) {
@@ -1037,7 +1037,7 @@ export function useRental() {
         return
       }
 
-      const response = await fetch('/api/webRentalV1/getRentalPlatformList')
+      const response = await fetch(apiUrls.rentalPlatformList())
       const result = await response.json()
       if (result.success && Array.isArray(result.data)) {
         platformList.value = result.data
@@ -1062,7 +1062,7 @@ export function useRental() {
       }
 
       // 使用 getRentalUserList 接口读取 data_user 列
-      const response = await fetch('/api/webRentalV1/getRentalUserList')
+      const response = await fetch(apiUrls.rentalUserList())
       const result = await response.json()
       if (result.success && Array.isArray(result.data)) {
         lenterList.value = result.data
