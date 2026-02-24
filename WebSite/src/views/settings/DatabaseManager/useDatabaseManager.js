@@ -1,6 +1,6 @@
 import { ref, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { 
+import {
   Search,
   Refresh,
   FolderAdd,
@@ -19,6 +19,7 @@ import {
   DocumentAdd
 } from '@element-plus/icons-vue';
 import axios from 'axios';
+import { apiUrls } from '@/config/api.js';
 
 
 export function useDatabaseManager() {
@@ -27,11 +28,11 @@ export function useDatabaseManager() {
   const tableSearchQuery = ref('');
   const tables = ref([]);
   const tablesLoading = ref(false);
-  
+
   // 选中的表
   const selectedTable = ref('');
   const activeTab = ref('info'); // 默认显示信息页
-  
+
   // 数据库信息
   const databaseInfo = ref({});
   const databaseInfoLoading = ref(false);
@@ -42,7 +43,7 @@ export function useDatabaseManager() {
   const vacuumLoading = ref(false);
   const restoreDialogVisible = ref(false);
   const restoreFile = ref(null);
-  
+
   // 表数据
   const tableData = ref([]);
   const tableColumns = ref([]);
@@ -50,28 +51,28 @@ export function useDatabaseManager() {
   const tableInfo = ref({});
   const createTableSQL = ref('');
   const tableLoading = ref(false);
-  
+
   // 数据视图
   const dataSearchQuery = ref('');
   const selectedRows = ref([]);
   const currentPage = ref(1);
   const pageSize = ref(20);
-  
+
   // 筛选功能
   const filterDialogVisible = ref(false);
   const filters = ref([]);
   const activeFilters = ref([]);
-  
+
   // 排序功能
   const sortColumn = ref('');
   const sortOrder = ref(''); // 'ascending' or 'descending'
-  
+
   // 编辑对话框
   const editDialogVisible = ref(false);
   const editMode = ref('add'); // 'add' or 'edit'
   const editForm = ref({});
   const editIndex = ref(-1);
-  
+
   // 查询视图
   const sqlQuery = ref('');
   const queryResult = ref([]);
@@ -79,13 +80,13 @@ export function useDatabaseManager() {
   const queryError = ref('');
   const queryExecutionTime = ref(0);
   const queryLoading = ref(false);
-  
+
   // 保存的查询
   const savedQueries = ref([]);
   const selectedSavedQuery = ref('');
   const saveQueryDialogVisible = ref(false);
   const saveQueryForm = ref({ name: '' });
-  
+
   // SQL 执行（数据库首页）
   const sqlStatement = ref('');
   const sqlResult = ref([]);
@@ -97,25 +98,25 @@ export function useDatabaseManager() {
   const sqlExecutionDetails = ref([]);
   const sqlTotalStatements = ref(0);
   const sqlFileExecuting = ref(false);
-  
+
   // 计算属性
   const filteredTables = computed(() => {
     if (!tableSearchQuery.value) return tables.value;
-    return tables.value.filter(table => 
+    return tables.value.filter(table =>
       table.name.toLowerCase().includes(tableSearchQuery.value.toLowerCase())
     );
   });
-  
+
   const filteredTableData = computed(() => {
     let data = [...tableData.value];
-    
+
     // 应用筛选条件
     if (activeFilters.value.length > 0) {
       data = data.filter(row => {
         return activeFilters.value.every(filter => {
           const cellValue = String(row[filter.field] || '');
           const filterValue = String(filter.value || '');
-          
+
           switch (filter.operator) {
             case '=':
               return cellValue === filterValue;
@@ -143,24 +144,24 @@ export function useDatabaseManager() {
         });
       });
     }
-    
+
     // 应用排序
     if (sortColumn.value && sortOrder.value) {
       data.sort((a, b) => {
         const aValue = a[sortColumn.value];
         const bValue = b[sortColumn.value];
-        
+
         // 处理 null/undefined
         if (aValue === null || aValue === undefined) return sortOrder.value === 'ascending' ? 1 : -1;
         if (bValue === null || bValue === undefined) return sortOrder.value === 'ascending' ? -1 : 1;
-        
+
         // 尝试数字比较
         const aNum = parseFloat(aValue);
         const bNum = parseFloat(bValue);
         if (!isNaN(aNum) && !isNaN(bNum)) {
           return sortOrder.value === 'ascending' ? aNum - bNum : bNum - aNum;
         }
-        
+
         // 字符串比较
         const aStr = String(aValue).toLowerCase();
         const bStr = String(bValue).toLowerCase();
@@ -171,21 +172,21 @@ export function useDatabaseManager() {
         }
       });
     }
-    
+
     return data;
   });
-  
+
   const paginatedData = computed(() => {
     const start = (currentPage.value - 1) * pageSize.value;
     const end = start + pageSize.value;
     return filteredTableData.value.slice(start, end);
   });
-  
+
   // 加载表列表
   const refreshTables = async () => {
     tablesLoading.value = true;
     try {
-      const response = await axios.get('/api/database/tables');
+      const response = await axios.get(apiUrls.dbManagerTables());
       tables.value = response.data;
     } catch (error) {
       ElMessage.error('加载表列表失败：' + (error.response?.data?.message || error.message));
@@ -193,13 +194,13 @@ export function useDatabaseManager() {
       tablesLoading.value = false;
     }
   };
-  
+
   // 显示数据库信息
   const showDatabaseInfo = () => {
     selectedTable.value = '';
     refreshDatabaseInfo();
   };
-  
+
   // 选择表
   const selectTable = async (tableName) => {
     selectedTable.value = tableName;
@@ -207,7 +208,7 @@ export function useDatabaseManager() {
     await loadTableData();
     await loadTableStructure();
   };
-  
+
   // 表选择变化
   const onTableChange = async () => {
     if (selectedTable.value) {
@@ -216,14 +217,14 @@ export function useDatabaseManager() {
       await loadTableStructure();
     }
   };
-  
+
   // 加载表数据
   const loadTableData = async () => {
     if (!selectedTable.value) return;
-    
+
     tableLoading.value = true;
     try {
-      const response = await axios.get(`/api/database/table/${selectedTable.value}/data`);
+      const response = await axios.get(apiUrls.dbManagerTableData(selectedTable.value));
       tableData.value = response.data.rows;
       tableColumns.value = response.data.columns;
     } catch (error) {
@@ -232,13 +233,13 @@ export function useDatabaseManager() {
       tableLoading.value = false;
     }
   };
-  
+
   // 加载表结构
   const loadTableStructure = async () => {
     if (!selectedTable.value) return;
-    
+
     try {
-      const response = await axios.get(`/api/database/table/${selectedTable.value}/structure`);
+      const response = await axios.get(apiUrls.dbManagerTableStructure(selectedTable.value));
       tableStructure.value = response.data.structure;
       tableInfo.value = response.data.info;
       createTableSQL.value = response.data.sql;
@@ -246,12 +247,12 @@ export function useDatabaseManager() {
       ElMessage.error('加载表结构失败：' + (error.response?.data?.message || error.message));
     }
   };
-  
+
   // 刷新表数据
   const refreshTableData = () => {
     loadTableData();
   };
-  
+
   // 格式化单元格值
   const formatCellValue = (value) => {
     if (value === null) return 'NULL';
@@ -259,29 +260,29 @@ export function useDatabaseManager() {
     if (typeof value === 'object') return JSON.stringify(value);
     return String(value);
   };
-  
+
   // 选择变化
   const handleSelectionChange = (selection) => {
     selectedRows.value = selection;
   };
-  
+
   // 分页
   const handleSizeChange = (val) => {
     pageSize.value = val;
     currentPage.value = 1;
   };
-  
+
   const handleCurrentChange = (val) => {
     currentPage.value = val;
   };
-  
+
   // 打开新增对话框
   const openAddDialog = () => {
     editMode.value = 'add';
     editForm.value = {};
     editDialogVisible.value = true;
   };
-  
+
   // 编辑行
   const editRow = (row, index) => {
     editMode.value = 'edit';
@@ -289,15 +290,15 @@ export function useDatabaseManager() {
     editIndex.value = index;
     editDialogVisible.value = true;
   };
-  
+
   // 保存编辑
   const saveEdit = async () => {
     try {
       if (editMode.value === 'add') {
-        await axios.post(`/api/database/table/${selectedTable.value}/row`, editForm.value);
+        await axios.post(apiUrls.dbManagerTableAddRow(selectedTable.value), editForm.value);
         ElMessage.success('新增成功');
       } else {
-        await axios.put(`/api/database/table/${selectedTable.value}/row`, {
+        await axios.put(apiUrls.dbManagerTableUpdateRow(selectedTable.value), {
           data: editForm.value,
           index: editIndex.value
         });
@@ -309,7 +310,7 @@ export function useDatabaseManager() {
       ElMessage.error('保存失败：' + (error.response?.data?.message || error.message));
     }
   };
-  
+
   // 删除行
   const deleteRow = async (row, index) => {
     try {
@@ -318,11 +319,11 @@ export function useDatabaseManager() {
         cancelButtonText: '取消',
         type: 'warning',
       });
-      
-      await axios.delete(`/api/database/table/${selectedTable.value}/row`, {
+
+      await axios.delete(apiUrls.dbManagerTableDeleteRow(selectedTable.value), {
         data: { row, index }
       });
-      
+
       ElMessage.success('删除成功');
       await loadTableData();
     } catch (error) {
@@ -331,7 +332,7 @@ export function useDatabaseManager() {
       }
     }
   };
-  
+
   // 删除选中
   const deleteSelected = async () => {
     try {
@@ -340,11 +341,11 @@ export function useDatabaseManager() {
         cancelButtonText: '取消',
         type: 'warning',
       });
-      
-      await axios.post(`/api/database/table/${selectedTable.value}/delete-batch`, {
+
+      await axios.post(apiUrls.dbManagerTableDeleteBatch(selectedTable.value), {
         rows: selectedRows.value
       });
-      
+
       ElMessage.success('批量删除成功');
       selectedRows.value = [];
       await loadTableData();
@@ -354,14 +355,14 @@ export function useDatabaseManager() {
       }
     }
   };
-  
+
   // 导出当前表
   const exportCurrentTable = async () => {
     try {
-      const response = await axios.get(`/api/database/table/${selectedTable.value}/export`, {
+      const response = await axios.get(apiUrls.dbManagerTableExport(selectedTable.value), {
         responseType: 'blob'
       });
-      
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -369,39 +370,39 @@ export function useDatabaseManager() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       ElMessage.success('导出成功');
     } catch (error) {
       ElMessage.error('导出失败：' + (error.response?.data?.message || error.message));
     }
   };
-  
+
   // 复制SQL
   const copySQL = () => {
     navigator.clipboard.writeText(createTableSQL.value);
     ElMessage.success('SQL已复制到剪贴板');
   };
-  
+
   // 执行查询
   const executeQuery = async () => {
     if (!sqlQuery.value.trim()) {
       ElMessage.warning('请输入SQL查询语句');
       return;
     }
-    
+
     queryLoading.value = true;
     queryError.value = '';
     const startTime = Date.now();
-    
+
     try {
-      const response = await axios.post('/api/database/query', {
+      const response = await axios.post(apiUrls.dbManagerExecuteQuery(), {
         sql: sqlQuery.value
       });
-      
+
       queryExecutionTime.value = Date.now() - startTime;
       queryResult.value = response.data.rows || [];
       queryResultColumns.value = response.data.columns || [];
-      
+
       ElMessage.success(`查询成功，返回 ${queryResult.value.length} 行`);
     } catch (error) {
       queryError.value = error.response?.data?.message || error.message;
@@ -411,7 +412,7 @@ export function useDatabaseManager() {
       queryLoading.value = false;
     }
   };
-  
+
   // 清空查询
   const clearQuery = () => {
     sqlQuery.value = '';
@@ -419,7 +420,7 @@ export function useDatabaseManager() {
     queryResultColumns.value = [];
     queryError.value = '';
   };
-  
+
   // 格式化查询
   const formatQuery = () => {
     // 简单的SQL格式化
@@ -428,10 +429,10 @@ export function useDatabaseManager() {
       .replace(/\s*,\s*/g, ',\n  ')
       .replace(/\s+(FROM|WHERE|ORDER BY|GROUP BY|HAVING|LIMIT)/gi, '\n$1')
       .replace(/\s+(AND|OR)/gi, '\n  $1');
-    
+
     sqlQuery.value = formatted.trim();
   };
-  
+
   // 保存查询
   const saveQuery = () => {
     if (!sqlQuery.value.trim()) {
@@ -441,20 +442,20 @@ export function useDatabaseManager() {
     saveQueryForm.value.name = '';
     saveQueryDialogVisible.value = true;
   };
-  
+
   // 确认保存查询
   const confirmSaveQuery = async () => {
     if (!saveQueryForm.value.name) {
       ElMessage.warning('请输入查询名称');
       return;
     }
-    
+
     try {
-      await axios.post('/api/database/query/save', {
+      await axios.post(apiUrls.dbManagerSaveQuery(), {
         name: saveQueryForm.value.name,
         sql: sqlQuery.value
       });
-      
+
       ElMessage.success('查询已保存');
       saveQueryDialogVisible.value = false;
       await loadSavedQueries();
@@ -462,7 +463,7 @@ export function useDatabaseManager() {
       ElMessage.error('保存失败：' + (error.response?.data?.message || error.message));
     }
   };
-  
+
   // 筛选功能
   const showFilterDialog = () => {
     if (filters.value.length === 0) {
@@ -470,7 +471,7 @@ export function useDatabaseManager() {
     }
     filterDialogVisible.value = true;
   };
-  
+
   const addFilter = () => {
     filters.value.push({
       field: '',
@@ -478,42 +479,42 @@ export function useDatabaseManager() {
       value: ''
     });
   };
-  
+
   const removeFilter = (index) => {
     filters.value.splice(index, 1);
   };
-  
+
   const applyFilters = () => {
     activeFilters.value = filters.value.filter(f => f.field && f.operator);
     filterDialogVisible.value = false;
     currentPage.value = 1; // 重置到第一页
     ElMessage.success(`已应用 ${activeFilters.value.length} 个筛选条件`);
   };
-  
+
   const clearFilters = () => {
     filters.value = [];
     activeFilters.value = [];
     currentPage.value = 1;
     ElMessage.success('已清空筛选条件');
   };
-  
+
   // 排序处理
   const handleSortChange = ({ column, prop, order }) => {
     sortColumn.value = prop || '';
     sortOrder.value = order || '';
     currentPage.value = 1; // 重置到第一页
   };
-  
+
   // 加载已保存的查询
   const loadSavedQueries = async () => {
     try {
-      const response = await axios.get('/api/database/query/saved');
+      const response = await axios.get(apiUrls.dbManagerSavedQueries());
       savedQueries.value = response.data;
     } catch (error) {
       console.error('加载已保存查询失败:', error);
     }
   };
-  
+
   // 加载已保存的查询
   const loadSavedQuery = () => {
     const query = savedQueries.value.find(q => q.id === selectedSavedQuery.value);
@@ -521,12 +522,12 @@ export function useDatabaseManager() {
       sqlQuery.value = query.sql;
     }
   };
-  
+
   // 数据库信息和操作
   const refreshDatabaseInfo = async () => {
     databaseInfoLoading.value = true;
     try {
-      const response = await axios.get('/api/database/info');
+      const response = await axios.get(apiUrls.dbManagerInfo());
       databaseInfo.value = response.data;
     } catch (error) {
       ElMessage.error('获取数据库信息失败：' + (error.response?.data?.message || error.message));
@@ -534,7 +535,7 @@ export function useDatabaseManager() {
       databaseInfoLoading.value = false;
     }
   };
-  
+
   const backupDatabase = async () => {
     try {
       await ElMessageBox.confirm(
@@ -546,9 +547,9 @@ export function useDatabaseManager() {
           type: 'info',
         }
       );
-      
+
       backupLoading.value = true;
-      const response = await axios.post('/api/database/backup');
+      const response = await axios.post(apiUrls.dbManagerBackup());
       ElMessage.success(response.data.message || '数据库备份成功');
       await refreshDatabaseInfo();
     } catch (error) {
@@ -559,14 +560,14 @@ export function useDatabaseManager() {
       backupLoading.value = false;
     }
   };
-  
+
   const downloadDatabase = async () => {
     downloadLoading.value = true;
     try {
-      const response = await axios.get('/api/database/download', {
+      const response = await axios.get(apiUrls.dbManagerDownload(), {
         responseType: 'blob'
       });
-      
+
       // 创建下载链接
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
@@ -577,7 +578,7 @@ export function useDatabaseManager() {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
+
       ElMessage.success('数据库下载成功');
     } catch (error) {
       ElMessage.error('下载失败：' + (error.response?.data?.message || error.message));
@@ -585,22 +586,22 @@ export function useDatabaseManager() {
       downloadLoading.value = false;
     }
   };
-  
+
   const showRestoreDialog = () => {
     restoreFile.value = null;
     restoreDialogVisible.value = true;
   };
-  
+
   const handleFileChange = (file) => {
     restoreFile.value = file.raw;
   };
-  
+
   const confirmRestore = async () => {
     if (!restoreFile.value) {
       ElMessage.warning('请选择备份文件');
       return;
     }
-    
+
     try {
       await ElMessageBox.confirm(
         '确定要恢复数据库吗？此操作将覆盖当前所有数据，且不可逆！',
@@ -611,20 +612,20 @@ export function useDatabaseManager() {
           type: 'warning',
         }
       );
-      
+
       restoreLoading.value = true;
       const formData = new FormData();
       formData.append('file', restoreFile.value);
-      
-      await axios.post('/api/database/restore', formData, {
+
+      await axios.post(apiUrls.dbManagerRestore(), formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       });
-      
+
       ElMessage.success('数据库恢复成功，页面将刷新');
       restoreDialogVisible.value = false;
-      
+
       // 刷新页面
       setTimeout(() => {
         window.location.reload();
@@ -637,7 +638,7 @@ export function useDatabaseManager() {
       restoreLoading.value = false;
     }
   };
-  
+
   const optimizeDatabase = async () => {
     try {
       await ElMessageBox.confirm(
@@ -649,10 +650,10 @@ export function useDatabaseManager() {
           type: 'info',
         }
       );
-      
+
       optimizeLoading.value = true;
-      const response = await axios.post('/api/database/optimize');
-      
+      const response = await axios.post(apiUrls.dbManagerOptimize());
+
       // 显示优化操作详情
       if (response.data.operations && response.data.operations.length > 0) {
         const operations = response.data.operations.join('\n');
@@ -663,7 +664,7 @@ export function useDatabaseManager() {
       } else {
         ElMessage.success('数据库优化成功');
       }
-      
+
       await refreshDatabaseInfo();
     } catch (error) {
       if (error !== 'cancel') {
@@ -673,7 +674,7 @@ export function useDatabaseManager() {
       optimizeLoading.value = false;
     }
   };
-  
+
   const vacuumDatabase = async () => {
     try {
       await ElMessageBox.confirm(
@@ -685,9 +686,9 @@ export function useDatabaseManager() {
           type: 'info',
         }
       );
-      
+
       vacuumLoading.value = true;
-      await axios.post('/api/database/vacuum');
+      await axios.post(apiUrls.dbManagerVacuum());
       ElMessage.success('数据库清理成功');
       await refreshDatabaseInfo();
     } catch (error) {
@@ -698,7 +699,7 @@ export function useDatabaseManager() {
       vacuumLoading.value = false;
     }
   };
-  
+
   const truncateTable = async (tableName) => {
     try {
       await ElMessageBox.confirm(
@@ -710,15 +711,15 @@ export function useDatabaseManager() {
           type: 'warning',
         }
       );
-      
+
       tableLoading.value = true;
-      await axios.post('/api/database/truncate', { tableName });
+      await axios.post(apiUrls.dbManagerTruncate(), { tableName });
       ElMessage.success(`表 "${tableName}" 已清空`);
-      
+
       // 刷新表列表和数据库信息
       await refreshTables();
       await refreshDatabaseInfo();
-      
+
       // 如果当前选中的就是这个表，刷新数据
       if (selectedTable.value === tableName) {
         await loadTableData();
@@ -731,7 +732,7 @@ export function useDatabaseManager() {
       tableLoading.value = false;
     }
   };
-  
+
   const dropTable = async (tableName) => {
     try {
       await ElMessageBox.confirm(
@@ -744,7 +745,7 @@ export function useDatabaseManager() {
           confirmButtonClass: 'el-button--danger',
         }
       );
-      
+
       // 二次确认
       await ElMessageBox.confirm(
         `请再次确认：您真的要删除表 "${tableName}" 吗？`,
@@ -755,16 +756,16 @@ export function useDatabaseManager() {
           type: 'error',
         }
       );
-      
+
       tableLoading.value = true;
-      await axios.post('/api/database/drop', { tableName });
+      await axios.post(apiUrls.dbManagerDrop(), { tableName });
       ElMessage.success(`表 "${tableName}" 已删除`);
-      
+
       // 如果删除的是当前选中的表，返回数据库首页
       if (selectedTable.value === tableName) {
         selectedTable.value = null;
       }
-      
+
       // 刷新表列表和数据库信息
       await refreshTables();
       await refreshDatabaseInfo();
@@ -776,7 +777,7 @@ export function useDatabaseManager() {
       tableLoading.value = false;
     }
   };
-  
+
   const formatSize = (bytes) => {
     if (!bytes || bytes === 0) return '0 B';
     const k = 1024;
@@ -784,14 +785,14 @@ export function useDatabaseManager() {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
-  
+
   // SQL 执行功能（数据库首页）
   const executeSQL = async () => {
     if (!sqlStatement.value.trim()) {
       ElMessage.warning('请输入 SQL 语句');
       return;
     }
-    
+
     sqlExecuting.value = true;
     sqlError.value = '';
     sqlMessage.value = '';
@@ -800,19 +801,19 @@ export function useDatabaseManager() {
     sqlExecutionDetails.value = [];
     sqlTotalStatements.value = 0;
     const startTime = Date.now();
-    
+
     try {
-      const response = await axios.post('/api/database/query', {
+      const response = await axios.post(apiUrls.dbManagerExecuteQuery(), {
         sql: sqlStatement.value
       });
-      
+
       sqlExecutionTime.value = Date.now() - startTime;
       sqlResult.value = response.data.rows || [];
       sqlResultColumns.value = response.data.columns || [];
       sqlMessage.value = response.data.message || '';
       sqlExecutionDetails.value = response.data.execution_details || [];
       sqlTotalStatements.value = response.data.total_statements || 0;
-      
+
       if (sqlResult.value.length > 0) {
         ElMessage.success(`查询成功，返回 ${sqlResult.value.length} 行`);
       } else if (sqlMessage.value) {
@@ -825,7 +826,7 @@ export function useDatabaseManager() {
       sqlResult.value = [];
       sqlResultColumns.value = [];
       sqlExecutionDetails.value = error.response?.data?.execution_details || [];
-      
+
       // 显示错误信息，包括哪条语句出错
       if (error.response?.data?.statement_index) {
         ElMessage.error(`执行失败：第 ${error.response.data.statement_index} 条语句出错 - ${sqlError.value}`);
@@ -836,11 +837,11 @@ export function useDatabaseManager() {
       sqlExecuting.value = false;
     }
   };
-  
+
   // 执行 SQL 文件
   const handleExecuteSqlFile = async (file) => {
     if (!file) return false;
-  
+
     sqlFileExecuting.value = true;
     sqlError.value = '';
     sqlMessage.value = '';
@@ -849,26 +850,26 @@ export function useDatabaseManager() {
     sqlExecutionDetails.value = [];
     sqlTotalStatements.value = 0;
     sqlExecutionTime.value = 0;
-  
+
     const formData = new FormData();
     formData.append('file', file);
-  
+
     const startTime = Date.now();
-  
+
     try {
-      const response = await axios.post('/api/database/execute-file', formData, {
+      const response = await axios.post(apiUrls.dbManagerExecuteFile(), formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       });
-  
+
       sqlExecutionTime.value = Date.now() - startTime;
       sqlResult.value = response.data.rows || [];
       sqlResultColumns.value = response.data.columns || [];
       sqlMessage.value = response.data.message || `文件 ${response.data.file || file.name} 执行完成`;
       sqlExecutionDetails.value = response.data.execution_details || [];
       sqlTotalStatements.value = response.data.total_statements || 0;
-  
+
       if (sqlResult.value.length > 0) {
         ElMessage.success(`SQL 文件执行成功，最后一条查询返回 ${sqlResult.value.length} 行`);
       } else if (sqlMessage.value) {
@@ -881,7 +882,7 @@ export function useDatabaseManager() {
       sqlExecutionTime.value = Date.now() - startTime;
       sqlError.value = error.response?.data?.error || error.response?.data?.message || error.message;
       sqlExecutionDetails.value = error.response?.data?.execution_details || [];
-  
+
       if (error.response?.data?.statement_index) {
         ElMessage.error(`SQL 文件执行失败：第 ${error.response.data.statement_index} 条语句出错 - ${sqlError.value}`);
       } else {
@@ -890,11 +891,11 @@ export function useDatabaseManager() {
     } finally {
       sqlFileExecuting.value = false;
     }
-  
+
     // 阻止 el-upload 默认上传行为
     return false;
   };
-  
+
   const clearSQL = () => {
     sqlStatement.value = '';
     sqlResult.value = [];
@@ -905,7 +906,7 @@ export function useDatabaseManager() {
     sqlExecutionDetails.value = [];
     sqlTotalStatements.value = 0;
   };
-  
+
   const formatSQL = () => {
     // 简单的 SQL 格式化
     let formatted = sqlStatement.value
@@ -913,10 +914,10 @@ export function useDatabaseManager() {
       .replace(/\s*,\s*/g, ',\n  ')
       .replace(/\s+(FROM|WHERE|ORDER BY|GROUP BY|HAVING|LIMIT|SET|UPDATE|DELETE|INSERT INTO|VALUES)/gi, '\n$1')
       .replace(/\s+(AND|OR)/gi, '\n  $1');
-    
+
     sqlStatement.value = formatted.trim();
   };
-  
+
   // 初始化
   onMounted(() => {
     refreshTables();

@@ -105,25 +105,25 @@ export const API_CONFIG = {
 
     // 消息数据相关
 
-    MESSAGE_DATA: (page, limit) => `/webMessageBoxPageV1/getMessageData/${page}/${limit}`,
+    MESSAGE_DATA: (page, limit) => `/backENDV2/src/web_display/settings/yyyp_message_box/units/data/getMessageData/${page}/${limit}`,
 
-    MESSAGE_STATS: '/webMessageBoxPageV1/getMessageStats',
+    MESSAGE_STATS: '/backENDV2/src/web_display/settings/yyyp_message_box/units/data/getMessageStats',
 
-    MESSAGE_TYPES: '/webMessageBoxPageV1/getMessageTypes',
+    MESSAGE_TYPES: '/backENDV2/src/web_display/settings/yyyp_message_box/units/data/getMessageTypes',
 
-    MESSAGE_SEARCH_BY_KEYWORD: '/webMessageBoxPageV1/searchMessageByKeyword',
+    MESSAGE_SEARCH_BY_KEYWORD: '/backENDV2/src/web_display/settings/yyyp_message_box/units/data/searchByKeyword',
 
-    MESSAGE_SEARCH_BY_TIME: '/webMessageBoxPageV1/searchMessageByTime',
+    MESSAGE_SEARCH_BY_TIME: '/backENDV2/src/web_display/settings/yyyp_message_box/units/data/searchByTime',
 
-    MESSAGE_SEARCH_BY_TYPE: '/webMessageBoxPageV1/searchMessageByType',
+    MESSAGE_SEARCH_BY_TYPE: '/backENDV2/src/web_display/settings/yyyp_message_box/units/data/searchByType',
 
 
 
     // BUFF 消息数据相关（buff_messagebox 表）
 
-    BUFF_MESSAGE_DATA: (page, limit) => `/buff163MessageV1/list/${page}/${limit}`,
+    BUFF_MESSAGE_DATA: (page, limit) => `/backENDV2/src/web_display/settings/buff_message_box/units/data/getMessageData/${page}/${limit}`,
 
-    BUFF_MESSAGE_TYPES: '/buff163MessageV1/types',
+    BUFF_MESSAGE_TYPES: '/backENDV2/src/web_display/settings/buff_message_box/units/data/getMessageTypes',
 
     
 
@@ -574,19 +574,46 @@ export const API_CONFIG = {
     LOGIN_SETTINGS_SAVE: '/backENDV2/src/web_display/settings/system_settings/units/login/saveSettings',  // 保存登录设置
     LOGIN_VERIFY: '/backENDV2/src/web_display/settings/system_settings/units/login/verify',  // 验证登录
 
-
+    // DatabaseManager V2 API
+    DB_MANAGER_TABLES: '/backENDV2/src/web_display/settings/database_manager/units/data/getTables',
+    DB_MANAGER_TABLE_DATA: (t) => `/backENDV2/src/web_display/settings/database_manager/units/data/table/${t}/getData`,
+    DB_MANAGER_TABLE_STRUCTURE: (t) => `/backENDV2/src/web_display/settings/database_manager/units/data/table/${t}/getStructure`,
+    DB_MANAGER_TABLE_ADD_ROW: (t) => `/backENDV2/src/web_display/settings/database_manager/units/data/table/${t}/addRow`,
+    DB_MANAGER_TABLE_UPDATE_ROW: (t) => `/backENDV2/src/web_display/settings/database_manager/units/data/table/${t}/updateRow`,
+    DB_MANAGER_TABLE_DELETE_ROW: (t) => `/backENDV2/src/web_display/settings/database_manager/units/data/table/${t}/deleteRow`,
+    DB_MANAGER_TABLE_DELETE_BATCH: (t) => `/backENDV2/src/web_display/settings/database_manager/units/data/table/${t}/deleteBatch`,
+    DB_MANAGER_TABLE_EXPORT: (t) => `/backENDV2/src/web_display/settings/database_manager/units/data/table/${t}/export`,
+    DB_MANAGER_EXECUTE_QUERY: '/backENDV2/src/web_display/settings/database_manager/units/data/executeQuery',
+    DB_MANAGER_EXECUTE_FILE: '/backENDV2/src/web_display/settings/database_manager/units/data/executeSqlFile',
+    DB_MANAGER_SAVED_QUERIES: '/backENDV2/src/web_display/settings/database_manager/units/data/getSavedQueries',
+    DB_MANAGER_SAVE_QUERY: '/backENDV2/src/web_display/settings/database_manager/units/data/saveQuery',
+    DB_MANAGER_STATS: '/backENDV2/src/web_display/settings/database_manager/units/data/getStats',
+    DB_MANAGER_INFO: '/backENDV2/src/web_display/settings/database_manager/units/data/getInfo',
+    DB_MANAGER_BACKUP: '/backENDV2/src/web_display/settings/database_manager/units/data/backup',
+    DB_MANAGER_DOWNLOAD: '/backENDV2/src/web_display/settings/database_manager/units/data/download',
+    DB_MANAGER_RESTORE: '/backENDV2/src/web_display/settings/database_manager/units/data/restore',
+    DB_MANAGER_OPTIMIZE: '/backENDV2/src/web_display/settings/database_manager/units/data/optimize',
+    DB_MANAGER_VACUUM: '/backENDV2/src/web_display/settings/database_manager/units/data/vacuum',
+    DB_MANAGER_TRUNCATE: '/backENDV2/src/web_display/settings/database_manager/units/data/truncate',
+    DB_MANAGER_DROP: '/backENDV2/src/web_display/settings/database_manager/units/data/drop',
 
     // 版本更新相关
 
-    UPDATE_CHECK: '/api/update/check',  // 检查更新
+    UPDATE_CHECK: '/backENDV2/src/web_display/settings/version_update/units/update/checkUpdate',  // 检查更新
 
-    UPDATE_CURRENT_VERSION: '/api/update/current-version',  // 获取当前版本
+    UPDATE_CURRENT_VERSION: '/backENDV2/src/web_display/settings/version_update/units/update/getCurrentVersion',  // 获取当前版本
 
-    UPDATE_DOWNLOAD: '/api/update/download',  // 下载更新包
+    UPDATE_DOWNLOAD: '/backENDV2/src/web_display/settings/version_update/units/update/downloadUpdate',  // 下载更新包
 
-    UPDATE_CHECK_LOCAL: '/api/update/check-local',  // 检查本地更新包
+    UPDATE_CHECK_LOCAL: '/backENDV2/src/web_display/settings/version_update/units/update/checkLocalUpdate',  // 检查本地更新包
 
-    UPDATE_APPLY: '/api/update/apply',  // 执行更新
+    UPDATE_APPLY: '/backENDV2/src/web_display/settings/version_update/units/update/applyUpdate',  // 执行更新
+
+    VERSION_DOCUMENTS_TREE: '/backENDV2/src/web_display/settings/version_update/units/docs/getDocumentTree',
+
+    VERSION_DOCUMENTS_FILE: '/backENDV2/src/web_display/settings/version_update/units/docs/getDocumentFile',
+
+    VERSION_DOCUMENTS_IMAGE: '/backENDV2/src/web_display/settings/version_update/units/docs/getDocumentImage',
 
     // 悠悠有品自动购买相关（V2 API）
     AUTO_BUY_RENAMED_WEAPON: '/spiderApiV2/src/web_site/youping/auto_weapon/autoBuyRenamedWeapon',  // 自动购买改名武器
@@ -1011,6 +1038,29 @@ export const apiUrls = {
   loginSettingsSave: () => getApiUrl(API_CONFIG.ENDPOINTS.LOGIN_SETTINGS_SAVE),
   loginVerify: () => getApiUrl(API_CONFIG.ENDPOINTS.LOGIN_VERIFY),
 
+  // DatabaseManager V2 API
+  dbManagerTables: () => getApiUrl(API_CONFIG.ENDPOINTS.DB_MANAGER_TABLES),
+  dbManagerTableData: (t) => getApiUrl(API_CONFIG.ENDPOINTS.DB_MANAGER_TABLE_DATA(t)),
+  dbManagerTableStructure: (t) => getApiUrl(API_CONFIG.ENDPOINTS.DB_MANAGER_TABLE_STRUCTURE(t)),
+  dbManagerTableAddRow: (t) => getApiUrl(API_CONFIG.ENDPOINTS.DB_MANAGER_TABLE_ADD_ROW(t)),
+  dbManagerTableUpdateRow: (t) => getApiUrl(API_CONFIG.ENDPOINTS.DB_MANAGER_TABLE_UPDATE_ROW(t)),
+  dbManagerTableDeleteRow: (t) => getApiUrl(API_CONFIG.ENDPOINTS.DB_MANAGER_TABLE_DELETE_ROW(t)),
+  dbManagerTableDeleteBatch: (t) => getApiUrl(API_CONFIG.ENDPOINTS.DB_MANAGER_TABLE_DELETE_BATCH(t)),
+  dbManagerTableExport: (t) => getApiUrl(API_CONFIG.ENDPOINTS.DB_MANAGER_TABLE_EXPORT(t)),
+  dbManagerExecuteQuery: () => getApiUrl(API_CONFIG.ENDPOINTS.DB_MANAGER_EXECUTE_QUERY),
+  dbManagerExecuteFile: () => getApiUrl(API_CONFIG.ENDPOINTS.DB_MANAGER_EXECUTE_FILE),
+  dbManagerSavedQueries: () => getApiUrl(API_CONFIG.ENDPOINTS.DB_MANAGER_SAVED_QUERIES),
+  dbManagerSaveQuery: () => getApiUrl(API_CONFIG.ENDPOINTS.DB_MANAGER_SAVE_QUERY),
+  dbManagerStats: () => getApiUrl(API_CONFIG.ENDPOINTS.DB_MANAGER_STATS),
+  dbManagerInfo: () => getApiUrl(API_CONFIG.ENDPOINTS.DB_MANAGER_INFO),
+  dbManagerBackup: () => getApiUrl(API_CONFIG.ENDPOINTS.DB_MANAGER_BACKUP),
+  dbManagerDownload: () => getApiUrl(API_CONFIG.ENDPOINTS.DB_MANAGER_DOWNLOAD),
+  dbManagerRestore: () => getApiUrl(API_CONFIG.ENDPOINTS.DB_MANAGER_RESTORE),
+  dbManagerOptimize: () => getApiUrl(API_CONFIG.ENDPOINTS.DB_MANAGER_OPTIMIZE),
+  dbManagerVacuum: () => getApiUrl(API_CONFIG.ENDPOINTS.DB_MANAGER_VACUUM),
+  dbManagerTruncate: () => getApiUrl(API_CONFIG.ENDPOINTS.DB_MANAGER_TRUNCATE),
+  dbManagerDrop: () => getApiUrl(API_CONFIG.ENDPOINTS.DB_MANAGER_DROP),
+
   
 
   // CSQAQ API
@@ -1173,6 +1223,10 @@ export const apiUrls = {
   checkLocalUpdate: () => getApiUrl(API_CONFIG.ENDPOINTS.UPDATE_CHECK_LOCAL),  // 检查本地更新包
 
   applyUpdate: () => getApiUrl(API_CONFIG.ENDPOINTS.UPDATE_APPLY),  // 执行更新
+
+  versionDocumentsTree: () => getApiUrl(API_CONFIG.ENDPOINTS.VERSION_DOCUMENTS_TREE),
+
+  versionDocumentsFile: () => getApiUrl(API_CONFIG.ENDPOINTS.VERSION_DOCUMENTS_FILE),
 
 }
 

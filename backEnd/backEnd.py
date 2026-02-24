@@ -27,17 +27,14 @@ from src.web_side.steam.select_weapon_hash_name import steamSelectWeaponHashName
 from src.web_side.steam.inventory_mining import inventoryMiningV1
 from src.web_side.webSide.steamMarket import webSteamMarketV1
 
-from src.web_side.webSide.message_box_page import webMessageBoxPageV1
 from src.web_side.webSide.sys_message_page import webSysMessagePageV1
 from src.web_side.webSide.inventory_api import webInventoryV1
 from src.web_side.webSide.stock_components import webStockComponentsV1
 from src.web_side.prefectWorld.prefectworld_config import prefectWorldConfigV1
 from src.web_side.prefectWorld.stock_components_api import prefectWorldStockComponentsV1
 
-from src.web_side.webSide.settings.database_manager import database_manager_bp
 from src.web_side.webSide.settings.search_pendant_config_api import search_pendant_config_bp
 from src.web_side.webSide.settings.auto_search_weapon_api import search_rename_bp
-from src.web_side.webSide.version_update import version_update_bp
 from src.web_side.CSQAQ.csqaq_api import csqaqApiV1
 from src.web_side.SteamDT.steamdt_api import steamdtApiV1
 from src.web_side.data_webside.item_search import itemSearchApiV1
@@ -90,7 +87,6 @@ def blankEndApi():
     app.register_blueprint(inventoryMiningV1, url_prefix = '/api/v1/steam/inventory/mining')
     app.register_blueprint(webSteamMarketV1, url_prefix = '/webSteamMarketV1')
 
-    app.register_blueprint(webMessageBoxPageV1, url_prefix = '/webMessageBoxPageV1')
     app.register_blueprint(webSysMessagePageV1, url_prefix = '/api')
     app.register_blueprint(webInventoryV1, url_prefix = '/webInventoryV1')
     app.register_blueprint(webStockComponentsV1, url_prefix = '/webStockComponentsV1')
@@ -98,11 +94,9 @@ def blankEndApi():
     app.register_blueprint(prefectWorldConfigV1, url_prefix = '/prefectWorldConfigV1')
     app.register_blueprint(prefectWorldStockComponentsV1, url_prefix = '/prefectWorldStockComponentsV1')
 
-    app.register_blueprint(database_manager_bp)
     # 挂件搜索配置进度保存 API
     app.register_blueprint(search_pendant_config_bp)
     app.register_blueprint(search_rename_bp)  # 改名饰品搜索API
-    app.register_blueprint(version_update_bp)  # 版本更新API
     app.register_blueprint(csqaqApiV1, url_prefix='/csqaqApiV1')  # CSQAQ API
     app.register_blueprint(steamdtApiV1, url_prefix='/steamdtApiV1')  # SteamDT API
     app.register_blueprint(itemSearchApiV1, url_prefix='/itemSearchApiV1')  # 饰品搜索API

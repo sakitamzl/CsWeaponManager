@@ -10,6 +10,10 @@ from .auto_manager.API import auto_manager_blueprint
 from .steam_inventory_history.API import steam_inventory_history_blueprint
 from .dev_tools.API import dev_tools_blueprint
 from .system_settings.API import system_settings_blueprint
+from .database_manager.API import database_manager_blueprint
+from .yyyp_message_box.API import yyyp_message_box_blueprint
+from .buff_message_box.API import buff_message_box_blueprint
+from .version_update.API import version_update_blueprint
 
 settings_blueprint = Blueprint('settings_v2', __name__)
 settings_blueprint.register_blueprint(data_source_blueprint, url_prefix='/settings')
@@ -17,3 +21,7 @@ settings_blueprint.register_blueprint(auto_manager_blueprint, url_prefix='/setti
 settings_blueprint.register_blueprint(steam_inventory_history_blueprint, url_prefix='/settings')
 settings_blueprint.register_blueprint(dev_tools_blueprint, url_prefix='/settings')
 settings_blueprint.register_blueprint(system_settings_blueprint, url_prefix='/settings')
+settings_blueprint.register_blueprint(database_manager_blueprint, url_prefix='/settings')
+settings_blueprint.register_blueprint(yyyp_message_box_blueprint, url_prefix='/settings')
+settings_blueprint.register_blueprint(buff_message_box_blueprint, url_prefix='/settings')
+settings_blueprint.register_blueprint(version_update_blueprint, url_prefix='/settings')

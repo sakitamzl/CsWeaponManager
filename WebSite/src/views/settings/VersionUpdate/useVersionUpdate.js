@@ -70,7 +70,7 @@ export function useVersionUpdate() {
       }
       
       // 转换为 API 路径
-      imageSrc = `${API_CONFIG.BASE_URL}/api/version/documents/image?path=${encodeURIComponent(resolvedPath)}`
+      imageSrc = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.VERSION_DOCUMENTS_IMAGE}?path=${encodeURIComponent(resolvedPath)}`
     }
     
     const titleAttr = title ? ` title="${title}"` : ''
@@ -254,7 +254,7 @@ export function useVersionUpdate() {
     treeError.value = null
 
     try {
-      const response = await axios.get(`${API_CONFIG.BASE_URL}/api/version/documents/tree`)
+      const response = await axios.get(apiUrls.versionDocumentsTree())
 
       if (response.data.success) {
         fileTree.value = response.data.data
@@ -298,7 +298,7 @@ export function useVersionUpdate() {
     selectedFilePath.value = filePath
 
     try {
-      const response = await axios.get(`${API_CONFIG.BASE_URL}/api/version/documents/file`, {
+      const response = await axios.get(apiUrls.versionDocumentsFile(), {
         params: { path: filePath }
       })
 
