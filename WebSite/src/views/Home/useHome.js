@@ -118,7 +118,7 @@ export function useHome() {
   // 加载购买统计数据
   const loadBuyStats = async () => {
     try {
-      const response = await axios.get(`${API_CONFIG.BASE_URL}/webBuyV1/getBuyStats`)
+      const response = await axios.get(apiUrls.homeBuyStats())
       if (response.data) {
         buyStats.value = {
           totalAmount: response.data.total_amount?.toFixed(2) || '0.00',
@@ -158,7 +158,7 @@ export function useHome() {
   // 加载Steam ID列表
   const loadSteamIdList = async () => {
     try {
-      const response = await axios.get(`${API_CONFIG.BASE_URL}/webInventoryV1/steam_ids`)
+      const response = await axios.get(apiUrls.homeSteamIds())
       if (response.data.success && response.data.data.length > 0) {
         steamIdList.value = response.data.data
         selectedSteamId.value = steamIdList.value[0].steamID
@@ -182,7 +182,7 @@ export function useHome() {
       } else {
         // 获取指定Steam ID的数据
         const response = await axios.get(
-          `${API_CONFIG.BASE_URL}/webInventoryV1/inventory/${steamId}`,
+          apiUrls.homeInventoryBySteamId(steamId),
           {
             params: {
               limit: 999999,
@@ -305,7 +305,7 @@ export function useHome() {
       } else {
         // 获取指定Steam ID的数据
         const response = await axios.get(
-          `${API_CONFIG.BASE_URL}/webStockComponentsV1/components/${steamId}`,
+          apiUrls.homeComponentsBySteamId(steamId),
           {
             params: {
               search: '',

@@ -38,7 +38,6 @@ from src.web_side.webSide.message_box_page import webMessageBoxPageV1
 from src.web_side.webSide.sys_message_page import webSysMessagePageV1
 from src.web_side.webSide.inventory_api import webInventoryV1
 from src.web_side.webSide.stock_components import webStockComponentsV1
-from src.web_side.webSide.home.home_charts import webHomeChartsV1
 from src.web_side.prefectWorld.prefectworld_config import prefectWorldConfigV1
 from src.web_side.prefectWorld.stock_components_api import prefectWorldStockComponentsV1
 from src.web_side.webSide.adb_tools import adbToolsPage
@@ -55,6 +54,8 @@ from src.web_side.webSide.on_sale.select_usercode import webOnSaleV1
 from src.db_manager import init_database
 from src.Unites.auto_process.task_scheduler import get_scheduler
 
+from src.API import backendV2_blueprint
+
 # 当前版本号
 CURRENT_VERSION = '2.4.2'
 
@@ -70,6 +71,9 @@ def blankEndApi():
             print("❌ 数据库初始化失败，程序退出")
             return
     
+    # v2 API
+    app.register_blueprint(backendV2_blueprint, url_prefix='/backENDV2')  # Home V2 API（逐层传递）
+
     app.register_blueprint(configV1, url_prefix = '/configV1')
     app.register_blueprint(youpin898BuyV1, url_prefix = '/youpin898BuyV1')
     app.register_blueprint(youpin898SellV1, url_prefix = '/youpin898SellV1')
@@ -106,7 +110,7 @@ def blankEndApi():
     app.register_blueprint(webSysMessagePageV1, url_prefix = '/api')
     app.register_blueprint(webInventoryV1, url_prefix = '/webInventoryV1')
     app.register_blueprint(webStockComponentsV1, url_prefix = '/webStockComponentsV1')
-    app.register_blueprint(webHomeChartsV1, url_prefix = '/webHomeChartsV1')
+
     app.register_blueprint(prefectWorldConfigV1, url_prefix = '/prefectWorldConfigV1')
     app.register_blueprint(prefectWorldStockComponentsV1, url_prefix = '/prefectWorldStockComponentsV1')
     app.register_blueprint(adbToolsPage, url_prefix = '/adbToolsV1')

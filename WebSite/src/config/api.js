@@ -422,15 +422,27 @@ export const API_CONFIG = {
 
     
 
-    // Home页面图表数据相关
+    // Home页面图表数据（V2 API）
 
-    HOME_INVENTORY_ALL: '/webHomeChartsV1/inventory/all',  // 获取所有库存数据
+    HOME_INVENTORY_ALL: '/backENDV2/src/web_display/home/units/charts/inventory/all',  // 获取所有库存数据
 
-    HOME_COMPONENTS_ALL: '/webHomeChartsV1/components/all',  // 获取所有库存组件数据
+    HOME_COMPONENTS_ALL: '/backENDV2/src/web_display/home/units/charts/components/all',  // 获取所有库存组件数据
 
-    HOME_BUY_ALL: '/webHomeChartsV1/buy/all',  // 获取所有购入数据
+    HOME_BUY_ALL: '/backENDV2/src/web_display/home/units/charts/buy/all',  // 获取所有购入数据
 
-    HOME_SELL_ALL: '/webHomeChartsV1/sell/all',  // 获取所有出售数据
+    HOME_SELL_ALL: '/backENDV2/src/web_display/home/units/charts/sell/all',  // 获取所有出售数据
+
+    // Home页面独立API（V2，从其他模块分离）
+
+    HOME_BUY_STATS: '/backENDV2/src/web_display/home/units/buy_stats/getBuyStats',  // 购买统计
+
+    HOME_STEAM_IDS: '/backENDV2/src/web_display/home/units/steam_accounts/steam_ids',  // Steam账号列表
+
+    HOME_INVENTORY_BY_STEAM_ID: (steamId) => `/backENDV2/src/web_display/home/units/inventory/${steamId}`,  // 指定账号库存
+
+    HOME_COMPONENTS_BY_STEAM_ID: (steamId) => `/backENDV2/src/web_display/home/units/components/${steamId}`,  // 指定账号组件
+
+    HOME_STEAMDT_HOMEPAGE_DATA: '/backENDV2/src/web_display/home/units/steamdt/homepage-data',  // SteamDT首页数据
 
     
 
@@ -949,7 +961,7 @@ export const apiUrls = {
 
   
 
-  // Home页面图表数据API
+  // Home页面图表数据API（V2）
 
   homeInventoryAll: () => getApiUrl(API_CONFIG.ENDPOINTS.HOME_INVENTORY_ALL),
 
@@ -958,6 +970,18 @@ export const apiUrls = {
   homeBuyAll: () => getApiUrl(API_CONFIG.ENDPOINTS.HOME_BUY_ALL),
 
   homeSellAll: () => getApiUrl(API_CONFIG.ENDPOINTS.HOME_SELL_ALL),
+
+  // Home页面独立API（V2）
+
+  homeBuyStats: () => getApiUrl(API_CONFIG.ENDPOINTS.HOME_BUY_STATS),
+
+  homeSteamIds: () => getApiUrl(API_CONFIG.ENDPOINTS.HOME_STEAM_IDS),
+
+  homeInventoryBySteamId: (steamId) => getApiUrl(API_CONFIG.ENDPOINTS.HOME_INVENTORY_BY_STEAM_ID(steamId)),
+
+  homeComponentsBySteamId: (steamId) => getApiUrl(API_CONFIG.ENDPOINTS.HOME_COMPONENTS_BY_STEAM_ID(steamId)),
+
+  homeSteamdtHomepageData: () => getApiUrl(API_CONFIG.ENDPOINTS.HOME_STEAMDT_HOMEPAGE_DATA),
 
   
 

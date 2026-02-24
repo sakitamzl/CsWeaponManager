@@ -1,25 +1,33 @@
-from flask import jsonify, request, Blueprint
+"""
+Home 页面图表数据模块
+提供库存、组件、购入、出售的全量数据查询（用于 Home 页面饼图）
+"""
+from flask import jsonify
 from src.db_manager.database import DatabaseManager
 import logging
 
-# 设置日志
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-webHomeChartsV1 = Blueprint('webHomeChartsV1', __name__)
+
+def safe_float(value, default=0.0):
+    """安全的浮点数转换"""
+    if value is None or value == '' or value == '--':
+        return default
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return default
 
 
-@webHomeChartsV1.route('/inventory/all', methods=['GET'])
 def get_all_inventory():
     """获取所有Steam账号的库存数据（用于Home页面图表）"""
     try:
         db = DatabaseManager()
-        
-        # 查询所有库存数据
+
         sql = """
         SELECT
             assetid, instanceid, classid, item_name, weapon_name, float_range,
-            weapon_type, weapon_float, remark, data_user, buy_price, yyyp_price, 
+            weapon_type, weapon_float, remark, data_user, buy_price, yyyp_price,
             buff_price, steam_price, order_time, steam_hash_name,
             sticker, pendant, rename
         FROM steam_inventory
@@ -31,19 +39,9 @@ def get_all_inventory():
             END,
             CAST(buy_price AS REAL) DESC NULLS LAST
         """
-        
+
         results = db.execute_query(sql)
-        
-        # 安全的浮点数转换函数
-        def safe_float(value, default=0.0):
-            if value is None or value == '' or value == '--':
-                return default
-            try:
-                return float(value)
-            except (ValueError, TypeError):
-                return default
-        
-        # 转换为字典列表
+
         inventory_list = []
         if results:
             for row in results:
@@ -69,13 +67,13 @@ def get_all_inventory():
                     'rename': row[18]
                 }
                 inventory_list.append(item)
-        
+
         return jsonify({
             'success': True,
             'data': inventory_list,
             'total': len(inventory_list)
         }), 200
-        
+
     except Exception as e:
         logger.error(f"获取所有库存数据失败: {e}")
         return jsonify({
@@ -85,13 +83,11 @@ def get_all_inventory():
         }), 500
 
 
-@webHomeChartsV1.route('/components/all', methods=['GET'])
 def get_all_components():
     """获取所有Steam账号的库存组件数据（用于Home页面图表）"""
     try:
         db = DatabaseManager()
-        
-        # 查询所有库存组件数据
+
         sql = """
         SELECT
             assetid, goods_assetid, classid, item_name, weapon_name,
@@ -101,19 +97,9 @@ def get_all_components():
         FROM steam_stockComponents
         ORDER BY order_time DESC
         """
-        
+
         results = db.execute_query(sql)
-        
-        # 安全的浮点数转换函数
-        def safe_float(value, default=0.0):
-            if value is None or value == '' or value == '--':
-                return default
-            try:
-                return float(value)
-            except (ValueError, TypeError):
-                return default
-        
-        # 转换为字典列表
+
         components_list = []
         if results:
             for row in results:
@@ -140,13 +126,13 @@ def get_all_components():
                     'rename': row[18]
                 }
                 components_list.append(component)
-        
+
         return jsonify({
             'success': True,
             'data': components_list,
             'total': len(components_list)
         }), 200
-        
+
     except Exception as e:
         logger.error(f"获取所有库存组件数据失败: {e}")
         return jsonify({
@@ -156,13 +142,11 @@ def get_all_components():
         }), 500
 
 
-@webHomeChartsV1.route('/buy/all', methods=['GET'])
 def get_all_buy():
     """获取所有Steam账号的购入数据（用于Home页面图表）"""
     try:
         db = DatabaseManager()
-        
-        # 查询所有购入数据，只查询已完成的订单
+
         sql = """
         SELECT
             id, weapon_name, item_name, weapon_type, float_range,
@@ -172,19 +156,9 @@ def get_all_buy():
         WHERE status = '已完成'
         ORDER BY order_time DESC
         """
-        
+
         results = db.execute_query(sql)
-        
-        # 安全的浮点数转换函数
-        def safe_float(value, default=0.0):
-            if value is None or value == '' or value == '--':
-                return default
-            try:
-                return float(value)
-            except (ValueError, TypeError):
-                return default
-        
-        # 转换为字典列表
+
         buy_list = []
         if results:
             for row in results:
@@ -195,8 +169,8 @@ def get_all_buy():
                     'weapon_type': row[3],
                     'float_range': row[4],
                     'weapon_float': safe_float(row[5]),
-                    'buy_price': safe_float(row[6]),  # 前端使用buy_price
-                    'price': safe_float(row[6]),  # 保留原字段名
+                    'buy_price': safe_float(row[6]),
+                    'price': safe_float(row[6]),
                     'order_time': row[7],
                     'source': row[8],
                     'data_user': row[9],
@@ -205,13 +179,13 @@ def get_all_buy():
                     'steam_hash_name': row[12]
                 }
                 buy_list.append(item)
-        
+
         return jsonify({
             'success': True,
             'data': buy_list,
             'total': len(buy_list)
         }), 200
-        
+
     except Exception as e:
         logger.error(f"获取所有购入数据失败: {e}")
         return jsonify({
@@ -221,13 +195,11 @@ def get_all_buy():
         }), 500
 
 
-@webHomeChartsV1.route('/sell/all', methods=['GET'])
 def get_all_sell():
     """获取所有Steam账号的出售数据（用于Home页面图表）"""
     try:
         db = DatabaseManager()
-        
-        # 查询所有出售数据，只查询已完成的订单
+
         sql = """
         SELECT
             id, weapon_name, item_name, weapon_type, float_range,
@@ -237,19 +209,9 @@ def get_all_sell():
         WHERE status = '已完成'
         ORDER BY order_time DESC
         """
-        
+
         results = db.execute_query(sql)
-        
-        # 安全的浮点数转换函数
-        def safe_float(value, default=0.0):
-            if value is None or value == '' or value == '--':
-                return default
-            try:
-                return float(value)
-            except (ValueError, TypeError):
-                return default
-        
-        # 转换为字典列表
+
         sell_list = []
         if results:
             for row in results:
@@ -260,8 +222,8 @@ def get_all_sell():
                     'weapon_type': row[3],
                     'float_range': row[4],
                     'weapon_float': safe_float(row[5]),
-                    'sell_price': safe_float(row[6]),  # 前端使用sell_price
-                    'price': safe_float(row[6]),  # 保留原字段名
+                    'sell_price': safe_float(row[6]),
+                    'price': safe_float(row[6]),
                     'order_time': row[7],
                     'source': row[8],
                     'data_user': row[9],
@@ -270,13 +232,13 @@ def get_all_sell():
                     'steam_hash_name': row[12]
                 }
                 sell_list.append(item)
-        
+
         return jsonify({
             'success': True,
             'data': sell_list,
             'total': len(sell_list)
         }), 200
-        
+
     except Exception as e:
         logger.error(f"获取所有出售数据失败: {e}")
         return jsonify({

@@ -294,7 +294,7 @@ export function useSteamDT() {
     // console.log('[SteamDT] 开始获取首页数据（饰品成交额）...')
 
     try {
-      const url = apiUrls.steamdtHomepageData()
+      const url = apiUrls.homeSteamdtHomepageData()
       const response = await fetch(url)
       const result = await response.json()
 
