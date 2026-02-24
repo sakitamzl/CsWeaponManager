@@ -51,7 +51,7 @@ export function useCollectionState() {
   // 使用全局单例，确保所有组件共享同一个状态
   if (!globalCollectingSourceIds) {
     globalCollectingSourceIds = ref(loadCollectingState())
-    
+
     // 监听状态变化，自动保存到 localStorage
     watch(
       globalCollectingSourceIds,
@@ -113,4 +113,3 @@ export function useCollectionState() {
     clearAllCollecting
   }
 }
-

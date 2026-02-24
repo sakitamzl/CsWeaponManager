@@ -3,7 +3,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, User, Grid, Loading, CircleCheck, DataAnalysis } from '@element-plus/icons-vue'
 import axios from 'axios'
 import { apiUrls } from '@/config/api.js'
-import { useCollectionState } from '@/composables/useCollectionState.js'
+import { useCollectionState } from './useCollectionState.js'
 
 
 export function useDataSource() {
@@ -710,10 +710,10 @@ export function useDataSource() {
 
       let response
       if (editingSourceId.value) {
-        const url = apiUrls.dataSourceById(editingSourceId.value)
+        const url = apiUrls.dataSourceUpdate(editingSourceId.value)
         response = await axios.put(url, requestData)
       } else {
-        const url = apiUrls.dataSource()
+        const url = apiUrls.dataSourceCreate()
         response = await axios.post(url, requestData)
       }
 
@@ -2482,10 +2482,10 @@ export function useDataSource() {
       }
     ).then(async () => {
       try {
-        const response = await axios.delete(apiUrls.dataSourceById(editingSourceId.value))
+        const response = await axios.delete(apiUrls.dataSourceDelete(editingSourceId.value))
 
         const result = response.data
-        
+
         if (result.success) {
           const index = dataSources.value.findIndex(s => s.dataID === editingSourceId.value)
           if (index > -1) {
@@ -2863,7 +2863,7 @@ export function useDataSource() {
       }
 
       const response = await axios.put(
-        apiUrls.dataSourceById(editingSourceId.value), 
+        apiUrls.dataSourceUpdate(editingSourceId.value),
         requestData
       )
 
@@ -2928,10 +2928,10 @@ export function useDataSource() {
       }
     ).then(async () => {
       try {
-        const response = await axios.delete(apiUrls.dataSourceById(source.dataID))
+        const response = await axios.delete(apiUrls.dataSourceDelete(source.dataID))
 
         const result = response.data
-        
+
         if (result.success) {
           const index = dataSources.value.findIndex(s => s.dataID === source.dataID)
           if (index > -1) {
@@ -2973,7 +2973,7 @@ export function useDataSource() {
   const loadDataSources = async () => {
     try {
       // console.log('开始请求数据源API...')
-      const response = await axios.get(apiUrls.dataSource())
+      const response = await axios.get(apiUrls.dataSourceList())
       // console.log('Axios response:', response)
       
       const result = response.data

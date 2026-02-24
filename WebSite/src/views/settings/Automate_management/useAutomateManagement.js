@@ -215,9 +215,9 @@ export function useAutomateManagement() {
   // 加载悠悠有品配置列表（key1='youpin'）
   const loadYoupinConfigs = async () => {
     try {
-      const response = await axios.get(`${API_CONFIG.BASE_URL}/dataSourcePageV1/api/datasource`)
+      const response = await axios.get(apiUrls.dataSourceList())
       console.log('数据源API响应:', response.data)
-      
+
       if (response.data.success && Array.isArray(response.data.data)) {
         // 筛选 key1='youpin' 的配置
         youpinConfigList.value = response.data.data
@@ -238,9 +238,9 @@ export function useAutomateManagement() {
   // 加载BUFF配置列表（key1='buff'）
   const loadBuffConfigs = async () => {
     try {
-      const response = await axios.get(`${API_CONFIG.BASE_URL}/dataSourcePageV1/api/datasource`)
+      const response = await axios.get(apiUrls.dataSourceList())
       console.log('数据源API响应:', response.data)
-      
+
       if (response.data.success && Array.isArray(response.data.data)) {
         // 筛选 key1='buff' 的配置
         buffConfigList.value = response.data.data
@@ -303,7 +303,7 @@ export function useAutomateManagement() {
   // 加载数据源列表
   const loadDataSources = async () => {
     try {
-      const response = await axios.get(`${API_CONFIG.BASE_URL}/dataSourcePageV1/api/datasource`)
+      const response = await axios.get(apiUrls.dataSourceList())
       console.log('数据源API响应:', response.data)
       if (response.data.success && Array.isArray(response.data.data)) {
         dataSources.value = response.data.data

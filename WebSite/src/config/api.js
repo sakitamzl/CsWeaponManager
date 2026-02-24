@@ -19,17 +19,23 @@ export const API_CONFIG = {
 
   ENDPOINTS: {
 
-    // 数据源相关
+    // 数据源相关（V2 API）
 
-    DATA_SOURCE: '/dataSourcePageV1/api/datasource',
+    DATA_SOURCE_V2_LIST: '/backENDV2/src/web_display/settings/data_source/units/data/getDataSourceList',
 
-    DATA_SOURCE_TEST: '/dataSourcePageV1/api/datasource/test',
+    DATA_SOURCE_V2_CREATE: '/backENDV2/src/web_display/settings/data_source/units/data/createDataSource',
 
-    DATA_SOURCE_COLLECT: (id) => `/dataSourcePageV1/api/datasource/${id}/collect`,
+    DATA_SOURCE_V2_BY_ID: (id) => `/backENDV2/src/web_display/settings/data_source/units/data/getDataSourceById/${id}`,
 
-    DATA_SOURCE_TOGGLE: (id) => `/dataSourcePageV1/api/datasource/${id}/toggle`,
+    DATA_SOURCE_V2_UPDATE: (id) => `/backENDV2/src/web_display/settings/data_source/units/data/updateDataSource/${id}`,
 
-    DATA_SOURCE_BY_ID: (id) => `/dataSourcePageV1/api/datasource/${id}`,
+    DATA_SOURCE_V2_DELETE: (id) => `/backENDV2/src/web_display/settings/data_source/units/data/deleteDataSource/${id}`,
+
+    DATA_SOURCE_V2_TEST: '/backENDV2/src/web_display/settings/data_source/units/ops/testConnection',
+
+    DATA_SOURCE_V2_COLLECT: (id) => `/backENDV2/src/web_display/settings/data_source/units/ops/collectDataSource/${id}`,
+
+    DATA_SOURCE_V2_TOGGLE: (id) => `/backENDV2/src/web_display/settings/data_source/units/ops/toggleDataSource/${id}`,
 
     
 
@@ -616,19 +622,23 @@ export const getSpiderApiUrl = (endpoint) => {
 
 export const apiUrls = {
 
-  // 数据源
+  // 数据源（V2 API）
 
-  dataSource: () => getApiUrl(API_CONFIG.ENDPOINTS.DATA_SOURCE),
+  dataSourceList: () => getApiUrl(API_CONFIG.ENDPOINTS.DATA_SOURCE_V2_LIST),
 
-  dataSourceTest: () => getApiUrl(API_CONFIG.ENDPOINTS.DATA_SOURCE_TEST),
+  dataSourceCreate: () => getApiUrl(API_CONFIG.ENDPOINTS.DATA_SOURCE_V2_CREATE),
 
-  dataSourceCollect: (id) => getApiUrl(API_CONFIG.ENDPOINTS.DATA_SOURCE_COLLECT(id)),
+  dataSourceById: (id) => getApiUrl(API_CONFIG.ENDPOINTS.DATA_SOURCE_V2_BY_ID(id)),
 
-  dataSourceToggle: (id) => getApiUrl(API_CONFIG.ENDPOINTS.DATA_SOURCE_TOGGLE(id)),
+  dataSourceUpdate: (id) => getApiUrl(API_CONFIG.ENDPOINTS.DATA_SOURCE_V2_UPDATE(id)),
 
-  dataSourceById: (id) => getApiUrl(API_CONFIG.ENDPOINTS.DATA_SOURCE_BY_ID(id)),
+  dataSourceDelete: (id) => getApiUrl(API_CONFIG.ENDPOINTS.DATA_SOURCE_V2_DELETE(id)),
 
-  updateDataSource: (id) => getApiUrl(API_CONFIG.ENDPOINTS.DATA_SOURCE_BY_ID(id)),  // PUT 更新数据源
+  dataSourceTest: () => getApiUrl(API_CONFIG.ENDPOINTS.DATA_SOURCE_V2_TEST),
+
+  dataSourceCollect: (id) => getApiUrl(API_CONFIG.ENDPOINTS.DATA_SOURCE_V2_COLLECT(id)),
+
+  dataSourceToggle: (id) => getApiUrl(API_CONFIG.ENDPOINTS.DATA_SOURCE_V2_TOGGLE(id)),
 
   
 
