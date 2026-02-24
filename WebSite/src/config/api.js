@@ -447,13 +447,13 @@ export const API_CONFIG = {
 
     // 正在出售相关
 
-    ON_SALE_YYYP_ACCOUNTS: '/webOnSaleV1/getYYYPAccounts',  // 获取悠悠有品账号列表
+    ON_SALE_YYYP_ACCOUNTS: '/backENDV2/src/web_display/on_sale/units/accounts/getYYYPAccounts',  // 获取悠悠有品账号列表
 
-    ON_SALE_BUFF_ACCOUNTS: '/webOnSaleV1/getBuffAccounts',  // 获取BUFF账号列表
+    ON_SALE_BUFF_ACCOUNTS: '/backENDV2/src/web_display/on_sale/units/accounts/getBuffAccounts',  // 获取BUFF账号列表
 
-    ON_SALE_ITEMS: '/webOnSaleV1/getOnSaleItems',  // 获取在售商品列表
+    ON_SALE_ITEMS: '/backENDV2/src/web_display/on_sale/units/items/getOnSaleItems',  // 获取在售商品列表
 
-    ON_SALE_REMOVE: '/webOnSaleV1/removeFromSale',  // 下架商品
+    ON_SALE_REMOVE: '/backENDV2/src/web_display/on_sale/units/items/removeFromSale',  // 下架商品
 
     
 
