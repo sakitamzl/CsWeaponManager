@@ -31,7 +31,6 @@ from src.web_side.steam.select_weapon_hash_name import steamSelectWeaponHashName
 from src.web_side.steam.inventory_mining import inventoryMiningV1
 from src.web_side.webSide.steamMarket import webSteamMarketV1
 from src.web_side.webSide.steamInventoryHistory import webSteamInventoryHistoryV1
-from src.web_side.webSide.sell_page import webSellPageV1
 from src.web_side.webSide.lent_page import webLentPageV1
 from src.web_side.webSide.message_box_page import webMessageBoxPageV1
 from src.web_side.webSide.sys_message_page import webSysMessagePageV1
@@ -102,7 +101,6 @@ def blankEndApi():
     app.register_blueprint(inventoryMiningV1, url_prefix = '/api/v1/steam/inventory/mining')
     app.register_blueprint(webSteamMarketV1, url_prefix = '/webSteamMarketV1')
     app.register_blueprint(webSteamInventoryHistoryV1, url_prefix = '/webSteamInventoryHistoryV1')
-    app.register_blueprint(webSellPageV1, url_prefix = '/webSellPageV1')
     app.register_blueprint(webLentPageV1, url_prefix = '/webLentPageV1')
     app.register_blueprint(webMessageBoxPageV1, url_prefix = '/webMessageBoxPageV1')
     app.register_blueprint(webSysMessagePageV1, url_prefix = '/api')

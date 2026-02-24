@@ -669,7 +669,7 @@ export function useSell() {
       const [startDate, endDate] = dateRange.value
       console.log('按时间搜索:', startDate, '至', endDate)
 
-      const response = await fetch(`/api/webSellV1/searchSellByTimeRange/${startDate}/${endDate}`, {
+      const response = await fetch(apiUrls.sellSearchTimeRange(startDate, endDate), {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -742,7 +742,7 @@ export function useSell() {
     try {
       console.log('正在获取时间范围统计...', { startDate, endDate })
       
-      const response = await fetch(`/api/webSellV1/getSellStatsByTimeRange/${startDate}/${endDate}`, {
+      const response = await fetch(apiUrls.sellStatsTimeRange(startDate, endDate), {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -1088,7 +1088,7 @@ export function useSell() {
     }
 
     try {
-      const response = await fetch(apiUrls.buyYyypPriceInfo(steamHashName), {
+      const response = await fetch(apiUrls.sellYyypPriceInfo(steamHashName), {
         method: 'GET',
         headers: { 'Accept': 'application/json' }
       })
@@ -1145,7 +1145,7 @@ export function useSell() {
         if (!hashName) return null
 
         try {
-          const url = apiUrls.buyYyypPriceInfo(hashName)
+          const url = apiUrls.sellYyypPriceInfo(hashName)
           console.log('请求URL:', url)
 
           const response = await fetch(url, {
@@ -1212,7 +1212,7 @@ export function useSell() {
 
       if (!hashName) return
 
-      const url = apiUrls.buyYyypPriceInfo(hashName)
+      const url = apiUrls.sellYyypPriceInfo(hashName)
       console.log('挂件请求URL:', url, 'rawHashName:', rawHashName, 'hashName:', hashName)
 
       const response = await fetch(url, {
@@ -1270,7 +1270,7 @@ export function useSell() {
     }
 
     try {
-      const url = apiUrls.buyYyypPriceInfo(steamHashName)
+      const url = apiUrls.sellYyypPriceInfo(steamHashName)
       console.log('武器主体请求URL:', url, 'steamHashName:', steamHashName)
 
       const response = await fetch(url, {

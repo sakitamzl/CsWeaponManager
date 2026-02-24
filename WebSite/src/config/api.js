@@ -39,17 +39,31 @@ export const API_CONFIG = {
 
     
 
-    // 销售数据相关
+    // 销售数据相关（V2 API）
 
-    SELL_DATA: (page, limit) => `/webSellV1/getSellData/${page}/${limit}`,
+    SELL_DATA_FILTERED: '/backENDV2/src/web_display/sell/units/data/getSellDataFiltered',
 
-    SELL_STATS: '/webSellV1/getSellStats',
+    SELL_STATS_FILTERED: '/backENDV2/src/web_display/sell/units/stats/getSellStatsFiltered',
 
-    SELL_SOURCE_LIST: '/webSellV1/getSourceList',
+    SELL_SEARCH_TIME_RANGE: (startDate, endDate) => `/backENDV2/src/web_display/sell/units/data/searchSellByTimeRange/${startDate}/${endDate}`,
 
-    SELL_DATA_BY_SOURCE: (source, page, limit) => `/webSellV1/getSellDataBySource/${encodeURIComponent(source)}/${page}/${limit}`,
+    SELL_STATS_TIME_RANGE: (startDate, endDate) => `/backENDV2/src/web_display/sell/units/stats/getSellStatsByTimeRange/${startDate}/${endDate}`,
 
-    SELL_STATS_BY_SOURCE: (source) => `/webSellV1/getSellStatsBySource/${encodeURIComponent(source)}`,
+    SELL_DATA_USER_LIST: '/backENDV2/src/web_display/sell/units/filters/getDataUserList',
+
+    SELL_SEARCH_BY_TYPE_WEAR: '/backENDV2/src/web_display/sell/units/data/searchByTypeAndWear',
+
+    SELL_STATS_BY_TYPE_WEAR: '/backENDV2/src/web_display/sell/units/stats/getStatsByTypeAndWear',
+
+    SELL_WEAPON_TYPES: '/backENDV2/src/web_display/sell/units/filters/getWeaponTypes',
+
+    SELL_FLOAT_RANGES: '/backENDV2/src/web_display/sell/units/filters/getFloatRanges',
+
+    SELL_STATUS_LIST: '/backENDV2/src/web_display/sell/units/filters/getStatusList',
+
+    SELL_STATUS_SUB_LIST: (status) => `/backENDV2/src/web_display/sell/units/filters/getStatusSubList?status=${encodeURIComponent(status)}`,
+
+    SELL_YYYP_PRICE_INFO: (steamHashName) => `/backENDV2/src/web_display/sell/units/price_info/getYyypPriceInfo/${encodeURIComponent(steamHashName)}`,
 
     BUY_STATS_FILTERED: '/backENDV2/src/web_display/buy/units/stats/getBuyStatsFiltered',
 
@@ -61,17 +75,11 @@ export const API_CONFIG = {
 
     BUY_STATS_TIME_RANGE: (startDate, endDate) => `/backENDV2/src/web_display/buy/units/stats/getBuyStatsByTimeRange/${startDate}/${endDate}`,
 
-    SELL_STATS_FILTERED: '/webSellV1/getSellStatsFiltered',
-
-    SELL_DATA_FILTERED: '/webSellV1/getSellDataFiltered',
-
     LENT_STATS_FILTERED: '/webLentPageV1/getLentStatsFiltered',
 
     LENT_DATA_FILTERED: '/webLentPageV1/getLentDataFiltered',
 
-    SELL_DATA_USER_LIST: '/webSellV1/getDataUserList',
 
-    
 
     // 消息数据相关
 
@@ -162,20 +170,6 @@ export const API_CONFIG = {
     BUY_YYYP_PRICE_INFO: (steamHashName) => `/backENDV2/src/web_display/buy/units/price_info/getYyypPriceInfo/${encodeURIComponent(steamHashName)}`,
 
 
-
-    SELL_WEAPON_TYPES: '/webSellPageV1/getWeaponTypes',
-
-    SELL_FLOAT_RANGES: '/webSellPageV1/getFloatRanges',
-
-    SELL_STATUS_LIST: '/webSellPageV1/getStatusList',
-
-    SELL_STATUS_SUB_LIST: (status) => `/webSellPageV1/getStatusSubList?status=${encodeURIComponent(status)}`,
-
-    SELL_SEARCH_BY_TYPE_WEAR: '/webSellPageV1/searchByTypeAndWear',
-
-    SELL_STATS_BY_TYPE_WEAR: '/webSellPageV1/getStatsByTypeAndWear',
-
-    
 
     LENT_WEAPON_TYPES: '/webLentPageV1/getWeaponTypes',
 
@@ -614,19 +608,17 @@ export const apiUrls = {
 
   
 
-  // 销售数据
-
-  sellData: (page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.SELL_DATA(page, limit)),
-
-  sellStats: () => getApiUrl(API_CONFIG.ENDPOINTS.SELL_STATS),
-
-  sellDataUserList: () => getApiUrl(API_CONFIG.ENDPOINTS.SELL_DATA_USER_LIST),
-
-  sellDataBySource: (source, page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.SELL_DATA_BY_SOURCE(source, page, limit)),
+  // 销售数据（V2 API）
 
   sellStatsFiltered: () => getApiUrl(API_CONFIG.ENDPOINTS.SELL_STATS_FILTERED),
 
   sellDataFiltered: () => getApiUrl(API_CONFIG.ENDPOINTS.SELL_DATA_FILTERED),
+
+  sellSearchTimeRange: (startDate, endDate) => getApiUrl(API_CONFIG.ENDPOINTS.SELL_SEARCH_TIME_RANGE(startDate, endDate)),
+
+  sellStatsTimeRange: (startDate, endDate) => getApiUrl(API_CONFIG.ENDPOINTS.SELL_STATS_TIME_RANGE(startDate, endDate)),
+
+  sellDataUserList: () => getApiUrl(API_CONFIG.ENDPOINTS.SELL_DATA_USER_LIST),
 
   
 
@@ -732,7 +724,9 @@ export const apiUrls = {
 
   sellStatsByTypeWear: () => getApiUrl(API_CONFIG.ENDPOINTS.SELL_STATS_BY_TYPE_WEAR),
 
-  
+  sellYyypPriceInfo: (steamHashName) => getApiUrl(API_CONFIG.ENDPOINTS.SELL_YYYP_PRICE_INFO(steamHashName)),
+
+
 
   lentWeaponTypes: () => getApiUrl(API_CONFIG.ENDPOINTS.LENT_WEAPON_TYPES),
 
