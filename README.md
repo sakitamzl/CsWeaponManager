@@ -1,6 +1,6 @@
 # CS武器管理器 (CS Weapon Manager)
 
-> 一个功能完善的CS2/CSGO饰品交易管理系统，帮助您高效管理Steam饰品的购买、出售、租赁等操作。
+> 一个功能完善的CS2饰品交易管理系统，帮助您高效管理Steam饰品的购买、出售、租赁等操作。
 
 ## 📝 用前必看
 - 需要下载图包：[点击下载](https://drive.google.com/file/d/1Jz50N_op51l2xjMPzFX5SKO9rQMNr4nP/view?usp=drive_link)
