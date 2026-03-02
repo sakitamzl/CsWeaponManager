@@ -3,7 +3,7 @@ chcp 65001 >nul
 
 setlocal
 
-call conda activate CS2DB
+call conda activate CSWM
 
 cd /d "%~dp0backEnd"
 start /b cmd /c "python backEnd.py"

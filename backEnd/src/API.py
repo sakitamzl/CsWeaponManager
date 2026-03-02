@@ -8,7 +8,11 @@ backEND V2 API 根模块
 from flask import Blueprint
 from .web_display.API import web_display_blueprint
 from .use_spider.youpin.API import youpin_spider_blueprint
+from .use_spider.buff.API import buff_spider_blueprint
+from .use_spider.csfloat.API import csfloat_spider_blueprint
 
 backendV2_blueprint = Blueprint('backendV2_src', __name__)
 backendV2_blueprint.register_blueprint(web_display_blueprint,    url_prefix='/src')
 backendV2_blueprint.register_blueprint(youpin_spider_blueprint,  url_prefix='/src')
+backendV2_blueprint.register_blueprint(buff_spider_blueprint,    url_prefix='/src')
+backendV2_blueprint.register_blueprint(csfloat_spider_blueprint, url_prefix='/src')

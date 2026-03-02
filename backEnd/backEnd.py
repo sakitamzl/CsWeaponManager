@@ -7,13 +7,6 @@ from src.web_side.webSide.web.index_page import indexPage
 from src.web_side.webSide.web.buy_page import webBuyV1
 from src.web_side.webSide.web.sell_page import webSellV1
 from src.web_side.webSide.web.select_weapon import webSelectWeaponV1
-from src.web_side.buff163.buy import buff163BuyV1
-from src.web_side.buff163.sell import buff163SellV1
-from src.web_side.buff163.select_weapon import buff163SelectWeaponV1
-from src.web_side.buff163.message_box import buff163MessageV1
-from src.web_side.BUFF.rental_v1 import buff163RentalV1
-from src.web_side.csfloat.buy import csfloatBuyV1
-from src.web_side.csfloat.sell import csfloatSellV1
 from src.web_side.steam.market import steamMarketV1
 from src.web_side.steam.steam_inventory_history_api import steamInventoryHistoryV1
 from src.web_side.steam.inventory import steamInventoryV1
@@ -61,13 +54,6 @@ def blankEndApi():
     app.register_blueprint(webBuyV1, url_prefix = '/webBuyV1')
     app.register_blueprint(webSellV1, url_prefix = '/webSellV1')
     app.register_blueprint(webSelectWeaponV1, url_prefix = '/webSelectWeaponV1')
-    app.register_blueprint(buff163BuyV1, url_prefix = '/buff163BuyV1')
-    app.register_blueprint(buff163SellV1, url_prefix = '/buff163SellV1')
-    app.register_blueprint(buff163SelectWeaponV1, url_prefix = '/buff163SelectWeaponV1')
-    app.register_blueprint(buff163MessageV1, url_prefix = '/buff163MessageV1')
-    app.register_blueprint(buff163RentalV1, url_prefix = '/buff163RentalV1')
-    app.register_blueprint(csfloatBuyV1, url_prefix = '/csfloatBuyV1')
-    app.register_blueprint(csfloatSellV1, url_prefix = '/csfloatSellV1')
     app.register_blueprint(steamMarketV1, url_prefix = '/steamMarketV1')
     app.register_blueprint(steamInventoryHistoryV1, url_prefix = '/steamInventoryHistoryV1')
     app.register_blueprint(steamInventoryV1, url_prefix = '/api/v1/steam')
