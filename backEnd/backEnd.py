@@ -7,18 +7,11 @@ from src.web_side.webSide.web.index_page import indexPage
 from src.web_side.webSide.web.buy_page import webBuyV1
 from src.web_side.webSide.web.sell_page import webSellV1
 from src.web_side.webSide.web.select_weapon import webSelectWeaponV1
-from src.web_side.steam.market import steamMarketV1
-from src.web_side.steam.steam_inventory_history_api import steamInventoryHistoryV1
-from src.web_side.steam.inventory import steamInventoryV1
-from src.web_side.steam.select_weapon_hash_name import steamSelectWeaponHashNameV1
-from src.web_side.steam.inventory_mining import inventoryMiningV1
 from src.web_side.webSide.steamMarket import webSteamMarketV1
 
 from src.web_side.webSide.sys_message_page import webSysMessagePageV1
 from src.web_side.webSide.inventory_api import webInventoryV1
 from src.web_side.webSide.stock_components import webStockComponentsV1
-from src.web_side.prefectWorld.prefectworld_config import prefectWorldConfigV1
-from src.web_side.prefectWorld.stock_components_api import prefectWorldStockComponentsV1
 
 from src.web_side.webSide.settings.search_pendant_config_api import search_pendant_config_bp
 from src.web_side.webSide.settings.auto_search_weapon_api import search_rename_bp
@@ -54,19 +47,12 @@ def blankEndApi():
     app.register_blueprint(webBuyV1, url_prefix = '/webBuyV1')
     app.register_blueprint(webSellV1, url_prefix = '/webSellV1')
     app.register_blueprint(webSelectWeaponV1, url_prefix = '/webSelectWeaponV1')
-    app.register_blueprint(steamMarketV1, url_prefix = '/steamMarketV1')
-    app.register_blueprint(steamInventoryHistoryV1, url_prefix = '/steamInventoryHistoryV1')
-    app.register_blueprint(steamInventoryV1, url_prefix = '/api/v1/steam')
-    app.register_blueprint(steamSelectWeaponHashNameV1, url_prefix = '/steamSelectWeaponHashNameV1')
-    app.register_blueprint(inventoryMiningV1, url_prefix = '/api/v1/steam/inventory/mining')
     app.register_blueprint(webSteamMarketV1, url_prefix = '/webSteamMarketV1')
 
     app.register_blueprint(webSysMessagePageV1, url_prefix = '/api')
     app.register_blueprint(webInventoryV1, url_prefix = '/webInventoryV1')
     app.register_blueprint(webStockComponentsV1, url_prefix = '/webStockComponentsV1')
 
-    app.register_blueprint(prefectWorldConfigV1, url_prefix = '/prefectWorldConfigV1')
-    app.register_blueprint(prefectWorldStockComponentsV1, url_prefix = '/prefectWorldStockComponentsV1')
 
     # 挂件搜索配置进度保存 API
     app.register_blueprint(search_pendant_config_bp)

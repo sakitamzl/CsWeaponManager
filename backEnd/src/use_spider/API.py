@@ -7,14 +7,20 @@ use_spider 聚合 API 模块
 /backENDV2/src/use_spider/youpin/<module>/<endpoint>
 /backENDV2/src/use_spider/buff/<module>/<endpoint>
 /backENDV2/src/use_spider/csfloat/<module>/<endpoint>
+/backENDV2/src/use_spider/steam/<module>/<endpoint>
+/backENDV2/src/use_spider/prefect_world/<module>/<endpoint>
 """
 from flask import Blueprint
 from .youpin.API import youpin_spider_blueprint
 from .buff.API import buff_spider_blueprint
 from .csfloat.API import csfloat_spider_blueprint
+from .steam.API import steam_spider_blueprint
+from .prefect_world.API import prefect_world_spider_blueprint
 
 use_spider_blueprint = Blueprint('use_spider', __name__)
 
-use_spider_blueprint.register_blueprint(youpin_spider_blueprint,  url_prefix='/use_spider/youpin')
-use_spider_blueprint.register_blueprint(buff_spider_blueprint,    url_prefix='/use_spider/buff')
-use_spider_blueprint.register_blueprint(csfloat_spider_blueprint, url_prefix='/use_spider/csfloat')
+use_spider_blueprint.register_blueprint(youpin_spider_blueprint,       url_prefix='/use_spider/youpin')
+use_spider_blueprint.register_blueprint(buff_spider_blueprint,         url_prefix='/use_spider/buff')
+use_spider_blueprint.register_blueprint(csfloat_spider_blueprint,      url_prefix='/use_spider/csfloat')
+use_spider_blueprint.register_blueprint(steam_spider_blueprint,        url_prefix='/use_spider/steam')
+use_spider_blueprint.register_blueprint(prefect_world_spider_blueprint,url_prefix='/use_spider/prefect_world')
