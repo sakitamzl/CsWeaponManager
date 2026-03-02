@@ -21,161 +21,161 @@ export const API_CONFIG = {
 
     // 数据源相关（V2 API）
 
-    DATA_SOURCE_V2_LIST: '/backENDV2/src/web_display/settings/data_source/units/data/getDataSourceList',
+    DATA_SOURCE_V2_LIST: '/backENDV2/src/use_webside/settings/data_source/units/data/getDataSourceList',
 
-    DATA_SOURCE_V2_CREATE: '/backENDV2/src/web_display/settings/data_source/units/data/createDataSource',
+    DATA_SOURCE_V2_CREATE: '/backENDV2/src/use_webside/settings/data_source/units/data/createDataSource',
 
-    DATA_SOURCE_V2_BY_ID: (id) => `/backENDV2/src/web_display/settings/data_source/units/data/getDataSourceById/${id}`,
+    DATA_SOURCE_V2_BY_ID: (id) => `/backENDV2/src/use_webside/settings/data_source/units/data/getDataSourceById/${id}`,
 
-    DATA_SOURCE_V2_UPDATE: (id) => `/backENDV2/src/web_display/settings/data_source/units/data/updateDataSource/${id}`,
+    DATA_SOURCE_V2_UPDATE: (id) => `/backENDV2/src/use_webside/settings/data_source/units/data/updateDataSource/${id}`,
 
-    DATA_SOURCE_V2_DELETE: (id) => `/backENDV2/src/web_display/settings/data_source/units/data/deleteDataSource/${id}`,
+    DATA_SOURCE_V2_DELETE: (id) => `/backENDV2/src/use_webside/settings/data_source/units/data/deleteDataSource/${id}`,
 
-    DATA_SOURCE_V2_TEST: '/backENDV2/src/web_display/settings/data_source/units/ops/testConnection',
+    DATA_SOURCE_V2_TEST: '/backENDV2/src/use_webside/settings/data_source/units/ops/testConnection',
 
-    DATA_SOURCE_V2_COLLECT: (id) => `/backENDV2/src/web_display/settings/data_source/units/ops/collectDataSource/${id}`,
+    DATA_SOURCE_V2_COLLECT: (id) => `/backENDV2/src/use_webside/settings/data_source/units/ops/collectDataSource/${id}`,
 
-    DATA_SOURCE_V2_TOGGLE: (id) => `/backENDV2/src/web_display/settings/data_source/units/ops/toggleDataSource/${id}`,
+    DATA_SOURCE_V2_TOGGLE: (id) => `/backENDV2/src/use_webside/settings/data_source/units/ops/toggleDataSource/${id}`,
 
     // 自动化管理相关（V2 API）
-    AUTO_MANAGER_V2_TASK_LIST: '/backENDV2/src/web_display/settings/auto_manager/units/data/getTaskList',
-    AUTO_MANAGER_V2_CREATE_TASK: '/backENDV2/src/web_display/settings/auto_manager/units/data/createTask',
-    AUTO_MANAGER_V2_UPDATE_TASK: (id) => `/backENDV2/src/web_display/settings/auto_manager/units/data/updateTask/${id}`,
-    AUTO_MANAGER_V2_DELETE_TASK: (id) => `/backENDV2/src/web_display/settings/auto_manager/units/data/deleteTask/${id}`,
-    AUTO_MANAGER_V2_TOGGLE_TASK: (id) => `/backENDV2/src/web_display/settings/auto_manager/units/ops/toggleTask/${id}`,
-    AUTO_MANAGER_V2_EXECUTING_TASKS: '/backENDV2/src/web_display/settings/auto_manager/units/ops/getExecutingTasks',
-    AUTO_MANAGER_V2_STEAM_ACCOUNTS: '/backENDV2/src/web_display/settings/auto_manager/units/filters/getSteamAccounts',
-    AUTO_MANAGER_V2_SEARCH_CONFIGS: '/backENDV2/src/web_display/settings/auto_manager/units/filters/getSearchConfigs',
+    AUTO_MANAGER_V2_TASK_LIST: '/backENDV2/src/use_webside/settings/auto_manager/units/data/getTaskList',
+    AUTO_MANAGER_V2_CREATE_TASK: '/backENDV2/src/use_webside/settings/auto_manager/units/data/createTask',
+    AUTO_MANAGER_V2_UPDATE_TASK: (id) => `/backENDV2/src/use_webside/settings/auto_manager/units/data/updateTask/${id}`,
+    AUTO_MANAGER_V2_DELETE_TASK: (id) => `/backENDV2/src/use_webside/settings/auto_manager/units/data/deleteTask/${id}`,
+    AUTO_MANAGER_V2_TOGGLE_TASK: (id) => `/backENDV2/src/use_webside/settings/auto_manager/units/ops/toggleTask/${id}`,
+    AUTO_MANAGER_V2_EXECUTING_TASKS: '/backENDV2/src/use_webside/settings/auto_manager/units/ops/getExecutingTasks',
+    AUTO_MANAGER_V2_STEAM_ACCOUNTS: '/backENDV2/src/use_webside/settings/auto_manager/units/filters/getSteamAccounts',
+    AUTO_MANAGER_V2_SEARCH_CONFIGS: '/backENDV2/src/use_webside/settings/auto_manager/units/filters/getSearchConfigs',
 
     // Steam库存历史相关（V2 API）
-    STEAM_INVENTORY_HISTORY_V2_LIST: '/backENDV2/src/web_display/settings/steam_inventory_history/units/data/getList',
+    STEAM_INVENTORY_HISTORY_V2_LIST: '/backENDV2/src/use_webside/settings/steam_inventory_history/units/data/getList',
 
     // 购买数据相关（V2 API）
 
-    BUY_DATA_USER_LIST: '/backENDV2/src/web_display/buy/units/filters/getDataUserList',
+    BUY_DATA_USER_LIST: '/backENDV2/src/use_webside/buy/units/filters/getDataUserList',
 
     
 
     // 销售数据相关（V2 API）
 
-    SELL_DATA_FILTERED: '/backENDV2/src/web_display/sell/units/data/getSellDataFiltered',
+    SELL_DATA_FILTERED: '/backENDV2/src/use_webside/sell/units/data/getSellDataFiltered',
 
-    SELL_STATS_FILTERED: '/backENDV2/src/web_display/sell/units/stats/getSellStatsFiltered',
+    SELL_STATS_FILTERED: '/backENDV2/src/use_webside/sell/units/stats/getSellStatsFiltered',
 
-    SELL_SEARCH_TIME_RANGE: (startDate, endDate) => `/backENDV2/src/web_display/sell/units/data/searchSellByTimeRange/${startDate}/${endDate}`,
+    SELL_SEARCH_TIME_RANGE: (startDate, endDate) => `/backENDV2/src/use_webside/sell/units/data/searchSellByTimeRange/${startDate}/${endDate}`,
 
-    SELL_STATS_TIME_RANGE: (startDate, endDate) => `/backENDV2/src/web_display/sell/units/stats/getSellStatsByTimeRange/${startDate}/${endDate}`,
+    SELL_STATS_TIME_RANGE: (startDate, endDate) => `/backENDV2/src/use_webside/sell/units/stats/getSellStatsByTimeRange/${startDate}/${endDate}`,
 
-    SELL_DATA_USER_LIST: '/backENDV2/src/web_display/sell/units/filters/getDataUserList',
+    SELL_DATA_USER_LIST: '/backENDV2/src/use_webside/sell/units/filters/getDataUserList',
 
-    SELL_SEARCH_BY_TYPE_WEAR: '/backENDV2/src/web_display/sell/units/data/searchByTypeAndWear',
+    SELL_SEARCH_BY_TYPE_WEAR: '/backENDV2/src/use_webside/sell/units/data/searchByTypeAndWear',
 
-    SELL_STATS_BY_TYPE_WEAR: '/backENDV2/src/web_display/sell/units/stats/getStatsByTypeAndWear',
+    SELL_STATS_BY_TYPE_WEAR: '/backENDV2/src/use_webside/sell/units/stats/getStatsByTypeAndWear',
 
-    SELL_WEAPON_TYPES: '/backENDV2/src/web_display/sell/units/filters/getWeaponTypes',
+    SELL_WEAPON_TYPES: '/backENDV2/src/use_webside/sell/units/filters/getWeaponTypes',
 
-    SELL_FLOAT_RANGES: '/backENDV2/src/web_display/sell/units/filters/getFloatRanges',
+    SELL_FLOAT_RANGES: '/backENDV2/src/use_webside/sell/units/filters/getFloatRanges',
 
-    SELL_STATUS_LIST: '/backENDV2/src/web_display/sell/units/filters/getStatusList',
+    SELL_STATUS_LIST: '/backENDV2/src/use_webside/sell/units/filters/getStatusList',
 
-    SELL_STATUS_SUB_LIST: (status) => `/backENDV2/src/web_display/sell/units/filters/getStatusSubList?status=${encodeURIComponent(status)}`,
+    SELL_STATUS_SUB_LIST: (status) => `/backENDV2/src/use_webside/sell/units/filters/getStatusSubList?status=${encodeURIComponent(status)}`,
 
-    SELL_YYYP_PRICE_INFO: (steamHashName) => `/backENDV2/src/web_display/sell/units/price_info/getYyypPriceInfo/${encodeURIComponent(steamHashName)}`,
+    SELL_YYYP_PRICE_INFO: (steamHashName) => `/backENDV2/src/use_webside/sell/units/price_info/getYyypPriceInfo/${encodeURIComponent(steamHashName)}`,
 
-    BUY_STATS_FILTERED: '/backENDV2/src/web_display/buy/units/stats/getBuyStatsFiltered',
+    BUY_STATS_FILTERED: '/backENDV2/src/use_webside/buy/units/stats/getBuyStatsFiltered',
 
-    BUY_DATA_FILTERED: '/backENDV2/src/web_display/buy/units/data/getBuyDataFiltered',
+    BUY_DATA_FILTERED: '/backENDV2/src/use_webside/buy/units/data/getBuyDataFiltered',
 
-    BUY_COUNT_NUMBER: '/backENDV2/src/web_display/buy/units/data/countBuyNumber',
+    BUY_COUNT_NUMBER: '/backENDV2/src/use_webside/buy/units/data/countBuyNumber',
 
-    BUY_SEARCH_TIME_RANGE: (startDate, endDate) => `/backENDV2/src/web_display/buy/units/data/searchBuyByTimeRange/${startDate}/${endDate}`,
+    BUY_SEARCH_TIME_RANGE: (startDate, endDate) => `/backENDV2/src/use_webside/buy/units/data/searchBuyByTimeRange/${startDate}/${endDate}`,
 
-    BUY_STATS_TIME_RANGE: (startDate, endDate) => `/backENDV2/src/web_display/buy/units/stats/getBuyStatsByTimeRange/${startDate}/${endDate}`,
+    BUY_STATS_TIME_RANGE: (startDate, endDate) => `/backENDV2/src/use_webside/buy/units/stats/getBuyStatsByTimeRange/${startDate}/${endDate}`,
 
     // 出租数据查询（V2 API）
-    LENT_DATA: (min, max) => `/backENDV2/src/web_display/lent/units/data/getLentData/${min}/${max}`,
-    LENT_DATA_BY_STATUS: (status, min, max) => `/backENDV2/src/web_display/lent/units/data/getLentDataByStatus/${encodeURIComponent(status)}/${min}/${max}`,
-    LENT_DATA_BY_STATUS_SUB: (statusSub, min, max) => `/backENDV2/src/web_display/lent/units/data/getLentDataByStatusSub/${encodeURIComponent(statusSub)}/${min}/${max}`,
-    LENT_SEARCH_BY_TIME: (startDate, endDate) => `/backENDV2/src/web_display/lent/units/data/searchLentByTimeRange/${startDate}/${endDate}`,
-    LENT_STATS_BY_TIME: (startDate, endDate) => `/backENDV2/src/web_display/lent/units/stats/getLentStatsByTimeRange/${startDate}/${endDate}`,
-    LENT_STATS_FILTERED: '/backENDV2/src/web_display/lent/units/stats/getLentStatsFiltered',
-    LENT_DATA_FILTERED: '/backENDV2/src/web_display/lent/units/data/getLentDataFiltered',
+    LENT_DATA: (min, max) => `/backENDV2/src/use_webside/lent/units/data/getLentData/${min}/${max}`,
+    LENT_DATA_BY_STATUS: (status, min, max) => `/backENDV2/src/use_webside/lent/units/data/getLentDataByStatus/${encodeURIComponent(status)}/${min}/${max}`,
+    LENT_DATA_BY_STATUS_SUB: (statusSub, min, max) => `/backENDV2/src/use_webside/lent/units/data/getLentDataByStatusSub/${encodeURIComponent(statusSub)}/${min}/${max}`,
+    LENT_SEARCH_BY_TIME: (startDate, endDate) => `/backENDV2/src/use_webside/lent/units/data/searchLentByTimeRange/${startDate}/${endDate}`,
+    LENT_STATS_BY_TIME: (startDate, endDate) => `/backENDV2/src/use_webside/lent/units/stats/getLentStatsByTimeRange/${startDate}/${endDate}`,
+    LENT_STATS_FILTERED: '/backENDV2/src/use_webside/lent/units/stats/getLentStatsFiltered',
+    LENT_DATA_FILTERED: '/backENDV2/src/use_webside/lent/units/data/getLentDataFiltered',
 
 
 
     // 消息数据相关
 
-    MESSAGE_DATA: (page, limit) => `/backENDV2/src/web_display/settings/yyyp_message_box/units/data/getMessageData/${page}/${limit}`,
+    MESSAGE_DATA: (page, limit) => `/backENDV2/src/use_webside/settings/yyyp_message_box/units/data/getMessageData/${page}/${limit}`,
 
-    MESSAGE_STATS: '/backENDV2/src/web_display/settings/yyyp_message_box/units/data/getMessageStats',
+    MESSAGE_STATS: '/backENDV2/src/use_webside/settings/yyyp_message_box/units/data/getMessageStats',
 
-    MESSAGE_TYPES: '/backENDV2/src/web_display/settings/yyyp_message_box/units/data/getMessageTypes',
+    MESSAGE_TYPES: '/backENDV2/src/use_webside/settings/yyyp_message_box/units/data/getMessageTypes',
 
-    MESSAGE_SEARCH_BY_KEYWORD: '/backENDV2/src/web_display/settings/yyyp_message_box/units/data/searchByKeyword',
+    MESSAGE_SEARCH_BY_KEYWORD: '/backENDV2/src/use_webside/settings/yyyp_message_box/units/data/searchByKeyword',
 
-    MESSAGE_SEARCH_BY_TIME: '/backENDV2/src/web_display/settings/yyyp_message_box/units/data/searchByTime',
+    MESSAGE_SEARCH_BY_TIME: '/backENDV2/src/use_webside/settings/yyyp_message_box/units/data/searchByTime',
 
-    MESSAGE_SEARCH_BY_TYPE: '/backENDV2/src/web_display/settings/yyyp_message_box/units/data/searchByType',
+    MESSAGE_SEARCH_BY_TYPE: '/backENDV2/src/use_webside/settings/yyyp_message_box/units/data/searchByType',
 
 
 
     // BUFF 消息数据相关（buff_messagebox 表）
 
-    BUFF_MESSAGE_DATA: (page, limit) => `/backENDV2/src/web_display/settings/buff_message_box/units/data/getMessageData/${page}/${limit}`,
+    BUFF_MESSAGE_DATA: (page, limit) => `/backENDV2/src/use_webside/settings/buff_message_box/units/data/getMessageData/${page}/${limit}`,
 
-    BUFF_MESSAGE_TYPES: '/backENDV2/src/web_display/settings/buff_message_box/units/data/getMessageTypes',
+    BUFF_MESSAGE_TYPES: '/backENDV2/src/use_webside/settings/buff_message_box/units/data/getMessageTypes',
 
     
 
     // Steam市场数据相关
 
-    STEAM_BUY_GAME_NAMES: '/backENDV2/src/web_display/settings/steam_market/units/buy/getBuyGameNames',
+    STEAM_BUY_GAME_NAMES: '/backENDV2/src/use_webside/settings/steam_market/units/buy/getBuyGameNames',
 
-    STEAM_BUY_DATA: (page, limit) => `/backENDV2/src/web_display/settings/steam_market/units/buy/getBuyData/${page}/${limit}`,
+    STEAM_BUY_DATA: (page, limit) => `/backENDV2/src/use_webside/settings/steam_market/units/buy/getBuyData/${page}/${limit}`,
 
-    STEAM_BUY_STATS: '/backENDV2/src/web_display/settings/steam_market/units/buy/getBuyStats',
+    STEAM_BUY_STATS: '/backENDV2/src/use_webside/settings/steam_market/units/buy/getBuyStats',
 
-    STEAM_BUY_STATS_BY_SEARCH: (keyword) => `/backENDV2/src/web_display/settings/steam_market/units/buy/getBuyStatsBySearch/${encodeURIComponent(keyword)}`,
+    STEAM_BUY_STATS_BY_SEARCH: (keyword) => `/backENDV2/src/use_webside/settings/steam_market/units/buy/getBuyStatsBySearch/${encodeURIComponent(keyword)}`,
 
-    STEAM_BUY_STATS_BY_GAME_NAME: (gameName) => `/backENDV2/src/web_display/settings/steam_market/units/buy/getBuyStatsByGameName/${encodeURIComponent(gameName)}`,
+    STEAM_BUY_STATS_BY_GAME_NAME: (gameName) => `/backENDV2/src/use_webside/settings/steam_market/units/buy/getBuyStatsByGameName/${encodeURIComponent(gameName)}`,
 
-    STEAM_BUY_DATA_BY_GAME_NAME: (gameName, page, limit) => `/backENDV2/src/web_display/settings/steam_market/units/buy/getBuyDataByGameName/${encodeURIComponent(gameName)}/${page}/${limit}`,
+    STEAM_BUY_DATA_BY_GAME_NAME: (gameName, page, limit) => `/backENDV2/src/use_webside/settings/steam_market/units/buy/getBuyDataByGameName/${encodeURIComponent(gameName)}/${page}/${limit}`,
 
-    STEAM_BUY_SEARCH_BY_NAME: (itemName) => `/backENDV2/src/web_display/settings/steam_market/units/buy/searchBuyByName/${encodeURIComponent(itemName)}`,
+    STEAM_BUY_SEARCH_BY_NAME: (itemName) => `/backENDV2/src/use_webside/settings/steam_market/units/buy/searchBuyByName/${encodeURIComponent(itemName)}`,
 
-    STEAM_BUY_SEARCH_BY_TIME: (startDate, endDate) => `/backENDV2/src/web_display/settings/steam_market/units/buy/searchBuyByTimeRange/${startDate}/${endDate}`,
+    STEAM_BUY_SEARCH_BY_TIME: (startDate, endDate) => `/backENDV2/src/use_webside/settings/steam_market/units/buy/searchBuyByTimeRange/${startDate}/${endDate}`,
 
-    STEAM_BUY_STATS_BY_TIME: (startDate, endDate) => `/backENDV2/src/web_display/settings/steam_market/units/buy/getBuyStatsByTimeRange/${startDate}/${endDate}`,
+    STEAM_BUY_STATS_BY_TIME: (startDate, endDate) => `/backENDV2/src/use_webside/settings/steam_market/units/buy/getBuyStatsByTimeRange/${startDate}/${endDate}`,
 
     
 
-    STEAM_SELL_GAME_NAMES: '/backENDV2/src/web_display/settings/steam_market/units/sell/getSellGameNames',
+    STEAM_SELL_GAME_NAMES: '/backENDV2/src/use_webside/settings/steam_market/units/sell/getSellGameNames',
 
-    STEAM_SELL_DATA: (page, limit) => `/backENDV2/src/web_display/settings/steam_market/units/sell/getSellData/${page}/${limit}`,
+    STEAM_SELL_DATA: (page, limit) => `/backENDV2/src/use_webside/settings/steam_market/units/sell/getSellData/${page}/${limit}`,
 
-    STEAM_SELL_STATS: '/backENDV2/src/web_display/settings/steam_market/units/sell/getSellStats',
+    STEAM_SELL_STATS: '/backENDV2/src/use_webside/settings/steam_market/units/sell/getSellStats',
 
-    STEAM_SELL_STATS_BY_SEARCH: (keyword) => `/backENDV2/src/web_display/settings/steam_market/units/sell/getSellStatsBySearch/${encodeURIComponent(keyword)}`,
+    STEAM_SELL_STATS_BY_SEARCH: (keyword) => `/backENDV2/src/use_webside/settings/steam_market/units/sell/getSellStatsBySearch/${encodeURIComponent(keyword)}`,
 
-    STEAM_SELL_STATS_BY_GAME_NAME: (gameName) => `/backENDV2/src/web_display/settings/steam_market/units/sell/getSellStatsByGameName/${encodeURIComponent(gameName)}`,
+    STEAM_SELL_STATS_BY_GAME_NAME: (gameName) => `/backENDV2/src/use_webside/settings/steam_market/units/sell/getSellStatsByGameName/${encodeURIComponent(gameName)}`,
 
-    STEAM_SELL_DATA_BY_GAME_NAME: (gameName, page, limit) => `/backENDV2/src/web_display/settings/steam_market/units/sell/getSellDataByGameName/${encodeURIComponent(gameName)}/${page}/${limit}`,
+    STEAM_SELL_DATA_BY_GAME_NAME: (gameName, page, limit) => `/backENDV2/src/use_webside/settings/steam_market/units/sell/getSellDataByGameName/${encodeURIComponent(gameName)}/${page}/${limit}`,
 
-    STEAM_SELL_SEARCH_BY_NAME: (itemName) => `/backENDV2/src/web_display/settings/steam_market/units/sell/searchSellByName/${encodeURIComponent(itemName)}`,
+    STEAM_SELL_SEARCH_BY_NAME: (itemName) => `/backENDV2/src/use_webside/settings/steam_market/units/sell/searchSellByName/${encodeURIComponent(itemName)}`,
 
-    STEAM_SELL_SEARCH_BY_TIME: (startDate, endDate) => `/backENDV2/src/web_display/settings/steam_market/units/sell/searchSellByTimeRange/${startDate}/${endDate}`,
+    STEAM_SELL_SEARCH_BY_TIME: (startDate, endDate) => `/backENDV2/src/use_webside/settings/steam_market/units/sell/searchSellByTimeRange/${startDate}/${endDate}`,
 
-    STEAM_SELL_STATS_BY_TIME: (startDate, endDate) => `/backENDV2/src/web_display/settings/steam_market/units/sell/getSellStatsByTimeRange/${startDate}/${endDate}`,
+    STEAM_SELL_STATS_BY_TIME: (startDate, endDate) => `/backENDV2/src/use_webside/settings/steam_market/units/sell/getSellStatsByTimeRange/${startDate}/${endDate}`,
 
     
 
     // 武器搜索相关
 
-    SEARCH_WEAPON: (keyword) => `/backENDV2/src/web_display/settings/data_source/units/weapon/search?keyword=${encodeURIComponent(keyword)}`,
+    SEARCH_WEAPON: (keyword) => `/backENDV2/src/use_webside/settings/data_source/units/weapon/search?keyword=${encodeURIComponent(keyword)}`,
 
-    SEARCH_WEAPON_DETAIL: (keyword, exactMatch = false) => `/backENDV2/src/web_display/settings/data_source/units/weapon/detail?keyword=${encodeURIComponent(keyword)}${exactMatch ? '&exactMatch=true' : ''}`,
+    SEARCH_WEAPON_DETAIL: (keyword, exactMatch = false) => `/backENDV2/src/use_webside/settings/data_source/units/weapon/detail?keyword=${encodeURIComponent(keyword)}${exactMatch ? '&exactMatch=true' : ''}`,
 
-    WEAPON_DETAIL_BASE: '/backENDV2/src/web_display/settings/data_source/units/weapon/detail',  // 武器详情搜索（用于axios params传参）
+    WEAPON_DETAIL_BASE: '/backENDV2/src/use_webside/settings/data_source/units/weapon/detail',  // 武器详情搜索（用于axios params传参）
 
     // 公共配置管理（search_config）
     CONFIG_GET: (key1, key2) => `/backENDV2/src/unites/search_config/get/${key1}/${key2}`,
@@ -184,74 +184,74 @@ export const API_CONFIG = {
     CONFIG_LIST: '/backENDV2/src/unites/search_config/list',
     CONFIG_DELETE: (configId) => `/backENDV2/src/unites/search_config/delete/${configId}`,
 
-    SEARCH_WEAPON_BY_PRICE_RANGE: '/backENDV2/src/web_display/settings/data_source/units/weapon/price_range',  // 按价格区间查询饰品（带在售数量筛选）
+    SEARCH_WEAPON_BY_PRICE_RANGE: '/backENDV2/src/use_webside/settings/data_source/units/weapon/price_range',  // 按价格区间查询饰品（带在售数量筛选）
 
-    WEAPON_NAMES: '/backENDV2/src/web_display/settings/data_source/units/weapon/names',  // 获取武器名称列表
+    WEAPON_NAMES: '/backENDV2/src/use_webside/settings/data_source/units/weapon/names',  // 获取武器名称列表
 
-    WEAPON_REFERENCE_PRICES: '/backENDV2/src/web_display/settings/data_source/units/weapon/reference_prices',  // 批量查询参考价
+    WEAPON_REFERENCE_PRICES: '/backENDV2/src/use_webside/settings/data_source/units/weapon/reference_prices',  // 批量查询参考价
 
-    WEAPON_CSQAQ_ID: '/backENDV2/src/web_display/settings/data_source/units/weapon/csqaq_id',  // 查询 csqaq_id
+    WEAPON_CSQAQ_ID: '/backENDV2/src/use_webside/settings/data_source/units/weapon/csqaq_id',  // 查询 csqaq_id
 
-    INVENTORY_PENDANT_PRICE: '/backENDV2/src/web_display/inventory/units/price/getPendantPrice',  // 获取单个挂件价格
+    INVENTORY_PENDANT_PRICE: '/backENDV2/src/use_webside/inventory/units/price/getPendantPrice',  // 获取单个挂件价格
 
-    INVENTORY_GET_ALL_PENDANTS: '/backENDV2/src/web_display/inventory/units/price/getAllPendants',  // 获取所有挂件数据
+    INVENTORY_GET_ALL_PENDANTS: '/backENDV2/src/use_webside/inventory/units/price/getAllPendants',  // 获取所有挂件数据
 
     
 
     // 类型和磨损等级搜索相关
 
-    BUY_WEAPON_TYPES: '/backENDV2/src/web_display/buy/units/filters/getWeaponTypes',
+    BUY_WEAPON_TYPES: '/backENDV2/src/use_webside/buy/units/filters/getWeaponTypes',
 
-    BUY_FLOAT_RANGES: '/backENDV2/src/web_display/buy/units/filters/getFloatRanges',
+    BUY_FLOAT_RANGES: '/backENDV2/src/use_webside/buy/units/filters/getFloatRanges',
 
-    BUY_STATUS_LIST: '/backENDV2/src/web_display/buy/units/filters/getStatusList',
+    BUY_STATUS_LIST: '/backENDV2/src/use_webside/buy/units/filters/getStatusList',
 
-    BUY_STATUS_SUB_LIST: (status) => `/backENDV2/src/web_display/buy/units/filters/getStatusSubList?status=${encodeURIComponent(status)}`,
+    BUY_STATUS_SUB_LIST: (status) => `/backENDV2/src/use_webside/buy/units/filters/getStatusSubList?status=${encodeURIComponent(status)}`,
 
-    BUY_SEARCH_BY_TYPE_WEAR: '/backENDV2/src/web_display/buy/units/data/searchByTypeAndWear',
+    BUY_SEARCH_BY_TYPE_WEAR: '/backENDV2/src/use_webside/buy/units/data/searchByTypeAndWear',
 
-    BUY_STATS_BY_TYPE_WEAR: '/backENDV2/src/web_display/buy/units/stats/getStatsByTypeAndWear',
+    BUY_STATS_BY_TYPE_WEAR: '/backENDV2/src/use_webside/buy/units/stats/getStatsByTypeAndWear',
 
-    BUY_YYYP_PRICE_INFO: (steamHashName) => `/backENDV2/src/web_display/buy/units/price_info/getYyypPriceInfo/${encodeURIComponent(steamHashName)}`,
+    BUY_YYYP_PRICE_INFO: (steamHashName) => `/backENDV2/src/use_webside/buy/units/price_info/getYyypPriceInfo/${encodeURIComponent(steamHashName)}`,
 
 
 
-    LENT_WEAPON_TYPES: '/backENDV2/src/web_display/lent/units/filters/getWeaponTypes',
+    LENT_WEAPON_TYPES: '/backENDV2/src/use_webside/lent/units/filters/getWeaponTypes',
 
-    LENT_FLOAT_RANGES: '/backENDV2/src/web_display/lent/units/filters/getFloatRanges',
+    LENT_FLOAT_RANGES: '/backENDV2/src/use_webside/lent/units/filters/getFloatRanges',
 
-    LENT_STATUS_LIST: '/backENDV2/src/web_display/lent/units/filters/getStatusList',
+    LENT_STATUS_LIST: '/backENDV2/src/use_webside/lent/units/filters/getStatusList',
 
-    LENT_STATUS_SUB_LIST: (status) => `/backENDV2/src/web_display/lent/units/filters/getStatusSubList?status=${encodeURIComponent(status)}`,
+    LENT_STATUS_SUB_LIST: (status) => `/backENDV2/src/use_webside/lent/units/filters/getStatusSubList?status=${encodeURIComponent(status)}`,
 
-    LENT_PLATFORM_LIST: '/backENDV2/src/web_display/lent/units/filters/getPlatformList',
+    LENT_PLATFORM_LIST: '/backENDV2/src/use_webside/lent/units/filters/getPlatformList',
 
-    LENT_LENTER_LIST: '/backENDV2/src/web_display/lent/units/filters/getLenterList',
+    LENT_LENTER_LIST: '/backENDV2/src/use_webside/lent/units/filters/getLenterList',
 
-    LENT_SEARCH_BY_TYPE_WEAR: '/backENDV2/src/web_display/lent/units/data/searchByTypeAndWear',
+    LENT_SEARCH_BY_TYPE_WEAR: '/backENDV2/src/use_webside/lent/units/data/searchByTypeAndWear',
 
-    LENT_STATS_BY_TYPE_WEAR: '/backENDV2/src/web_display/lent/units/stats/getStatsByTypeAndWear',
+    LENT_STATS_BY_TYPE_WEAR: '/backENDV2/src/use_webside/lent/units/stats/getStatsByTypeAndWear',
 
     
 
     // 借入数据查询（V2 API）
-    RENTAL_DATA: (min, max) => `/backENDV2/src/web_display/rental/units/data/getRentalData/${min}/${max}`,
-    RENTAL_DATA_BY_STATUS: (status, min, max) => `/backENDV2/src/web_display/rental/units/data/getRentalDataByStatus/${encodeURIComponent(status)}/${min}/${max}`,
-    RENTAL_DATA_BY_STATUS_SUB: (statusSub, min, max) => `/backENDV2/src/web_display/rental/units/data/getRentalDataByStatusSub/${encodeURIComponent(statusSub)}/${min}/${max}`,
-    RENTAL_SEARCH_BY_NAME: (itemName) => `/backENDV2/src/web_display/rental/units/data/selectRentalWeaponName/${encodeURIComponent(itemName)}`,
-    RENTAL_SEARCH_BY_TIME: (startDate, endDate) => `/backENDV2/src/web_display/rental/units/data/searchRentalByTimeRange/${startDate}/${endDate}`,
+    RENTAL_DATA: (min, max) => `/backENDV2/src/use_webside/rental/units/data/getRentalData/${min}/${max}`,
+    RENTAL_DATA_BY_STATUS: (status, min, max) => `/backENDV2/src/use_webside/rental/units/data/getRentalDataByStatus/${encodeURIComponent(status)}/${min}/${max}`,
+    RENTAL_DATA_BY_STATUS_SUB: (statusSub, min, max) => `/backENDV2/src/use_webside/rental/units/data/getRentalDataByStatusSub/${encodeURIComponent(statusSub)}/${min}/${max}`,
+    RENTAL_SEARCH_BY_NAME: (itemName) => `/backENDV2/src/use_webside/rental/units/data/selectRentalWeaponName/${encodeURIComponent(itemName)}`,
+    RENTAL_SEARCH_BY_TIME: (startDate, endDate) => `/backENDV2/src/use_webside/rental/units/data/searchRentalByTimeRange/${startDate}/${endDate}`,
 
     // 借入统计（V2 API）
-    RENTAL_STATS: '/backENDV2/src/web_display/rental/units/stats/getRentalStats',
-    RENTAL_STATS_BY_TIME: (startDate, endDate) => `/backENDV2/src/web_display/rental/units/stats/getRentalStatsByTimeRange/${startDate}/${endDate}`,
+    RENTAL_STATS: '/backENDV2/src/use_webside/rental/units/stats/getRentalStats',
+    RENTAL_STATS_BY_TIME: (startDate, endDate) => `/backENDV2/src/use_webside/rental/units/stats/getRentalStatsByTimeRange/${startDate}/${endDate}`,
 
     // 借入筛选选项（V2 API）
-    RENTAL_WEAPON_TYPES: '/backENDV2/src/web_display/rental/units/filters/getRentalWeaponTypes',
-    RENTAL_FLOAT_RANGES: '/backENDV2/src/web_display/rental/units/filters/getRentalFloatRanges',
-    RENTAL_STATUS_LIST: '/backENDV2/src/web_display/rental/units/filters/getRentalStatusList',
-    RENTAL_STATUS_SUB_LIST: (status) => `/backENDV2/src/web_display/rental/units/filters/getRentalStatusSubList/${encodeURIComponent(status)}`,
-    RENTAL_PLATFORM_LIST: '/backENDV2/src/web_display/rental/units/filters/getRentalPlatformList',
-    RENTAL_USER_LIST: '/backENDV2/src/web_display/rental/units/filters/getRentalUserList',
+    RENTAL_WEAPON_TYPES: '/backENDV2/src/use_webside/rental/units/filters/getRentalWeaponTypes',
+    RENTAL_FLOAT_RANGES: '/backENDV2/src/use_webside/rental/units/filters/getRentalFloatRanges',
+    RENTAL_STATUS_LIST: '/backENDV2/src/use_webside/rental/units/filters/getRentalStatusList',
+    RENTAL_STATUS_SUB_LIST: (status) => `/backENDV2/src/use_webside/rental/units/filters/getRentalStatusSubList/${encodeURIComponent(status)}`,
+    RENTAL_PLATFORM_LIST: '/backENDV2/src/use_webside/rental/units/filters/getRentalPlatformList',
+    RENTAL_USER_LIST: '/backENDV2/src/use_webside/rental/units/filters/getRentalUserList',
 
     // AES工具相关（V2 API - 新版本）
 
@@ -325,6 +325,13 @@ export const API_CONFIG = {
     STEAM_MINE_INVENTORY: '/spiderApiV2/src/web_site/steam/units/mining/mineInventory',  // 库存挖掘
     STEAM_CANCEL_MINING: '/spiderApiV2/src/web_site/steam/units/mining/cancelMining',  // 取消挖掘
 
+    // 库存挖掘数据查询（V2 API，use_webside 侧）
+    MINING_QUERY: '/backENDV2/src/use_spider/steam/mining/query',          // 查询挖掘数据
+    MINING_STATS: '/backENDV2/src/use_spider/steam/mining/stats',          // 挖掘统计
+    MINING_HISTORY: '/backENDV2/src/use_spider/steam/mining/history',      // 挖掘历史列表
+    MINING_HISTORY_DELETE: (steamId) => `/backENDV2/src/use_spider/steam/mining/history/${steamId}`,  // 删除挖掘历史
+    MINING_LATEST: '/backENDV2/src/use_spider/steam/mining/latest',        // 最新挖掘记录
+
     CSQAQ_MARKET_INDEX: '/spiderApiV2/src/web_site/csqaq/units/home/market_index/getMarketIndex',  // CSQAQ市场指数（V2 API）
     CSQAQ_KLINE: '/spiderApiV2/src/web_site/csqaq/units/data_website/market_overview/getKline',  // CSQAQ K线数据（V2 API）
 
@@ -367,7 +374,7 @@ export const API_CONFIG = {
     STEAMDT_MARKET_INDEX: '/spiderApiV2/src/web_site/steamdt/units/home/market_index/getMarketIndex',  // 获取SteamDT大盘指数
     STEAMDT_MARKET_INDEX_HEADLESS: '/spiderApiV2/src/web_site/steamdt/units/home/market_index/getMarketIndexHeadless',  // 获取SteamDT大盘指数（无头浏览器）
     STEAMDT_KLINE: '/spiderApiV2/src/web_site/steamdt/units/data_website/market_overview/getKline',  // 获取SteamDT K线数据
-    STEAMDT_HOMEPAGE_DATA: '/backENDV2/src/web_display/home/units/steamdt/homepage-data',  // 获取SteamDT首页数据（饰品成交额等）
+    STEAMDT_HOMEPAGE_DATA: '/backENDV2/src/use_webside/home/units/steamdt/homepage-data',  // 获取SteamDT首页数据（饰品成交额等）
 
 
 
@@ -425,118 +432,118 @@ export const API_CONFIG = {
 
     // ADB工具相关（V2 API）
 
-    ADB_SCAN: '/backENDV2/src/web_display/settings/dev_tools/units/adb/scan',  // 扫描局域网设备
+    ADB_SCAN: '/backENDV2/src/use_webside/settings/dev_tools/units/adb/scan',  // 扫描局域网设备
 
-    ADB_CONNECT: '/backENDV2/src/web_display/settings/dev_tools/units/adb/connect',  // 连接设备
+    ADB_CONNECT: '/backENDV2/src/use_webside/settings/dev_tools/units/adb/connect',  // 连接设备
 
-    ADB_DISCONNECT: '/backENDV2/src/web_display/settings/dev_tools/units/adb/disconnect',  // 断开设备连接
+    ADB_DISCONNECT: '/backENDV2/src/use_webside/settings/dev_tools/units/adb/disconnect',  // 断开设备连接
 
-    ADB_DEVICES: '/backENDV2/src/web_display/settings/dev_tools/units/adb/devices',  // 获取ADB设备列表
+    ADB_DEVICES: '/backENDV2/src/use_webside/settings/dev_tools/units/adb/devices',  // 获取ADB设备列表
 
-    ADB_DEVICE_INFO: (serial) => `/backENDV2/src/web_display/settings/dev_tools/units/adb/device/${serial}/info`,  // 获取设备信息
+    ADB_DEVICE_INFO: (serial) => `/backENDV2/src/use_webside/settings/dev_tools/units/adb/device/${serial}/info`,  // 获取设备信息
 
-    ADB_CERT_STATUS: '/backENDV2/src/web_display/settings/dev_tools/units/cert/status',  // 检查证书状态
+    ADB_CERT_STATUS: '/backENDV2/src/use_webside/settings/dev_tools/units/cert/status',  // 检查证书状态
 
-    ADB_CERT_INSTALL: '/backENDV2/src/web_display/settings/dev_tools/units/cert/install',  // 安装证书
+    ADB_CERT_INSTALL: '/backENDV2/src/use_webside/settings/dev_tools/units/cert/install',  // 安装证书
 
-    ADB_CERT_UNINSTALL: '/backENDV2/src/web_display/settings/dev_tools/units/cert/uninstall',  // 卸载证书
+    ADB_CERT_UNINSTALL: '/backENDV2/src/use_webside/settings/dev_tools/units/cert/uninstall',  // 卸载证书
 
-    ADB_CERT_INFO: '/backENDV2/src/web_display/settings/dev_tools/units/cert/info',  // 获取证书信息
+    ADB_CERT_INFO: '/backENDV2/src/use_webside/settings/dev_tools/units/cert/info',  // 获取证书信息
 
-    ADB_SHELL: (serial) => `/backENDV2/src/web_display/settings/dev_tools/units/adb/device/${serial}/shell`,  // 执行Shell命令
+    ADB_SHELL: (serial) => `/backENDV2/src/use_webside/settings/dev_tools/units/adb/device/${serial}/shell`,  // 执行Shell命令
 
 
 
     // CSQAQ相关（V2 API）
 
-    CSQAQ_UPLOAD_MAPPING: '/backENDV2/src/web_display/settings/dev_tools/units/csqaq/uploadMapping',  // 上传CSQAQ映射文件（DevTools）
-    CSQAQ_DATA_SOURCE_UPLOAD_MAPPING: '/backENDV2/src/web_display/settings/data_source/csqaq/upload_mapping',  // 上传CSQAQ映射文件（DataSource）
-    CSQAQ_DATA_SOURCE_CONFIG: '/backENDV2/src/web_display/settings/data_source/csqaq/config',  // 获取CSQAQ配置
+    CSQAQ_UPLOAD_MAPPING: '/backENDV2/src/use_webside/settings/dev_tools/units/csqaq/uploadMapping',  // 上传CSQAQ映射文件（DevTools）
+    CSQAQ_DATA_SOURCE_UPLOAD_MAPPING: '/backENDV2/src/use_webside/settings/data_source/csqaq/upload_mapping',  // 上传CSQAQ映射文件（DataSource）
+    CSQAQ_DATA_SOURCE_CONFIG: '/backENDV2/src/use_webside/settings/data_source/csqaq/config',  // 获取CSQAQ配置
 
     // SteamDT 数据源配置（V2 API）
-    STEAMDT_DATA_SOURCE_CONFIG: '/backENDV2/src/web_display/settings/data_source/steamdt/config',  // 获取SteamDT配置
+    STEAMDT_DATA_SOURCE_CONFIG: '/backENDV2/src/use_webside/settings/data_source/steamdt/config',  // 获取SteamDT配置
 
     // 饰品搜索（V2 API）
-    ITEM_SEARCH_SEARCH: '/backENDV2/src/web_display/settings/data_source/item_search/search',  // 搜索饰品
-    ITEM_SEARCH_WEAPON_NAMES: '/backENDV2/src/web_display/settings/data_source/item_search/weapon_names',  // 获取武器名称列表
-    ITEM_SEARCH_CSQAQ_DETAIL: '/backENDV2/src/web_display/settings/data_source/item_search/csqaq_detail',  // 获取CSQAQ饰品详情
-    ITEM_SEARCH_BATCH_STICKER_PRICES: '/backENDV2/src/web_display/settings/data_source/item_search/batch_sticker_prices',  // 批量查询印花/挂件价格
+    ITEM_SEARCH_SEARCH: '/backENDV2/src/use_webside/settings/data_source/item_search/search',  // 搜索饰品
+    ITEM_SEARCH_WEAPON_NAMES: '/backENDV2/src/use_webside/settings/data_source/item_search/weapon_names',  // 获取武器名称列表
+    ITEM_SEARCH_CSQAQ_DETAIL: '/backENDV2/src/use_webside/settings/data_source/item_search/csqaq_detail',  // 获取CSQAQ饰品详情
+    ITEM_SEARCH_BATCH_STICKER_PRICES: '/backENDV2/src/use_webside/settings/data_source/item_search/batch_sticker_prices',  // 批量查询印花/挂件价格
 
     // DevTools筛选数据（V2 API）
-    DEV_TOOLS_V2_STEAM_ACCOUNTS: '/backENDV2/src/web_display/settings/dev_tools/units/filters/getSteamAccounts',
+    DEV_TOOLS_V2_STEAM_ACCOUNTS: '/backENDV2/src/use_webside/settings/dev_tools/units/filters/getSteamAccounts',
 
     
 
     // 图片相关
 
-    WEAPON_IMAGE: (imageName) => `/backENDV2/src/web_display/units/images/weapon_image/${imageName}`,  // 获取武器图片
+    WEAPON_IMAGE: (imageName) => `/backENDV2/src/use_webside/units/images/weapon_image/${imageName}`,  // 获取武器图片
 
-    WEAPON_IMAGE_CHECK: (imageName) => `/backENDV2/src/web_display/units/images/weapon_image/check/${imageName}`,  // 检查武器图片是否存在
+    WEAPON_IMAGE_CHECK: (imageName) => `/backENDV2/src/use_webside/units/images/weapon_image/check/${imageName}`,  // 检查武器图片是否存在
 
     
 
     // Home页面图表数据（V2 API）
 
-    HOME_INVENTORY_ALL: '/backENDV2/src/web_display/home/units/charts/inventory/all',  // 获取所有库存数据
+    HOME_INVENTORY_ALL: '/backENDV2/src/use_webside/home/units/charts/inventory/all',  // 获取所有库存数据
 
-    HOME_COMPONENTS_ALL: '/backENDV2/src/web_display/home/units/charts/components/all',  // 获取所有库存组件数据
+    HOME_COMPONENTS_ALL: '/backENDV2/src/use_webside/home/units/charts/components/all',  // 获取所有库存组件数据
 
-    HOME_BUY_ALL: '/backENDV2/src/web_display/home/units/charts/buy/all',  // 获取所有购入数据
+    HOME_BUY_ALL: '/backENDV2/src/use_webside/home/units/charts/buy/all',  // 获取所有购入数据
 
-    HOME_SELL_ALL: '/backENDV2/src/web_display/home/units/charts/sell/all',  // 获取所有出售数据
+    HOME_SELL_ALL: '/backENDV2/src/use_webside/home/units/charts/sell/all',  // 获取所有出售数据
 
     // Home页面独立API（V2，从其他模块分离）
 
-    HOME_BUY_STATS: '/backENDV2/src/web_display/home/units/buy_stats/getBuyStats',  // 购买统计
+    HOME_BUY_STATS: '/backENDV2/src/use_webside/home/units/buy_stats/getBuyStats',  // 购买统计
 
-    HOME_STEAM_IDS: '/backENDV2/src/web_display/home/units/steam_accounts/steam_ids',  // Steam账号列表
+    HOME_STEAM_IDS: '/backENDV2/src/use_webside/home/units/steam_accounts/steam_ids',  // Steam账号列表
 
-    HOME_INVENTORY_BY_STEAM_ID: (steamId) => `/backENDV2/src/web_display/home/units/inventory/${steamId}`,  // 指定账号库存
+    HOME_INVENTORY_BY_STEAM_ID: (steamId) => `/backENDV2/src/use_webside/home/units/inventory/${steamId}`,  // 指定账号库存
 
-    HOME_COMPONENTS_BY_STEAM_ID: (steamId) => `/backENDV2/src/web_display/home/units/components/${steamId}`,  // 指定账号组件
+    HOME_COMPONENTS_BY_STEAM_ID: (steamId) => `/backENDV2/src/use_webside/home/units/components/${steamId}`,  // 指定账号组件
 
-    HOME_STEAMDT_HOMEPAGE_DATA: '/backENDV2/src/web_display/home/units/steamdt/homepage-data',  // SteamDT首页数据
+    HOME_STEAMDT_HOMEPAGE_DATA: '/backENDV2/src/use_webside/home/units/steamdt/homepage-data',  // SteamDT首页数据
 
     
 
     // 正在出售相关
 
-    ON_SALE_YYYP_ACCOUNTS: '/backENDV2/src/web_display/on_sale/units/accounts/getYYYPAccounts',  // 获取悠悠有品账号列表
+    ON_SALE_YYYP_ACCOUNTS: '/backENDV2/src/use_webside/on_sale/units/accounts/getYYYPAccounts',  // 获取悠悠有品账号列表
 
-    ON_SALE_BUFF_ACCOUNTS: '/backENDV2/src/web_display/on_sale/units/accounts/getBuffAccounts',  // 获取BUFF账号列表
+    ON_SALE_BUFF_ACCOUNTS: '/backENDV2/src/use_webside/on_sale/units/accounts/getBuffAccounts',  // 获取BUFF账号列表
 
-    ON_SALE_ITEMS: '/backENDV2/src/web_display/on_sale/units/items/getOnSaleItems',  // 获取在售商品列表
+    ON_SALE_ITEMS: '/backENDV2/src/use_webside/on_sale/units/items/getOnSaleItems',  // 获取在售商品列表
 
-    ON_SALE_REMOVE: '/backENDV2/src/web_display/on_sale/units/items/removeFromSale',  // 下架商品
+    ON_SALE_REMOVE: '/backENDV2/src/use_webside/on_sale/units/items/removeFromSale',  // 下架商品
 
 
 
     // 库存相关（V2 API）
 
-    INVENTORY_STEAM_IDS: '/backENDV2/src/web_display/inventory/units/accounts/getSteamIds',  // 获取Steam账号列表
+    INVENTORY_STEAM_IDS: '/backENDV2/src/use_webside/inventory/units/accounts/getSteamIds',  // 获取Steam账号列表
 
-    INVENTORY_DATA: (steamId) => `/backENDV2/src/web_display/inventory/units/data/getInventory/${steamId}`,  // 获取库存数据
+    INVENTORY_DATA: (steamId) => `/backENDV2/src/use_webside/inventory/units/data/getInventory/${steamId}`,  // 获取库存数据
 
-    INVENTORY_GROUPED: (steamId) => `/backENDV2/src/web_display/inventory/units/data/getGroupedInventory/${steamId}`,  // 获取分组库存数据
+    INVENTORY_GROUPED: (steamId) => `/backENDV2/src/use_webside/inventory/units/data/getGroupedInventory/${steamId}`,  // 获取分组库存数据
 
-    INVENTORY_STATS: (steamId) => `/backENDV2/src/web_display/inventory/units/stats/getInventoryStats/${steamId}`,  // 获取库存统计
+    INVENTORY_STATS: (steamId) => `/backENDV2/src/use_webside/inventory/units/stats/getInventoryStats/${steamId}`,  // 获取库存统计
 
-    INVENTORY_UPDATE_BUY_PRICE: (steamId, assetid) => `/backENDV2/src/web_display/inventory/units/data/updateBuyPrice/${steamId}/${assetid}`,  // 更新购入价格
+    INVENTORY_UPDATE_BUY_PRICE: (steamId, assetid) => `/backENDV2/src/use_webside/inventory/units/data/updateBuyPrice/${steamId}/${assetid}`,  // 更新购入价格
 
-    INVENTORY_YYYP_LOWEST_PRICE: '/backENDV2/src/web_display/inventory/units/price/getYYYPLowestPrice',  // 获取悠悠有品底价
+    INVENTORY_YYYP_LOWEST_PRICE: '/backENDV2/src/use_webside/inventory/units/price/getYYYPLowestPrice',  // 获取悠悠有品底价
 
     // 库存组件相关（V2 API）
-    STOCK_COMPONENTS_STEAM_IDS: '/backENDV2/src/web_display/stock_components/units/accounts/getSteamIds',
-    STOCK_COMPONENTS_COUNT: (steamId) => `/backENDV2/src/web_display/stock_components/units/accounts/getComponentCount/${steamId}`,
-    STOCK_COMPONENTS_WEAPON_TYPES: (steamId) => `/backENDV2/src/web_display/stock_components/units/filters/getWeaponTypes/${steamId}`,
-    STOCK_COMPONENTS_FLOAT_RANGES: (steamId) => `/backENDV2/src/web_display/stock_components/units/filters/getFloatRanges/${steamId}`,
-    STOCK_COMPONENTS_INVENTORY: (steamId) => `/backENDV2/src/web_display/stock_components/units/data/getComponentInventory/${steamId}`,
-    STOCK_COMPONENTS_DATA: (steamId) => `/backENDV2/src/web_display/stock_components/units/data/getComponents/${steamId}`,
-    STOCK_COMPONENTS_GROUPED: (steamId) => `/backENDV2/src/web_display/stock_components/units/data/getGroupedComponents/${steamId}`,
-    STOCK_COMPONENTS_STATS: (steamId) => `/backENDV2/src/web_display/stock_components/units/stats/getComponentsStats/${steamId}`,
-    STOCK_COMPONENTS_UPDATE_BUY_PRICE: (steamId, goodsAssetId) => `/backENDV2/src/web_display/stock_components/units/price/updateBuyPrice/${steamId}/${goodsAssetId}`,
-    STOCK_COMPONENTS_AUTO_FILL_PRICES: (steamId) => `/backENDV2/src/web_display/stock_components/units/price/autoFillPrices/${steamId}`,
-    STOCK_COMPONENTS_FILL_REFERENCE_PRICE: (steamId, source) => `/backENDV2/src/web_display/stock_components/units/price/fillReferencePrice/${steamId}/${source}`,
+    STOCK_COMPONENTS_STEAM_IDS: '/backENDV2/src/use_webside/stock_components/units/accounts/getSteamIds',
+    STOCK_COMPONENTS_COUNT: (steamId) => `/backENDV2/src/use_webside/stock_components/units/accounts/getComponentCount/${steamId}`,
+    STOCK_COMPONENTS_WEAPON_TYPES: (steamId) => `/backENDV2/src/use_webside/stock_components/units/filters/getWeaponTypes/${steamId}`,
+    STOCK_COMPONENTS_FLOAT_RANGES: (steamId) => `/backENDV2/src/use_webside/stock_components/units/filters/getFloatRanges/${steamId}`,
+    STOCK_COMPONENTS_INVENTORY: (steamId) => `/backENDV2/src/use_webside/stock_components/units/data/getComponentInventory/${steamId}`,
+    STOCK_COMPONENTS_DATA: (steamId) => `/backENDV2/src/use_webside/stock_components/units/data/getComponents/${steamId}`,
+    STOCK_COMPONENTS_GROUPED: (steamId) => `/backENDV2/src/use_webside/stock_components/units/data/getGroupedComponents/${steamId}`,
+    STOCK_COMPONENTS_STATS: (steamId) => `/backENDV2/src/use_webside/stock_components/units/stats/getComponentsStats/${steamId}`,
+    STOCK_COMPONENTS_UPDATE_BUY_PRICE: (steamId, goodsAssetId) => `/backENDV2/src/use_webside/stock_components/units/price/updateBuyPrice/${steamId}/${goodsAssetId}`,
+    STOCK_COMPONENTS_AUTO_FILL_PRICES: (steamId) => `/backENDV2/src/use_webside/stock_components/units/price/autoFillPrices/${steamId}`,
+    STOCK_COMPONENTS_FILL_REFERENCE_PRICE: (steamId, source) => `/backENDV2/src/use_webside/stock_components/units/price/fillReferencePrice/${steamId}/${source}`,
 
     // 悠悠有品租赁相关
 
@@ -604,82 +611,82 @@ export const API_CONFIG = {
 
     // 登录设置相关
 
-    LOGIN_SETTINGS: '/backENDV2/src/web_display/settings/system_settings/units/login/getSettings',  // 获取登录设置
-    LOGIN_SETTINGS_SAVE: '/backENDV2/src/web_display/settings/system_settings/units/login/saveSettings',  // 保存登录设置
-    LOGIN_VERIFY: '/backENDV2/src/web_display/settings/system_settings/units/login/verify',  // 验证登录
+    LOGIN_SETTINGS: '/backENDV2/src/use_webside/settings/system_settings/units/login/getSettings',  // 获取登录设置
+    LOGIN_SETTINGS_SAVE: '/backENDV2/src/use_webside/settings/system_settings/units/login/saveSettings',  // 保存登录设置
+    LOGIN_VERIFY: '/backENDV2/src/use_webside/settings/system_settings/units/login/verify',  // 验证登录
 
     // DatabaseManager V2 API
-    DB_MANAGER_TABLES: '/backENDV2/src/web_display/settings/database_manager/units/data/getTables',
-    DB_MANAGER_TABLE_DATA: (t) => `/backENDV2/src/web_display/settings/database_manager/units/data/table/${t}/getData`,
-    DB_MANAGER_TABLE_STRUCTURE: (t) => `/backENDV2/src/web_display/settings/database_manager/units/data/table/${t}/getStructure`,
-    DB_MANAGER_TABLE_ADD_ROW: (t) => `/backENDV2/src/web_display/settings/database_manager/units/data/table/${t}/addRow`,
-    DB_MANAGER_TABLE_UPDATE_ROW: (t) => `/backENDV2/src/web_display/settings/database_manager/units/data/table/${t}/updateRow`,
-    DB_MANAGER_TABLE_DELETE_ROW: (t) => `/backENDV2/src/web_display/settings/database_manager/units/data/table/${t}/deleteRow`,
-    DB_MANAGER_TABLE_DELETE_BATCH: (t) => `/backENDV2/src/web_display/settings/database_manager/units/data/table/${t}/deleteBatch`,
-    DB_MANAGER_TABLE_EXPORT: (t) => `/backENDV2/src/web_display/settings/database_manager/units/data/table/${t}/export`,
-    DB_MANAGER_EXECUTE_QUERY: '/backENDV2/src/web_display/settings/database_manager/units/data/executeQuery',
-    DB_MANAGER_EXECUTE_FILE: '/backENDV2/src/web_display/settings/database_manager/units/data/executeSqlFile',
-    DB_MANAGER_SAVED_QUERIES: '/backENDV2/src/web_display/settings/database_manager/units/data/getSavedQueries',
-    DB_MANAGER_SAVE_QUERY: '/backENDV2/src/web_display/settings/database_manager/units/data/saveQuery',
-    DB_MANAGER_STATS: '/backENDV2/src/web_display/settings/database_manager/units/data/getStats',
-    DB_MANAGER_INFO: '/backENDV2/src/web_display/settings/database_manager/units/data/getInfo',
-    DB_MANAGER_BACKUP: '/backENDV2/src/web_display/settings/database_manager/units/data/backup',
-    DB_MANAGER_DOWNLOAD: '/backENDV2/src/web_display/settings/database_manager/units/data/download',
-    DB_MANAGER_RESTORE: '/backENDV2/src/web_display/settings/database_manager/units/data/restore',
-    DB_MANAGER_OPTIMIZE: '/backENDV2/src/web_display/settings/database_manager/units/data/optimize',
-    DB_MANAGER_VACUUM: '/backENDV2/src/web_display/settings/database_manager/units/data/vacuum',
-    DB_MANAGER_TRUNCATE: '/backENDV2/src/web_display/settings/database_manager/units/data/truncate',
-    DB_MANAGER_DROP: '/backENDV2/src/web_display/settings/database_manager/units/data/drop',
+    DB_MANAGER_TABLES: '/backENDV2/src/use_webside/settings/database_manager/units/data/getTables',
+    DB_MANAGER_TABLE_DATA: (t) => `/backENDV2/src/use_webside/settings/database_manager/units/data/table/${t}/getData`,
+    DB_MANAGER_TABLE_STRUCTURE: (t) => `/backENDV2/src/use_webside/settings/database_manager/units/data/table/${t}/getStructure`,
+    DB_MANAGER_TABLE_ADD_ROW: (t) => `/backENDV2/src/use_webside/settings/database_manager/units/data/table/${t}/addRow`,
+    DB_MANAGER_TABLE_UPDATE_ROW: (t) => `/backENDV2/src/use_webside/settings/database_manager/units/data/table/${t}/updateRow`,
+    DB_MANAGER_TABLE_DELETE_ROW: (t) => `/backENDV2/src/use_webside/settings/database_manager/units/data/table/${t}/deleteRow`,
+    DB_MANAGER_TABLE_DELETE_BATCH: (t) => `/backENDV2/src/use_webside/settings/database_manager/units/data/table/${t}/deleteBatch`,
+    DB_MANAGER_TABLE_EXPORT: (t) => `/backENDV2/src/use_webside/settings/database_manager/units/data/table/${t}/export`,
+    DB_MANAGER_EXECUTE_QUERY: '/backENDV2/src/use_webside/settings/database_manager/units/data/executeQuery',
+    DB_MANAGER_EXECUTE_FILE: '/backENDV2/src/use_webside/settings/database_manager/units/data/executeSqlFile',
+    DB_MANAGER_SAVED_QUERIES: '/backENDV2/src/use_webside/settings/database_manager/units/data/getSavedQueries',
+    DB_MANAGER_SAVE_QUERY: '/backENDV2/src/use_webside/settings/database_manager/units/data/saveQuery',
+    DB_MANAGER_STATS: '/backENDV2/src/use_webside/settings/database_manager/units/data/getStats',
+    DB_MANAGER_INFO: '/backENDV2/src/use_webside/settings/database_manager/units/data/getInfo',
+    DB_MANAGER_BACKUP: '/backENDV2/src/use_webside/settings/database_manager/units/data/backup',
+    DB_MANAGER_DOWNLOAD: '/backENDV2/src/use_webside/settings/database_manager/units/data/download',
+    DB_MANAGER_RESTORE: '/backENDV2/src/use_webside/settings/database_manager/units/data/restore',
+    DB_MANAGER_OPTIMIZE: '/backENDV2/src/use_webside/settings/database_manager/units/data/optimize',
+    DB_MANAGER_VACUUM: '/backENDV2/src/use_webside/settings/database_manager/units/data/vacuum',
+    DB_MANAGER_TRUNCATE: '/backENDV2/src/use_webside/settings/database_manager/units/data/truncate',
+    DB_MANAGER_DROP: '/backENDV2/src/use_webside/settings/database_manager/units/data/drop',
 
     // 版本更新相关
 
-    UPDATE_CHECK: '/backENDV2/src/web_display/settings/version_update/units/update/checkUpdate',  // 检查更新
+    UPDATE_CHECK: '/backENDV2/src/use_webside/settings/version_update/units/update/checkUpdate',  // 检查更新
 
-    UPDATE_CURRENT_VERSION: '/backENDV2/src/web_display/settings/version_update/units/update/getCurrentVersion',  // 获取当前版本
+    UPDATE_CURRENT_VERSION: '/backENDV2/src/use_webside/settings/version_update/units/update/getCurrentVersion',  // 获取当前版本
 
-    UPDATE_DOWNLOAD: '/backENDV2/src/web_display/settings/version_update/units/update/downloadUpdate',  // 下载更新包
+    UPDATE_DOWNLOAD: '/backENDV2/src/use_webside/settings/version_update/units/update/downloadUpdate',  // 下载更新包
 
-    UPDATE_CHECK_LOCAL: '/backENDV2/src/web_display/settings/version_update/units/update/checkLocalUpdate',  // 检查本地更新包
+    UPDATE_CHECK_LOCAL: '/backENDV2/src/use_webside/settings/version_update/units/update/checkLocalUpdate',  // 检查本地更新包
 
-    UPDATE_APPLY: '/backENDV2/src/web_display/settings/version_update/units/update/applyUpdate',  // 执行更新
+    UPDATE_APPLY: '/backENDV2/src/use_webside/settings/version_update/units/update/applyUpdate',  // 执行更新
 
-    VERSION_DOCUMENTS_TREE: '/backENDV2/src/web_display/settings/version_update/units/docs/getDocumentTree',
+    VERSION_DOCUMENTS_TREE: '/backENDV2/src/use_webside/settings/version_update/units/docs/getDocumentTree',
 
-    VERSION_DOCUMENTS_FILE: '/backENDV2/src/web_display/settings/version_update/units/docs/getDocumentFile',
+    VERSION_DOCUMENTS_FILE: '/backENDV2/src/use_webside/settings/version_update/units/docs/getDocumentFile',
 
-    VERSION_DOCUMENTS_IMAGE: '/backENDV2/src/web_display/settings/version_update/units/docs/getDocumentImage',
+    VERSION_DOCUMENTS_IMAGE: '/backENDV2/src/use_webside/settings/version_update/units/docs/getDocumentImage',
 
     // 系统消息相关（V2 API）
-    SYS_MESSAGE_LIST: (page, limit) => `/backENDV2/src/web_display/settings/sys_message/list/${page}/${limit}`,
-    SYS_MESSAGE_STATS: '/backENDV2/src/web_display/settings/sys_message/stats',
-    SYS_MESSAGE_TYPES: '/backENDV2/src/web_display/settings/sys_message/types',
-    SYS_MESSAGE_SOURCES: '/backENDV2/src/web_display/settings/sys_message/sources',
-    SYS_MESSAGE_MARK_READ: '/backENDV2/src/web_display/settings/sys_message/mark_read',
-    SYS_MESSAGE_MARK_ALL_READ: '/backENDV2/src/web_display/settings/sys_message/mark_all_read',
-    SYS_MESSAGE_DELETE: '/backENDV2/src/web_display/settings/sys_message/delete',
-    SYS_MESSAGE_SEARCH_KEYWORD: '/backENDV2/src/web_display/settings/sys_message/search/keyword',
-    SYS_MESSAGE_SEARCH_TIME: '/backENDV2/src/web_display/settings/sys_message/search/time',
-    SYS_MESSAGE_SEARCH_FILTER: '/backENDV2/src/web_display/settings/sys_message/search/filter',
-    SYS_MESSAGE_CREATE: '/backENDV2/src/web_display/settings/sys_message/create',
+    SYS_MESSAGE_LIST: (page, limit) => `/backENDV2/src/use_webside/settings/sys_message/list/${page}/${limit}`,
+    SYS_MESSAGE_STATS: '/backENDV2/src/use_webside/settings/sys_message/stats',
+    SYS_MESSAGE_TYPES: '/backENDV2/src/use_webside/settings/sys_message/types',
+    SYS_MESSAGE_SOURCES: '/backENDV2/src/use_webside/settings/sys_message/sources',
+    SYS_MESSAGE_MARK_READ: '/backENDV2/src/use_webside/settings/sys_message/mark_read',
+    SYS_MESSAGE_MARK_ALL_READ: '/backENDV2/src/use_webside/settings/sys_message/mark_all_read',
+    SYS_MESSAGE_DELETE: '/backENDV2/src/use_webside/settings/sys_message/delete',
+    SYS_MESSAGE_SEARCH_KEYWORD: '/backENDV2/src/use_webside/settings/sys_message/search/keyword',
+    SYS_MESSAGE_SEARCH_TIME: '/backENDV2/src/use_webside/settings/sys_message/search/time',
+    SYS_MESSAGE_SEARCH_FILTER: '/backENDV2/src/use_webside/settings/sys_message/search/filter',
+    SYS_MESSAGE_CREATE: '/backENDV2/src/use_webside/settings/sys_message/create',
 
     // 改名饰品搜索结果（V2 API） - 对应 SearchWeaponRename 页面
-    SEARCH_RENAME_ITEM_ADD: '/backENDV2/src/web_display/data_spider/search_weapon_rename/item/add',
-    SEARCH_RENAME_ITEM_GET: (id) => `/backENDV2/src/web_display/data_spider/search_weapon_rename/item/get/${id}`,
-    SEARCH_RENAME_ITEM_UPDATE_STATUS: '/backENDV2/src/web_display/data_spider/search_weapon_rename/item/update_status',
-    SEARCH_RENAME_ITEMS_BATCH: '/backENDV2/src/web_display/data_spider/search_weapon_rename/items/batch',
-    SEARCH_RENAME_ITEMS_LIST: '/backENDV2/src/web_display/data_spider/search_weapon_rename/items/list',
-    SEARCH_RENAME_ITEMS_COUNT: '/backENDV2/src/web_display/data_spider/search_weapon_rename/items/count',
-    SEARCH_RENAME_ITEMS_LATEST: '/backENDV2/src/web_display/data_spider/search_weapon_rename/items/latest',
-    SEARCH_RENAME_ITEMS_CLEAR: '/backENDV2/src/web_display/data_spider/search_weapon_rename/items/clear',
-    SEARCH_RENAME_ITEMS_CLEANUP: '/backENDV2/src/web_display/data_spider/search_weapon_rename/items/cleanup',
-    SEARCH_RENAME_STATS: '/backENDV2/src/web_display/data_spider/search_weapon_rename/stats',
+    SEARCH_RENAME_ITEM_ADD: '/backENDV2/src/use_webside/data_spider/search_weapon_rename/item/add',
+    SEARCH_RENAME_ITEM_GET: (id) => `/backENDV2/src/use_webside/data_spider/search_weapon_rename/item/get/${id}`,
+    SEARCH_RENAME_ITEM_UPDATE_STATUS: '/backENDV2/src/use_webside/data_spider/search_weapon_rename/item/update_status',
+    SEARCH_RENAME_ITEMS_BATCH: '/backENDV2/src/use_webside/data_spider/search_weapon_rename/items/batch',
+    SEARCH_RENAME_ITEMS_LIST: '/backENDV2/src/use_webside/data_spider/search_weapon_rename/items/list',
+    SEARCH_RENAME_ITEMS_COUNT: '/backENDV2/src/use_webside/data_spider/search_weapon_rename/items/count',
+    SEARCH_RENAME_ITEMS_LATEST: '/backENDV2/src/use_webside/data_spider/search_weapon_rename/items/latest',
+    SEARCH_RENAME_ITEMS_CLEAR: '/backENDV2/src/use_webside/data_spider/search_weapon_rename/items/clear',
+    SEARCH_RENAME_ITEMS_CLEANUP: '/backENDV2/src/use_webside/data_spider/search_weapon_rename/items/cleanup',
+    SEARCH_RENAME_STATS: '/backENDV2/src/use_webside/data_spider/search_weapon_rename/stats',
 
     // 挂件搜索结果（V2 API） - 对应 SearchPendant 页面
-    SEARCH_PENDANT_CONFIG_SAVE: '/backENDV2/src/web_display/data_spider/search_pendant/config/save',
-    SEARCH_PENDANT_ITEM_ADD: '/backENDV2/src/web_display/data_spider/search_pendant/item/add',
-    SEARCH_PENDANT_ITEMS_LIST: '/backENDV2/src/web_display/data_spider/search_pendant/items/list',
-    SEARCH_PENDANT_ITEM_UPDATE_STATUS: '/backENDV2/src/web_display/data_spider/search_pendant/item/update_status',
-    SEARCH_PENDANT_ITEMS_CLEAR: '/backENDV2/src/web_display/data_spider/search_pendant/items/clear',
+    SEARCH_PENDANT_CONFIG_SAVE: '/backENDV2/src/use_webside/data_spider/search_pendant/config/save',
+    SEARCH_PENDANT_ITEM_ADD: '/backENDV2/src/use_webside/data_spider/search_pendant/item/add',
+    SEARCH_PENDANT_ITEMS_LIST: '/backENDV2/src/use_webside/data_spider/search_pendant/items/list',
+    SEARCH_PENDANT_ITEM_UPDATE_STATUS: '/backENDV2/src/use_webside/data_spider/search_pendant/item/update_status',
+    SEARCH_PENDANT_ITEMS_CLEAR: '/backENDV2/src/use_webside/data_spider/search_pendant/items/clear',
 
     // 悠悠有品自动购买相关（V2 API）
     AUTO_BUY_RENAMED_WEAPON: '/spiderApiV2/src/web_site/youping/auto_weapon/autoBuyRenamedWeapon',  // 自动购买改名武器
@@ -1000,6 +1007,13 @@ export const apiUrls = {
   steamFetchHashNamesByWeapon: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_FETCH_HASH_NAMES_BY_WEAPON),
   steamMineInventory: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_MINE_INVENTORY),
   steamCancelMining: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STEAM_CANCEL_MINING),
+
+  // 库存挖掘数据查询
+  miningQuery: () => getApiUrl(API_CONFIG.ENDPOINTS.MINING_QUERY),
+  miningStats: () => getApiUrl(API_CONFIG.ENDPOINTS.MINING_STATS),
+  miningHistory: () => getApiUrl(API_CONFIG.ENDPOINTS.MINING_HISTORY),
+  miningHistoryDelete: (steamId) => getApiUrl(API_CONFIG.ENDPOINTS.MINING_HISTORY_DELETE(steamId)),
+  miningLatest: () => getApiUrl(API_CONFIG.ENDPOINTS.MINING_LATEST),
 
   csqaqMarketIndex: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_MARKET_INDEX),
   csqaqKline: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_KLINE),

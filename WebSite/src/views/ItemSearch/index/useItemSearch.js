@@ -79,8 +79,8 @@ export function useItemSearch() {
   // 图片缓存 - 存储已加载的图片URL
   const imageCache = new Set()
   
-  // API 基础地址
-  const API_BASE = `${API_CONFIG.BASE_URL}/webInventoryV1`
+  // API 基础地址（已迁移至 apiUrls，保留兼容变量）
+  // const API_BASE = `${API_CONFIG.BASE_URL}/webInventoryV1`  // V1 已废弃
 
   // 搜索相关
   const searchKeyword = ref('')
@@ -265,7 +265,7 @@ export function useItemSearch() {
   // 加载Steam ID列表
   const loadSteamIdList = async () => {
     try {
-      const response = await axios.get(`${API_BASE}/steam_ids`)
+      const response = await axios.get(apiUrls.inventorySteamIds())
       console.log('Steam ID列表响应:', response.data)
       if (response.data.success) {
         steamIdList.value = response.data.data
@@ -1986,7 +1986,7 @@ export function useItemSearch() {
       + '.png'
 
     // 直接使用路径，不通过 getApiUrl（因为 WEAPON_IMAGE 已经包含完整路径）
-    return `/backENDV2/src/web_display/units/images/weapon_image/${imageName}`
+    return `/backENDV2/src/use_webside/units/images/weapon_image/${imageName}`
   }
 
   // 处理图片加载错误

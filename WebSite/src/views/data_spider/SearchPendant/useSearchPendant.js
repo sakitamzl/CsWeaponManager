@@ -1524,7 +1524,7 @@ const autoSaveConfig = async () => {
       value: JSON.stringify(valueObj)
     }
 
-    const response = await axios.post(`${API_CONFIG.BASE_URL}/webConfigV1/updateConfig`, configData)
+    const response = await axios.post(apiUrls.configUpdate(), configData)
     
     if (response.data.success) {
       console.log('配置已自动保存')

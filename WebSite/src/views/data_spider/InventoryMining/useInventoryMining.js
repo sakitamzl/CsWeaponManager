@@ -210,11 +210,11 @@ export function useInventoryMining() {
   try {
     // 同时获取数据和统计信息
     const [dataResponse, statsResponse] = await Promise.all([
-      axios.post(`${API_CONFIG.BASE_URL}/api/v1/steam/inventory/mining/query`, {
+      axios.post(apiUrls.miningQuery(), {
         source_steam_id: steamId
         // 不传limit参数，获取所有数据
       }),
-      axios.post(`${API_CONFIG.BASE_URL}/api/v1/steam/inventory/mining/stats`, {
+      axios.post(apiUrls.miningStats(), {
         source_steam_id: steamId
       })
     ])
@@ -265,7 +265,7 @@ export function useInventoryMining() {
   // 加载挖掘结果
   const loadMiningResults = async (steamId) => {
   try {
-    const response = await axios.post(`${API_CONFIG.BASE_URL}/api/v1/steam/inventory/mining/query`, {
+    const response = await axios.post(apiUrls.miningQuery(), {
       source_steam_id: steamId
       // 不传limit参数，获取所有数据
     })
@@ -288,7 +288,7 @@ export function useInventoryMining() {
   // 加载挖掘统计信息
   const loadMiningStats = async (steamId) => {
   try {
-    const response = await axios.post(`${API_CONFIG.BASE_URL}/api/v1/steam/inventory/mining/stats`, {
+    const response = await axios.post(apiUrls.miningStats(), {
       source_steam_id: steamId
     })
 
@@ -505,7 +505,7 @@ export function useInventoryMining() {
       }
     )
     
-    const response = await axios.delete(`${API_CONFIG.BASE_URL}/api/v1/steam/inventory/mining/history/${steamId}`)
+    const response = await axios.delete(apiUrls.miningHistoryDelete(steamId))
     
     if (response.data.success) {
       ElMessage.success('删除成功')
@@ -886,7 +886,7 @@ export function useInventoryMining() {
   // 加载历史记录列表
   const loadHistoryList = async () => {
     try {
-      const response = await axios.get(`${API_CONFIG.BASE_URL}/api/v1/steam/inventory/mining/history`)
+      const response = await axios.get(apiUrls.miningHistory())
       
       if (response.data.success) {
         historyList.value = response.data.data || []
@@ -924,7 +924,7 @@ export function useInventoryMining() {
   const loadLatestMiningData = async () => {
     try {
       // 获取最新的source_steam_id
-      const response = await axios.get(`${API_CONFIG.BASE_URL}/api/v1/steam/inventory/mining/latest`)
+      const response = await axios.get(apiUrls.miningLatest())
 
       if (response.data.success) {
         const sourceSteamId = response.data.data.source_steam_id
