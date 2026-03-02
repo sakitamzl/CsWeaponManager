@@ -13,7 +13,9 @@ backEND V2 API 根模块
 from flask import Blueprint
 from .web_display.API import web_display_blueprint
 from .use_spider.API import use_spider_blueprint
+from .Unites.API import unites_blueprint
 
 backendV2_blueprint = Blueprint('backendV2_src', __name__)
 backendV2_blueprint.register_blueprint(web_display_blueprint, url_prefix='/src')
 backendV2_blueprint.register_blueprint(use_spider_blueprint,  url_prefix='/src')
+backendV2_blueprint.register_blueprint(unites_blueprint,      url_prefix='/src')

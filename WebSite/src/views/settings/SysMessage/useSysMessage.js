@@ -1,6 +1,7 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { apiUrls } from '@/config/api'
 
 export function useSysMessage() {
   const messageData = ref([])
@@ -37,7 +38,7 @@ export function useSysMessage() {
     try {
       loading.value = true
       const response = await axios.get(
-        `/api/getSysMessageData/${currentPage.value}/${pageSize.value}`
+        apiUrls.sysMessageList(currentPage.value, pageSize.value)
       )
 
       if (response.data.success) {
@@ -57,7 +58,7 @@ export function useSysMessage() {
   // 获取统计数据
   const fetchStats = async () => {
     try {
-      const response = await axios.get('/api/getSysMessageStats')
+      const response = await axios.get(apiUrls.sysMessageStats())
       if (response.data.success) {
         stats.value = response.data.data
       }
@@ -69,7 +70,7 @@ export function useSysMessage() {
   // 获取通知类型
   const fetchSysMessageTypes = async () => {
     try {
-      const response = await axios.get('/api/getSysMessageTypes')
+      const response = await axios.get(apiUrls.sysMessageTypes())
       if (response.data.success) {
         messageTypes.value = response.data.data
       }
@@ -81,7 +82,7 @@ export function useSysMessage() {
   // 获取通知来源
   const fetchSysMessageSources = async () => {
     try {
-      const response = await axios.get('/api/getSysMessageSources')
+      const response = await axios.get(apiUrls.sysMessageSources())
       if (response.data.success) {
         messageSources.value = response.data.data
       }
@@ -99,7 +100,7 @@ export function useSysMessage() {
 
     try {
       loading.value = true
-      const response = await axios.post('/api/searchSysMessageByKeyword', {
+      const response = await axios.post(apiUrls.sysMessageSearchKeyword(), {
         keyword: searchText.value,
         page: currentPage.value,
         page_size: pageSize.value
@@ -129,7 +130,7 @@ export function useSysMessage() {
 
     try {
       loading.value = true
-      const response = await axios.post('/api/searchSysMessageByTime', {
+      const response = await axios.post(apiUrls.sysMessageSearchTime(), {
         start_date: dateRange.value[0],
         end_date: dateRange.value[1],
         page: currentPage.value,
@@ -160,7 +161,7 @@ export function useSysMessage() {
       const levels = filterLevel.value ? [filterLevel.value] : []
       const sources = filterSource.value ? [filterSource.value] : []
 
-      const response = await axios.post('/api/searchSysMessageByFilter', {
+      const response = await axios.post(apiUrls.sysMessageSearchFilter(), {
         types: types,
         levels: levels,
         sources: sources,
@@ -187,7 +188,7 @@ export function useSysMessage() {
   // 标记为已读
   const markAsRead = async (messageIds) => {
     try {
-      const response = await axios.post('/api/markAsRead', {
+      const response = await axios.post(apiUrls.sysMessageMarkRead(), {
         message_ids: messageIds
       })
 
@@ -213,7 +214,7 @@ export function useSysMessage() {
         type: 'warning'
       })
 
-      const response = await axios.post('/api/markAllAsRead')
+      const response = await axios.post(apiUrls.sysMessageMarkAllRead())
 
       if (response.data.success) {
         ElMessage.success(response.data.message)
@@ -239,7 +240,7 @@ export function useSysMessage() {
         type: 'warning'
       })
 
-      const response = await axios.post('/api/deleteSysMessage', {
+      const response = await axios.post(apiUrls.sysMessageDelete(), {
         message_ids: messageIds
       })
 

@@ -7,6 +7,7 @@ Data Source API 模块
 from flask import Blueprint
 from .units.data_source_data import DataSourceData
 from .units.data_source_ops import DataSourceOps
+from .units.weapon_query import WeaponQuery
 
 data_source_blueprint = Blueprint('data_source_v2', __name__)
 
@@ -21,3 +22,11 @@ data_source_blueprint.route('/data_source/units/data/deleteDataSource/<int:data_
 data_source_blueprint.route('/data_source/units/ops/testConnection', methods=['POST'])(DataSourceOps.test_connection)
 data_source_blueprint.route('/data_source/units/ops/collectDataSource/<int:data_id>', methods=['POST'])(DataSourceOps.collect_data_source)
 data_source_blueprint.route('/data_source/units/ops/toggleDataSource/<int:data_id>', methods=['PUT'])(DataSourceOps.toggle_data_source)
+
+# 武器查询路由
+data_source_blueprint.route('/data_source/units/weapon/search', methods=['GET'])(WeaponQuery.search_weapon)
+data_source_blueprint.route('/data_source/units/weapon/names', methods=['GET'])(WeaponQuery.get_weapon_names)
+data_source_blueprint.route('/data_source/units/weapon/detail', methods=['GET'])(WeaponQuery.search_weapon_detail)
+data_source_blueprint.route('/data_source/units/weapon/reference_prices', methods=['POST'])(WeaponQuery.get_reference_prices)
+data_source_blueprint.route('/data_source/units/weapon/csqaq_id', methods=['POST'])(WeaponQuery.get_csqaq_id)
+data_source_blueprint.route('/data_source/units/weapon/price_range', methods=['GET'])(WeaponQuery.query_weapons_by_price_range)

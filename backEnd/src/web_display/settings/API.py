@@ -14,7 +14,8 @@ from .database_manager.API import database_manager_blueprint
 from .yyyp_message_box.API import yyyp_message_box_blueprint
 from .buff_message_box.API import buff_message_box_blueprint
 from .version_update.API import version_update_blueprint
-
+from .steam_market.API import steam_market_blueprint
+from .sys_message.API import sys_message_blueprint
 settings_blueprint = Blueprint('settings_v2', __name__)
 settings_blueprint.register_blueprint(data_source_blueprint, url_prefix='/settings')
 settings_blueprint.register_blueprint(auto_manager_blueprint, url_prefix='/settings')
@@ -25,3 +26,5 @@ settings_blueprint.register_blueprint(database_manager_blueprint, url_prefix='/s
 settings_blueprint.register_blueprint(yyyp_message_box_blueprint, url_prefix='/settings')
 settings_blueprint.register_blueprint(buff_message_box_blueprint, url_prefix='/settings')
 settings_blueprint.register_blueprint(version_update_blueprint, url_prefix='/settings')
+settings_blueprint.register_blueprint(steam_market_blueprint, url_prefix='/settings')
+settings_blueprint.register_blueprint(sys_message_blueprint, url_prefix='/settings')

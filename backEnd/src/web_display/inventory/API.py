@@ -25,3 +25,5 @@ inventory_blueprint.route('/inventory/units/stats/getInventoryStats/<steam_id>',
 
 # 价格查询路由
 inventory_blueprint.route('/inventory/units/price/getYYYPLowestPrice', methods=['POST'])(InventoryPrice.get_yyyp_lowest_price)
+inventory_blueprint.route('/inventory/units/price/getPendantPrice', methods=['POST'])(InventoryPrice.get_pendant_price)
+inventory_blueprint.route('/inventory/units/price/getAllPendants', methods=['GET'])(InventoryPrice.get_all_pendants)

@@ -2368,7 +2368,7 @@ export function useItemSearch() {
       }
 
       // 调用后端接口查询 csqaq_id
-      const response = await fetch(`${API_CONFIG.BASE_URL}/webSelectWeaponV1/csqaq_id`, {
+      const response = await fetch(apiUrls.weaponCsqaqId(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

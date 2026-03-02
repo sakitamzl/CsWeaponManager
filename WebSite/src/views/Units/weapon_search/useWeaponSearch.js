@@ -59,7 +59,7 @@ export function useWeaponSearch(options = {}) {
         params.weaponType = weaponType
       }
       
-      const response = await axios.get(`${API_CONFIG.BASE_URL}/webSelectWeaponV1/getWeaponNames`, {
+      const response = await axios.get(apiUrls.weaponNames(), {
         params: params
       })
       
@@ -165,7 +165,7 @@ export function useWeaponSearch(options = {}) {
         params.minOnSaleCount = filters.value.minOnSaleCount
       }
       
-      const response = await axios.get(`${API_CONFIG.BASE_URL}/webSelectWeaponV1/searchWeaponDetail`, {
+      const response = await axios.get(apiUrls.weaponDetailBase(), {
         params: params
       })
       

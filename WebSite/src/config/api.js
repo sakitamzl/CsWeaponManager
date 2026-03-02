@@ -129,49 +129,72 @@ export const API_CONFIG = {
 
     // Steam市场数据相关
 
-    STEAM_BUY_DATA: (page, limit) => `/webSteamMarketV1/getSteamBuyData/${page}/${limit}`,
+    STEAM_BUY_GAME_NAMES: '/backENDV2/src/web_display/settings/steam_market/units/buy/getBuyGameNames',
 
-    STEAM_BUY_STATS: '/webSteamMarketV1/getSteamBuyStats',
+    STEAM_BUY_DATA: (page, limit) => `/backENDV2/src/web_display/settings/steam_market/units/buy/getBuyData/${page}/${limit}`,
 
-    STEAM_BUY_STATS_BY_SEARCH: (keyword) => `/webSteamMarketV1/getSteamBuyStatsBySearch/${encodeURIComponent(keyword)}`,
+    STEAM_BUY_STATS: '/backENDV2/src/web_display/settings/steam_market/units/buy/getBuyStats',
 
-    STEAM_BUY_STATS_BY_STATUS: (status) => `/webSteamMarketV1/getSteamBuyStatsByStatus/${status}`,
+    STEAM_BUY_STATS_BY_SEARCH: (keyword) => `/backENDV2/src/web_display/settings/steam_market/units/buy/getBuyStatsBySearch/${encodeURIComponent(keyword)}`,
 
-    STEAM_BUY_DATA_BY_STATUS: (status, page, limit) => `/webSteamMarketV1/getSteamBuyDataByStatus/${status}/${page}/${limit}`,
+    STEAM_BUY_STATS_BY_GAME_NAME: (gameName) => `/backENDV2/src/web_display/settings/steam_market/units/buy/getBuyStatsByGameName/${encodeURIComponent(gameName)}`,
 
-    STEAM_BUY_SEARCH_BY_NAME: (itemName) => `/webSteamMarketV1/selectSteamBuyWeaponName/${encodeURIComponent(itemName)}`,
+    STEAM_BUY_DATA_BY_GAME_NAME: (gameName, page, limit) => `/backENDV2/src/web_display/settings/steam_market/units/buy/getBuyDataByGameName/${encodeURIComponent(gameName)}/${page}/${limit}`,
 
-    STEAM_BUY_SEARCH_BY_TIME: (startDate, endDate) => `/webSteamMarketV1/searchSteamBuyByTimeRange/${startDate}/${endDate}`,
+    STEAM_BUY_SEARCH_BY_NAME: (itemName) => `/backENDV2/src/web_display/settings/steam_market/units/buy/searchBuyByName/${encodeURIComponent(itemName)}`,
 
-    STEAM_BUY_STATS_BY_TIME: (startDate, endDate) => `/webSteamMarketV1/getSteamBuyStatsByTimeRange/${startDate}/${endDate}`,
+    STEAM_BUY_SEARCH_BY_TIME: (startDate, endDate) => `/backENDV2/src/web_display/settings/steam_market/units/buy/searchBuyByTimeRange/${startDate}/${endDate}`,
+
+    STEAM_BUY_STATS_BY_TIME: (startDate, endDate) => `/backENDV2/src/web_display/settings/steam_market/units/buy/getBuyStatsByTimeRange/${startDate}/${endDate}`,
 
     
 
-    STEAM_SELL_DATA: (page, limit) => `/webSteamMarketV1/getSteamSellData/${page}/${limit}`,
+    STEAM_SELL_GAME_NAMES: '/backENDV2/src/web_display/settings/steam_market/units/sell/getSellGameNames',
 
-    STEAM_SELL_STATS: '/webSteamMarketV1/getSteamSellStats',
+    STEAM_SELL_DATA: (page, limit) => `/backENDV2/src/web_display/settings/steam_market/units/sell/getSellData/${page}/${limit}`,
 
-    STEAM_SELL_STATS_BY_SEARCH: (keyword) => `/webSteamMarketV1/getSteamSellStatsBySearch/${encodeURIComponent(keyword)}`,
+    STEAM_SELL_STATS: '/backENDV2/src/web_display/settings/steam_market/units/sell/getSellStats',
 
-    STEAM_SELL_STATS_BY_STATUS: (status) => `/webSteamMarketV1/getSteamSellStatsByStatus/${status}`,
+    STEAM_SELL_STATS_BY_SEARCH: (keyword) => `/backENDV2/src/web_display/settings/steam_market/units/sell/getSellStatsBySearch/${encodeURIComponent(keyword)}`,
 
-    STEAM_SELL_DATA_BY_STATUS: (status, page, limit) => `/webSteamMarketV1/getSteamSellDataByStatus/${status}/${page}/${limit}`,
+    STEAM_SELL_STATS_BY_GAME_NAME: (gameName) => `/backENDV2/src/web_display/settings/steam_market/units/sell/getSellStatsByGameName/${encodeURIComponent(gameName)}`,
 
-    STEAM_SELL_SEARCH_BY_NAME: (itemName) => `/webSteamMarketV1/selectSteamSellWeaponName/${encodeURIComponent(itemName)}`,
+    STEAM_SELL_DATA_BY_GAME_NAME: (gameName, page, limit) => `/backENDV2/src/web_display/settings/steam_market/units/sell/getSellDataByGameName/${encodeURIComponent(gameName)}/${page}/${limit}`,
 
-    STEAM_SELL_SEARCH_BY_TIME: (startDate, endDate) => `/webSteamMarketV1/searchSteamSellByTimeRange/${startDate}/${endDate}`,
+    STEAM_SELL_SEARCH_BY_NAME: (itemName) => `/backENDV2/src/web_display/settings/steam_market/units/sell/searchSellByName/${encodeURIComponent(itemName)}`,
 
-    STEAM_SELL_STATS_BY_TIME: (startDate, endDate) => `/webSteamMarketV1/getSteamSellStatsByTimeRange/${startDate}/${endDate}`,
+    STEAM_SELL_SEARCH_BY_TIME: (startDate, endDate) => `/backENDV2/src/web_display/settings/steam_market/units/sell/searchSellByTimeRange/${startDate}/${endDate}`,
+
+    STEAM_SELL_STATS_BY_TIME: (startDate, endDate) => `/backENDV2/src/web_display/settings/steam_market/units/sell/getSellStatsByTimeRange/${startDate}/${endDate}`,
 
     
 
     // 武器搜索相关
 
-    SEARCH_WEAPON: (keyword) => `/webSelectWeaponV1/searchWeapon?keyword=${encodeURIComponent(keyword)}`,
+    SEARCH_WEAPON: (keyword) => `/backENDV2/src/web_display/settings/data_source/units/weapon/search?keyword=${encodeURIComponent(keyword)}`,
 
-    SEARCH_WEAPON_DETAIL: (keyword, exactMatch = false) => `/webSelectWeaponV1/searchWeaponDetail?keyword=${encodeURIComponent(keyword)}${exactMatch ? '&exactMatch=true' : ''}`,
+    SEARCH_WEAPON_DETAIL: (keyword, exactMatch = false) => `/backENDV2/src/web_display/settings/data_source/units/weapon/detail?keyword=${encodeURIComponent(keyword)}${exactMatch ? '&exactMatch=true' : ''}`,
 
-    SEARCH_WEAPON_BY_PRICE_RANGE: '/webSelectWeaponV1/queryWeaponsByPriceRange',  // 按价格区间查询饰品（带在售数量筛选）
+    WEAPON_DETAIL_BASE: '/backENDV2/src/web_display/settings/data_source/units/weapon/detail',  // 武器详情搜索（用于axios params传参）
+
+    // 公共配置管理（search_config）
+    CONFIG_GET: (key1, key2) => `/backENDV2/src/unites/search_config/get/${key1}/${key2}`,
+    CONFIG_SAVE: '/backENDV2/src/unites/search_config/save',
+    CONFIG_UPDATE: '/backENDV2/src/unites/search_config/update',
+    CONFIG_LIST: '/backENDV2/src/unites/search_config/list',
+    CONFIG_DELETE: (configId) => `/backENDV2/src/unites/search_config/delete/${configId}`,
+
+    SEARCH_WEAPON_BY_PRICE_RANGE: '/backENDV2/src/web_display/settings/data_source/units/weapon/price_range',  // 按价格区间查询饰品（带在售数量筛选）
+
+    WEAPON_NAMES: '/backENDV2/src/web_display/settings/data_source/units/weapon/names',  // 获取武器名称列表
+
+    WEAPON_REFERENCE_PRICES: '/backENDV2/src/web_display/settings/data_source/units/weapon/reference_prices',  // 批量查询参考价
+
+    WEAPON_CSQAQ_ID: '/backENDV2/src/web_display/settings/data_source/units/weapon/csqaq_id',  // 查询 csqaq_id
+
+    INVENTORY_PENDANT_PRICE: '/backENDV2/src/web_display/inventory/units/price/getPendantPrice',  // 获取单个挂件价格
+
+    INVENTORY_GET_ALL_PENDANTS: '/backENDV2/src/web_display/inventory/units/price/getAllPendants',  // 获取所有挂件数据
 
     
 
@@ -615,6 +638,38 @@ export const API_CONFIG = {
 
     VERSION_DOCUMENTS_IMAGE: '/backENDV2/src/web_display/settings/version_update/units/docs/getDocumentImage',
 
+    // 系统消息相关（V2 API）
+    SYS_MESSAGE_LIST: (page, limit) => `/backENDV2/src/web_display/settings/sys_message/list/${page}/${limit}`,
+    SYS_MESSAGE_STATS: '/backENDV2/src/web_display/settings/sys_message/stats',
+    SYS_MESSAGE_TYPES: '/backENDV2/src/web_display/settings/sys_message/types',
+    SYS_MESSAGE_SOURCES: '/backENDV2/src/web_display/settings/sys_message/sources',
+    SYS_MESSAGE_MARK_READ: '/backENDV2/src/web_display/settings/sys_message/mark_read',
+    SYS_MESSAGE_MARK_ALL_READ: '/backENDV2/src/web_display/settings/sys_message/mark_all_read',
+    SYS_MESSAGE_DELETE: '/backENDV2/src/web_display/settings/sys_message/delete',
+    SYS_MESSAGE_SEARCH_KEYWORD: '/backENDV2/src/web_display/settings/sys_message/search/keyword',
+    SYS_MESSAGE_SEARCH_TIME: '/backENDV2/src/web_display/settings/sys_message/search/time',
+    SYS_MESSAGE_SEARCH_FILTER: '/backENDV2/src/web_display/settings/sys_message/search/filter',
+    SYS_MESSAGE_CREATE: '/backENDV2/src/web_display/settings/sys_message/create',
+
+    // 改名饰品搜索结果（V2 API） - 对应 SearchWeaponRename 页面
+    SEARCH_RENAME_ITEM_ADD: '/backENDV2/src/web_display/data_spider/search_weapon_rename/item/add',
+    SEARCH_RENAME_ITEM_GET: (id) => `/backENDV2/src/web_display/data_spider/search_weapon_rename/item/get/${id}`,
+    SEARCH_RENAME_ITEM_UPDATE_STATUS: '/backENDV2/src/web_display/data_spider/search_weapon_rename/item/update_status',
+    SEARCH_RENAME_ITEMS_BATCH: '/backENDV2/src/web_display/data_spider/search_weapon_rename/items/batch',
+    SEARCH_RENAME_ITEMS_LIST: '/backENDV2/src/web_display/data_spider/search_weapon_rename/items/list',
+    SEARCH_RENAME_ITEMS_COUNT: '/backENDV2/src/web_display/data_spider/search_weapon_rename/items/count',
+    SEARCH_RENAME_ITEMS_LATEST: '/backENDV2/src/web_display/data_spider/search_weapon_rename/items/latest',
+    SEARCH_RENAME_ITEMS_CLEAR: '/backENDV2/src/web_display/data_spider/search_weapon_rename/items/clear',
+    SEARCH_RENAME_ITEMS_CLEANUP: '/backENDV2/src/web_display/data_spider/search_weapon_rename/items/cleanup',
+    SEARCH_RENAME_STATS: '/backENDV2/src/web_display/data_spider/search_weapon_rename/stats',
+
+    // 挂件搜索结果（V2 API） - 对应 SearchPendant 页面
+    SEARCH_PENDANT_CONFIG_SAVE: '/backENDV2/src/web_display/data_spider/search_pendant/config/save',
+    SEARCH_PENDANT_ITEM_ADD: '/backENDV2/src/web_display/data_spider/search_pendant/item/add',
+    SEARCH_PENDANT_ITEMS_LIST: '/backENDV2/src/web_display/data_spider/search_pendant/items/list',
+    SEARCH_PENDANT_ITEM_UPDATE_STATUS: '/backENDV2/src/web_display/data_spider/search_pendant/item/update_status',
+    SEARCH_PENDANT_ITEMS_CLEAR: '/backENDV2/src/web_display/data_spider/search_pendant/items/clear',
+
     // 悠悠有品自动购买相关（V2 API）
     AUTO_BUY_RENAMED_WEAPON: '/spiderApiV2/src/web_site/youping/auto_weapon/autoBuyRenamedWeapon',  // 自动购买改名武器
     AUTO_BUY_PENDANT_WEAPON: '/spiderApiV2/src/web_site/youping/auto_weapon/autoBuyPendantWeapon',  // 自动购买挂件武器
@@ -763,15 +818,17 @@ export const apiUrls = {
 
   // Steam购买数据
 
+  steamBuyGameNames: () => getApiUrl(API_CONFIG.ENDPOINTS.STEAM_BUY_GAME_NAMES),
+
   steamBuyData: (page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.STEAM_BUY_DATA(page, limit)),
 
   steamBuyStats: () => getApiUrl(API_CONFIG.ENDPOINTS.STEAM_BUY_STATS),
 
   steamBuyStatsBySearch: (keyword) => getApiUrl(API_CONFIG.ENDPOINTS.STEAM_BUY_STATS_BY_SEARCH(keyword)),
 
-  steamBuyStatsByStatus: (status) => getApiUrl(API_CONFIG.ENDPOINTS.STEAM_BUY_STATS_BY_STATUS(status)),
+  steamBuyStatsByGameName: (gameName) => getApiUrl(API_CONFIG.ENDPOINTS.STEAM_BUY_STATS_BY_GAME_NAME(gameName)),
 
-  steamBuyDataByStatus: (status, page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.STEAM_BUY_DATA_BY_STATUS(status, page, limit)),
+  steamBuyDataByGameName: (gameName, page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.STEAM_BUY_DATA_BY_GAME_NAME(gameName, page, limit)),
 
   steamBuySearchByName: (itemName) => getApiUrl(API_CONFIG.ENDPOINTS.STEAM_BUY_SEARCH_BY_NAME(itemName)),
 
@@ -783,15 +840,17 @@ export const apiUrls = {
 
   // Steam销售数据
 
+  steamSellGameNames: () => getApiUrl(API_CONFIG.ENDPOINTS.STEAM_SELL_GAME_NAMES),
+
   steamSellData: (page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.STEAM_SELL_DATA(page, limit)),
 
   steamSellStats: () => getApiUrl(API_CONFIG.ENDPOINTS.STEAM_SELL_STATS),
 
   steamSellStatsBySearch: (keyword) => getApiUrl(API_CONFIG.ENDPOINTS.STEAM_SELL_STATS_BY_SEARCH(keyword)),
 
-  steamSellStatsByStatus: (status) => getApiUrl(API_CONFIG.ENDPOINTS.STEAM_SELL_STATS_BY_STATUS(status)),
+  steamSellStatsByGameName: (gameName) => getApiUrl(API_CONFIG.ENDPOINTS.STEAM_SELL_STATS_BY_GAME_NAME(gameName)),
 
-  steamSellDataByStatus: (status, page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.STEAM_SELL_DATA_BY_STATUS(status, page, limit)),
+  steamSellDataByGameName: (gameName, page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.STEAM_SELL_DATA_BY_GAME_NAME(gameName, page, limit)),
 
   steamSellSearchByName: (itemName) => getApiUrl(API_CONFIG.ENDPOINTS.STEAM_SELL_SEARCH_BY_NAME(itemName)),
 
@@ -876,6 +935,25 @@ export const apiUrls = {
   searchWeaponDetail: (keyword, exactMatch = false) => getApiUrl(API_CONFIG.ENDPOINTS.SEARCH_WEAPON_DETAIL(keyword, exactMatch)),
 
   searchWeaponByPriceRange: () => getApiUrl(API_CONFIG.ENDPOINTS.SEARCH_WEAPON_BY_PRICE_RANGE),
+
+  weaponDetailBase: () => getApiUrl(API_CONFIG.ENDPOINTS.WEAPON_DETAIL_BASE),
+
+  // 公共配置管理
+  configGet: (key1, key2) => getApiUrl(API_CONFIG.ENDPOINTS.CONFIG_GET(key1, key2)),
+  configSave: () => getApiUrl(API_CONFIG.ENDPOINTS.CONFIG_SAVE),
+  configUpdate: () => getApiUrl(API_CONFIG.ENDPOINTS.CONFIG_UPDATE),
+  configList: () => getApiUrl(API_CONFIG.ENDPOINTS.CONFIG_LIST),
+  configDelete: (configId) => getApiUrl(API_CONFIG.ENDPOINTS.CONFIG_DELETE(configId)),
+
+  weaponNames: () => getApiUrl(API_CONFIG.ENDPOINTS.WEAPON_NAMES),
+
+  weaponReferencePrices: () => getApiUrl(API_CONFIG.ENDPOINTS.WEAPON_REFERENCE_PRICES),
+
+  weaponCsqaqId: () => getApiUrl(API_CONFIG.ENDPOINTS.WEAPON_CSQAQ_ID),
+
+  inventoryPendantPrice: () => getApiUrl(API_CONFIG.ENDPOINTS.INVENTORY_PENDANT_PRICE),
+
+  inventoryGetAllPendants: () => getApiUrl(API_CONFIG.ENDPOINTS.INVENTORY_GET_ALL_PENDANTS),
 
   
 
@@ -1227,6 +1305,38 @@ export const apiUrls = {
   versionDocumentsTree: () => getApiUrl(API_CONFIG.ENDPOINTS.VERSION_DOCUMENTS_TREE),
 
   versionDocumentsFile: () => getApiUrl(API_CONFIG.ENDPOINTS.VERSION_DOCUMENTS_FILE),
+
+  // 系统消息API
+  sysMessageList: (page, limit) => getApiUrl(API_CONFIG.ENDPOINTS.SYS_MESSAGE_LIST(page, limit)),
+  sysMessageStats: () => getApiUrl(API_CONFIG.ENDPOINTS.SYS_MESSAGE_STATS),
+  sysMessageTypes: () => getApiUrl(API_CONFIG.ENDPOINTS.SYS_MESSAGE_TYPES),
+  sysMessageSources: () => getApiUrl(API_CONFIG.ENDPOINTS.SYS_MESSAGE_SOURCES),
+  sysMessageMarkRead: () => getApiUrl(API_CONFIG.ENDPOINTS.SYS_MESSAGE_MARK_READ),
+  sysMessageMarkAllRead: () => getApiUrl(API_CONFIG.ENDPOINTS.SYS_MESSAGE_MARK_ALL_READ),
+  sysMessageDelete: () => getApiUrl(API_CONFIG.ENDPOINTS.SYS_MESSAGE_DELETE),
+  sysMessageSearchKeyword: () => getApiUrl(API_CONFIG.ENDPOINTS.SYS_MESSAGE_SEARCH_KEYWORD),
+  sysMessageSearchTime: () => getApiUrl(API_CONFIG.ENDPOINTS.SYS_MESSAGE_SEARCH_TIME),
+  sysMessageSearchFilter: () => getApiUrl(API_CONFIG.ENDPOINTS.SYS_MESSAGE_SEARCH_FILTER),
+  sysMessageCreate: () => getApiUrl(API_CONFIG.ENDPOINTS.SYS_MESSAGE_CREATE),
+
+  // 改名饰品搜索结果 API（SearchWeaponRename 页面）
+  searchRenameItemAdd: () => getApiUrl(API_CONFIG.ENDPOINTS.SEARCH_RENAME_ITEM_ADD),
+  searchRenameItemGet: (id) => getApiUrl(API_CONFIG.ENDPOINTS.SEARCH_RENAME_ITEM_GET(id)),
+  searchRenameItemUpdateStatus: () => getApiUrl(API_CONFIG.ENDPOINTS.SEARCH_RENAME_ITEM_UPDATE_STATUS),
+  searchRenameItemsBatch: () => getApiUrl(API_CONFIG.ENDPOINTS.SEARCH_RENAME_ITEMS_BATCH),
+  searchRenameItemsList: () => getApiUrl(API_CONFIG.ENDPOINTS.SEARCH_RENAME_ITEMS_LIST),
+  searchRenameItemsCount: () => getApiUrl(API_CONFIG.ENDPOINTS.SEARCH_RENAME_ITEMS_COUNT),
+  searchRenameItemsLatest: () => getApiUrl(API_CONFIG.ENDPOINTS.SEARCH_RENAME_ITEMS_LATEST),
+  searchRenameItemsClear: () => getApiUrl(API_CONFIG.ENDPOINTS.SEARCH_RENAME_ITEMS_CLEAR),
+  searchRenameItemsCleanup: () => getApiUrl(API_CONFIG.ENDPOINTS.SEARCH_RENAME_ITEMS_CLEANUP),
+  searchRenameStats: () => getApiUrl(API_CONFIG.ENDPOINTS.SEARCH_RENAME_STATS),
+
+  // 挂件搜索结果 API（SearchPendant 页面）
+  searchPendantConfigSave: () => getApiUrl(API_CONFIG.ENDPOINTS.SEARCH_PENDANT_CONFIG_SAVE),
+  searchPendantItemAdd: () => getApiUrl(API_CONFIG.ENDPOINTS.SEARCH_PENDANT_ITEM_ADD),
+  searchPendantItemsList: () => getApiUrl(API_CONFIG.ENDPOINTS.SEARCH_PENDANT_ITEMS_LIST),
+  searchPendantItemUpdateStatus: () => getApiUrl(API_CONFIG.ENDPOINTS.SEARCH_PENDANT_ITEM_UPDATE_STATUS),
+  searchPendantItemsClear: () => getApiUrl(API_CONFIG.ENDPOINTS.SEARCH_PENDANT_ITEMS_CLEAR),
 
 }
 

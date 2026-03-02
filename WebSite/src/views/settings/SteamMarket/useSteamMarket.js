@@ -241,9 +241,9 @@ export function useSteamMarket() {
       
       let apiUrl
       if (buyGameNameFilter.value !== 'all') {
-        apiUrl = `/api/webSteamMarketV1/getSteamBuyDataByGameName/${encodeURIComponent(buyGameNameFilter.value)}/${min}/${max}`
+        apiUrl = apiUrls.steamBuyDataByGameName(buyGameNameFilter.value, min, max)
       } else {
-        apiUrl = `/api/webSteamMarketV1/getSteamBuyData/${min}/${max}`
+        apiUrl = apiUrls.steamBuyData(min, max)
       }
       
       const response = await fetch(apiUrl, {
@@ -316,7 +316,7 @@ export function useSteamMarket() {
     try {
       const [startDate, endDate] = buyDateRange.value
       
-      const response = await fetch(`/api/webSteamMarketV1/searchSteamBuyByTimeRange/${startDate}/${endDate}`, {
+      const response = await fetch(apiUrls.steamBuySearchByTime(startDate, endDate), {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -379,7 +379,7 @@ export function useSteamMarket() {
 
   const loadBuyTimeRangeStats = async (startDate, endDate) => {
     try {
-      const response = await fetch(`/api/webSteamMarketV1/getSteamBuyStatsByTimeRange/${startDate}/${endDate}`, {
+      const response = await fetch(apiUrls.steamBuyStatsByTime(startDate, endDate), {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -413,13 +413,10 @@ export function useSteamMarket() {
   // Sell相关方法（类似Buy方法）
   const loadSellTotalStats = async (searchKeyword = null) => {
     try {
-      let apiUrl = '/api/webSteamMarketV1/getSteamSellStats'
-      
       const keyword = searchKeyword || sellSearchText.value.trim()
-      
-      if (keyword) {
-        apiUrl = `/api/webSteamMarketV1/getSteamSellStatsBySearch/${encodeURIComponent(keyword)}`
-      }
+      let apiUrl = keyword
+        ? apiUrls.steamSellStatsBySearch(keyword)
+        : apiUrls.steamSellStats()
       
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -457,7 +454,7 @@ export function useSteamMarket() {
   const searchSellByName = async (itemName) => {
     sellLoading.value = true
     try {
-      const response = await fetch(`/api/webSteamMarketV1/selectSteamSellWeaponName/${encodeURIComponent(itemName)}`, {
+      const response = await fetch(apiUrls.steamSellSearchByName(itemName), {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -536,9 +533,9 @@ export function useSteamMarket() {
       
       let apiUrl
       if (sellGameNameFilter.value !== 'all') {
-        apiUrl = `/api/webSteamMarketV1/getSteamSellDataByGameName/${encodeURIComponent(sellGameNameFilter.value)}/${min}/${max}`
+        apiUrl = apiUrls.steamSellDataByGameName(sellGameNameFilter.value, min, max)
       } else {
-        apiUrl = `/api/webSteamMarketV1/getSteamSellData/${min}/${max}`
+        apiUrl = apiUrls.steamSellData(min, max)
       }
       
       const response = await fetch(apiUrl, {
@@ -611,7 +608,7 @@ export function useSteamMarket() {
     try {
       const [startDate, endDate] = sellDateRange.value
       
-      const response = await fetch(`/api/webSteamMarketV1/searchSteamSellByTimeRange/${startDate}/${endDate}`, {
+      const response = await fetch(apiUrls.steamSellSearchByTime(startDate, endDate), {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -674,7 +671,7 @@ export function useSteamMarket() {
 
   const loadSellTimeRangeStats = async (startDate, endDate) => {
     try {
-      const response = await fetch(`/api/webSteamMarketV1/getSteamSellStatsByTimeRange/${startDate}/${endDate}`, {
+      const response = await fetch(apiUrls.steamSellStatsByTime(startDate, endDate), {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -749,7 +746,7 @@ export function useSteamMarket() {
 
   const loadBuyStatsByGameName = async (gameName) => {
     try {
-      const response = await fetch(`/api/webSteamMarketV1/getSteamBuyStatsByGameName/${encodeURIComponent(gameName)}`, {
+      const response = await fetch(apiUrls.steamBuyStatsByGameName(gameName), {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -821,7 +818,7 @@ export function useSteamMarket() {
 
   const loadSellStatsByGameName = async (gameName) => {
     try {
-      const response = await fetch(`/api/webSteamMarketV1/getSteamSellStatsByGameName/${encodeURIComponent(gameName)}`, {
+      const response = await fetch(apiUrls.steamSellStatsByGameName(gameName), {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -861,7 +858,7 @@ export function useSteamMarket() {
   // 加载Buy游戏名称列表
   const loadBuyGameNames = async () => {
     try {
-      const response = await fetch('/api/webSteamMarketV1/getBuyGameNames', {
+      const response = await fetch(apiUrls.steamBuyGameNames(), {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -884,7 +881,7 @@ export function useSteamMarket() {
   // 加载Sell游戏名称列表
   const loadSellGameNames = async () => {
     try {
-      const response = await fetch('/api/webSteamMarketV1/getSellGameNames', {
+      const response = await fetch(apiUrls.steamSellGameNames(), {
         method: 'GET',
         mode: 'cors',
         headers: {

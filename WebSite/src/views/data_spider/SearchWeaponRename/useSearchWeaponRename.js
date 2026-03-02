@@ -3,7 +3,7 @@ import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Document, Delete, Refresh, ArrowUp, ArrowDown } from '@element-plus/icons-vue'
-import { API_CONFIG } from '@/config/api.js'
+import { API_CONFIG, apiUrls } from '@/config/api.js'
 import WeaponSearch from '@/views/Units/weapon_search/index.vue'
 
 export function useSearchWeaponRename() {
@@ -161,7 +161,7 @@ const clearCrawlHistory = async (skipConfirm = false) => {
     }
     
     // 调用后端 API 清空数据库
-    const response = await fetch(`${API_CONFIG.BASE_URL}/searchRename/clear`, {
+    const response = await fetch(apiUrls.searchRenameItemsClear(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody)
@@ -322,7 +322,7 @@ const loadReferencePrices = async (items = []) => {
 
   try {
     const response = await axios.post(
-      `${API_CONFIG.BASE_URL}/webSelectWeaponV1/getReferencePrices`,
+      apiUrls.weaponReferencePrices(),
       {
         steamHashNames: namesToFetch,
         referencePriceSource: sourceKey
@@ -598,7 +598,7 @@ const loadAccountsForPlatform = async (platformType) => {
   }
 
   try {
-    const response = await axios.get(`${API_CONFIG.BASE_URL}/configV1/list`, {
+    const response = await axios.get(apiUrls.configList(), {
       params: {
         key1: sourceConfig.key1,
         key2: sourceConfig.key2
@@ -690,7 +690,7 @@ const loadRecentSearchResults = async () => {
     if (selectedConfigId.value) {
       params.append('configId', selectedConfigId.value.toString())
     }
-    const url = `${API_CONFIG.BASE_URL}/searchRename/items/list?${params.toString()}`
+    const url = `${apiUrls.searchRenameItemsList()}?${params.toString()}`
     const response = await fetch(url)
     
     if (!response.ok) {
@@ -800,7 +800,7 @@ const pollSearchResults = async () => {
     if (selectedConfigId.value) {
       params.append('configId', selectedConfigId.value.toString())
     }
-    const url = `${API_CONFIG.BASE_URL}/searchRename/items/list?${params.toString()}`
+    const url = `${apiUrls.searchRenameItemsList()}?${params.toString()}`
     
     const response = await fetch(url)
     
@@ -1165,7 +1165,7 @@ const getPlatformTagType = (platform) => {
 const loadConfigList = async () => {
   try {
     // 只加载 key1 = 'spider_rename' 的配置
-    const response = await axios.get(`${API_CONFIG.BASE_URL}/configV1/list`, {
+    const response = await axios.get(apiUrls.configList(), {
       params: {
         key1: 'spider_rename'
       }
@@ -1322,7 +1322,7 @@ const autoSaveConfig = async () => {
       value: JSON.stringify(valueObj)
     }
 
-    await axios.post(`${API_CONFIG.BASE_URL}/configV1/save`, configData)
+    await axios.post(apiUrls.configSave(), configData)
   } catch (error) {
     console.error('自动保存配置失败:', error)
   }
@@ -1453,9 +1453,9 @@ const saveConfig = async () => {
 
     if (isUpdating) {
       configData.id = selectedConfigId.value
-      response = await axios.post(`${API_CONFIG.BASE_URL}/configV1/update`, configData)
+      response = await axios.post(apiUrls.configUpdate(), configData)
     } else {
-      response = await axios.post(`${API_CONFIG.BASE_URL}/configV1/save`, configData)
+      response = await axios.post(apiUrls.configSave(), configData)
     }
     
     if (response.data.success) {
@@ -1508,8 +1508,7 @@ const deleteConfig = async (configId) => {
       }
     )
 
-    // TODO: 替换为实际的API端点
-    const response = await axios.delete(`${API_CONFIG.BASE_URL}/configV1/delete/${configId}`)
+    const response = await axios.delete(apiUrls.configDelete(configId))
     
     if (response.data.success) {
       ElMessage.success('删除配置成功')
@@ -1573,7 +1572,7 @@ const loadWeaponNames = async (weaponType) => {
       params.weaponType = weaponType
     }
     
-    const response = await axios.get(`${API_CONFIG.BASE_URL}/webSelectWeaponV1/getWeaponNames`, {
+    const response = await axios.get(apiUrls.weaponNames(), {
       params: params
     })
     
@@ -1683,7 +1682,7 @@ const loadWeaponData = async () => {
       params.minOnSaleCount = weaponSearchFilters.value.minOnSaleCount
     }
     
-    const response = await axios.get(`${API_CONFIG.BASE_URL}/webSelectWeaponV1/searchWeaponDetail`, {
+    const response = await axios.get(apiUrls.weaponDetailBase(), {
       params: params
     })
     
@@ -2065,7 +2064,7 @@ const handleBuyWeapon = async (item) => {
         // 更新数据库中的状态为 buyed
         try {
           await axios.post(
-            `${API_CONFIG.BASE_URL}/searchRename/item/update-status`,
+            apiUrls.searchRenameItemUpdateStatus(),
             {
               commodityId: item.id,
               status: 'buyed'
@@ -2144,7 +2143,7 @@ const handleBuyWeapon = async (item) => {
           // 更新数据库中的状态为 buyed
           try {
             await axios.post(
-              `${API_CONFIG.BASE_URL}/searchRename/item/update-status`,
+              apiUrls.searchRenameItemUpdateStatus(),
               {
                 commodityId: item.id,
                 status: 'buyed'
@@ -2377,7 +2376,7 @@ const confirmYYYPBuy = async () => {
       // 更新数据库状态
       try {
         await axios.post(
-          `${API_CONFIG.BASE_URL}/searchRename/item/update-status`,
+          apiUrls.searchRenameItemUpdateStatus(),
           {
             commodityId: currentYYYPItem.value.id,
             status: 'buyed'

@@ -148,7 +148,7 @@ export function useSearchPendant() {
     if (selectedConfigId.value) {
       params.append('configId', selectedConfigId.value.toString())
     }
-    const response = await fetch(`${API_CONFIG.BASE_URL}/searchRename/items/list?${params.toString()}`)
+    const response = await fetch(`${apiUrls.searchPendantItemsList()}?${params.toString()}`)
     if (!response.ok) {
       console.warn('[挂件] 历史数据请求失败')
       return
@@ -319,7 +319,7 @@ export function useSearchPendant() {
     if (selectedConfigId.value) {
       params.append('configId', selectedConfigId.value.toString())
     }
-    const response = await fetch(`${API_CONFIG.BASE_URL}/searchRename/items/list?${params.toString()}`)
+    const response = await fetch(`${apiUrls.searchPendantItemsList()}?${params.toString()}`)
     if (!response.ok) {
       console.error('[挂件] 轮询失败: HTTP', response.status)
       return
@@ -389,7 +389,7 @@ export function useSearchPendant() {
       requestBody.configId = selectedConfigId.value
     }
 
-    const response = await fetch(`${API_CONFIG.BASE_URL}/searchRename/clear`, {
+    const response = await fetch(apiUrls.searchPendantItemsClear(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody)
@@ -705,7 +705,7 @@ const loadAccountsForPlatform = async (platformType) => {
   }
 
   try {
-    const response = await axios.get(`${API_CONFIG.BASE_URL}/configV1/list`, {
+    const response = await axios.get(apiUrls.configList(), {
       params: {
         key1: sourceConfig.key1,
         key2: sourceConfig.key2
@@ -1262,7 +1262,7 @@ const getSourceLabel = (source) => {
 const loadConfigList = async () => {
   try {
     // 只加载 key1 = 'spider_pendant' 的配置
-    const response = await axios.get(`${API_CONFIG.BASE_URL}/configV1/list`, {
+    const response = await axios.get(apiUrls.configList(), {
       params: {
         key1: 'spider_pendant'
       }
@@ -1591,7 +1591,7 @@ const saveSearchStatusToConfig = async (status, progressInfo) => {
       value: JSON.stringify(valueObj)
     }
 
-    const response = await axios.post(`${API_CONFIG.BASE_URL}/configV1/update`, configData)
+    const response = await axios.post(apiUrls.configUpdate(), configData)
 
     if (response.data.success) {
       console.log('[保存状态] 状态保存成功')
@@ -1666,9 +1666,9 @@ const saveConfig = async () => {
 
     if (isUpdating) {
       configData.id = selectedConfigId.value
-      response = await axios.post(`${API_CONFIG.BASE_URL}/configV1/update`, configData)
+      response = await axios.post(apiUrls.configUpdate(), configData)
     } else {
-      response = await axios.post(`${API_CONFIG.BASE_URL}/configV1/save`, configData)
+      response = await axios.post(apiUrls.configSave(), configData)
     }
     
     if (response.data.success) {
@@ -1723,7 +1723,7 @@ const deleteConfig = async (configId) => {
       }
     )
 
-    const response = await axios.delete(`${API_CONFIG.BASE_URL}/configV1/delete/${configId}`)
+    const response = await axios.delete(apiUrls.configDelete(configId))
     
     if (response.data.success) {
       ElMessage.success('删除配置成功')
@@ -1782,7 +1782,7 @@ const loadWeaponNames = async (weaponType) => {
       params.weaponType = weaponType
     }
     
-    const response = await axios.get(`${API_CONFIG.BASE_URL}/webSelectWeaponV1/getWeaponNames`, {
+    const response = await axios.get(apiUrls.weaponNames(), {
       params: params
     })
     
@@ -1889,7 +1889,7 @@ const loadWeaponData = async () => {
       params.minOnSaleCount = weaponSearchFilters.value.minOnSaleCount
     }
     
-    const response = await axios.get(`${API_CONFIG.BASE_URL}/webSelectWeaponV1/searchWeaponDetail`, {
+    const response = await axios.get(apiUrls.weaponDetailBase(), {
       params: params
     })
     
@@ -2392,7 +2392,7 @@ const confirmYYYPBuy = async () => {
       // 更新数据库状态
       try {
         await axios.post(
-          `${API_CONFIG.BASE_URL}/searchRename/item/update-status`,
+          apiUrls.searchPendantItemUpdateStatus(),
           {
             commodityId: currentYYYPItem.value.id,
             status: 'buyed'
@@ -2576,7 +2576,7 @@ const saveProgressToStorage = async (configId) => {
 
     // 同步保存到后端（使用独立的挂件配置进度API）
     try {
-      const response = await fetch(`${API_CONFIG.BACKEND_BASE_URL}/searchPendantConfigV1/saveConfig`, {
+      const response = await fetch(apiUrls.searchPendantConfigSave(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -2740,7 +2740,7 @@ const clearProgressFromStorage = async (configId) => {
 
     // 通知后端清除该配置的进度（保存为空对象）
     try {
-      const response = await fetch(`${API_CONFIG.BACKEND_BASE_URL}/searchPendantConfigV1/saveConfig`, {
+      const response = await fetch(apiUrls.searchPendantConfigSave(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -2809,7 +2809,7 @@ const getRarityColor = (rarity) => {
       }
 
       // 调用后端接口查询 csqaq_id
-      const response = await fetch(`${API_CONFIG.BASE_URL}/webSelectWeaponV1/csqaq_id`, {
+      const response = await fetch(apiUrls.weaponCsqaqId(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
