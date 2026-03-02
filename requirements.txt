@@ -6,4 +6,5 @@ cryptography==43.0.3
 beautifulsoup4==4.13.4
 lxml==5.3.0
 adb-shell==0.4.4
-selenium==4.40.0  # 使用 Selenium + Edge 替代 Playwright，减少打包体积
+selenium==4.40.0
+pymysql

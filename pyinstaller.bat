@@ -29,9 +29,9 @@ if %errorlevel% neq 0 (
 del %TEMP_PS% >nul 2>&1
 
 :: Activate conda environment
-call conda activate CS2DB
+call conda activate CSWM
 if %errorlevel% neq 0 (
-    echo Error: Failed to activate conda environment CS2DB
+    echo Error: Failed to activate conda environment CSWM
     pause
     exit /b 1
 )
