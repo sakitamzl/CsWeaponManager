@@ -256,7 +256,7 @@ export const API_CONFIG = {
     YOUPIN_SYNC_WEAPON_PRICE: '/spiderApiV2/src/web_site/youping/units/settings/dev_tools/syncWeaponPrice',  // 同步价格数据
     YOUPIN_SYNC_WEAPON_TEMPLATES: '/spiderApiV2/src/web_site/youping/units/settings/dev_tools/syncWeaponTemplates',  // 同步武器模板
 
-    YOUPIN_FETCH_ICONS: '/youpin898SelectWeaponV1/fetchWeaponIcons',   // 批量获取饰品图片
+    YOUPIN_FETCH_ICONS: '/backENDV2/src/use_spider/youpin/selectWeapon/fetchWeaponIcons',   // 批量获取饰品图片
 
     YOUPIN_DOWNLOAD_ICONS: '/spiderApiV2/src/web_site/youping/units/settings/dev_tools/downloadWeaponIcons',   // 下载武器图标资源
 
