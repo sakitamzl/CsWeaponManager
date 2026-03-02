@@ -1,6 +1,6 @@
-import sys
+﻿import sys
 import os
-from src.log import Log, err2
+from src.units.log import Log, err2
 from src.db_manager.database import DatabaseManager
 
 

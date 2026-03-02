@@ -1,9 +1,9 @@
-"""
+﻿"""
 BuffMessageBox Data 模块
 提供 BUFF 消息盒子的数据查询端点
 """
 from flask import jsonify
-from src.execution_db import Date_base
+from src.units.execution_db import Date_base
 
 
 class BuffMessageBoxData:

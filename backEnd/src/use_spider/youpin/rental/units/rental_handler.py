@@ -1,9 +1,9 @@
-"""
+﻿"""
 rental 处理模块
 提供 Spider 所需的借入记录查询、插入与状态更新接口
 """
 from flask import jsonify, request
-from src.now_time import today
+from src.units.now_time import today
 from src.db_manager.index.model.rental import RentalModel
 
 

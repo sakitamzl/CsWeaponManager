@@ -1,10 +1,10 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 挂件搜索 Handler
 对应前端页面：SearchPendant
 """
 from flask import request, jsonify
-from src.log import Log
+from src.units.log import Log
 from src.db_manager.index.model import AutoSearchWeaponModel
 from src.db_manager.index.model.config import ConfigModel
 import json
@@ -196,7 +196,7 @@ class SearchPendantHandler:
     def clear_data():
         """清空挂件搜索数据"""
         try:
-            from src.execution_db import DatabaseManager
+            from src.units.execution_db import DatabaseManager
             data = request.get_json() or {}
             data_type = data.get('dataType', 'pendant')
             config_id = data.get('configId')

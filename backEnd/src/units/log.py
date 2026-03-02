@@ -1,6 +1,6 @@
-import logging
-from src.now_time import today, now_time
-from src.read_conf import read_conf
+﻿import logging
+from src.units.now_time import today, now_time
+from src.units.read_conf import read_conf
 import sys
 import os
 

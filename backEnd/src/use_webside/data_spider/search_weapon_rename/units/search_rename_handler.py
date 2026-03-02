@@ -1,10 +1,10 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 改名饰品搜索结果 Handler
 对应前端页面：SearchWeaponRename
 """
 from flask import request, jsonify
-from src.log import Log
+from src.units.log import Log
 from src.db_manager.index.model import AutoSearchWeaponModel
 from src.db_manager import get_db_manager
 
@@ -278,7 +278,7 @@ class SearchRenameHandler:
     def clear_data():
         """清空改名饰品数据"""
         try:
-            from src.execution_db import DatabaseManager
+            from src.units.execution_db import DatabaseManager
             data = request.get_json() or {}
             data_type = data.get('dataType', 'rename')
             config_id = data.get('configId')

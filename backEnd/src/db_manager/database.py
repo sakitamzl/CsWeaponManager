@@ -9,7 +9,7 @@ import sys
 import threading
 from contextlib import contextmanager
 from typing import List, Dict, Any, Optional, Tuple
-from ..read_conf import read_conf
+from ..units.read_conf import read_conf
 
 
 class DatabaseManager:

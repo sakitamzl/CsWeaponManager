@@ -1,10 +1,10 @@
-"""
+﻿"""
 Rental 页面统计模块
 提供借入数据的整体统计和按时间范围统计
 查询 rental 表
 """
 from flask import jsonify
-from src.execution_db import Date_base
+from src.units.execution_db import Date_base
 
 
 class RentalStats:

@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 饰品搜索处理器
 迁移自 backEnd/src/web_side/data_webside/item_search.py
@@ -10,7 +10,7 @@ import requests as http_requests
 from flask import request, jsonify
 from src.db_manager.index.model.weapon_classID import WeaponClassIDModel
 from src.db_manager.index.model.config import ConfigModel
-from src.log import Log
+from src.units.log import Log
 
 logger = Log()
 

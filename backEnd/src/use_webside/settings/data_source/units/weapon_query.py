@@ -1,11 +1,11 @@
-"""
+﻿"""
 武器数据查询模块
 迁移自 web_side/webSide/web/select_weapon.py
 提供武器搜索、详情查询、参考价、csqaq_id、按价格区间查询等功能
 """
 from flask import jsonify, request
 from src.db_manager.index.model.weapon_classID import WeaponClassIDModel
-from src.log import Log
+from src.units.log import Log
 
 logger = Log()
 

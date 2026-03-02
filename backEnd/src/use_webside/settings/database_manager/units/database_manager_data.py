@@ -1,10 +1,10 @@
-"""
+﻿"""
 数据库管理模块
 提供类似Navicat的数据库管理功能
 （从 database_manager.py 移植，转换为 Class-based @staticmethod 模式）
 """
 from flask import request, jsonify, send_file
-from src.log import Log
+from src.units.log import Log
 import sqlite3
 import os
 import sys

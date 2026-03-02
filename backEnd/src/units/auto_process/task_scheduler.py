@@ -1,4 +1,4 @@
-"""
+﻿"""
 自动化任务调度器
 负责在后台执行定时任务,即使前端关闭也能继续运行
 """
@@ -7,8 +7,8 @@ import time
 import json
 import requests
 from datetime import datetime
-from src.execution_db import Date_base
-from src.log import Log
+from src.units.execution_db import Date_base
+from src.units.log import Log
 
 class TaskScheduler:
     """任务调度器类"""

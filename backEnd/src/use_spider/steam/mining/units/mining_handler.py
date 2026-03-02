@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 Steam mining 处理模块
 提供 Spider 所需的库存挖掘数据保存、查询、统计与历史管理接口
@@ -9,7 +9,7 @@ from datetime import datetime
 from flask import jsonify, request
 from src.db_manager.steam.model.user_inventory_mining import UserInventoryMiningModel
 from src.db_manager.database import DatabaseManager
-from src.log import Log
+from src.units.log import Log
 
 logger = Log()
 

@@ -1,9 +1,9 @@
-"""
+﻿"""
 Lent 页面统计模块
 提供出租记录的统计信息（总数、总金额、平均价格、租赁天数、状态分布等）
 """
 from flask import jsonify, request
-from src.execution_db import Date_base
+from src.units.execution_db import Date_base
 from .lent_data import LentData
 
 
