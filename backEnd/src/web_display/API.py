@@ -14,6 +14,7 @@ from .on_sale.API import on_sale_blueprint
 from .inventory.API import inventory_blueprint
 from .stock_components.API import stock_components_blueprint
 from .settings.API import settings_blueprint
+from .Units.images.API import images_blueprint
 
 web_display_blueprint = Blueprint('web_display', __name__)
 web_display_blueprint.register_blueprint(home_blueprint, url_prefix='/web_display')
@@ -25,3 +26,4 @@ web_display_blueprint.register_blueprint(on_sale_blueprint, url_prefix='/web_dis
 web_display_blueprint.register_blueprint(inventory_blueprint, url_prefix='/web_display')
 web_display_blueprint.register_blueprint(stock_components_blueprint, url_prefix='/web_display')
 web_display_blueprint.register_blueprint(settings_blueprint, url_prefix='/web_display')
+web_display_blueprint.register_blueprint(images_blueprint, url_prefix='/web_display')

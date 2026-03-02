@@ -4,21 +4,16 @@ from flask import Flask
 from flask_cors import CORS
 from src.config.config_v1 import configV1
 from src.web_side.webSide.web.index_page import indexPage
-from src.web_side.webSide.web.buy_page import webBuyV1
-from src.web_side.webSide.web.sell_page import webSellV1
 from src.web_side.webSide.web.select_weapon import webSelectWeaponV1
 from src.web_side.webSide.steamMarket import webSteamMarketV1
 
 from src.web_side.webSide.sys_message_page import webSysMessagePageV1
-from src.web_side.webSide.inventory_api import webInventoryV1
-from src.web_side.webSide.stock_components import webStockComponentsV1
 
 from src.web_side.webSide.settings.search_pendant_config_api import search_pendant_config_bp
 from src.web_side.webSide.settings.auto_search_weapon_api import search_rename_bp
 from src.web_side.CSQAQ.csqaq_api import csqaqApiV1
 from src.web_side.SteamDT.steamdt_api import steamdtApiV1
 from src.web_side.data_webside.item_search import itemSearchApiV1
-from src.web_side.webSide.read_imges import readImagesV1
 from src.db_manager import init_database
 from src.Unites.auto_process.task_scheduler import get_scheduler
 
@@ -44,14 +39,9 @@ def blankEndApi():
 
     app.register_blueprint(configV1, url_prefix = '/configV1')
     app.register_blueprint(indexPage, url_prefix = '/indexPage')
-    app.register_blueprint(webBuyV1, url_prefix = '/webBuyV1')
-    app.register_blueprint(webSellV1, url_prefix = '/webSellV1')
     app.register_blueprint(webSelectWeaponV1, url_prefix = '/webSelectWeaponV1')
     app.register_blueprint(webSteamMarketV1, url_prefix = '/webSteamMarketV1')
-
     app.register_blueprint(webSysMessagePageV1, url_prefix = '/api')
-    app.register_blueprint(webInventoryV1, url_prefix = '/webInventoryV1')
-    app.register_blueprint(webStockComponentsV1, url_prefix = '/webStockComponentsV1')
 
 
     # 挂件搜索配置进度保存 API
@@ -60,7 +50,6 @@ def blankEndApi():
     app.register_blueprint(csqaqApiV1, url_prefix='/csqaqApiV1')  # CSQAQ API
     app.register_blueprint(steamdtApiV1, url_prefix='/steamdtApiV1')  # SteamDT API
     app.register_blueprint(itemSearchApiV1, url_prefix='/itemSearchApiV1')  # 饰品搜索API
-    app.register_blueprint(readImagesV1, url_prefix='/api/v1/images')  # 图片读取API
     
     # 禁用 werkzeug 的 HTTP 请求日志
     log = logging.getLogger('werkzeug')

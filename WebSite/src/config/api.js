@@ -435,9 +435,9 @@ export const API_CONFIG = {
 
     // 图片相关
 
-    WEAPON_IMAGE: (imageName) => `/api/v1/images/weapon_image/${imageName}`,  // 获取武器图片
+    WEAPON_IMAGE: (imageName) => `/backENDV2/src/web_display/units/images/weapon_image/${imageName}`,  // 获取武器图片
 
-    WEAPON_IMAGE_CHECK: (imageName) => `/api/v1/images/weapon_image/check/${imageName}`,  // 检查武器图片是否存在
+    WEAPON_IMAGE_CHECK: (imageName) => `/backENDV2/src/web_display/units/images/weapon_image/check/${imageName}`,  // 检查武器图片是否存在
 
     
 
