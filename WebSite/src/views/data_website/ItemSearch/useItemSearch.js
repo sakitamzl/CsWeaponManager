@@ -52,7 +52,7 @@ export function useItemSearch() {
   
     try {
       const response = await axios.post(
-        `${API_CONFIG.BASE_URL}/itemSearchApiV1/api/item-search/search`,
+        apiUrls.itemSearchSearch(),
         {
           keyword: keyword.value.trim(),
           weaponType: filters.weaponType,
@@ -94,7 +94,7 @@ export function useItemSearch() {
   
     try {
       const response = await axios.post(
-        `${API_CONFIG.BASE_URL}/itemSearchApiV1/api/item-search/weapon-names`,
+        apiUrls.itemSearchWeaponNames(),
         {
           weaponType: filters.weaponType
         }
@@ -148,7 +148,7 @@ export function useItemSearch() {
     
     try {
       const response = await axios.get(
-        `${API_CONFIG.BASE_URL}/itemSearchApiV1/api/item-search/csqaq-detail`,
+        apiUrls.itemSearchCsqaqDetail(),
         {
           params: {
             id: row.csqaq_id

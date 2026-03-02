@@ -8,6 +8,9 @@ from flask import Blueprint
 from .units.data_source_data import DataSourceData
 from .units.data_source_ops import DataSourceOps
 from .units.weapon_query import WeaponQuery
+from .units.csqaq_handler import CsqaqHandler
+from .units.steamdt_handler import SteamDTHandler
+from .units.item_search_handler import ItemSearchHandler
 
 data_source_blueprint = Blueprint('data_source_v2', __name__)
 
@@ -30,3 +33,16 @@ data_source_blueprint.route('/data_source/units/weapon/detail', methods=['GET'])
 data_source_blueprint.route('/data_source/units/weapon/reference_prices', methods=['POST'])(WeaponQuery.get_reference_prices)
 data_source_blueprint.route('/data_source/units/weapon/csqaq_id', methods=['POST'])(WeaponQuery.get_csqaq_id)
 data_source_blueprint.route('/data_source/units/weapon/price_range', methods=['GET'])(WeaponQuery.query_weapons_by_price_range)
+
+# CSQAQ 路由
+data_source_blueprint.add_url_rule('/data_source/csqaq/upload_mapping', endpoint='csqaq_upload_mapping', view_func=CsqaqHandler.upload_mapping, methods=['POST'])
+data_source_blueprint.add_url_rule('/data_source/csqaq/config', endpoint='csqaq_get_config', view_func=CsqaqHandler.get_config, methods=['GET'])
+
+# SteamDT 路由
+data_source_blueprint.add_url_rule('/data_source/steamdt/config', endpoint='steamdt_get_config', view_func=SteamDTHandler.get_config, methods=['GET'])
+
+# 饰品搜索路由
+data_source_blueprint.add_url_rule('/data_source/item_search/search', endpoint='item_search_search', view_func=ItemSearchHandler.search_items, methods=['POST'])
+data_source_blueprint.add_url_rule('/data_source/item_search/weapon_names', endpoint='item_search_weapon_names', view_func=ItemSearchHandler.get_weapon_names, methods=['POST'])
+data_source_blueprint.add_url_rule('/data_source/item_search/csqaq_detail', endpoint='item_search_csqaq_detail', view_func=ItemSearchHandler.get_csqaq_detail, methods=['GET'])
+data_source_blueprint.add_url_rule('/data_source/item_search/batch_sticker_prices', endpoint='item_search_batch_sticker_prices', view_func=ItemSearchHandler.batch_sticker_prices, methods=['POST'])

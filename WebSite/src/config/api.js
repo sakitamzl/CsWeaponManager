@@ -367,7 +367,7 @@ export const API_CONFIG = {
     STEAMDT_MARKET_INDEX: '/spiderApiV2/src/web_site/steamdt/units/home/market_index/getMarketIndex',  // 获取SteamDT大盘指数
     STEAMDT_MARKET_INDEX_HEADLESS: '/spiderApiV2/src/web_site/steamdt/units/home/market_index/getMarketIndexHeadless',  // 获取SteamDT大盘指数（无头浏览器）
     STEAMDT_KLINE: '/spiderApiV2/src/web_site/steamdt/units/data_website/market_overview/getKline',  // 获取SteamDT K线数据
-    STEAMDT_HOMEPAGE_DATA: '/steamdtApiV1/api/steamdt/homepage-data',  // 获取SteamDT首页数据（饰品成交额等）
+    STEAMDT_HOMEPAGE_DATA: '/backENDV2/src/web_display/home/units/steamdt/homepage-data',  // 获取SteamDT首页数据（饰品成交额等）
 
 
 
@@ -449,7 +449,18 @@ export const API_CONFIG = {
 
     // CSQAQ相关（V2 API）
 
-    CSQAQ_UPLOAD_MAPPING: '/backENDV2/src/web_display/settings/dev_tools/units/csqaq/uploadMapping',  // 上传CSQAQ映射文件
+    CSQAQ_UPLOAD_MAPPING: '/backENDV2/src/web_display/settings/dev_tools/units/csqaq/uploadMapping',  // 上传CSQAQ映射文件（DevTools）
+    CSQAQ_DATA_SOURCE_UPLOAD_MAPPING: '/backENDV2/src/web_display/settings/data_source/csqaq/upload_mapping',  // 上传CSQAQ映射文件（DataSource）
+    CSQAQ_DATA_SOURCE_CONFIG: '/backENDV2/src/web_display/settings/data_source/csqaq/config',  // 获取CSQAQ配置
+
+    // SteamDT 数据源配置（V2 API）
+    STEAMDT_DATA_SOURCE_CONFIG: '/backENDV2/src/web_display/settings/data_source/steamdt/config',  // 获取SteamDT配置
+
+    // 饰品搜索（V2 API）
+    ITEM_SEARCH_SEARCH: '/backENDV2/src/web_display/settings/data_source/item_search/search',  // 搜索饰品
+    ITEM_SEARCH_WEAPON_NAMES: '/backENDV2/src/web_display/settings/data_source/item_search/weapon_names',  // 获取武器名称列表
+    ITEM_SEARCH_CSQAQ_DETAIL: '/backENDV2/src/web_display/settings/data_source/item_search/csqaq_detail',  // 获取CSQAQ饰品详情
+    ITEM_SEARCH_BATCH_STICKER_PRICES: '/backENDV2/src/web_display/settings/data_source/item_search/batch_sticker_prices',  // 批量查询印花/挂件价格
 
     // DevTools筛选数据（V2 API）
     DEV_TOOLS_V2_STEAM_ACCOUNTS: '/backENDV2/src/web_display/settings/dev_tools/units/filters/getSteamAccounts',
@@ -1144,6 +1155,17 @@ export const apiUrls = {
   // CSQAQ API
 
   csqaqUploadMapping: () => getApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_UPLOAD_MAPPING),
+  csqaqDataSourceUploadMapping: () => getApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_DATA_SOURCE_UPLOAD_MAPPING),
+  csqaqDataSourceConfig: () => getApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_DATA_SOURCE_CONFIG),
+
+  // SteamDT 数据源配置
+  steamdtDataSourceConfig: () => getApiUrl(API_CONFIG.ENDPOINTS.STEAMDT_DATA_SOURCE_CONFIG),
+
+  // 饰品搜索 API（V2）
+  itemSearchSearch: () => getApiUrl(API_CONFIG.ENDPOINTS.ITEM_SEARCH_SEARCH),
+  itemSearchWeaponNames: () => getApiUrl(API_CONFIG.ENDPOINTS.ITEM_SEARCH_WEAPON_NAMES),
+  itemSearchCsqaqDetail: () => getApiUrl(API_CONFIG.ENDPOINTS.ITEM_SEARCH_CSQAQ_DETAIL),
+  itemSearchBatchStickerPrices: () => getApiUrl(API_CONFIG.ENDPOINTS.ITEM_SEARCH_BATCH_STICKER_PRICES),
 
   // DevTools 筛选数据（V2 API）
   devToolsSteamAccounts: () => getApiUrl(API_CONFIG.ENDPOINTS.DEV_TOOLS_V2_STEAM_ACCOUNTS),

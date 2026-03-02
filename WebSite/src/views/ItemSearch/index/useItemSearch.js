@@ -1490,7 +1490,7 @@ export function useItemSearch() {
 
     try {
       // 调用批量查询接口
-      const apiUrl = '/api/itemSearchApiV1/batch-sticker-prices'
+      const apiUrl = apiUrls.itemSearchBatchStickerPrices()
       console.log('准备调用API:', apiUrl)
       const response = await axios.post(
         apiUrl,
