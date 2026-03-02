@@ -1,4 +1,4 @@
-"""
+﻿"""
 开发者工具 ADB 模块
 提供 ADB 设备管理、证书管理和 Shell 命令执行功能
 （从 adb_tools.py 移植）
@@ -16,7 +16,7 @@ def get_adb_manager():
     """获取全局ADB管理器实例"""
     global _global_adb_manager
     if _global_adb_manager is None:
-        from src.Unites.auto_process.ADB import ADBManager
+        from src.units.ADB import ADBManager
         _global_adb_manager = ADBManager()
         _global_adb_manager.connect()
     return _global_adb_manager
@@ -29,7 +29,7 @@ class DevToolsAdb:
     def scan_lan_devices():
         """扫描局域网内的ADB设备"""
         try:
-            from src.Unites.auto_process.ADB import ADBManager
+            from src.units.ADB import ADBManager
 
             data = request.get_json() or {}
             timeout = data.get('timeout', 0.5)
@@ -225,7 +225,7 @@ class DevToolsAdb:
                     'message': '设备序列号不能为空'
                 }), 400
 
-            from src.Unites.auto_process.ADB import CharlesCertManager
+            from src.units.ADB import CharlesCertManager
 
             adb = get_adb_manager()
 
@@ -271,7 +271,7 @@ class DevToolsAdb:
                     'message': '设备序列号不能为空'
                 }), 400
 
-            from src.Unites.auto_process.ADB import CharlesCertManager
+            from src.units.ADB import CharlesCertManager
 
             adb = get_adb_manager()
 
@@ -346,7 +346,7 @@ class DevToolsAdb:
                     'message': '设备序列号不能为空'
                 }), 400
 
-            from src.Unites.auto_process.ADB import CharlesCertManager
+            from src.units.ADB import CharlesCertManager
 
             adb = get_adb_manager()
 
@@ -393,7 +393,7 @@ class DevToolsAdb:
     def get_cert_info():
         """获取Charles证书信息"""
         try:
-            from src.Unites.auto_process.ADB import CharlesCertManager
+            from src.units.ADB import CharlesCertManager
 
             cert_manager = CharlesCertManager()
             cert_info = cert_manager.get_cert_info()
@@ -424,7 +424,7 @@ class DevToolsAdb:
                     'message': '命令不能为空'
                 }), 400
 
-            from src.Unites.auto_process.ADB import ADBManager
+            from src.units.ADB import ADBManager
 
             adb = ADBManager()
 
@@ -476,7 +476,7 @@ class DevToolsAdb:
                     'message': '设备序列号不能为空'
                 }), 400
 
-            from src.Unites.auto_process.ADB import ADBManager, CharlesCertManager
+            from src.units.ADB import ADBManager, CharlesCertManager
 
             adb = ADBManager()
 

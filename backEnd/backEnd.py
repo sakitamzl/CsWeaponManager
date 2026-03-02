@@ -1,10 +1,10 @@
-import os
+﻿import os
 import logging
 from flask import Flask
 from flask_cors import CORS
 
 from src.db_manager import init_database
-from src.Unites.auto_process.task_scheduler import get_scheduler
+from src.units.auto_process.task_scheduler import get_scheduler
 
 from src.API import backendV2_blueprint
 

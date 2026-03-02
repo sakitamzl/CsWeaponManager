@@ -1,11 +1,11 @@
-"""
+﻿"""
 自动化管理操作模块
 提供任务的启停切换和执行状态查询功能
 """
 from flask import jsonify
 from src.log import Log
 from src.execution_db import Date_base
-from src.Unites.auto_process.task_scheduler import get_scheduler
+from src.units.auto_process.task_scheduler import get_scheduler
 import json
 from datetime import datetime
 
