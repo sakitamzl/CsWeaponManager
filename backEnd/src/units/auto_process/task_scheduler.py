@@ -476,7 +476,7 @@ class TaskScheduler:
                 # 获取悠悠有品价格 - 与前端 Inventory.vue 的 fetchYYYPPrice 方法一致
                 self.log.write_log(f"开始获取悠悠有品价格: {steam_id}", 'info')
                 response = requests.post(
-                    f"{spider_base_url}/spiderApiV2/youping/units/settings/dev_tools/syncWeaponPrice",
+                    f"{spider_base_url}/spiderApiV2/src/web_site/youping/units/settings/dev_tools/syncWeaponPrice",
                     json={'steamId': steam_id},
                     timeout=300
                 )
@@ -562,7 +562,7 @@ class TaskScheduler:
                 
             elif selected_task == 'collect_youpin' and data_type == 'youpin':
                 # 采集悠悠有品数据（只需要传递steamId，后端会根据steamId获取完整配置）
-                url = f"{spider_base_url}/spiderApiV2/youping/units/settings/data_source/syncNewData"
+                url = f"{spider_base_url}/spiderApiV2/src/web_site/youping/units/settings/data_source/syncNewData"
                 data = {'steamId': steam_id}
                 self.log.write_log(f"请求悠悠有品采集 - URL: {url}, 数据: {data}", 'info')
                 
@@ -617,7 +617,7 @@ class TaskScheduler:
                     self.log.write_log(f"数据源类型与任务不匹配: 期望youpin, 实际 {data_type}", 'warning')
                     return
 
-                url = f"{spider_base_url}/spiderApiV2/youping/units/settings/dev_tools/syncWeaponTemplates"
+                url = f"{spider_base_url}/spiderApiV2/src/web_site/youping/units/settings/dev_tools/syncWeaponTemplates"
                 payload = {'steamId': steam_id, 'syncHistory': sync_history}
                 self.log.write_log(f"开始更新悠悠有品饰品价格: {data_name}, URL: {url}, syncHistory: {sync_history}", 'info')
                 response = requests.post(url, json=payload, timeout=600)
@@ -655,11 +655,11 @@ class TaskScheduler:
 
         if selected_task == 'search_weapon_rename':
             key1 = 'spider_rename'
-            endpoint = '/spiderApiV2/youping/auto_weapon/autoBuyRenamedWeapon'
+            endpoint = '/spiderApiV2/src/web_site/youping/auto_weapon/autoBuyRenamedWeapon'
             task_desc = '改名饰品搜索'
         elif selected_task == 'search_weapon_pendant':
             key1 = 'spider_pendant'
-            endpoint = '/spiderApiV2/youping/auto_weapon/autoBuyPendantWeapon'
+            endpoint = '/spiderApiV2/src/web_site/youping/auto_weapon/autoBuyPendantWeapon'
             task_desc = '挂件饰品搜索'
         else:
             self.log.write_log(f"未知的搜索任务类型: {selected_task}", 'error')
