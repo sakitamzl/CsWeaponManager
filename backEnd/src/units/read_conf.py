@@ -18,8 +18,8 @@ class read_conf:
             # 打包后的 exe，使用 exe 所在目录
             return os.path.dirname(sys.executable)
         else:
-            # 开发环境，使用当前文件所在目录的上两级（blankEndApi 目录）
-            return os.path.dirname(os.path.dirname(__file__))
+            # 开发环境，使用当前文件所在目录的上三级（backEnd 目录）
+            return os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
     def _load_config(self):
         self.config = configparser.ConfigParser()

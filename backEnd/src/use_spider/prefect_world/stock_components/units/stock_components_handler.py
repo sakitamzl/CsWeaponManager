@@ -140,3 +140,57 @@ class StockComponentsHandler:
         except Exception as e:
             print(f"❌ 删除失败 - assetid: {assetid}, steam_id: {steam_id}, 错误: {str(e)}\n{traceback.format_exc()}")
             return jsonify({'code': 500, 'message': f'服务器错误: {str(e)}', 'result': None}), 500
+
+    @staticmethod
+    def auto_fill_prices(steam_id):
+        """自动将 buy 表中的购入价格同步填充到 steam_stockComponents 表
+        根据 steam_hash_name 匹配，将 buy.price 写入 stockComponents.buy_price
+        POST /stock_components/auto_fill_prices/<steam_id>
+        """
+        try:
+            from src.db_manager.database import DatabaseManager
+            db = DatabaseManager()
+
+            # 查询该 steam_id 下所有 buy_price 为空的库存组件
+            components = db.execute_query(
+                """SELECT goods_assetid, steam_hash_name
+                   FROM steam_stockComponents
+                   WHERE data_user = ? AND (buy_price IS NULL OR buy_price = '')""",
+                (steam_id,)
+            )
+
+            total_count = len(components) if components else 0
+            filled_count = 0
+
+            for row in (components or []):
+                goods_assetid = row[0]
+                steam_hash_name = row[1]
+                if not steam_hash_name:
+                    continue
+
+                # 从 buy 表按 steam_hash_name 取最新一条购入价格
+                buy_row = db.execute_query(
+                    """SELECT price FROM buy
+                       WHERE steam_hash_name = ? AND price IS NOT NULL
+                       ORDER BY order_time DESC LIMIT 1""",
+                    (steam_hash_name,)
+                )
+                if not buy_row:
+                    continue
+
+                price = buy_row[0][0]
+                affected = db.execute_update(
+                    "UPDATE steam_stockComponents SET buy_price = ? WHERE goods_assetid = ?",
+                    (price, goods_assetid)
+                )
+                if affected > 0:
+                    filled_count += 1
+
+            return jsonify({
+                'success': True,
+                'data': {'total_count': total_count, 'filled_count': filled_count}
+            }), 200
+
+        except Exception as e:
+            print(f"auto_fill_prices 失败: {e}\n{traceback.format_exc()}")
+            return jsonify({'success': False, 'message': f'服务器错误: {str(e)}'}), 500

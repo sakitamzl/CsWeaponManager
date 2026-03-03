@@ -14,6 +14,9 @@ inventory_blueprint = Blueprint('inventory_v2', __name__)
 
 # 账号查询路由
 inventory_blueprint.route('/inventory/units/accounts/getSteamIds', methods=['GET'])(InventoryAccounts.get_steam_ids)
+# Steam 配置（Cookie）读写路由
+inventory_blueprint.route('/inventory/units/accounts/steam_config/<steam_id>', methods=['GET'])(InventoryAccounts.get_steam_config)
+inventory_blueprint.route('/inventory/units/accounts/steam_config', methods=['POST'])(InventoryAccounts.save_steam_config)
 
 # 库存数据路由
 inventory_blueprint.route('/inventory/units/data/getInventory/<steam_id>', methods=['GET'])(InventoryData.get_inventory)

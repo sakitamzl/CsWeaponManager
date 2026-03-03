@@ -1985,8 +1985,7 @@ export function useItemSearch() {
       .replace(/\s/g, '_')          // 剩余所有空格 -> "_"
       + '.png'
 
-    // 直接使用路径，不通过 getApiUrl（因为 WEAPON_IMAGE 已经包含完整路径）
-    return `/backENDV2/src/use_webside/units/images/weapon_image/${imageName}`
+    return apiUrls.weaponImage(imageName)
   }
 
   // 处理图片加载错误

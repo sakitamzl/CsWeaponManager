@@ -13,3 +13,6 @@ inventory_spider_blueprint.route('/inventory/count/<data_user>',                
 inventory_spider_blueprint.route('/inventory/delete/<data_user>',                  methods=['DELETE'])(InventoryHandler.delete_user_inventory)
 inventory_spider_blueprint.route('/inventory/batch',                               methods=['POST'])(InventoryHandler.insert_inventory_batch)
 inventory_spider_blueprint.route('/inventory/buy_price/<steam_id>/<assetid>',      methods=['PUT'])(InventoryHandler.update_buy_price)
+inventory_spider_blueprint.route('/inventory/batch_update_buff_price',             methods=['POST'])(InventoryHandler.batch_update_buff_price)
+inventory_spider_blueprint.route('/inventory/batch_update_yyyp_price',             methods=['POST'])(InventoryHandler.batch_update_yyyp_price)
+inventory_spider_blueprint.route('/inventory/insertIngameBuy',                     methods=['POST'])(InventoryHandler.insert_ingame_buy)

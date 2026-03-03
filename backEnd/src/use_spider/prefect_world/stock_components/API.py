@@ -11,3 +11,4 @@ stock_components_spider_blueprint.route('/stock_components/batch',              
 stock_components_spider_blueprint.route('/stock_components/single',                           methods=['POST'])(StockComponentsHandler.single)
 stock_components_spider_blueprint.route('/stock_components/delete/<goods_assetid>',           methods=['DELETE'])(StockComponentsHandler.delete)
 stock_components_spider_blueprint.route('/stock_components/delete/<assetid>/<steam_id>',      methods=['DELETE'])(StockComponentsHandler.delete_by_assetid_steam)
+stock_components_spider_blueprint.route('/stock_components/auto_fill_prices/<steam_id>',      methods=['POST'])(StockComponentsHandler.auto_fill_prices)

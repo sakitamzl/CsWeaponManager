@@ -7,6 +7,7 @@ import json
 from flask import jsonify, request
 from src.db_manager.steam.model.steam_inventory import SteamInventoryModel
 from src.db_manager.index.model.weapon_classID import WeaponClassIDModel
+from src.db_manager.index.model.buy import BuyModel
 
 
 def _get_auto_price(item_name):
@@ -322,4 +323,138 @@ class InventoryHandler:
         except Exception as e:
             import traceback
             print(f"更新buy_price时出错: {str(e)}\n{traceback.format_exc()}")
+            return jsonify({'success': False, 'error': f'服务器错误: {str(e)}'}), 500
+
+    @staticmethod
+    def insert_ingame_buy():
+        """插入游戏内购买记录到 buy 主表（Steam 交易历史调用）
+        请求体: {"ID": "...", "weapon_name": "...", "item_name": "...", "price": 1.0, "order_time": "...", "steam_id": "...", "data_user": "..."}
+        """
+        try:
+            data = request.get_json()
+            if not data:
+                return jsonify({'success': False, 'error': '无效的JSON数据'}), 400
+
+            buy_id = data.get('ID')
+            if not buy_id:
+                return jsonify({'success': False, 'error': 'ID不能为空'}), 400
+
+            # 检查是否已存在
+            existing = BuyModel.find_by_primary_key(buy_id)
+            if existing:
+                return jsonify({'success': True, 'message': '记录已存在，跳过插入'}), 200
+
+            record = BuyModel()
+            record.ID = buy_id
+            record.weapon_name = data.get('weapon_name', '')
+            record.weapon_type = data.get('weapon_type', '')
+            record.item_name = data.get('item_name', '')
+            record.weapon_float = data.get('weapon_float')
+            record.float_range = data.get('float_range', '')
+            record.price = data.get('price')
+            record.order_time = data.get('order_time')
+            record.steam_id = data.get('steam_id', '')
+            record.data_user = data.get('data_user', '')
+            record.status = data.get('status', '游戏内购买')
+            record.data_from = 'steam'
+            record.save()
+
+            return jsonify({'success': True, 'message': '插入成功'}), 200
+        except Exception as e:
+            import traceback
+            print(f"插入游戏内购买记录失败: {e}\n{traceback.format_exc()}")
+            return jsonify({'success': False, 'error': f'服务器错误: {str(e)}'}), 500
+
+    @staticmethod
+    def batch_update_buff_price():
+        """批量更新 Steam 库存中 BUFF 平台价格
+        请求体: {"weapon_list": [{"assetid": "...", "instanceid": "...", "steam_price": 1.0, "buff_price": 2.0}, ...]}
+        """
+        try:
+            data = request.get_json()
+            if not data:
+                return jsonify({'success': False, 'error': '无效的JSON数据'}), 400
+            weapon_list = data.get('weapon_list', [])
+            if not weapon_list:
+                return jsonify({'success': False, 'error': 'weapon_list不能为空'}), 400
+
+            from src.db_manager.database import DatabaseManager
+            db = DatabaseManager()
+            success_count = failed_count = 0
+            for item in weapon_list:
+                try:
+                    assetid = item.get('assetid')
+                    instanceid = item.get('instanceid')
+                    buff_price = item.get('buff_price')
+                    steam_price = item.get('steam_price')
+                    if not assetid:
+                        failed_count += 1
+                        continue
+                    sql = "UPDATE steam_inventory SET buff_price = ?, steam_price = ? WHERE assetid = ? AND instanceid = ?"
+                    affected = db.execute_update(sql, (buff_price, steam_price, assetid, instanceid))
+                    if affected > 0:
+                        success_count += 1
+                    else:
+                        failed_count += 1
+                except Exception:
+                    failed_count += 1
+
+            return jsonify({
+                'success': True,
+                'data': {'total': len(weapon_list), 'success_count': success_count, 'failed_count': failed_count}
+            }), 200
+        except Exception as e:
+            import traceback
+            print(f"批量更新BUFF价格失败: {e}\n{traceback.format_exc()}")
+            return jsonify({'success': False, 'error': f'服务器错误: {str(e)}'}), 500
+
+    @staticmethod
+    def batch_update_yyyp_price():
+        """批量更新 Steam 库存中悠悠有品平台价格
+        请求体: {"weapon_list": [{"assetid": "...", "instanceid": "...", "yyyp_price": 1.0, "steam_price": 2.0, ...}, ...]}
+        """
+        try:
+            data = request.get_json()
+            if not data:
+                return jsonify({'success': False, 'error': '无效的JSON数据'}), 400
+            weapon_list = data.get('weapon_list', [])
+            if not weapon_list:
+                return jsonify({'success': False, 'error': 'weapon_list不能为空'}), 400
+
+            from src.db_manager.database import DatabaseManager
+            db = DatabaseManager()
+            success_count = failed_count = 0
+            error_messages = []
+            for item in weapon_list:
+                try:
+                    assetid = item.get('assetid')
+                    instanceid = item.get('instanceid')
+                    yyyp_price = item.get('yyyp_price')
+                    steam_price = item.get('steam_price')
+                    if not assetid:
+                        failed_count += 1
+                        continue
+                    sql = "UPDATE steam_inventory SET yyyp_price = ?, steam_price = ? WHERE assetid = ? AND instanceid = ?"
+                    affected = db.execute_update(sql, (yyyp_price, steam_price, assetid, instanceid))
+                    if affected > 0:
+                        success_count += 1
+                    else:
+                        failed_count += 1
+                        error_messages.append(f"assetid={assetid} 未找到匹配记录")
+                except Exception as ex:
+                    failed_count += 1
+                    error_messages.append(str(ex))
+
+            return jsonify({
+                'success': True,
+                'data': {
+                    'total': len(weapon_list),
+                    'success_count': success_count,
+                    'failed_count': failed_count,
+                    'error_messages': error_messages[:10]
+                }
+            }), 200
+        except Exception as e:
+            import traceback
+            print(f"批量更新悠悠有品价格失败: {e}\n{traceback.format_exc()}")
             return jsonify({'success': False, 'error': f'服务器错误: {str(e)}'}), 500

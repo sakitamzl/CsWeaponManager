@@ -8,3 +8,5 @@ lxml==5.3.0
 adb-shell==0.4.4
 selenium==4.40.0
 pymysql
+pyinstaller
+qrcode[pil]
