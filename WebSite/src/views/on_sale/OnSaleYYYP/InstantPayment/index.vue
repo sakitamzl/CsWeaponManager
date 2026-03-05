@@ -1,11 +1,72 @@
 <template>
   <div class="card-container">
+    <!-- 顶部筛选栏 -->
+    <div class="filter-bar">
+      <el-select
+        v-model="filterGuardStatus"
+        placeholder="守护单状态"
+        class="type-select"
+        clearable
+        @change="loadData"
+      >
+        <el-option label="守护中" :value="1" />
+        <el-option label="已完成" :value="2" />
+      </el-select>
+      <el-select
+        v-model="filterFundStatus"
+        placeholder="资金状态"
+        class="type-select"
+        @change="loadData"
+      >
+        <el-option label="可提取" :value="1" />
+        <el-option label="已提取" :value="5" />
+        <el-option label="待支付" :value="6" />
+        <el-option label="已解冻" :value="8" />
+        <el-option label="已退款" :value="9" />
+        <el-option label="无法提取" :value="11" />
+        <el-option label="核验中" :value="12" />
+        <el-option label="部分提取" :value="51" />
+      </el-select>
+    </div>
+
+    <!-- 底部浮动多选操作栏（选中后弹出） -->
+    <transition name="slide-up">
+      <div v-if="selectedItems.length > 0" class="multi-select-actions">
+        <div class="selected-count">
+          已选择 <b>{{ selectedItems.length }}</b> 件
+          <span style="color: #4CAF50; margin-left: 0.5rem;">¥{{ selectedAmount }}</span>
+          <span v-if="selectedItems.length >= 10" style="color: #F56C6C; margin-left: 0.5rem;">（已达上限）</span>
+        </div>
+        <div class="action-buttons">
+          <el-button @click="handleSelectAll(true)" :disabled="selectableItems.length <= selectedItems.length || selectedItems.length >= 10">
+            前10全选
+          </el-button>
+          <el-button type="danger" plain @click="handleClearSelection">取消选择</el-button>
+          <el-button type="primary" :loading="extracting" @click="handleBatchExtract">
+            {{ extracting ? '提取中...' : '提取资金' }}
+          </el-button>
+        </div>
+      </div>
+    </transition>
+
+    <!-- 卡片列表 -->
     <div v-loading="loading" class="card-grid">
       <div
         v-for="item in instantPaymentItems"
         :key="item.order_no"
         class="inventory-card"
+        :class="{
+          'selected': isSelected(item),
+          'multi-select-mode': item.fund_status === 1,
+          'card-disabled': item.fund_status !== 1,
+        }"
+        @click="toggleSelect(item)"
       >
+        <!-- 选中勾 - 右上角 -->
+        <div v-if="item.fund_status === 1" class="check-mark" :class="{ 'is-checked': isSelected(item) }">
+          <el-icon v-if="isSelected(item)"><Check /></el-icon>
+        </div>
+
         <div class="card-image">
           <img
             v-if="item.commodity_icon_url"
@@ -18,9 +79,7 @@
             <span>无图片</span>
           </div>
           <!-- 状态标签 - 左上角 -->
-          <div class="status-overlay" :class="{
-            'status-guarding': item.guard_status === 1
-          }">
+          <div class="status-overlay" :class="{ 'status-guarding': item.guard_status === 1 }">
             {{ item.guard_status_text || '未知状态' }}
           </div>
           <!-- 贴纸覆盖层 - 左下角 -->
@@ -42,12 +101,12 @@
             </div>
           </div>
         </div>
+
         <div class="card-content">
           <div class="card-title" :title="item.commodity_name">
             {{ item.commodity_name }}
           </div>
           <div class="card-info">
-            <!-- 磨损值显示条 -->
             <div class="float-bar-container" v-if="item.abrade">
               <div class="float-bar">
                 <div class="float-segment fn" title="崭新出厂 (0.00 - 0.07)"></div>
@@ -62,12 +121,9 @@
                 ></div>
               </div>
             </div>
-            <div class="float-value" v-if="item.abrade">
-              {{ item.abrade }}
-            </div>
+            <div class="float-value" v-if="item.abrade">{{ item.abrade }}</div>
           </div>
           <div class="card-prices">
-            <!-- 第一行：可提取金额 创建时间 -->
             <div class="price-row">
               <div class="price-group">
                 <span class="price-label">可提取:</span>
@@ -78,7 +134,6 @@
                 <span class="price-value" style="font-size: 0.65rem;">{{ item.create_time }}</span>
               </div>
             </div>
-            <!-- 第二行:可交易余额 解冻金额 -->
             <div class="price-row">
               <div class="price-group" v-if="item.tradable_balance">
                 <span class="price-label">可交易:</span>
@@ -90,28 +145,37 @@
               </div>
             </div>
           </div>
-          <div class="card-footer">
-            <div class="card-tags">
-              <el-tag v-if="item.tip_content" type="warning" size="small" class="tip-tag">
-                <span class="tag-icon">ℹ️</span>{{ formatTipContent(item.tip_content) }}
-              </el-tag>
-            </div>
-            <div class="card-actions">
-              <el-button
-                size="small"
-                type="primary"
-                :disabled="item.fund_status !== 1"
-                @click="handleExtract(item)"
-              >
-                {{ item.fund_status === 1 ? '提取' : item.fund_status_text }}
-              </el-button>
-            </div>
+          <div class="card-footer" v-if="item.tip_content">
+            <el-tag type="warning" size="small" class="tip-tag">
+              <span class="tag-icon">ℹ️</span>{{ formatTipContent(item.tip_content) }}
+            </el-tag>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- 加载更多指示器 -->
+    <div class="load-more-bar">
+      <el-button
+        v-if="hasMore && !loadingMore"
+        type="primary"
+        plain
+        size="small"
+        @click="loadMore"
+      >
+        加载更多
+      </el-button>
+      <span v-if="loadingMore" class="loading-more-text">
+        <el-icon class="is-loading"><Loading /></el-icon> 加载中...
+      </span>
+      <span v-if="!hasMore && instantPaymentItems.length > 0" class="no-more-text">
+        已加载全部，共 {{ totalCount }} 条
+      </span>
+    </div>
+
+    <!-- 底部统计 -->
     <div class="table-footer">
-      <span>共 {{ instantPaymentItems.length }} 条数据</span>
+      <span>已显示 {{ instantPaymentItems.length }} / {{ totalCount }} 条</span>
       <span v-if="statistics.totalAmount > 0" style="margin-left: 2rem;">
         总可提取金额: <span style="color: #4CAF50; font-weight: bold;">¥{{ statistics.totalAmount }}</span>
       </span>
@@ -123,13 +187,18 @@
 </template>
 
 <script>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Check, Loading } from '@element-plus/icons-vue'
 import axios from 'axios'
 import { apiUrls } from '@/config/api.js'
 
+const MAX_SELECT = 10
+const PAGE_SIZE = 20
+
 export default {
   name: 'InstantPayment',
+  components: { Check, Loading },
   props: {
     steamId: {
       type: String,
@@ -139,80 +208,106 @@ export default {
   emits: ['update:count'],
   setup(props, { emit }) {
     const loading = ref(false)
+    const loadingMore = ref(false)
+    const extracting = ref(false)
     const instantPaymentItems = ref([])
+    const selectedKeys = ref(new Set())
 
-    // 统计信息
+    // 分页状态
+    const currentPage = ref(1)
+    const hasMore = ref(false)
+    const totalCount = ref(0)
+
+    // 筛选条件
+    const filterGuardStatus = ref(null)
+    const filterFundStatus = ref(1)
+
+    // 仅 fund_status === 1 的可选项
+    const selectableItems = computed(() =>
+      instantPaymentItems.value.filter(i => i.fund_status === 1)
+    )
+
+    const selectedItems = computed(() =>
+      selectableItems.value.filter(i => selectedKeys.value.has(i.order_fulfill_guard_no))
+    )
+
+    const selectedAmount = computed(() =>
+      selectedItems.value.reduce((sum, i) => sum + parseFloat(i.remaining_retrieve_amount || 0), 0).toFixed(2)
+    )
+
+    const allSelected = computed(() =>
+      selectableItems.value.length > 0 && selectedItems.value.length === Math.min(selectableItems.value.length, MAX_SELECT)
+    )
+    const isIndeterminate = computed(() =>
+      selectedItems.value.length > 0 && !allSelected.value
+    )
+
     const statistics = computed(() => {
-      const itemCount = instantPaymentItems.value.length
-      const totalAmount = instantPaymentItems.value.reduce((sum, item) => {
-        return sum + parseFloat(item.remaining_retrieve_amount || 0)
-      }, 0)
-      const tradableBalance = instantPaymentItems.value.reduce((sum, item) => {
-        return sum + parseFloat(item.tradable_balance || 0)
-      }, 0)
-
+      const totalAmount = instantPaymentItems.value.reduce((sum, item) =>
+        sum + parseFloat(item.remaining_retrieve_amount || 0), 0)
+      const tradableBalance = instantPaymentItems.value.reduce((sum, item) =>
+        sum + parseFloat(item.tradable_balance || 0), 0)
       return {
-        itemCount,
+        itemCount: instantPaymentItems.value.length,
         totalAmount: totalAmount.toFixed(2),
         tradableBalance: tradableBalance.toFixed(2)
       }
     })
 
-    // 加载数据
-    const loadData = async () => {
-      if (!props.steamId) {
-        return
+    const mapItem = (item) => {
+      const commodity = item.commodityInfoList?.[0] || {}
+      return {
+        order_no: item.orderNo,
+        order_fulfill_guard_no: item.orderFulfillGuardNo,
+        unfreeze_amount: item.unfreezeAmount,
+        create_time: item.createTime,
+        guard_status: item.guardStatus,
+        fund_status: item.fundStatus,
+        guard_status_text: item.guardStatusText,
+        fund_status_text: item.fundStatusText,
+        tip_content: item.tipContent,
+        remaining_retrieve_amount: item.remainingRetrieveAmount,
+        tradable_balance: item.tradableBalance,
+        auto_retrieve: item.autoRetrieve,
+        commodity_name: commodity.commodityName,
+        commodity_icon_url: commodity.commodityIconUrl,
+        abrade: commodity.abrade,
+        paint_index: commodity.paintIndex,
+        paint_seed: commodity.paintSeed,
+        exterior_name: commodity.exteriorName,
+        rarity_name: commodity.rarityName,
+        sticker_list: commodity.stickerList || []
       }
+    }
 
+    const buildPayload = (pageIndex) => {
+      const payload = {
+        steamId: props.steamId,
+        pageIndex,
+        pageSize: PAGE_SIZE,
+        fundStatus: filterFundStatus.value
+      }
+      if (filterGuardStatus.value !== null) {
+        payload.guardStatus = filterGuardStatus.value
+      }
+      return payload
+    }
+
+    // 首次/筛选变化加载（重置列表）
+    const loadData = async () => {
+      if (!props.steamId) return
       loading.value = true
+      selectedKeys.value = new Set()
+      currentPage.value = 1
       try {
-        const response = await axios.post(apiUrls.yyypGetInstantPaymentList(), {
-          steamId: props.steamId,
-          pageIndex: 1,
-          pageSize: 100,
-          fundStatus: 1
-        })
-
+        const response = await axios.post(apiUrls.yyypGetInstantPaymentList(), buildPayload(1))
         if (response.data && response.data.success) {
           const data = response.data.data || {}
-          const responseList = data.responseList || []
-
-          // 转换数据格式
-          instantPaymentItems.value = responseList.map(item => {
-            // 获取第一个商品信息
-            const commodity = item.commodityInfoList?.[0] || {}
-
-            return {
-              order_no: item.orderNo,
-              order_fulfill_guard_no: item.orderFulfillGuardNo,
-              unfreeze_amount: item.unfreezeAmount,
-              create_time: item.createTime,
-              guard_status: item.guardStatus,
-              fund_status: item.fundStatus,
-              guard_status_text: item.guardStatusText,
-              fund_status_text: item.fundStatusText,
-              tip_content: item.tipContent,
-              remaining_retrieve_amount: item.remainingRetrieveAmount,
-              tradable_balance: item.tradableBalance,
-              auto_retrieve: item.autoRetrieve,
-
-              // 商品信息
-              commodity_name: commodity.commodityName,
-              commodity_icon_url: commodity.commodityIconUrl,
-              abrade: commodity.abrade,
-              paint_index: commodity.paintIndex,
-              paint_seed: commodity.paintSeed,
-              exterior_name: commodity.exteriorName,
-              rarity_name: commodity.rarityName,
-              sticker_list: commodity.stickerList || []
-            }
-          })
-
-          const totalCount = instantPaymentItems.value.length
-          ElMessage.success(`加载成功，共 ${totalCount} 个秒到账订单`)
-
-          // 发送数量给父组件
-          emit('update:count', totalCount)
+          instantPaymentItems.value = (data.responseList || []).map(mapItem)
+          const pagination = response.data.pagination || {}
+          totalCount.value = pagination.totalCount || data.totalCount || 0
+          hasMore.value = pagination.hasMore || false
+          emit('update:count', instantPaymentItems.value.length)
         } else {
           ElMessage.error(response.data?.message || '加载失败')
           emit('update:count', 0)
@@ -225,35 +320,130 @@ export default {
       }
     }
 
-    // 格式化提示内容 - 缩短显示
+    // 加载下一页（追加到列表）
+    const loadMore = async () => {
+      if (!hasMore.value || loadingMore.value || loading.value) return
+      loadingMore.value = true
+      const nextPage = currentPage.value + 1
+      try {
+        const response = await axios.post(apiUrls.yyypGetInstantPaymentList(), buildPayload(nextPage))
+        if (response.data && response.data.success) {
+          const data = response.data.data || {}
+          const newItems = (data.responseList || []).map(mapItem)
+          instantPaymentItems.value.push(...newItems)
+          currentPage.value = nextPage
+          const pagination = response.data.pagination || {}
+          hasMore.value = pagination.hasMore || false
+          emit('update:count', instantPaymentItems.value.length)
+        }
+      } catch (error) {
+        console.error('加载更多失败:', error)
+      } finally {
+        loadingMore.value = false
+      }
+    }
+
+    // 滚动到底部自动加载下一页
+    const handleScroll = () => {
+      const scrollTop = document.documentElement.scrollTop || document.body.scrollTop
+      const windowHeight = window.innerHeight
+      const docHeight = document.documentElement.scrollHeight
+      if (docHeight - scrollTop - windowHeight < 200) {
+        loadMore()
+      }
+    }
+
+    onMounted(() => window.addEventListener('scroll', handleScroll))
+    onUnmounted(() => window.removeEventListener('scroll', handleScroll))
+
+    const isSelected = (item) => selectedKeys.value.has(item.order_fulfill_guard_no)
+
+    const toggleSelect = (item) => {
+      if (item.fund_status !== 1) return
+      const key = item.order_fulfill_guard_no
+      const next = new Set(selectedKeys.value)
+      if (next.has(key)) {
+        next.delete(key)
+      } else {
+        if (next.size >= MAX_SELECT) {
+          ElMessage.warning(`最多只能选择 ${MAX_SELECT} 个`)
+          return
+        }
+        next.add(key)
+      }
+      selectedKeys.value = next
+    }
+
+    const handleSelectAll = (val) => {
+      if (val) {
+        const keys = selectableItems.value.slice(0, MAX_SELECT).map(i => i.order_fulfill_guard_no)
+        selectedKeys.value = new Set(keys)
+      } else {
+        selectedKeys.value = new Set()
+      }
+    }
+
+    const handleClearSelection = () => {
+      selectedKeys.value = new Set()
+    }
+
     const formatTipContent = (content) => {
       if (!content) return ''
-      // 提取日期信息，例如 "冻结资金将于 2026.02.08 16:00 后开始解冻" -> "2026.02.08解冻"
       const match = content.match(/(\d{4}\.\d{2}\.\d{2})/)
-      if (match) {
-        return `${match[1]}解冻`
-      }
+      if (match) return `${match[1]}解冻`
       return content.length > 20 ? content.substring(0, 20) + '...' : content
     }
 
-    // 提取资金
-    const handleExtract = (item) => {
-      ElMessage.info('提取功能暂未实现')
+    const handleBatchExtract = async () => {
+      if (selectedItems.value.length === 0) return
+      extracting.value = true
+      try {
+        const fullGradNoList = selectedItems.value.map(i => i.order_fulfill_guard_no)
+        const response = await axios.post(apiUrls.yyypRetrieveRecord(), {
+          steamId: props.steamId,
+          fullGradNo: fullGradNoList,
+          userLevel: 1
+        })
+        if (response.data && response.data.success) {
+          ElMessage.success(`成功提取 ${fullGradNoList.length} 个订单`)
+          await loadData()
+        } else {
+          ElMessage.error(response.data?.message || '提取失败')
+        }
+      } catch (error) {
+        console.error('提取资金失败:', error)
+        ElMessage.error('提取失败: ' + (error.response?.data?.message || error.message))
+      } finally {
+        extracting.value = false
+      }
     }
 
-    // 监听steamId变化
     watch(() => props.steamId, (newValue) => {
-      if (newValue) {
-        loadData()
-      }
+      if (newValue) loadData()
     }, { immediate: true })
 
     return {
       loading,
+      loadingMore,
+      extracting,
       instantPaymentItems,
+      selectableItems,
+      selectedItems,
+      selectedAmount,
+      allSelected,
+      isIndeterminate,
       statistics,
+      hasMore,
+      totalCount,
+      filterGuardStatus,
+      filterFundStatus,
+      isSelected,
+      toggleSelect,
+      handleSelectAll,
+      handleClearSelection,
+      handleBatchExtract,
       loadData,
-      handleExtract,
+      loadMore,
       formatTipContent
     }
   }
@@ -261,6 +451,87 @@ export default {
 </script>
 
 <style scoped>
+/* 顶部筛选栏 */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.type-select {
+  width: 150px;
+}
+
+/* 加载更多 */
+.load-more-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  gap: 0.5rem;
+}
+
+.loading-more-text {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.no-more-text {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+/* 底部浮动多选操作栏 */
+.multi-select-actions {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-tertiary);
+  border: 2px solid var(--el-color-primary);
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.slide-up-enter-from,
+.slide-up-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(20px);
+}
+
+.slide-up-enter-to,
+.slide-up-leave-from {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.selected-count {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
 /* 卡片网格样式 */
 .card-container {
   margin-top: 1rem;
@@ -274,21 +545,62 @@ export default {
 }
 
 .inventory-card {
+  position: relative;
   background: var(--bg-secondary);
   border-radius: 8px;
   overflow: visible;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   border: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  min-height: 340px;
+  min-height: 300px;
   height: auto;
+  user-select: none;
 }
 
-.inventory-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+.inventory-card.multi-select-mode:hover {
+  border-color: var(--el-color-primary);
+}
+
+.inventory-card.selected {
+  border-color: var(--el-color-primary);
+  background: rgba(64, 158, 255, 0.1);
+  box-shadow: 0 0 0 2px var(--el-color-primary);
+}
+
+.inventory-card.selected:hover {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 2px var(--el-color-primary);
+}
+
+.inventory-card.card-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 选中勾 - 右上角 */
+.check-mark {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--border-color);
+  border: 2px solid var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: all 0.2s ease;
+  font-size: 12px;
+  color: transparent;
+}
+
+.check-mark.is-checked {
+  background: var(--el-color-primary);
+  color: #fff;
 }
 
 .card-image {
@@ -301,7 +613,6 @@ export default {
   overflow: hidden;
 }
 
-/* 主武器图片 - 固定尺寸不压缩 */
 .card-image .weapon-image {
   width: 180px;
   height: 120px;
@@ -334,7 +645,6 @@ export default {
   backdrop-filter: blur(4px);
 }
 
-/* 印花图片 - 保持缩放样式 */
 .sticker-img-overlay {
   max-width: 28px;
   max-height: 28px;
@@ -396,7 +706,6 @@ export default {
   font-size: 0.75rem;
 }
 
-/* 磨损值显示条 */
 .float-bar-container {
   margin-top: 0.3rem;
   padding: 0;
@@ -416,30 +725,11 @@ export default {
   height: 100%;
 }
 
-.float-segment.fn {
-  background: #4CAF50;
-  flex: 0.07;
-}
-
-.float-segment.mw {
-  background: #8BC34A;
-  flex: 0.08;
-}
-
-.float-segment.ft {
-  background: #FFC107;
-  flex: 0.23;
-}
-
-.float-segment.ww {
-  background: #FF9800;
-  flex: 0.07;
-}
-
-.float-segment.bs {
-  background: #F44336;
-  flex: 0.55;
-}
+.float-segment.fn { background: #4CAF50; flex: 0.07; }
+.float-segment.mw { background: #8BC34A; flex: 0.08; }
+.float-segment.ft { background: #FFC107; flex: 0.23; }
+.float-segment.ww { background: #FF9800; flex: 0.07; }
+.float-segment.bs { background: #F44336; flex: 0.55; }
 
 .float-pointer {
   position: absolute;
@@ -462,14 +752,11 @@ export default {
   font-weight: 500;
 }
 
-/* 价格显示 */
 .card-prices {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
   margin-top: 0.3rem;
-  padding-top: 0;
-  border-top: none;
 }
 
 .price-row {
@@ -503,19 +790,10 @@ export default {
   color: #4CAF50;
 }
 
-/* 卡片底部 */
 .card-footer {
   margin-top: auto;
-  padding-top: 0.75rem;
+  padding-top: 0.5rem;
   border-top: 1px solid var(--border-color);
-}
-
-.card-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-  min-height: 28px;
 }
 
 .tip-tag {
@@ -527,15 +805,6 @@ export default {
   margin-right: 0.25rem;
 }
 
-.card-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.card-actions .el-button {
-  flex: 1;
-}
-
 .table-footer {
   margin-top: 1rem;
   padding: 1rem;
@@ -544,14 +813,12 @@ export default {
   font-size: 0.9rem;
 }
 
-/* 响应式设计 */
 @media (max-width: 768px) {
   .card-grid {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   }
-
-  .inventory-card {
-    min-height: 320px;
+  .action-bar {
+    flex-wrap: wrap;
   }
 }
 </style>

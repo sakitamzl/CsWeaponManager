@@ -205,7 +205,7 @@
 
     <!-- 出售管理组件（卡片和列表显示） -->
     <SaleManagement
-      v-if="selectedTradeType === 'sale' || selectedTradeType === 'transfer' || selectedTradeType === 'instant'"
+      v-if="selectedTradeType === 'sale' || selectedTradeType === 'transfer'"
       :loading="loading"
       :display-data="currentDisplayData"
       :display-mode="displayMode"
