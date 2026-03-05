@@ -13,6 +13,7 @@ import SubleaseManagement from './SubleaseManagement/index.vue'
 import PresaleManagement from './PresaleManagement/index.vue'
 import InstantPayment from './InstantPayment/index.vue'
 import MyPurchaseRequest from './MyPurchaseRequest/index.vue'
+import MyFavorite from './MyFavorite/index.vue'
 
 export default {
   name: 'OnSale',
@@ -28,7 +29,8 @@ export default {
     SubleaseManagement,
     PresaleManagement,
     InstantPayment,
-    MyPurchaseRequest
+    MyPurchaseRequest,
+    MyFavorite
   },
   setup() {
     const loading = ref(false)
@@ -54,8 +56,9 @@ export default {
       { value: 'sublease', label: '转租', icon: '🔁' },
       { value: 'presale', label: '预售', icon: '⏰' },
       { value: 'transfer', label: '过户', icon: '📝' },
-      { value: 'purchase_request', label: '我的求购', icon: '🛒' },
-      { value: 'offer', label: '报价处理', icon: '💬' },
+      { value: 'purchase_request', label: '求购', icon: '🛒' },
+      { value: 'offer', label: '报价', icon: '💬' },
+      { value: 'favorite', label: '关注', icon: '⭐' },
       { value: 'rented_out', label: '已租出', icon: '📦' },
       { value: 'instant', label: '秒到账', icon: '⚡' }
     ])
@@ -316,6 +319,11 @@ export default {
     // 处理秒到账数量更新
     const handleInstantCountUpdate = (count) => {
       cacheTradeTypeCount('instant', count)
+    }
+
+    // 处理我的关注数量更新
+    const handleFavoriteCountUpdate = (count) => {
+      cacheTradeTypeCount('favorite', count)
     }
 
     // 处理交易类型切换
@@ -1945,6 +1953,7 @@ export default {
       handleRentedOutCountUpdate,
       handlePurchaseRequestCountUpdate,
       handleInstantCountUpdate,
+      handleFavoriteCountUpdate,
       batchChangePriceDialogVisible,
       batchChangePriceForm,
       autoFillBatchPrices

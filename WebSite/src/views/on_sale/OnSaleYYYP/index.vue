@@ -143,6 +143,14 @@
       @update:count="handleRentedOutCountUpdate"
     />
 
+    <!-- 我的关注 -->
+    <MyFavorite
+      v-if="selectedTradeType === 'favorite'"
+      :steam-id="accountList.find(acc => acc.id === selectedAccount)?.steam_id || ''"
+      :key="selectedAccount"
+      @update:count="handleFavoriteCountUpdate"
+    />
+
     <!-- 秒到账列表显示 -->
     <InstantPayment
       v-if="selectedTradeType === 'instant'"
