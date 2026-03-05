@@ -799,127 +799,167 @@ export function useItemSearch() {
 
     // 判断是求购供应还是普通购买
     if (commodity.isPurchaseOrder) {
-      // 求购订单 - 执行供应逻辑
       await handleSupplyToPurchaseOrder(commodity)
       return
     }
 
-    // 普通购买逻辑
-    console.log('购买商品:', commodity)
-
-    // 确认购买
+    // 步骤1：弹出初步确认框
     try {
       await ElMessageBox.confirm(
         `确认购买该商品吗？\n\n商品：${commodity.commodityName}\n价格：¥${commodity.price}\n磨损：${commodity.abrade || '-'}`,
         '确认购买',
         {
-          confirmButtonText: '确认购买',
+          confirmButtonText: '下一步',
           cancelButtonText: '取消',
           type: 'warning',
           distinguishCancelAndClose: true
         }
       )
-    } catch (error) {
-      // 用户取消
+    } catch {
       ElMessage.info('已取消购买')
       return
     }
-    
-    // 开始购买流程
+
+    // 步骤2：创建订单并查询支付渠道
     const loadingMessage = ElMessage({
       message: '正在创建订单...',
       type: 'info',
-      duration: 0,
-      customClass: 'buy-loading-message'
+      duration: 0
     })
-    
+
+    let orderNo = null
+    let waitPaymentDataNo = null
+    let payList = []
+
     try {
-      const requestData = {
-        steamId: selectedSteamId.value,
-        commodityId: commodity.id,
-        buyQuantity: 1,
-        price: commodity.price,  // 添加商品价格
-        autoConfirmPayment: true,  // 自动使用余额支付
-        pollPayment: true  // 轮询支付状态
-      }
-      
-      console.log('购买请求数据:', requestData)
-      
-      // 调用完整购买接口（创建订单+自动支付）- 使用V2 API
-      const response = await axios.post(
-        `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/buyCommodity`,
-        requestData
-      )
-      
-      console.log('购买响应:', response.data)
-      
-      loadingMessage.close()
-      
-      if (response.data.success) {
-        const orderData = response.data.data?.order || {}
-        const paymentStatus = response.data.data?.payment_status || {}
-        const orderNo = orderData.orderNo || '未知'
-        const paymentAmount = commodity.price || '未知'
-        
-        // 检查支付状态
-        const payStatus = paymentStatus.payStatus
-        let message = ''
-        
-        if (payStatus === 2) {
-          // 支付成功
-          message = `购买成功！\n\n订单号：${orderNo}\n金额：¥${paymentAmount}\n状态：支付成功✅\n\n饰品将发送至您的库存。`
-        } else if (payStatus === 1) {
-          // 支付处理中
-          message = `订单已创建！\n\n订单号：${orderNo}\n金额：¥${paymentAmount}\n状态：支付处理中⏳\n\n请稍后查看订单状态。`
-        } else {
-          // 订单创建成功但支付未完成
-          message = `订单创建成功！\n\n订单号：${orderNo}\n金额：¥${paymentAmount}\n\n已自动使用余额支付，请稍后查看订单状态。`
+      const createResponse = await axios.post(
+        apiUrls.yyypCreateOrder(),
+        {
+          steamId: selectedSteamId.value,
+          commodityId: commodity.id,
+          price: commodity.price
         }
-        
-        // 显示购买成功信息
+      )
+
+      loadingMessage.close()
+
+      if (!createResponse.data.success) {
         ElMessageBox.alert(
-          message,
-          '购买完成',
+          `创建订单失败：${createResponse.data.message || '未知错误'}`,
+          '创建失败',
+          { confirmButtonText: '知道了', type: 'error' }
+        )
+        return
+      }
+
+      const orderData = createResponse.data.data
+      orderNo = orderData.orderNo
+      waitPaymentDataNo = orderData.waitPaymentDataNo
+      payList = orderData.payList || []
+    } catch (error) {
+      loadingMessage.close()
+      const errorMessage = error.response?.data?.message || error.message || '网络错误'
+      ElMessageBox.alert(`创建订单失败：${errorMessage}`, '创建失败', {
+        confirmButtonText: '知道了', type: 'error'
+      })
+      return
+    }
+
+    // 步骤3：展示支付方式和余额，等待用户确认支付
+    const balanceChannel = payList.find(p => p.channelId === 100)
+    const balance = balanceChannel ? parseFloat(balanceChannel.balance || 0).toFixed(2) : '未知'
+    const price = parseFloat(commodity.price || 0).toFixed(2)
+    const balanceAfter = balanceChannel
+      ? (parseFloat(balanceChannel.balance || 0) - parseFloat(price)).toFixed(2)
+      : '未知'
+
+    // 构建支付方式列表文本
+    const payMethodLines = payList.map(p => {
+      const balanceStr = p.balance !== undefined ? `  余额：¥${parseFloat(p.balance).toFixed(2)}` : ''
+      return `• ${p.channelName || p.channelId}${balanceStr}`
+    }).join('\n')
+
+    const confirmMsg =
+      `订单号：${orderNo}\n` +
+      `商品：${commodity.commodityName}\n` +
+      `支付金额：¥${price}\n\n` +
+      `可用支付方式：\n${payMethodLines || '无'}\n\n` +
+      `有品余额：¥${balance}\n` +
+      `支付后余额：¥${balanceAfter}\n\n` +
+      `确认使用有品余额支付？`
+
+    try {
+      await ElMessageBox.confirm(
+        confirmMsg,
+        '确认支付',
+        {
+          confirmButtonText: '确认支付',
+          cancelButtonText: '取消订单',
+          type: 'warning',
+          distinguishCancelAndClose: true
+        }
+      )
+    } catch (action) {
+      // 用户点取消或关闭 → 取消订单
+      if (orderNo) {
+        try {
+          await axios.post(apiUrls.yyypCancelOrder(), {
+            steamId: selectedSteamId.value,
+            orderNo
+          })
+          ElMessage.info('已取消订单')
+        } catch {
+          ElMessage.warning('订单取消请求失败，请前往悠悠有品APP手动取消')
+        }
+      }
+      return
+    }
+
+    // 步骤4：确认支付
+    const payLoadingMessage = ElMessage({
+      message: '正在确认支付...',
+      type: 'info',
+      duration: 0
+    })
+
+    try {
+      const payResponse = await axios.post(
+        apiUrls.yyypConfirmPayment(),
+        {
+          steamId: selectedSteamId.value,
+          commodityId: commodity.id,
+          price: commodity.price
+        }
+      )
+
+      payLoadingMessage.close()
+
+      if (payResponse.data.success) {
+        ElMessageBox.alert(
+          `购买成功！\n\n订单号：${payResponse.data.data?.orderNo || orderNo}\n金额：¥${price}\n状态：支付成功 ✅\n\n饰品将发送至您的库存。`,
+          '购买成功',
           {
             confirmButtonText: '知道了',
             type: 'success',
-            callback: () => {
-              ElMessage.success(payStatus === 2 ? '购买成功！' : '订单已创建')
-            }
+            callback: () => ElMessage.success('购买成功！')
           }
         )
-        
-        // 购买成功后自动刷新列表
         if (yyypCurrentWeapon.value) {
-          console.log('购买成功，自动刷新悠悠有品列表...')
-          setTimeout(async () => {
-            await handleRefreshYYYP()
-          }, 1000) // 延迟1秒刷新，确保后端数据已更新
+          setTimeout(async () => { await handleRefreshYYYP() }, 1000)
         }
       } else {
         ElMessageBox.alert(
-          `购买失败：${response.data.message || '未知错误'}\n\n请检查配置或稍后重试。`,
-          '购买失败',
-          {
-            confirmButtonText: '知道了',
-            type: 'error'
-          }
+          `支付失败：${payResponse.data.message || '未知错误'}`,
+          '支付失败',
+          { confirmButtonText: '知道了', type: 'error' }
         )
       }
     } catch (error) {
-      loadingMessage.close()
-      console.error('购买商品失败:', error)
-      
-      const errorMessage = error.response?.data?.message || error.message || '网络错误，请稍后重试'
-      
-      ElMessageBox.alert(
-        `购买失败：${errorMessage}`,
-        '购买失败',
-        {
-          confirmButtonText: '知道了',
-          type: 'error'
-        }
-      )
+      payLoadingMessage.close()
+      const errorMessage = error.response?.data?.message || error.message || '网络错误'
+      ElMessageBox.alert(`支付失败：${errorMessage}`, '支付失败', {
+        confirmButtonText: '知道了', type: 'error'
+      })
     }
   }
 
@@ -1140,20 +1180,65 @@ export function useItemSearch() {
         // 获取订单号
         const orderNo = confirmResponse.data.data?.orderNo
 
-        // 供应成功后，弹出发送报价对话框
-        ElMessageBox.confirm(
+        // 供应成功后，弹出发送报价对话框（确认按钮 3 秒倒计时后才可点击）
+        const COUNTDOWN = 3
+        let remaining = COUNTDOWN
+        let countdownTimer = null
+
+        const msgBoxInstance = ElMessageBox.confirm(
           `供应成功！\n\n` +
           `已供应 ${selectedSupplyItems.value.length} 件物品\n` +
           `预期收益：¥${expectedRevenue}\n\n` +
           `是否立即发送报价？`,
           '供应成功',
           {
-            confirmButtonText: '发送报价',
+            confirmButtonText: `发送报价 (${remaining}s)`,
             cancelButtonText: '稍后发送',
             type: 'success',
-            distinguishCancelAndClose: true
+            distinguishCancelAndClose: true,
+            beforeClose: (action, instance, done) => {
+              if (countdownTimer) {
+                clearInterval(countdownTimer)
+                countdownTimer = null
+              }
+              done()
+            }
           }
-        ).then(() => {
+        )
+
+        // 倒计时逻辑：通过 DOM 操作更新按钮文字并控制禁用状态
+        const startCountdown = () => {
+          // 找到 MessageBox 的确认按钮
+          const confirmBtn = document.querySelector('.el-message-box__btns .el-button--primary')
+          if (confirmBtn) {
+            confirmBtn.disabled = true
+            confirmBtn.classList.add('is-disabled')
+          }
+
+          countdownTimer = setInterval(() => {
+            remaining -= 1
+            const btn = document.querySelector('.el-message-box__btns .el-button--primary')
+            if (btn) {
+              if (remaining > 0) {
+                btn.textContent = `发送报价 (${remaining}s)`
+              } else {
+                btn.textContent = '发送报价'
+                btn.disabled = false
+                btn.classList.remove('is-disabled')
+                clearInterval(countdownTimer)
+                countdownTimer = null
+              }
+            } else {
+              clearInterval(countdownTimer)
+              countdownTimer = null
+            }
+          }, 1000)
+        }
+
+        // 等待 DOM 渲染后启动倒计时
+        setTimeout(startCountdown, 50)
+
+        msgBoxInstance.then(() => {
           // 用户点击"发送报价"
           if (orderNo) {
             handleSendOffer(orderNo)

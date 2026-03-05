@@ -637,6 +637,7 @@
       width="600px"
       :close-on-click-modal="false"
       class="yyyp-onsale-buy-dialog"
+      @close="cancelOnSaleOrder"
     >
       <div v-loading="onSaleDetailLoading" class="onsale-buy-content">
         <div v-if="onSaleDetail && onSaleDetail.commodity" class="onsale-detail">
@@ -672,16 +673,48 @@
             </div>
           </div>
 
-          <!-- 支付说明 -->
-          <div class="payment-section">
-            <el-alert
-              title="支付说明"
-              type="info"
-              :closable="false"
-              style="margin-top: 12px;"
+          <!-- 订单和余额信息 -->
+          <div class="payment-section" style="margin-top: 12px;">
+            <!-- 创建订单中 -->
+            <div v-if="onSaleOrderLoading" style="text-align: center; padding: 8px 0; color: #909399; font-size: 13px;">
+              <el-icon class="is-loading"><Loading /></el-icon> 正在创建订单并查询余额...
+            </div>
+
+            <!-- 订单和余额信息 -->
+            <template v-else-if="onSaleOrderNo">
+              <el-descriptions :column="1" border size="small">
+                <el-descriptions-item label="订单号">
+                  <span style="color: #909399;">{{ onSaleOrderNo }}</span>
+                </el-descriptions-item>
+                <el-descriptions-item label="有品余额">
+                  <span :style="{ color: onSaleBalanceInsufficient ? '#f56c6c' : '#67c23a', fontWeight: 'bold' }">
+                    ¥{{ onSaleBalance !== null ? onSaleBalance.toFixed(2) : '获取失败' }}
+                  </span>
+                </el-descriptions-item>
+                <el-descriptions-item label="支付金额">
+                  <span style="color: #f56c6c; font-weight: bold;">¥{{ onSalePrice.toFixed(2) }}</span>
+                </el-descriptions-item>
+                <el-descriptions-item label="支付后余额">
+                  <span :style="{ color: onSaleBalanceInsufficient ? '#f56c6c' : '#909399' }">
+                    {{ onSaleBalanceAfter !== null ? '¥' + onSaleBalanceAfter.toFixed(2) : '-' }}
+                  </span>
+                </el-descriptions-item>
+              </el-descriptions>
+              <div
+                v-if="onSaleBalanceInsufficient"
+                style="margin-top: 8px; padding: 8px 12px; background: rgba(245,108,108,0.1); border: 1px solid rgba(245,108,108,0.3); border-radius: 4px; color: #909399; font-size: 13px;"
+              >
+                余额不足，无法完成支付
+              </div>
+            </template>
+
+            <!-- 创建订单失败 -->
+            <div
+              v-else-if="onSaleOrderError"
+              style="margin-top: 8px; padding: 8px 12px; background: rgba(245,108,108,0.1); border: 1px solid rgba(245,108,108,0.3); border-radius: 4px; color: #909399; font-size: 13px;"
             >
-              <span>点击「确认购买」后将使用悠悠有品余额完成支付，请确认余额充足。</span>
-            </el-alert>
+              {{ onSaleOrderError }}
+            </div>
           </div>
         </div>
 
@@ -692,14 +725,14 @@
 
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="cancelOnSaleOrder">取消</el-button>
+          <el-button @click="cancelOnSaleOrder">取消订单</el-button>
           <el-button
             type="primary"
             :loading="buyingOnSale"
-            :disabled="!onSaleDetail || onSaleDetailLoading"
+            :disabled="!onSaleDetail || onSaleDetailLoading || onSaleOrderLoading || !onSaleOrderNo || onSaleBalanceInsufficient"
             @click="confirmOnSalePayment"
           >
-            确认购买
+            支付订单
           </el-button>
         </span>
       </template>
@@ -1193,12 +1226,34 @@ const onSaleDetailLoading = ref(false)
 const buyingOnSale = ref(false)
 const currentOnSaleItem = ref(null)
 
-// 在售购买表单
-const onSaleBuyForm = ref({
-  autoConfirmPayment: true,
-  pollPayment: true,
-  paymentChannel: 'balance'
+// 订单和支付渠道状态
+const onSaleOrderNo = ref(null)
+const onSaleWaitPaymentDataNo = ref(null)
+const onSalePayList = ref([])
+const onSaleOrderLoading = ref(false)
+const onSaleOrderError = ref(null)
+
+// 余额相关计算
+const onSaleBalanceChannel = computed(() =>
+  onSalePayList.value.find(p => p.channelId === 100) || null
+)
+const onSaleBalance = computed(() =>
+  onSaleBalanceChannel.value ? parseFloat(onSaleBalanceChannel.value.balance || 0) : null
+)
+const onSalePrice = computed(() => {
+  const commodity = onSaleDetail.value?.commodity
+  if (!commodity) return 0
+  return parseFloat(
+    commodity.commodityConversionPrice ||
+    (commodity.commodityPrice ? commodity.commodityPrice / 100 : 0)
+  )
 })
+const onSaleBalanceAfter = computed(() =>
+  onSaleBalance.value !== null ? (onSaleBalance.value - onSalePrice.value) : null
+)
+const onSaleBalanceInsufficient = computed(() =>
+  onSaleBalance.value !== null && onSaleBalance.value < onSalePrice.value
+)
 
 // 在售商品无需提前查余额，直接允许点击确认（后端会校验余额）
 const filteredOnSalePayList = computed(() => [])
@@ -1330,92 +1385,132 @@ const confirmPresaleBuy = async () => {
   }
 }
 
-// 打开在售购买对话框（仅查询商品信息，不创建订单）
+// 打开在售购买对话框：并行获取商品详情 + 创建订单查询余额
 const openOnSaleBuyDialog = async (item) => {
   if (!item || !item.id) {
     ElMessage.warning('商品信息不完整')
     return
   }
 
+  // 重置所有状态
   currentOnSaleItem.value = item
-  onSaleBuyDialogVisible.value = true
-  onSaleDetailLoading.value = true
   onSaleDetail.value = null
+  onSaleOrderNo.value = null
+  onSaleWaitPaymentDataNo.value = null
+  onSalePayList.value = []
+  onSaleOrderError.value = null
+  onSaleDetailLoading.value = true
+  onSaleOrderLoading.value = true
+  onSaleBuyDialogVisible.value = true
 
+  const detailUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/getWeaponDetail`
+  const createOrderUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/createOrder`
+
+  // 步骤1：先获取商品详情（需要拿到价格，才能创建订单）
   try {
-    // 使用V2 API获取在售商品详情（仅查询，不下单）
-    const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/getWeaponDetail`
-    const response = await axios.post(url, {
+    const detailRes = await axios.post(detailUrl, {
       steamId: props.selectedSteamId || '',
       commodityId: item.id.toString()
     })
-
-    if (response.data.success) {
-      onSaleDetail.value = response.data.data
-      console.log('在售商品详情（未下单）:', onSaleDetail.value)
-    } else {
-      throw new Error(response.data.message || '获取商品详情失败')
+    if (!detailRes.data.success) {
+      throw new Error(detailRes.data.message || '获取商品详情失败')
     }
+    onSaleDetail.value = detailRes.data.data
   } catch (error) {
-    console.error('获取商品详情失败:', error)
     ElMessage.error(error.message || '获取商品详情失败')
     onSaleBuyDialogVisible.value = false
+    onSaleDetailLoading.value = false
+    onSaleOrderLoading.value = false
+    return
   } finally {
     onSaleDetailLoading.value = false
   }
-}
 
-// 取消在售购买（对话框未下单，直接关闭即可）
-const cancelOnSaleOrder = () => {
-  onSaleBuyDialogVisible.value = false
-}
+  // 步骤2：拿到价格后创建订单并查询余额
+  const commodity = onSaleDetail.value?.commodity
+  const price = commodity
+    ? (commodity.commodityConversionPrice || (commodity.commodityPrice ? commodity.commodityPrice / 100 : 0))
+    : 0
 
-// 确认付款在售商品（下单+支付完整流程由后端执行）
-const confirmOnSalePayment = async () => {
-  if (!currentOnSaleItem.value || !onSaleDetail.value) {
-    ElMessage.error('商品信息不完整')
-    return
-  }
-
-  const commodity = onSaleDetail.value.commodity
-  if (!commodity) {
-    ElMessage.error('商品详情缺失')
-    return
-  }
-
-  // 获取商品价格（元）
-  const price = commodity.commodityConversionPrice ||
-                (commodity.commodityPrice ? commodity.commodityPrice / 100 : 0)
   if (!price) {
-    ElMessage.error('商品价格缺失')
+    onSaleOrderError.value = '商品价格缺失，无法创建订单'
+    onSaleOrderLoading.value = false
+    return
+  }
+
+  try {
+    const orderRes = await axios.post(createOrderUrl, {
+      steamId: props.selectedSteamId || '',
+      commodityId: item.id.toString(),
+      price: price.toString()
+    })
+    if (!orderRes.data.success) {
+      throw new Error(orderRes.data.message || '创建订单失败')
+    }
+    const orderData = orderRes.data.data
+    onSaleOrderNo.value = orderData.orderNo
+    onSaleWaitPaymentDataNo.value = orderData.waitPaymentDataNo
+    onSalePayList.value = orderData.payList || []
+  } catch (error) {
+    onSaleOrderError.value = error.response?.data?.message || error.message || '创建订单失败'
+  } finally {
+    onSaleOrderLoading.value = false
+  }
+}
+
+// 取消在售购买：若已创建订单则撤单（防止重复触发）
+let _cancellingOrder = false
+const cancelOnSaleOrder = async () => {
+  if (_cancellingOrder) return
+  _cancellingOrder = true
+
+  onSaleBuyDialogVisible.value = false
+
+  if (onSaleOrderNo.value) {
+    const orderNoToCancel = onSaleOrderNo.value
+    onSaleOrderNo.value = null  // 立即清除，防止 @close 二次触发时重复撤单
+    try {
+      await axios.post(
+        `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/cancelOrder`,
+        { steamId: props.selectedSteamId || '', orderNo: orderNoToCancel }
+      )
+    } catch {
+      // 撤单失败静默处理
+    }
+  }
+
+  _cancellingOrder = false
+}
+
+// 确认付款：订单已创建，直接提交支付（不重新建订单）
+const confirmOnSalePayment = async () => {
+  if (!onSaleOrderNo.value || !onSaleWaitPaymentDataNo.value) {
+    ElMessage.error('订单信息不完整，请重新打开购买窗口')
     return
   }
 
   buyingOnSale.value = true
 
   try {
-    // 调用付款接口（后端负责创建订单→查询支付渠道→确认支付）
-    const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/confirmPayment`
+    const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/submitPayment`
     const response = await axios.post(url, {
       steamId: props.selectedSteamId || '',
-      commodityId: currentOnSaleItem.value.id.toString(),
-      price: price.toString()
+      orderNo: onSaleOrderNo.value,
+      waitPaymentDataNo: onSaleWaitPaymentDataNo.value,
+      price: onSalePrice.value.toString()
     })
 
     if (response.data.success) {
-      const orderNo = response.data.data?.orderNo
-      ElMessage.success('购买成功！' + (orderNo ? ` 订单号: ${orderNo}` : ''))
-      console.log('购买结果:', response.data.data)
+      const orderNo = response.data.data?.orderNo || onSaleOrderNo.value
+      ElMessage.success(`购买成功！订单号: ${orderNo}`)
+      onSaleOrderNo.value = null  // 清除订单号，防止关闭弹窗时触发撤单
       onSaleBuyDialogVisible.value = false
-
-      // 刷新列表
       emit('refresh-yyyp')
     } else {
-      throw new Error(response.data.message || '购买失败')
+      throw new Error(response.data.message || '支付失败')
     }
   } catch (error) {
-    console.error('购买失败:', error)
-    const errorMsg = error.response?.data?.message || error.message || '购买失败，请稍后重试'
+    const errorMsg = error.response?.data?.message || error.message || '支付失败，请稍后重试'
     ElMessage.error(errorMsg)
   } finally {
     buyingOnSale.value = false

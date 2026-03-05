@@ -353,6 +353,9 @@ export const API_CONFIG = {
     YYYP_ITEM_SEARCH_ON_SALE_LIST: '/spiderApiV2/src/web_site/youping/units/item_search/on_sale/getCommodityList',  // 在售商品列表
     YYYP_ITEM_SEARCH_ON_SALE_DETAIL: '/spiderApiV2/src/web_site/youping/units/item_search/on_sale/getWeaponDetail',  // 在售商品详情
     YYYP_ITEM_SEARCH_BUY_COMMODITY: '/spiderApiV2/src/web_site/youping/units/item_search/on_sale/buyCommodity',  // 购买在售商品
+    YYYP_ITEM_SEARCH_CREATE_ORDER: '/spiderApiV2/src/web_site/youping/units/item_search/on_sale/createOrder',  // 创建订单并查询支付渠道（不支付）
+    YYYP_ITEM_SEARCH_CONFIRM_PAYMENT: '/spiderApiV2/src/web_site/youping/units/item_search/on_sale/confirmPayment',  // 确认支付
+    YYYP_ITEM_SEARCH_CANCEL_ORDER: '/spiderApiV2/src/web_site/youping/units/item_search/on_sale/cancelOrder',  // 取消订单
 
     YYYP_ITEM_SEARCH_ON_LEASE_LIST: '/spiderApiV2/src/web_site/youping/units/item_search/on_lease/getCommodityList',  // 在租商品列表
 
@@ -1047,6 +1050,11 @@ export const apiUrls = {
   youpinSendOffer: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YOUPIN_SEND_OFFER),
 
   youpinSellInventoryItem: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YOUPIN_SELL_INVENTORY_ITEM),
+
+  // 悠悠有品在售商品购买API
+  yyypCreateOrder: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_ITEM_SEARCH_CREATE_ORDER),
+  yyypConfirmPayment: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_ITEM_SEARCH_CONFIRM_PAYMENT),
+  yyypCancelOrder: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_ITEM_SEARCH_CANCEL_ORDER),
 
 
 
