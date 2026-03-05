@@ -202,8 +202,18 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="lastRun" label="最后执行时间" min-width="160" />
-        <el-table-column prop="nextRun" label="下次执行时间" min-width="160" />
+        <el-table-column label="最后执行" width="120" align="center">
+          <template #default="{ row }">
+            <span style="font-size: 13px;">{{ formatTimeAgo(row.lastRun) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="下次执行" width="120" align="center">
+          <template #default="{ row }">
+            <span v-if="row.status === '已停止' || !row.nextRun || row.nextRun === '-'" style="color: #909399;">-</span>
+            <span v-else-if="row.status === '执行中'" style="color: #67c23a;">执行中</span>
+            <span v-else style="font-size: 13px;">{{ formatCountdown(row.nextRun) }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="220" align="center" fixed="right">
           <template #default="{ row }">
             <el-button 
@@ -271,6 +281,8 @@ const {
   filteredDataSources,
   formatInterval,
   formatDuration,
+  formatCountdown,
+  formatTimeAgo,
   handleTypeChange,
   applyCustomInterval,
   handleExecute,

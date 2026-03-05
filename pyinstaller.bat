@@ -2,7 +2,7 @@
 echo Starting PyInstaller packaging process...
 
 :: Set version number (modify this for each release)
-set VERSION=v2.4.2.3
+set VERSION=v2.5.0
 
 :: Sync version to package.json
 echo Syncing version to package.json...
@@ -242,6 +242,59 @@ echo ========================================
 echo All executables have been created in: Releases\%VERSION%
 dir /b "Releases\%VERSION%\*.exe"
 echo ========================================
+
+:: Code signing (self-signed certificate, to bypass Device Guard / Smart App Control)
+echo.
+echo Signing executables with self-signed certificate...
+echo Note: This requires administrator privileges to import certificate into Trusted Root CA.
+
+:: Run signing with elevation via PowerShell (needs admin to write to LocalMachine\Root)
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+    "$releaseDir = 'Releases\%VERSION%';" ^
+    "$certSubject = 'CsWeaponManager';" ^
+    "$myStore = 'Cert:\CurrentUser\My';" ^
+    "$rootStore = 'Cert:\LocalMachine\Root';" ^
+    "$cert = Get-ChildItem $myStore | Where-Object { $_.Subject -like ('CN=' + $certSubject + '*') } | Select-Object -First 1;" ^
+    "if (-not $cert) {" ^
+        "Write-Host 'Creating new self-signed certificate...';" ^
+        "$cert = New-SelfSignedCertificate -Subject ('CN=' + $certSubject) -CertStoreLocation $myStore -KeyUsage DigitalSignature -Type CodeSigningCert -NotAfter (Get-Date).AddYears(10);" ^
+        "Write-Host ('Certificate created: ' + $cert.Thumbprint);" ^
+    "} else {" ^
+        "Write-Host ('Using existing certificate: ' + $cert.Thumbprint);" ^
+    "};" ^
+    "$alreadyTrusted = Get-ChildItem $rootStore | Where-Object { $_.Thumbprint -eq $cert.Thumbprint } | Select-Object -First 1;" ^
+    "if (-not $alreadyTrusted) {" ^
+        "Write-Host 'Importing certificate into Trusted Root CA (requires admin)...';" ^
+        "try {" ^
+            "$store = New-Object System.Security.Cryptography.X509Certificates.X509Store('Root','LocalMachine');" ^
+            "$store.Open('ReadWrite');" ^
+            "$store.Add($cert);" ^
+            "$store.Close();" ^
+            "Write-Host 'Certificate imported into Trusted Root CA.' -ForegroundColor Green;" ^
+        "} catch {" ^
+            "Write-Host ('Failed to import into Trusted Root CA: ' + $_.Exception.Message) -ForegroundColor Red;" ^
+            "Write-Host 'Hint: Re-run pyinstaller.bat as Administrator to fix this.' -ForegroundColor Yellow;" ^
+        "}" ^
+    "} else {" ^
+        "Write-Host 'Certificate already trusted.';" ^
+    "};" ^
+    "$exeFiles = Get-ChildItem -Path $releaseDir -Filter '*.exe';" ^
+    "foreach ($exe in $exeFiles) {" ^
+        "Write-Host ('Signing: ' + $exe.Name + '...');" ^
+        "$result = Set-AuthenticodeSignature -FilePath $exe.FullName -Certificate $cert -Force;" ^
+        "if ($result.Status -eq 'Valid') {" ^
+            "Write-Host ('  OK: ' + $exe.Name) -ForegroundColor Green;" ^
+        "} else {" ^
+            "Write-Host ('  WARN: ' + $exe.Name + ' - ' + $result.Status) -ForegroundColor Yellow;" ^
+        "}" ^
+    "};" ^
+    "Write-Host 'Signing completed.'"
+
+if %errorlevel% neq 0 (
+    echo Warning: Code signing failed. EXE files may be blocked by Device Guard.
+) else (
+    echo Code signing completed.
+)
 
 :: Create ZIP file
 echo.

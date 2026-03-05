@@ -1454,18 +1454,57 @@ export function useAutomateManagement() {
     }
   }
   
+  // 格式化"xx前"（距离上次执行已过去的时间）
+  const formatTimeAgo = (lastRunStr) => {
+    if (!lastRunStr || lastRunStr === '-') return '-'
+    const lastRun = new Date(lastRunStr.replace(/-/g, '/'))
+    if (isNaN(lastRun.getTime())) return lastRunStr
+    const diff = Math.floor((Date.now() - lastRun) / 1000)
+    if (diff < 0) return '刚刚'
+    if (diff < 60) return `${diff}秒前`
+    if (diff < 3600) {
+      const m = Math.floor(diff / 60)
+      const s = diff % 60
+      return s > 0 ? `${m}分${s}秒前` : `${m}分前`
+    }
+    if (diff < 86400) {
+      const h = Math.floor(diff / 3600)
+      const m = Math.floor((diff % 3600) / 60)
+      return m > 0 ? `${h}小时${m}分前` : `${h}小时前`
+    }
+    const d = Math.floor(diff / 86400)
+    return `${d}天前`
+  }
+
+  // 格式化倒计时（距离下次执行的剩余时间）
+  const formatCountdown = (nextRunStr) => {
+    if (!nextRunStr || nextRunStr === '-') return '-'
+    const nextRun = new Date(nextRunStr.replace(/-/g, '/'))
+    if (isNaN(nextRun.getTime())) return nextRunStr
+    const diff = Math.floor((nextRun - Date.now()) / 1000)
+    if (diff <= 0) return '即将执行'
+    if (diff < 60) return `${diff}秒后`
+    if (diff < 3600) {
+      const m = Math.floor(diff / 60)
+      const s = diff % 60
+      return s > 0 ? `${m}分${s}秒后` : `${m}分后`
+    }
+    const h = Math.floor(diff / 3600)
+    const m = Math.floor((diff % 3600) / 60)
+    return m > 0 ? `${h}小时${m}分后` : `${h}小时后`
+  }
+
   // 格式化执行时长
   const formatDuration = (seconds) => {
     if (seconds < 60) {
       return `${seconds}秒`
     } else if (seconds < 3600) {
       const minutes = Math.floor(seconds / 60)
-      const secs = seconds % 60
-      return `${minutes}分${secs}秒`
+      return `${minutes}分`
     } else {
       const hours = Math.floor(seconds / 3600)
       const minutes = Math.floor((seconds % 3600) / 60)
-      return `${hours}小时${minutes}分`
+      return minutes > 0 ? `${hours}小时${minutes}分` : `${hours}小时`
     }
   }
 
@@ -1528,6 +1567,8 @@ export function useAutomateManagement() {
     filteredDataSources,
     formatInterval,
     formatDuration,
+    formatCountdown,
+    formatTimeAgo,
     handleTypeChange,
     applyCustomInterval,
     handleExecute,
