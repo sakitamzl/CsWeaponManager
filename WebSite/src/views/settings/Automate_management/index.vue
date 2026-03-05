@@ -148,6 +148,7 @@
             {{ isEditing ? '更新任务' : '保存定时任务' }}
           </el-button>
           <el-button @click="handleReset">{{ isEditing ? '取消编辑' : '重置' }}</el-button>
+          <el-button v-if="isEditing" type="danger" plain @click="deleteTask(editingTaskId)">删除配置</el-button>
         </el-form-item>
       </el-form>
     </div>
@@ -189,12 +190,14 @@
         </el-table-column>
         <el-table-column prop="status" label="状态" width="180" align="center">
           <template #default="{ row }">
-            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-              <el-tag :type="row.status === '执行中' ? 'success' : (row.status === '运行中' ? 'warning' : 'info')">
-                {{ row.status === '运行中' ? '等待中' : row.status }}
+            <div style="display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 6px;">
+              <el-tag
+                :type="row.status === '执行中' ? 'success' : (row.status === '运行中' ? 'warning' : 'info')"
+              >
+                {{ row.status === '运行中' ? '运行中' : row.status }}
               </el-tag>
               <span v-if="row.isExecuting && row.executingDuration > 0" style="font-size: 12px; color: #909399;">
-                已执行 {{ formatDuration(row.executingDuration) }}
+                {{ formatDuration(row.executingDuration) }}
               </span>
             </div>
           </template>
@@ -227,14 +230,6 @@
             >
               编辑
             </el-button>
-            <el-button 
-              size="small" 
-              type="danger" 
-              @click="deleteTask(row.id)"
-              plain
-            >
-              删除
-            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -257,6 +252,7 @@ const {
   bulkStarting,
   bulkStopping,
   isEditing,
+  editingTaskId,
   steamConfigList,
   youpinConfigList,
   buffConfigList,
@@ -274,6 +270,7 @@ const {
   availableTasks,
   filteredDataSources,
   formatInterval,
+  formatDuration,
   handleTypeChange,
   applyCustomInterval,
   handleExecute,

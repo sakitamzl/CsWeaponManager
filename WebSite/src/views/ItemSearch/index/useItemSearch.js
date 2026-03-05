@@ -614,8 +614,8 @@ export function useItemSearch() {
           }
         }, 100)
         
-        // 自动批量获取改名信息
-        fetchAllNameTags(commodityList)
+        // 改名信息不自动获取，由用户手动触发
+        // fetchAllNameTags(commodityList)
       } else {
         console.error('API返回失败:', response.data)
         ElMessage.error(response.data.message || '获取商品列表失败')
@@ -694,8 +694,8 @@ export function useItemSearch() {
           // 批量获取新商品的印花/挂件价格
           fetchStickerPrices(newCommodities)
           
-          // 获取新商品的改名信息
-          fetchAllNameTags(newCommodities)
+          // 改名信息不自动获取，由用户手动触发
+          // fetchAllNameTags(newCommodities)
         } else {
           yyypHasMore.value = false
         }
@@ -1457,10 +1457,10 @@ export function useItemSearch() {
       // 设置加载状态
       item.priceLoading = true
       
-      // 收集印花的 steam_hash_name
+      // 收集印花的 steam_hash_name（优先 TemplateHashName，回退 SteamHashName）
       if (item.stickers && item.stickers.length > 0) {
         item.stickers.forEach(sticker => {
-          const hashName = sticker.TemplateHashName || sticker.steam_hash_name
+          const hashName = sticker.TemplateHashName || sticker.SteamHashName || sticker.steam_hash_name
           if (hashName) {
             steamHashNames.add(hashName)
           }
@@ -1511,7 +1511,7 @@ export function useItemSearch() {
           // 处理印花价格
           if (item.stickers && item.stickers.length > 0) {
             item.stickers.forEach(sticker => {
-              const hashName = sticker.TemplateHashName || sticker.steam_hash_name
+              const hashName = sticker.TemplateHashName || sticker.SteamHashName || sticker.steam_hash_name
               if (hashName && priceMap[hashName]) {
                 const priceInfo = priceMap[hashName]
                 sticker.priceInfo = priceInfo
@@ -2487,7 +2487,8 @@ export function useItemSearch() {
         // 预加载图片和价格
         preloadImages(commodityList)
         fetchStickerPrices(commodityList)
-        fetchAllNameTags(commodityList)
+        // 改名信息不自动获取，由用户手动触发
+        // fetchAllNameTags(commodityList)
       } else {
         ElMessage.error(response.data.message || '获取数据失败')
       }

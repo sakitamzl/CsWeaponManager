@@ -1509,6 +1509,7 @@ export function useAutomateManagement() {
     bulkStarting,
     bulkStopping,
     isEditing,
+    editingTaskId,
     steamConfigList,
     youpinConfigList,
     buffConfigList,
