@@ -574,7 +574,7 @@ export default {
         try {
           const response = await axios.post(apiUrls.yyypCancelGoodsStar(), {
             steamId: props.steamId,
-            commodityId: item.commodityId.toString()
+            id: item.id
           })
           if (response.data?.success) {
             successCount++
