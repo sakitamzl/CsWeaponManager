@@ -1291,12 +1291,12 @@ export default {
             steamId: steamId,
             orderNoList: [item.order_no || item.id]  // 传递订单号数组
           })
-        } else if (item.trade_type === 'lease') {
-          // 租赁类型：调用悠悠有品下架API
+        } else if (item.trade_type === 'lease' || item.trade_type === 'sale' || item.trade_type === 'transfer' || item.trade_type === 'presale') {
+          // 租赁/出售/过户/预售类型：直接调用 Spider 下架API
           const steamId = accountList.value.find(acc => acc.id === selectedAccount.value)?.steam_id || ''
           response = await axios.post(apiUrls.yyypOffShelf(), {
             steamId: steamId,
-            ids: [item.id]  // 传递ID数组
+            ids: [item.id]
           })
         } else {
           // 其他类型：调用原有的下架API
@@ -1643,8 +1643,8 @@ export default {
             steamId: steamId,
             orderNoList: orderNoList
           })
-        } else if (firstItem.trade_type === 'lease') {
-          // 批量下架租赁物品
+        } else if (firstItem.trade_type === 'lease' || firstItem.trade_type === 'sale' || firstItem.trade_type === 'transfer' || firstItem.trade_type === 'presale') {
+          // 批量下架租赁/出售/过户/预售物品
           const ids = selectedItems.value.map(item => item.id)
           response = await axios.post(apiUrls.yyypOffShelf(), {
             steamId: steamId,

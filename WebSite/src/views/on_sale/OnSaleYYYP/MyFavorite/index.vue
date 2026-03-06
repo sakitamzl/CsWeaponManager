@@ -391,7 +391,7 @@ export default {
     const clearingInvalid = ref(false)
     const skinSearch = ref('')
     const itemSearch = ref('')
-    const itemStatusFilter = ref('')
+    const itemStatusFilter = ref('on_sale')
     const skinList = ref([])
     const itemList = ref([])
 

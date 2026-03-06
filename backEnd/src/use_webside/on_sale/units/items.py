@@ -212,7 +212,7 @@ class OnSaleItems:
                     steam_id = config_result[0][0]
 
             # 调用Spider服务下架商品
-            spider_url = f"{SPIDER_API_ADDRESS}/spiderApiV2/youping/units/on_sale/sell/offShelf"
+            spider_url = f"{SPIDER_API_ADDRESS}/spiderApiV2/src/web_site/youping/units/on_sale/sell/offShelf"
             spider_response = requests.post(
                 spider_url,
                 json={
