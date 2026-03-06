@@ -583,6 +583,10 @@ export const API_CONFIG = {
     YYYP_CHANGE_RENT_PRICE: '/spiderApiV2/src/web_site/youping/units/on_sale/lent/changePrice',  // 改价（租赁/转租，支持单个和批量，新API）
     YYYP_GET_INSTANT_PAYMENT_LIST: '/spiderApiV2/src/web_site/youping/units/on_sale/instant/getInstantPaymentList',  // 获取0CD(秒到账)订单列表（新API）
     YYYP_RETRIEVE_RECORD: '/spiderApiV2/src/web_site/youping/units/on_sale/instant/retrieveRecord',  // 秒到账提取资金（新API）
+    YYYP_GET_ITEM_STAR_LIST: '/spiderApiV2/src/web_site/youping/units/on_sale/stars/item_stars/getItemStarList',  // 获取皮肤关注列表（新API）
+    YYYP_CANCEL_ITEM_STAR: '/spiderApiV2/src/web_site/youping/units/on_sale/stars/item_stars/cancelItemStar',  // 取消皮肤关注（新API）
+    YYYP_GET_GOODS_STAR_LIST: '/spiderApiV2/src/web_site/youping/units/on_sale/stars/goods_stars/getGoodsStarList',  // 获取单件关注列表（新API）
+    YYYP_CANCEL_GOODS_STAR: '/spiderApiV2/src/web_site/youping/units/on_sale/stars/goods_stars/cancelGoodsStar',  // 取消单件关注（新API）
     YYYP_GET_SUBLEASE_AGREEMENT: '/spiderApiV2/src/web_site/youping/units/on_sale/sublease/getSubleaseAgreement',  // 获取转租协议（新API）
     YYYP_GET_SUBLEASE_DETAIL: '/spiderApiV2/src/web_site/youping/units/on_sale/sublease/getSubleaseDetail',  // 获取转租详情（新API）
     YYYP_RENT_INIT: '/spiderApiV2/src/web_site/youping/units/on_sale/lent/rentInit',  // 获取出租初始化配置（新API）
@@ -1302,6 +1306,10 @@ export const apiUrls = {
   yyypChangeRentPrice: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_CHANGE_RENT_PRICE),  // 租赁/转租改价（支持单个和批量）
   yyypGetInstantPaymentList: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_INSTANT_PAYMENT_LIST),  // 获取0CD订单列表
   yyypRetrieveRecord: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_RETRIEVE_RECORD),  // 秒到账提取资金
+  yyypGetItemStarList: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_ITEM_STAR_LIST),  // 获取皮肤关注列表
+  yyypCancelItemStar: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_CANCEL_ITEM_STAR),  // 取消皮肤关注
+  yyypGetGoodsStarList: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_GOODS_STAR_LIST),  // 获取单件关注列表
+  yyypCancelGoodsStar: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_CANCEL_GOODS_STAR),  // 取消单件关注
   yyypGetSubleaseAgreement: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_SUBLEASE_AGREEMENT),  // 获取转租协议
   yyypGetSubleaseDetail: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_GET_SUBLEASE_DETAIL),  // 获取转租详情
   yyypRentInit: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_RENT_INIT),  // 获取出租初始化配置

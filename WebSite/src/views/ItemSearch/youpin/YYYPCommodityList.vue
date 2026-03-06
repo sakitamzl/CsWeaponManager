@@ -741,14 +741,9 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue'
 import { CaretRight, CaretBottom, Check, Loading, Refresh } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
-import * as echarts from 'echarts'
-import axios from 'axios'
-import { API_CONFIG } from '@/config/api.js'
+import { useYYYPCommodityList } from './useYYYPCommodityList.js'
 
-// 接收父组件传递的 props
 const props = defineProps({
   showYYYPList: Boolean,
   showYYYPTable: Boolean,
@@ -760,11 +755,10 @@ const props = defineProps({
   yyypTotalCount: Number,
   yyypLoadingMore: Boolean,
   yyypHasMore: Boolean,
-  yyypFilterType: String,  // 当前筛选类型
-  selectedSteamId: String  // 选中的Steam ID
+  yyypFilterType: String,
+  selectedSteamId: String
 })
 
-// 定义事件
 const emit = defineEmits([
   'toggle-yyyp-list',
   'refresh-yyyp',
@@ -780,742 +774,68 @@ const emit = defineEmits([
   'wear-range-change'
 ])
 
-// activeFilter 已移除，使用 props.yyypFilterType
-
-// 排序和磨损区间状态
-const sortType = ref('default')
-const wearRange = ref('')
-
-// 判断当前武器品质并返回对应的磨损区间选项
-const wearRangeOptions = computed(() => {
-  if (!props.yyypCurrentWeapon?.market_listing_item_name) return []
-
-  const name = props.yyypCurrentWeapon.market_listing_item_name
-
-  // 崭新出厂 (Factory New: 0.00 - 0.07)
-  if (name.includes('崭新出厂') || name.includes('Factory New')) {
-    return [
-      { label: '0.00 - 0.01', value: '0.00-0.01' },
-      { label: '0.01 - 0.02', value: '0.01-0.02' },
-      { label: '0.02 - 0.03', value: '0.02-0.03' },
-      { label: '0.03 - 0.04', value: '0.03-0.04' },
-      { label: '0.04 - 0.07', value: '0.04-0.07' }
-    ]
-  }
-
-  // 略有磨损 (Minimal Wear: 0.07 - 0.15)
-  if (name.includes('略有磨损') || name.includes('Minimal Wear')) {
-    return [
-      { label: '0.07 - 0.08', value: '0.07-0.08' },
-      { label: '0.08 - 0.09', value: '0.08-0.09' },
-      { label: '0.09 - 0.10', value: '0.09-0.10' },
-      { label: '0.10 - 0.11', value: '0.10-0.11' },
-      { label: '0.11 - 0.15', value: '0.11-0.15' }
-    ]
-  }
-
-  // 久经沙场 (Field-Tested: 0.15 - 0.38)
-  if (name.includes('久经沙场') || name.includes('Field-Tested')) {
-    return [
-      { label: '0.15 - 0.18', value: '0.15-0.18' },
-      { label: '0.18 - 0.21', value: '0.18-0.21' },
-      { label: '0.21 - 0.24', value: '0.21-0.24' },
-      { label: '0.24 - 0.27', value: '0.24-0.27' },
-      { label: '0.27 - 0.38', value: '0.27-0.38' }
-    ]
-  }
-
-  // 破损不堪 (Well-Worn: 0.38 - 0.45)
-  if (name.includes('破损不堪') || name.includes('Well-Worn')) {
-    return [
-      { label: '0.38 - 0.39', value: '0.38-0.39' },
-      { label: '0.39 - 0.40', value: '0.39-0.40' },
-      { label: '0.40 - 0.41', value: '0.40-0.41' },
-      { label: '0.41 - 0.42', value: '0.41-0.42' },
-      { label: '0.42 - 0.45', value: '0.42-0.45' }
-    ]
-  }
-
-  // 战痕累累 (Battle-Scarred: 0.45 - 1.00)
-  if (name.includes('战痕累累') || name.includes('Battle-Scarred')) {
-    return [
-      { label: '全部', value: '' },
-      { label: '0.45 - 0.50', value: '0.45-0.50' },
-      { label: '0.50 - 0.63', value: '0.50-0.63' },
-      { label: '0.63 - 0.76', value: '0.63-0.76' },
-      { label: '0.76 - 0.90', value: '0.76-0.90' },
-      { label: '0.90 - 1.00', value: '0.90-1.00' }
-    ]
-  }
-
-  // 其他品质暂不支持磨损区间筛选
-  return []
-})
-
-// 排序变更处理
-const handleSortChange = (value) => {
-  console.log('排序变更:', value)
-  emit('sort-change', value)
-}
-
-// 磨损区间变更处理
-const handleWearRangeChange = (value) => {
-  console.log('磨损区间变更:', value)
-  emit('wear-range-change', value)
-}
-
-// 筛选对话框状态
-const filterDialogVisible = ref(false)
-
-// 筛选表单数据
-const filterForm = ref({
-  templateId: '',           // 图案模板编号
-  wearMin: '',              // 磨损最小值
-  wearMax: '',              // 磨损最大值
-  hasNameTag: null,         // 是否有名称标签 (null=全部, true=有, false=无)
-  nameTagText: '',          // 名称标签内容（二级）
-  hasStickerFilter: null,   // 是否有印花 (null=全部, true=有, false=无)
-  stickerName: '',          // 印花名称（二级）
-  hasPendant: null,         // 是否有挂件 (null=全部, true=有, false=无)
-  pendantName: '',          // 挂件名称（二级）
-  fastDelivery: false,      // 极速发货
-  priceMin: '',             // 最低价格
-  priceMax: ''              // 最高价格
-})
-
-// 价格走势对话框状态
-const priceTrendDialogVisible = ref(false)
-const selectedDays = ref(30)
-const priceTrendData = ref(null)
-const priceTrendLoading = ref(false)
-const priceTrendChart = ref(null)
-let chartInstance = null
-
-// 价格统计计算
-const priceStats = computed(() => {
-  if (!priceTrendData.value || !priceTrendData.value.tradeDataList || priceTrendData.value.tradeDataList.length === 0) {
-    return { maxPrice: '0.00', minPrice: '0.00', avgPrice: '0.00', count: 0 }
-  }
-
-  const prices = priceTrendData.value.tradeDataList.map(item => parseFloat(item.price))
-  return {
-    maxPrice: Math.max(...prices).toFixed(2),
-    minPrice: Math.min(...prices).toFixed(2),
-    avgPrice: (prices.reduce((a, b) => a + b, 0) / prices.length).toFixed(2),
-    count: prices.length
-  }
-})
-
-// 打开价格走势对话框
-const handleOpenPriceTrend = () => {
-  if (!props.yyypCurrentWeapon) {
-    ElMessage.warning('请先选择武器')
-    return
-  }
-  priceTrendDialogVisible.value = true
-  selectedDays.value = 30
-  loadPriceTrend()
-}
-
-// 加载价格走势数据
-const loadPriceTrend = async () => {
-  if (!props.yyypCurrentWeapon || !props.yyypCurrentWeapon.yyyp_id) {
-    ElMessage.error('缺少武器ID信息')
-    return
-  }
-
-  priceTrendLoading.value = true
-
-  try {
-    // 使用V2 API
-    const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/price_trend/getPriceTrend`
-    const response = await axios.post(url, {
-      yyypId: props.yyypCurrentWeapon.yyyp_id,
-      day: selectedDays.value
-    })
-
-    if (response.data.success) {
-      priceTrendData.value = response.data.data
-      await nextTick()
-      initPriceTrendChart()
-    } else {
-      ElMessage.error(response.data.message || '获取价格走势失败')
-    }
-  } catch (error) {
-    console.error('加载价格走势失败:', error)
-    ElMessage.error('加载价格走势失败: ' + (error.message || '未知错误'))
-  } finally {
-    priceTrendLoading.value = false
-  }
-}
-
-// 初始化价格走势图表
-const initPriceTrendChart = () => {
-  if (!priceTrendChart.value || !priceTrendData.value || !priceTrendData.value.tradeDataList) {
-    return
-  }
-
-  // 销毁已存在的图表实例
-  if (chartInstance) {
-    chartInstance.dispose()
-  }
-
-  // 创建新图表实例
-  chartInstance = echarts.init(priceTrendChart.value)
-
-  // 准备数据
-  const tradeDataList = priceTrendData.value.tradeDataList
-  const dates = tradeDataList.map(item => {
-    // 使用 time 字段（毫秒时间戳）显示具体日期和时间
-    const date = new Date(item.time)
-    const month = date.getMonth() + 1
-    const day = date.getDate()
-    const hours = date.getHours().toString().padStart(2, '0')
-    const minutes = date.getMinutes().toString().padStart(2, '0')
-    return `${month}/${day} ${hours}:${minutes}`
-  })
-  const prices = tradeDataList.map(item => parseFloat(item.price))
-
-  // 计算价格范围，用于聚焦显示
-  const minPrice = Math.min(...prices)
-  const maxPrice = Math.max(...prices)
-  const priceRange = maxPrice - minPrice
-  const padding = priceRange * 0.1 // 上下留10%的空间
-  const yAxisMin = Math.max(0, minPrice - padding)
-  const yAxisMax = maxPrice + padding
-
-  // 图表配置
-  const option = {
-    title: {
-      text: '价格走势',
-      left: 'center',
-      textStyle: {
-        color: '#e0e0e0',
-        fontSize: 16
-      }
-    },
-    tooltip: {
-      trigger: 'axis',
-      backgroundColor: 'rgba(50, 50, 50, 0.95)',
-      borderColor: '#555',
-      textStyle: {
-        color: '#e0e0e0'
-      },
-      formatter: (params) => {
-        const param = params[0]
-        return `${param.name}<br/>价格: ¥${param.value}`
-      }
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '15%',  // 增加底部空间，容纳旋转的时间标签
-      top: '15%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      data: dates,
-      boundaryGap: false,
-      axisLine: {
-        lineStyle: {
-          color: '#555'
-        }
-      },
-      axisLabel: {
-        color: '#999',
-        rotate: 45,  // 旋转45度避免重叠
-        interval: 'auto'  // 自动计算显示间隔
-      }
-    },
-    yAxis: {
-      type: 'value',
-      name: '价格 (¥)',
-      min: yAxisMin,
-      max: yAxisMax,
-      nameTextStyle: {
-        color: '#999'
-      },
-      axisLine: {
-        lineStyle: {
-          color: '#555'
-        }
-      },
-      axisLabel: {
-        color: '#999',
-        formatter: '¥{value}'
-      },
-      splitLine: {
-        lineStyle: {
-          color: '#333'
-        }
-      }
-    },
-    series: [
-      {
-        name: '价格',
-        type: 'line',
-        data: prices,
-        smooth: true,
-        lineStyle: {
-          width: 2,
-          color: '#409eff'
-        },
-        itemStyle: {
-          color: '#409eff'
-        },
-        areaStyle: {
-          color: {
-            type: 'linear',
-            x: 0,
-            y: 0,
-            x2: 0,
-            y2: 1,
-            colorStops: [
-              {
-                offset: 0,
-                color: 'rgba(64, 158, 255, 0.3)'
-              },
-              {
-                offset: 1,
-                color: 'rgba(64, 158, 255, 0.05)'
-              }
-            ]
-          }
-        }
-      }
-    ]
-  }
-
-  chartInstance.setOption(option)
-}
-
-// 方法转发给父组件
-const toggleYYYPList = () => emit('toggle-yyyp-list')
-const handleRefreshYYYP = () => emit('refresh-yyyp')
-const toggleMultiSelectMode = () => emit('toggle-multi-select')
-const selectAllCommodities = (type) => emit('select-all', type)
-const handleCommodityCardClick = (item, type, event) => emit('commodity-click', { item, type, event })
-const handleYYYPScroll = (event) => emit('yyyp-scroll', event)
-const handleBuyCommodity = (item) => emit('buy-commodity', item)
-const fetchSingleNameTag = (item) => emit('fetch-single-nametag', item)
-const handleImageError = (e) => {
-  // 图片加载失败处理
-  e.target.style.display = 'none'
-}
-
-// 获取按钮文字
-const getButtonText = (item) => {
-  if (item.isPurchaseOrder) {
-    return '供应'
-  } else if (item.isLeaseItem) {
-    return '租用'
-  } else {
-    return '购买'
-  }
-}
-
-// 获取按钮类型
-const getButtonType = (item) => {
-  if (item.isPurchaseOrder) {
-    return 'primary'  // 蓝色 - 供应
-  } else if (item.isLeaseItem) {
-    return 'primary'  // 蓝色 - 租用
-  } else {
-    return 'success'  // 绿色 - 购买
-  }
-}
-
-// 筛选相关方法
-const handleFilterChange = (filterType) => {
-  // 直接触发事件，由父组件管理状态
-  emit('filter-change', filterType)
-}
-
-const handleAdvancedFilter = () => {
-  filterDialogVisible.value = true
-}
-
-// 重置筛选表单
-const handleResetFilter = () => {
-  filterForm.value = {
-    templateId: '',
-    wearMin: '',
-    wearMax: '',
-    hasNameTag: null,
-    nameTagText: '',
-    hasStickerFilter: null,
-    stickerName: '',
-    hasPendant: null,
-    pendantName: '',
-    fastDelivery: false,
-    priceMin: '',
-    priceMax: ''
-  }
-}
-
-// 应用筛选
-const handleApplyFilter = () => {
-  console.log('应用筛选:', filterForm.value)
-  emit('advanced-filter', filterForm.value)
-  filterDialogVisible.value = false
-}
-
-// 从父组件注入的方法
-import { inject } from 'vue'
-const isCommoditySelected = inject('isCommoditySelected', () => false)
-const getWeaponImage = inject('getWeaponImage', (hashName) => {
-  if (!hashName) return ''
-  return `/weapon_imgs/${encodeURIComponent(hashName)}.png`
-})
-
-// ========== 预售购买相关 ==========
-import { apiUrls } from '@/config/api.js'
-import { ElMessageBox } from 'element-plus'
-
-// 预售购买对话框状态
-const presaleBuyDialogVisible = ref(false)
-const presaleDetail = ref(null)
-const presaleDetailLoading = ref(false)
-const buyingPresale = ref(false)
-const currentPresaleItem = ref(null)
-
-// 预售购买表单
-const presaleBuyForm = ref({
-  autoConfirmPayment: true,
-  pollPayment: true,
-  paymentChannel: 'balance'
-})
-
-// 格式化时间戳
-const formatTimestamp = (timestamp) => {
-  if (!timestamp) return '-'
-  const date = new Date(timestamp)
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
-
-// 过滤支付方式列表，只显示有品余额
-const filteredPayList = computed(() => {
-  if (!presaleDetail.value?.payList) return []
-  // 只返回 channelId === 100 的有品余额支付方式
-  return presaleDetail.value.payList.filter(pay => pay.channelId === 100)
-})
-
-// 判断预售商品余额是否充足
-const isPresaleBalanceSufficient = computed(() => {
-  if (!presaleDetail.value?.commodity) return false
-  if (filteredPayList.value.length === 0) return false
-
-  const balance = filteredPayList.value[0].balance || 0
-  const depositAmount = presaleDetail.value.commodity.commodityPreSaleDTO?.depositAmount || 0
-
-  return balance >= depositAmount
-})
-
-// ========== 在售购买相关 ==========
-// 在售购买对话框状态
-const onSaleBuyDialogVisible = ref(false)
-const onSaleDetail = ref(null)
-const onSaleDetailLoading = ref(false)
-const buyingOnSale = ref(false)
-const currentOnSaleItem = ref(null)
-
-// 订单和支付渠道状态
-const onSaleOrderNo = ref(null)
-const onSaleWaitPaymentDataNo = ref(null)
-const onSalePayList = ref([])
-const onSaleOrderLoading = ref(false)
-const onSaleOrderError = ref(null)
-
-// 余额相关计算
-const onSaleBalanceChannel = computed(() =>
-  onSalePayList.value.find(p => p.channelId === 100) || null
-)
-const onSaleBalance = computed(() =>
-  onSaleBalanceChannel.value ? parseFloat(onSaleBalanceChannel.value.balance || 0) : null
-)
-const onSalePrice = computed(() => {
-  const commodity = onSaleDetail.value?.commodity
-  if (!commodity) return 0
-  return parseFloat(
-    commodity.commodityConversionPrice ||
-    (commodity.commodityPrice ? commodity.commodityPrice / 100 : 0)
-  )
-})
-const onSaleBalanceAfter = computed(() =>
-  onSaleBalance.value !== null ? (onSaleBalance.value - onSalePrice.value) : null
-)
-const onSaleBalanceInsufficient = computed(() =>
-  onSaleBalance.value !== null && onSaleBalance.value < onSalePrice.value
-)
-
-// 在售商品无需提前查余额，直接允许点击确认（后端会校验余额）
-const filteredOnSalePayList = computed(() => [])
-const isOnSaleBalanceSufficient = computed(() => {
-  // 有商品详情即可点击确认，余额校验由后端在下单时执行
-  return !!onSaleDetail.value?.commodity
-})
-
-// 修改购买按钮处理逻辑，添加预售和在售支持
-const handleBuyCommodityWithPresale = async (item) => {
-  // 如果是预售商品，打开预售购买对话框
-  if (item.isPreSale === 1 || props.yyypFilterType === 'presale') {
-    await openPresaleBuyDialog(item)
-  } else if (props.yyypFilterType === 'on_sale') {
-    // 在售商品，打开在售购买对话框
-    await openOnSaleBuyDialog(item)
-  } else {
-    // 其他商品，调用父组件的购买方法
-    emit('buy-commodity', item)
-  }
-}
-
-// 打开预售购买对话框
-const openPresaleBuyDialog = async (item) => {
-  if (!item || !item.id) {
-    ElMessage.warning('商品信息不完整')
-    return
-  }
-
-  currentPresaleItem.value = item
-  presaleBuyDialogVisible.value = true
-  presaleDetailLoading.value = true
-  presaleDetail.value = null
-
-  try {
-    // 使用V2 API获取预售详情
-    const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/presale/getPresaleDetail`
-    const response = await axios.post(url, {
-      steamId: props.selectedSteamId || '',
-      commodityId: item.id.toString()
-    })
-
-    if (response.data.success) {
-      presaleDetail.value = response.data.data
-      console.log('预售详情:', presaleDetail.value)
-    } else {
-      throw new Error(response.data.message || '获取预售详情失败')
-    }
-  } catch (error) {
-    console.error('获取预售详情失败:', error)
-    ElMessage.error(error.message || '获取预售详情失败')
-    presaleBuyDialogVisible.value = false
-  } finally {
-    presaleDetailLoading.value = false
-  }
-}
-
-// 确认购买预售商品
-const confirmPresaleBuy = async () => {
-  if (!currentPresaleItem.value || !presaleDetail.value) {
-    ElMessage.error('商品信息不完整')
-    return
-  }
-
-  const commodity = presaleDetail.value.commodity
-  if (!commodity) {
-    ElMessage.error('商品详情缺失')
-    return
-  }
-
-  // 获取定金金额
-  const depositAmount = commodity.commodityPreSaleDTO?.depositAmount
-  if (!depositAmount) {
-    ElMessage.error('定金金额缺失')
-    return
-  }
-
-  // 确认对话框
-  try {
-    await ElMessageBox.confirm(
-      `确认购买 ${commodity.commodityName}？\n定金: ¥${depositAmount}`,
-      '确认购买',
-      {
-        confirmButtonText: '确认',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
-  } catch {
-    return
-  }
-
-  buyingPresale.value = true
-
-  try {
-    // 使用V2 API购买预售商品
-    const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/presale/buyPresaleCommodity`
-    const response = await axios.post(url, {
-      steamId: props.selectedSteamId || '',
-      commodityId: currentPresaleItem.value.id.toString(),
-      price: depositAmount.toString(),  // 传入定金金额（元）
-      autoConfirmPayment: presaleBuyForm.value.autoConfirmPayment,
-      pollPayment: presaleBuyForm.value.pollPayment,
-      paymentChannel: presaleBuyForm.value.paymentChannel
-    })
-
-    if (response.data.success) {
-      ElMessage.success('购买成功！')
-
-      const orderData = response.data.data?.order
-      if (orderData && orderData.orderNo) {
-        ElMessage.info(`订单号: ${orderData.orderNo}`)
-      }
-
-      presaleBuyDialogVisible.value = false
-
-      // 刷新列表
-      emit('refresh-yyyp')
-    } else {
-      throw new Error(response.data.message || '购买失败')
-    }
-  } catch (error) {
-    console.error('购买预售商品失败:', error)
-    // 优先从 response.data.message 获取后端返回的错误信息
-    const errorMsg = error.response?.data?.message || error.message || '购买失败，请稍后重试'
-    ElMessage.error(errorMsg)
-  } finally {
-    buyingPresale.value = false
-  }
-}
-
-// 打开在售购买对话框：并行获取商品详情 + 创建订单查询余额
-const openOnSaleBuyDialog = async (item) => {
-  if (!item || !item.id) {
-    ElMessage.warning('商品信息不完整')
-    return
-  }
-
-  // 重置所有状态
-  currentOnSaleItem.value = item
-  onSaleDetail.value = null
-  onSaleOrderNo.value = null
-  onSaleWaitPaymentDataNo.value = null
-  onSalePayList.value = []
-  onSaleOrderError.value = null
-  onSaleDetailLoading.value = true
-  onSaleOrderLoading.value = true
-  onSaleBuyDialogVisible.value = true
-
-  const detailUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/getWeaponDetail`
-  const createOrderUrl = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/createOrder`
-
-  // 步骤1：先获取商品详情（需要拿到价格，才能创建订单）
-  try {
-    const detailRes = await axios.post(detailUrl, {
-      steamId: props.selectedSteamId || '',
-      commodityId: item.id.toString()
-    })
-    if (!detailRes.data.success) {
-      throw new Error(detailRes.data.message || '获取商品详情失败')
-    }
-    onSaleDetail.value = detailRes.data.data
-  } catch (error) {
-    ElMessage.error(error.message || '获取商品详情失败')
-    onSaleBuyDialogVisible.value = false
-    onSaleDetailLoading.value = false
-    onSaleOrderLoading.value = false
-    return
-  } finally {
-    onSaleDetailLoading.value = false
-  }
-
-  // 步骤2：拿到价格后创建订单并查询余额
-  const commodity = onSaleDetail.value?.commodity
-  const price = commodity
-    ? (commodity.commodityConversionPrice || (commodity.commodityPrice ? commodity.commodityPrice / 100 : 0))
-    : 0
-
-  if (!price) {
-    onSaleOrderError.value = '商品价格缺失，无法创建订单'
-    onSaleOrderLoading.value = false
-    return
-  }
-
-  try {
-    const orderRes = await axios.post(createOrderUrl, {
-      steamId: props.selectedSteamId || '',
-      commodityId: item.id.toString(),
-      price: price.toString()
-    })
-    if (!orderRes.data.success) {
-      throw new Error(orderRes.data.message || '创建订单失败')
-    }
-    const orderData = orderRes.data.data
-    onSaleOrderNo.value = orderData.orderNo
-    onSaleWaitPaymentDataNo.value = orderData.waitPaymentDataNo
-    onSalePayList.value = orderData.payList || []
-  } catch (error) {
-    onSaleOrderError.value = error.response?.data?.message || error.message || '创建订单失败'
-  } finally {
-    onSaleOrderLoading.value = false
-  }
-}
-
-// 取消在售购买：若已创建订单则撤单（防止重复触发）
-let _cancellingOrder = false
-const cancelOnSaleOrder = async () => {
-  if (_cancellingOrder) return
-  _cancellingOrder = true
-
-  onSaleBuyDialogVisible.value = false
-
-  if (onSaleOrderNo.value) {
-    const orderNoToCancel = onSaleOrderNo.value
-    onSaleOrderNo.value = null  // 立即清除，防止 @close 二次触发时重复撤单
-    try {
-      await axios.post(
-        `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/cancelOrder`,
-        { steamId: props.selectedSteamId || '', orderNo: orderNoToCancel }
-      )
-    } catch {
-      // 撤单失败静默处理
-    }
-  }
-
-  _cancellingOrder = false
-}
-
-// 确认付款：订单已创建，直接提交支付（不重新建订单）
-const confirmOnSalePayment = async () => {
-  if (!onSaleOrderNo.value || !onSaleWaitPaymentDataNo.value) {
-    ElMessage.error('订单信息不完整，请重新打开购买窗口')
-    return
-  }
-
-  buyingOnSale.value = true
-
-  try {
-    const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/submitPayment`
-    const response = await axios.post(url, {
-      steamId: props.selectedSteamId || '',
-      orderNo: onSaleOrderNo.value,
-      waitPaymentDataNo: onSaleWaitPaymentDataNo.value,
-      price: onSalePrice.value.toString()
-    })
-
-    if (response.data.success) {
-      const orderNo = response.data.data?.orderNo || onSaleOrderNo.value
-      ElMessage.success(`购买成功！订单号: ${orderNo}`)
-      onSaleOrderNo.value = null  // 清除订单号，防止关闭弹窗时触发撤单
-      onSaleBuyDialogVisible.value = false
-      emit('refresh-yyyp')
-    } else {
-      throw new Error(response.data.message || '支付失败')
-    }
-  } catch (error) {
-    const errorMsg = error.response?.data?.message || error.message || '支付失败，请稍后重试'
-    ElMessage.error(errorMsg)
-  } finally {
-    buyingOnSale.value = false
-  }
-}
+const {
+  sortType,
+  wearRange,
+  wearRangeOptions,
+  handleSortChange,
+  handleWearRangeChange,
+
+  filterDialogVisible,
+  filterForm,
+  handleFilterChange,
+  handleAdvancedFilter,
+  handleResetFilter,
+  handleApplyFilter,
+
+  priceTrendDialogVisible,
+  selectedDays,
+  priceTrendData,
+  priceTrendLoading,
+  priceTrendChart,
+  priceStats,
+  handleOpenPriceTrend,
+  loadPriceTrend,
+
+  toggleYYYPList,
+  handleRefreshYYYP,
+  toggleMultiSelectMode,
+  selectAllCommodities,
+  handleCommodityCardClick,
+  handleYYYPScroll,
+  fetchSingleNameTag,
+  handleImageError,
+  getButtonText,
+  getButtonType,
+
+  isCommoditySelected,
+  getWeaponImage,
+
+  presaleBuyDialogVisible,
+  presaleDetail,
+  presaleDetailLoading,
+  buyingPresale,
+  presaleBuyForm,
+  filteredPayList,
+  isPresaleBalanceSufficient,
+  formatTimestamp,
+  confirmPresaleBuy,
+
+  onSaleBuyDialogVisible,
+  onSaleDetail,
+  onSaleDetailLoading,
+  buyingOnSale,
+  onSaleOrderNo,
+  onSaleOrderLoading,
+  onSaleOrderError,
+  onSaleBalance,
+  onSalePrice,
+  onSaleBalanceAfter,
+  onSaleBalanceInsufficient,
+  handleBuyCommodityWithPresale,
+  cancelOnSaleOrder,
+  confirmOnSalePayment
+} = useYYYPCommodityList(props, emit)
 </script>
 
 <style scoped src="./yyyp-commodity-list.css"></style>
