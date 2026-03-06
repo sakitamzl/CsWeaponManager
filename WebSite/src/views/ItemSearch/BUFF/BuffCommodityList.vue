@@ -105,7 +105,6 @@
         </div>
       </div>
       <div class="buff-weapon-info">
-        <span class="weapon-name">{{ buffCurrentWeapon?.market_listing_item_name }}</span>
         <span class="total-count">总数: {{ buffTotalCount }} 件</span>
 
         <!-- 价格追踪按钮 - 移到右侧 -->

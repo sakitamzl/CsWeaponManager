@@ -357,6 +357,14 @@ export const API_CONFIG = {
     YYYP_ITEM_SEARCH_CONFIRM_PAYMENT: '/spiderApiV2/src/web_site/youping/units/item_search/on_sale/confirmPayment',  // 确认支付
     YYYP_ITEM_SEARCH_CANCEL_ORDER: '/spiderApiV2/src/web_site/youping/units/item_search/on_sale/cancelOrder',  // 取消订单
 
+    // 饰品搜索页-发布求购（item_search/on_sale 复制实现）
+    YYYP_ITEM_SEARCH_PUBLISH_WANTED_GET_TEMPLATE_INFO: '/spiderApiV2/src/web_site/youping/units/item_search/on_sale/publishWanted/getTemplateInfo',
+    YYYP_ITEM_SEARCH_PUBLISH_WANTED_PRE_CHECK: '/spiderApiV2/src/web_site/youping/units/item_search/on_sale/publishWanted/preCheck',
+    YYYP_ITEM_SEARCH_PUBLISH_WANTED_SAVE_ORDER: '/spiderApiV2/src/web_site/youping/units/item_search/on_sale/publishWanted/saveOrder',
+    YYYP_ITEM_SEARCH_PUBLISH_WANTED_GET_BALANCE: '/spiderApiV2/src/web_site/youping/units/item_search/on_sale/publishWanted/getBalance',
+    YYYP_ITEM_SEARCH_PUBLISH_WANTED_QUERY_TRANSFER_IN_BALANCE: '/spiderApiV2/src/web_site/youping/units/item_search/on_sale/publishWanted/queryTransferInBalance',
+    YYYP_ITEM_SEARCH_PUBLISH_WANTED_CONFIRM_TRANSFER_IN: '/spiderApiV2/src/web_site/youping/units/item_search/on_sale/publishWanted/confirmTransferIn',
+
     YYYP_ITEM_SEARCH_ON_LEASE_LIST: '/spiderApiV2/src/web_site/youping/units/item_search/on_lease/getCommodityList',  // 在租商品列表
 
     YYYP_ITEM_SEARCH_PRESALE_LIST: '/spiderApiV2/src/web_site/youping/units/item_search/presale/getCommodityList',  // 预售商品列表
@@ -1060,6 +1068,12 @@ export const apiUrls = {
   yyypCreateOrder: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_ITEM_SEARCH_CREATE_ORDER),
   yyypConfirmPayment: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_ITEM_SEARCH_CONFIRM_PAYMENT),
   yyypCancelOrder: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_ITEM_SEARCH_CANCEL_ORDER),
+  yyypItemSearchPublishWantedGetTemplateInfo: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_ITEM_SEARCH_PUBLISH_WANTED_GET_TEMPLATE_INFO),
+  yyypItemSearchPublishWantedPreCheck: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_ITEM_SEARCH_PUBLISH_WANTED_PRE_CHECK),
+  yyypItemSearchPublishWantedSaveOrder: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_ITEM_SEARCH_PUBLISH_WANTED_SAVE_ORDER),
+  yyypItemSearchPublishWantedGetBalance: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_ITEM_SEARCH_PUBLISH_WANTED_GET_BALANCE),
+  yyypItemSearchPublishWantedQueryTransferInBalance: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_ITEM_SEARCH_PUBLISH_WANTED_QUERY_TRANSFER_IN_BALANCE),
+  yyypItemSearchPublishWantedConfirmTransferIn: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.YYYP_ITEM_SEARCH_PUBLISH_WANTED_CONFIRM_TRANSFER_IN),
 
 
 

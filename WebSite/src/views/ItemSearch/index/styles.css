@@ -577,6 +577,19 @@
   font-size: 1.1rem;
 }
 
+.collapse-title .current-weapon-in-results {
+  margin-left: 0.75rem;
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--el-border-color);
+  color: var(--el-text-color-secondary);
+  font-size: 0.95rem;
+  font-weight: 500;
+  max-width: 520px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .collapse-title .el-icon {
   font-size: 1.2rem;
   transition: transform 0.3s ease;

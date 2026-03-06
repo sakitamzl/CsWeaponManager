@@ -108,7 +108,6 @@
         </div>
       </div>
       <div class="yyyp-weapon-info">
-        <span class="weapon-name">{{ yyypCurrentWeapon?.market_listing_item_name }}</span>
         <span class="total-count">总数: {{ yyypTotalCount }} 件</span>
 
         <!-- 价格追踪按钮 - 移到右侧 -->
@@ -120,6 +119,28 @@
           :loading="isSearching && searchSource === 'yyyp'"
         >
           刷新列表
+        </el-button>
+        <!-- 收藏按钮 -->
+        <el-button
+          :type="isFavorited ? 'warning' : 'default'"
+          size="small"
+          :icon="isFavorited ? StarFilled : Star"
+          class="yyyp-favorite-btn"
+          :class="{ 'is-favorited': isFavorited }"
+          :loading="favoriteLoading"
+          @click.stop="toggleFavorite"
+          :title="isFavorited ? '取消收藏' : '添加到收藏'"
+        >
+          {{ isFavorited ? '已收藏' : '收藏' }}
+        </el-button>
+        <!-- 发布求购按钮 -->
+        <el-button
+          type="success"
+          size="small"
+          :icon="ShoppingCart"
+          @click.stop="handleOpenWantedDialog"
+        >
+          发布求购
         </el-button>
         <el-button
           :type="isMultiSelectMode ? 'warning' : 'info'"
@@ -630,6 +651,23 @@
       </template>
     </el-dialog>
 
+    <!-- 发布求购对话框（与 on_sale 页面模板一致，组件复制于 ItemSearch/youpin/PublishWantedDialog.vue） -->
+    <PublishWantedDialog
+      :visible="wantedDialogVisible"
+      :template-data="wantedTemplateInfo"
+      :purchase-balance="wantedBalance"
+      :balance-loading="wantedBalanceLoading"
+      @update:visible="wantedDialogVisible = $event"
+      @submit="handlePublishWantedSubmit"
+      @transfer-in="openTransferIn"
+    />
+    <!-- 从钱包转入求购余额 -->
+    <TransferInDialog
+      v-model:visible="transferInDialogVisible"
+      :available-yuan="transferInAvailableYuan"
+      @confirm="handleTransferInConfirm"
+    />
+
     <!-- 在售购买对话框 -->
     <el-dialog
       v-model="onSaleBuyDialogVisible"
@@ -741,8 +779,10 @@
 </template>
 
 <script setup>
-import { CaretRight, CaretBottom, Check, Loading, Refresh } from '@element-plus/icons-vue'
+import { CaretRight, CaretBottom, Check, Loading, Refresh, Star, StarFilled, ShoppingCart } from '@element-plus/icons-vue'
 import { useYYYPCommodityList } from './useYYYPCommodityList.js'
+import PublishWantedDialog from './PublishWantedDialog.vue'
+import TransferInDialog from './TransferInDialog.vue'
 
 const props = defineProps({
   showYYYPList: Boolean,
@@ -834,7 +874,23 @@ const {
   onSaleBalanceInsufficient,
   handleBuyCommodityWithPresale,
   cancelOnSaleOrder,
-  confirmOnSalePayment
+  confirmOnSalePayment,
+
+  isFavorited,
+  favoriteLoading,
+  toggleFavorite,
+
+  wantedDialogVisible,
+  wantedTemplateInfo,
+  wantedBalance,
+  wantedBalanceLoading,
+  submittingWanted,
+  handleOpenWantedDialog,
+  handlePublishWantedSubmit,
+  transferInDialogVisible,
+  transferInAvailableYuan,
+  openTransferIn,
+  handleTransferInConfirm
 } = useYYYPCommodityList(props, emit)
 </script>
 

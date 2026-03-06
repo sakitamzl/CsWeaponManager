@@ -1,8 +1,8 @@
-import { ref, computed, nextTick, inject } from 'vue'
+import { ref, computed, watch, nextTick, inject, onBeforeUnmount } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as echarts from 'echarts'
 import axios from 'axios'
-import { API_CONFIG } from '@/config/api.js'
+import { API_CONFIG, apiUrls } from '@/config/api.js'
 
 export function useYYYPCommodityList(props, emit) {
   // ========== 排序和磨损区间 ==========
@@ -608,6 +608,306 @@ export function useYYYPCommodityList(props, emit) {
     }
   }
 
+  // ========== 收藏 ==========
+  const isFavorited = ref(false)
+  const favoriteLoading = ref(false)
+  /** 本列表加载周期内已请求过模板详情的 key（templateId_steamId），避免重复请求导致 429 */
+  const templateDetailRequestedKey = ref('')
+  const favoriteStatusLoading = ref(false)
+
+  // 根据服务端 template/info 的 IsFavorite 同步收藏状态（同一 templateId+steamId 仅请求一次）
+  const fetchFavoriteStatus = async () => {
+    const weapon = props.yyypCurrentWeapon
+    const steamId = props.selectedSteamId
+    if (!weapon?.yyyp_id || !steamId) {
+      isFavorited.value = false
+      return
+    }
+    const key = `${weapon.yyyp_id}_${steamId}`
+    if (templateDetailRequestedKey.value === key) return
+    if (favoriteStatusLoading.value) return
+    templateDetailRequestedKey.value = key
+    favoriteStatusLoading.value = true
+    try {
+      const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/getTemplateInfo`
+      const response = await axios.post(url, {
+        steamId,
+        templateId: Number(weapon.yyyp_id)
+      })
+      const res = response.data
+      if (res && res.success && res.data) {
+        isFavorited.value = !!res.data.isFavorite
+      } else {
+        isFavorited.value = false
+      }
+    } catch {
+      isFavorited.value = false
+      templateDetailRequestedKey.value = '' // 失败则允许下次再请求
+    } finally {
+      favoriteStatusLoading.value = false
+    }
+  }
+
+  // 武器/Steam 清空时重置收藏状态
+  watch(
+    () => [props.yyypCurrentWeapon?.yyyp_id, props.selectedSteamId],
+    ([templateId, steamId]) => {
+      if (!templateId || !steamId) {
+        isFavorited.value = false
+      }
+    },
+    { immediate: true }
+  )
+
+  // 列表开始加载时重置“已请求”标记，便于本次加载完成后只请求一次模板详情
+  watch(
+    () => props.isSearching,
+    (isSearching) => {
+      if (isSearching) templateDetailRequestedKey.value = ''
+    }
+  )
+
+  // 在售列表加载完成后，间隔 1.5s 再请求模板详情一次（避免与列表同时请求导致 429）
+  let detailDelayTimer = null
+  watch(
+    () => [props.isSearching, props.showYYYPList, props.yyypCurrentWeapon?.yyyp_id, props.selectedSteamId],
+    (newVals, oldVals) => {
+      const [isSearching, showList, templateId, steamId] = newVals
+      if (!templateId || !steamId || !showList) return
+      const wasSearching = oldVals ? oldVals[0] : false
+      if (wasSearching === true && isSearching === false) {
+        if (detailDelayTimer) clearTimeout(detailDelayTimer)
+        detailDelayTimer = setTimeout(() => {
+          detailDelayTimer = null
+          fetchFavoriteStatus()
+        }, 1500)
+      }
+    }
+  )
+  onBeforeUnmount(() => {
+    if (detailDelayTimer) clearTimeout(detailDelayTimer)
+  })
+
+  const toggleFavorite = async () => {
+    if (!props.yyypCurrentWeapon) {
+      ElMessage.warning('请先选择武器')
+      return
+    }
+    const templateId = props.yyypCurrentWeapon.yyyp_id
+    if (templateId == null || templateId === '') {
+      ElMessage.warning('当前武器无悠悠有品模板ID')
+      return
+    }
+    if (favoriteLoading.value) return
+    favoriteLoading.value = true
+    try {
+      const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/favoriteTemplate`
+      const response = await axios.post(url, {
+        steamId: props.selectedSteamId || '',
+        templateId: Number(templateId)
+      })
+      const res = response.data
+      if (res && res.success) {
+        isFavorited.value = !isFavorited.value
+        ElMessage.success(res.message || '关注状态变更成功')
+      } else {
+        ElMessage.error(res?.message || '操作失败')
+      }
+    } catch (error) {
+      const msg = error.response?.data?.message || error.message || '请求失败'
+      ElMessage.error(msg)
+    } finally {
+      favoriteLoading.value = false
+    }
+  }
+
+  // ========== 发布求购 ==========
+  const wantedDialogVisible = ref(false)
+  const submittingWanted = ref(false)
+  const wantedTemplateInfo = ref(null)
+  const wantedBalance = ref(null)
+  const wantedBalanceLoading = ref(false)
+  const transferInDialogVisible = ref(false)
+  const transferInAvailableYuan = ref(0)
+  const transferInLoading = ref(false)
+
+  /** 打开发布求购弹窗：先拉发布详情，再在弹窗内单独拉求购余额（仅点击发布求购后再获取余额） */
+  const handleOpenWantedDialog = async () => {
+    if (!props.yyypCurrentWeapon) {
+      ElMessage.warning('请先选择武器')
+      return
+    }
+    wantedTemplateInfo.value = null
+    wantedBalance.value = null
+    const templateId = props.yyypCurrentWeapon.yyyp_id
+    const steamId = props.selectedSteamId || ''
+    wantedDialogVisible.value = true
+    if (!steamId) return
+    try {
+      if (templateId != null) {
+        const templateRes = await axios.post(apiUrls.yyypItemSearchPublishWantedGetTemplateInfo(), {
+          steamId,
+          templateId: Number(templateId)
+        })
+        if (templateRes.data?.code === 200 && templateRes.data?.data) {
+          wantedTemplateInfo.value = templateRes.data.data
+        }
+      }
+      // 求购余额：仅在点击发布求购并打开弹窗后再获取
+      wantedBalanceLoading.value = true
+      try {
+        const balanceRes = await axios.post(apiUrls.yyypItemSearchPublishWantedGetBalance(), { steamId })
+        if (balanceRes.data?.code === 200 && balanceRes.data?.data) {
+          wantedBalance.value = balanceRes.data.data
+        }
+      } finally {
+        wantedBalanceLoading.value = false
+      }
+    } catch (e) {
+      console.error('获取发布求购数据失败:', e)
+    }
+  }
+
+  /** 发布求购弹窗提交（由 PublishWantedDialog 的 submit 事件触发，与 on_sale 流程一致） */
+  const handlePublishWantedSubmit = async (submitData) => {
+    const { unitPrice, quantity, autoReceived, templateData } = submitData
+    const ti = templateData?.template_info
+    if (!ti) {
+      ElMessage.error('发布详情缺失，请关闭后重试')
+      return
+    }
+    const purchasePrice = parseFloat(unitPrice)
+    const purchaseNum = parseInt(quantity)
+    const totalAmount = purchasePrice * purchaseNum
+    const incrementServiceCode = autoReceived ? [1001] : []
+
+    submittingWanted.value = true
+    try {
+      const preCheckRes = await axios.post(apiUrls.yyypItemSearchPublishWantedPreCheck(), {
+        steamId: props.selectedSteamId || '',
+        orderData: {
+          specialStyleObj: {},
+          isCheckMaxPrice: false,
+          templateHashName: ti.template_hash_name || '',
+          totalAmount,
+          referencePrice: ti.reference_price || '0',
+          purchasePrice,
+          purchaseNum,
+          discountAmount: 0,
+          minSellPrice: parseFloat(ti.min_sell_price || 0),
+          maxPurchasePrice: parseFloat(ti.max_purchase_price || 9999999.99),
+          templateId: String(ti.template_id),
+          incrementServiceCode
+        }
+      })
+      if (!preCheckRes.data || preCheckRes.data.code !== 200) {
+        ElMessage.error(preCheckRes.data?.message || '预检查失败')
+        return
+      }
+      const preCheckResult = preCheckRes.data.data
+      const needAmount = parseFloat(preCheckResult.needPaymentAmount || 0)
+      await ElMessageBox.confirm(
+        `确定发布求购吗？<br>` +
+        `单价：<span style="color:#F56C6C;font-weight:bold;">¥${purchasePrice}</span>，` +
+        `数量：<span style="font-weight:bold;">${purchaseNum}</span><br>` +
+        `需支付：<span style="color:#F56C6C;font-weight:bold;">¥${needAmount.toFixed(2)}</span>`,
+        '确认发布求购',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning',
+          dangerouslyUseHTMLString: true
+        }
+      )
+      const saveRes = await axios.post(apiUrls.yyypItemSearchPublishWantedSaveOrder(), {
+        steamId: props.selectedSteamId || '',
+        orderData: {
+          templateId: ti.template_id,
+          templateHashName: ti.template_hash_name || '',
+          commodityName: ti.commodity_name || '',
+          referencePrice: ti.reference_price || '0',
+          minSellPrice: ti.min_sell_price || '0',
+          maxPurchasePrice: ti.max_purchase_price || '9999999.99',
+          purchasePrice,
+          purchaseNum,
+          needPaymentAmount: preCheckResult.needPaymentAmount,
+          incrementServiceCode,
+          totalAmount: preCheckResult.totalAmount,
+          templateName: preCheckResult.templateName,
+          priceDifference: preCheckResult.priceDifference,
+          discountAmount: 0,
+          payConfirmFlag: false,
+          repeatOrderCancelFlag: false
+        }
+      })
+      if (saveRes.data && saveRes.data.code === 200) {
+        const saveResult = saveRes.data.data
+        ElMessage.success(`发布求购成功！订单号：${saveResult?.orderNo || ''}`)
+        wantedDialogVisible.value = false
+        emit('refresh-yyyp')
+      } else {
+        ElMessage.error(saveRes.data?.message || '提交求购失败')
+      }
+    } catch (error) {
+      if (error !== 'cancel') {
+        ElMessage.error('发布求购失败: ' + (error.message || '未知错误'))
+      }
+    } finally {
+      submittingWanted.value = false
+    }
+  }
+
+  /** 打开从钱包转入对话框：先查可用余额再显示 */
+  const openTransferIn = async () => {
+    const steamId = props.selectedSteamId || ''
+    if (!steamId) {
+      ElMessage.warning('请先选择 Steam 账号')
+      return
+    }
+    transferInLoading.value = true
+    try {
+      const res = await axios.post(apiUrls.yyypItemSearchPublishWantedQueryTransferInBalance(), { steamId })
+      if (res.data?.code === 200 && res.data?.data) {
+        transferInAvailableYuan.value = res.data.data.available_yuan ?? 0
+        transferInDialogVisible.value = true
+      } else {
+        ElMessage.error(res.data?.message || '查询钱包可用余额失败')
+      }
+    } catch (e) {
+      ElMessage.error('查询钱包可用余额失败: ' + (e.message || '未知错误'))
+    } finally {
+      transferInLoading.value = false
+    }
+  }
+
+  /** 确认转入：调用接口后刷新求购余额 */
+  const handleTransferInConfirm = async (transferMoney) => {
+    transferInDialogVisible.value = false
+    const steamId = props.selectedSteamId || ''
+    try {
+      const res = await axios.post(apiUrls.yyypItemSearchPublishWantedConfirmTransferIn(), {
+        steamId,
+        transferMoney
+      })
+      if (res.data?.code === 200) {
+        ElMessage.success(`成功转入 ¥${parseFloat(transferMoney).toFixed(2)} 到求购余额`)
+        wantedBalanceLoading.value = true
+        try {
+          const balanceRes = await axios.post(apiUrls.yyypItemSearchPublishWantedGetBalance(), { steamId })
+          if (balanceRes.data?.code === 200 && balanceRes.data?.data) {
+            wantedBalance.value = balanceRes.data.data
+          }
+        } finally {
+          wantedBalanceLoading.value = false
+        }
+      } else {
+        ElMessage.error(res.data?.message || '转入失败')
+      }
+    } catch (e) {
+      ElMessage.error('转入失败: ' + (e.message || '未知错误'))
+    }
+  }
+
   return {
     // 排序和磨损区间
     sortType,
@@ -675,6 +975,25 @@ export function useYYYPCommodityList(props, emit) {
     onSaleBalanceInsufficient,
     handleBuyCommodityWithPresale,
     cancelOnSaleOrder,
-    confirmOnSalePayment
+    confirmOnSalePayment,
+
+    // 收藏
+    isFavorited,
+    favoriteLoading,
+    toggleFavorite,
+
+    // 发布求购
+    wantedDialogVisible,
+    wantedTemplateInfo,
+    wantedBalance,
+    wantedBalanceLoading,
+    submittingWanted,
+    handleOpenWantedDialog,
+    handlePublishWantedSubmit,
+    transferInDialogVisible,
+    transferInAvailableYuan,
+    transferInLoading,
+    openTransferIn,
+    handleTransferInConfirm
   }
 }

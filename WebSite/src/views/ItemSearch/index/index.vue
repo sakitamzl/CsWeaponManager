@@ -91,6 +91,9 @@
         <span class="collapse-title">
           <el-icon><CaretRight v-if="!showSearchResults" /><CaretBottom v-if="showSearchResults" /></el-icon>
           搜索结果 ({{ searchResults.length }} 件)
+          <span v-if="currentViewingWeaponName" class="current-weapon-in-results">
+            当前饰品：{{ currentViewingWeaponName }}
+          </span>
         </span>
         <div class="header-actions">
           <el-pagination

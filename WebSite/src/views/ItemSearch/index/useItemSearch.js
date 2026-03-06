@@ -1733,6 +1733,17 @@ export function useItemSearch() {
     showYYYPTable.value = !showYYYPTable.value
   }
 
+  // 当前正在查看的饰品名称（用于“搜索结果”标题处展示）
+  const currentViewingWeaponName = computed(() => {
+    if (showYYYPList.value && yyypCurrentWeapon.value?.market_listing_item_name) {
+      return yyypCurrentWeapon.value.market_listing_item_name
+    }
+    if (showBuffList.value && buffCurrentWeapon.value?.market_listing_item_name) {
+      return buffCurrentWeapon.value.market_listing_item_name
+    }
+    return ''
+  })
+
   // 旧的对话框函数（已废弃，保留以防需要）
   const showYYYPCommoditiesDialog_OLD = (row, commodities, total) => {
     // 构建商品列表HTML
@@ -2660,6 +2671,7 @@ export function useItemSearch() {
     showSearchResults,
     displayMode,
     toggleSearchResults,
+    currentViewingWeaponName,
     handleSearchWeapon,
     handleRefreshSearch,
     handleSteamIdChange,
