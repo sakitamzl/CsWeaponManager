@@ -34,18 +34,29 @@ export function useYYYPCommodityList(props, emit) {
   const currentWearRange = computed(() => props.yyypWearRange ?? '')
   const currentExterior = computed(() => props.yyypExterior ?? '')
 
-  /** 表头「外观」筛选项：来自 Filters 中 FilterKey=Exterior 的 Items（兼容大小写），含 SellPrice、QueryString 用于展示与跳转 */
+  /** 表头「外观」筛选项：来自 Filters 中 FilterKey=Exterior 的 Items；在售显示 SellPrice，在租显示 LeasePrice */
   const exteriorOptions = computed(() => {
     const filters = listConfig.value?.filters || []
     const key = (f) => String(f.FilterKey || f.filterKey || '').toLowerCase()
     const exterior = filters.find((f) => key(f) === 'exterior')
     const items = exterior?.Items || exterior?.items || []
+    const useLeasePrice = props.yyypFilterType === 'on_lease'
     return items.map((item) => ({
       label: item.Name || item.name || item.SimpleName || '',
       value: getFilterItemValue(item),
-      sellPrice: item.SellPrice ?? item.sellPrice ?? ''
+      sellPrice: useLeasePrice ? (item.LeasePrice ?? item.leasePrice ?? '') : (item.SellPrice ?? item.sellPrice ?? '')
     })).filter((o) => o.label)
   })
+
+  /** 红框区域选项：在售与在租均显示外观(Exterior)，在售用 SellPrice、在租用 LeasePrice（租金） */
+  const headerTagOptions = computed(() => exteriorOptions.value)
+
+  /** 红框当前选中值：在售与在租均为 currentExterior（外观） */
+  const headerTagCurrentValue = computed(() => props.yyypExterior ?? '')
+
+  const handleHeaderTagChange = (value) => {
+    emit('exterior-change', value || '')
+  }
 
   const handleSortChange = (value) => {
     emit('sort-change', value)
@@ -679,7 +690,8 @@ export function useYYYPCommodityList(props, emit) {
     templateDetailRequestedKey.value = key
     favoriteStatusLoading.value = true
     try {
-      const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/getTemplateInfo`
+      const segment = props.yyypFilterType === 'on_lease' ? 'on_lease' : 'on_sale'
+      const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/${segment}/getTemplateInfo`
       const response = await axios.post(url, {
         steamId,
         templateId: Number(effectiveId)
@@ -976,6 +988,9 @@ export function useYYYPCommodityList(props, emit) {
     exteriorOptions,
     currentExterior,
     handleExteriorChange,
+    headerTagOptions,
+    headerTagCurrentValue,
+    handleHeaderTagChange,
     handleResetYYYPFilter,
 
     // 高级筛选（由 Filters 动态渲染）

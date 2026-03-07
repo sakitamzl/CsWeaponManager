@@ -75,15 +75,11 @@ export function useItemSearch() {
     return yyypCurrentWeapon.value?.yyyp_id ?? ''
   })
 
-  /** 在售时是否有任意筛选条件（排序/磨损/外观/高级筛选），用于「筛选」按钮高亮 */
+  /** 是否已应用「高级筛选」弹窗内的条件（仅 extraParams），用于「筛选」按钮高亮；排序/磨损/外观不算筛选 */
   const yyypHasFilterActive = computed(() => {
-    if (yyypFilterType.value !== 'on_sale') return false
-    if (yyypSortTypeKey.value) return true
-    if (yyypWearRange.value) return true
-    if (yyypExterior.value) return true
+    if (yyypFilterType.value !== 'on_sale' && yyypFilterType.value !== 'on_lease') return false
     const extra = yyypExtraParams.value || {}
-    if (Object.keys(extra).length > 0) return true
-    return false
+    return Object.keys(extra).length > 0
   })
 
   // 多选模式相关
@@ -578,6 +574,16 @@ export function useItemSearch() {
         })
       }
       if (Object.keys(extra).length > 0) payload.extraParams = extra
+    }
+    if (yyypFilterType.value === 'on_lease') {
+      if (yyypSortTypeKey.value) payload.sortTypeKey = yyypSortTypeKey.value
+      const wr = yyypWearRange.value
+      if (wr && wr !== '') {
+        const [low, high] = wr.split('-').map(s => s?.trim())
+        if (low !== undefined && low !== '') payload.lowAbrade = low
+        if (high !== undefined && high !== '') payload.highAbrade = high
+      }
+      if (Object.keys(yyypExtraParams.value || {}).length > 0) payload.extraParams = yyypExtraParams.value
     }
     return payload
   }
@@ -2593,11 +2599,11 @@ export function useItemSearch() {
       return
     }
 
-    // 重新加载商品列表
+    // 重新加载商品列表（在售/在租均用 buildYYYPListRequest，以便点击外观 bar 时列表按选中外观的 templateId 切换）
     try {
       isSearching.value = true
 
-      const requestData = filterType === 'on_sale'
+      const requestData = (filterType === 'on_sale' || filterType === 'on_lease')
         ? buildYYYPListRequest(yyypCurrentWeapon.value.yyyp_id, 1, 50)
         : {
             steamId: selectedSteamId.value || '',
@@ -2682,18 +2688,20 @@ export function useItemSearch() {
     await handleYYYPFilterChange('on_sale')
   }
 
-  // 磨损区间变更（在售列表）：更新 wearRange 并重新请求第一页
+  // 磨损区间变更（在售/在租）：更新 wearRange 并重新请求第一页；在租时红框点击也走此逻辑
   const handleYYYPWearRangeChange = async (wearRangeValue) => {
-    if (yyypFilterType.value !== 'on_sale' || !yyypCurrentWeapon.value) return
+    if (!yyypCurrentWeapon.value) return
+    if (yyypFilterType.value !== 'on_sale' && yyypFilterType.value !== 'on_lease') return
     yyypWearRange.value = wearRangeValue || ''
-    await handleYYYPFilterChange('on_sale')
+    await handleYYYPFilterChange(yyypFilterType.value)
   }
 
-  // 表头外观变更（在售列表）：更新 exterior 并重新请求第一页
+  // 表头外观变更（在售/在租）：更新 exterior 并重新请求第一页；红框点击外观标签均走此逻辑
   const handleYYYPExteriorChange = async (exteriorValue) => {
-    if (yyypFilterType.value !== 'on_sale' || !yyypCurrentWeapon.value) return
+    if (!yyypCurrentWeapon.value) return
+    if (yyypFilterType.value !== 'on_sale' && yyypFilterType.value !== 'on_lease') return
     yyypExterior.value = exteriorValue || ''
-    await handleYYYPFilterChange('on_sale')
+    await handleYYYPFilterChange(yyypFilterType.value)
   }
 
   // getTemplateInfo 返回的列表配置（Filters/BuyPriceSortList/AbradeRangeList）用于排序、磨损、外观
@@ -2707,29 +2715,31 @@ export function useItemSearch() {
     }
   }
 
-  // 高级筛选应用：payload 为 { extraParams, wearRange }，extraParams 含 paintSeed 等，wearRange 与表头磨损下拉一致
+  // 高级筛选应用：payload 为 { extraParams, wearRange }；在售/在租均支持，样式一致
   const handleYYYPAdvancedFilter = async (payload) => {
-    if (yyypFilterType.value !== 'on_sale' || !yyypCurrentWeapon.value) {
-      ElMessage.warning('请先在在售列表中选择武器')
+    if (!yyypCurrentWeapon.value) {
+      ElMessage.warning('请先选择武器')
       return
     }
+    if (yyypFilterType.value !== 'on_sale' && yyypFilterType.value !== 'on_lease') return
     const isObj = payload && typeof payload === 'object' && !Array.isArray(payload)
     const extra = isObj && payload.extraParams !== undefined ? payload.extraParams : (isObj ? payload : {})
     const wearRange = isObj ? payload.wearRange : undefined
     yyypExtraParams.value = extra && typeof extra === 'object' ? extra : {}
     if (wearRange !== undefined) yyypWearRange.value = wearRange
-    await handleYYYPFilterChange('on_sale')
+    await handleYYYPFilterChange(yyypFilterType.value)
     ElMessage.success('筛选条件已应用')
   }
 
-  // 重置筛选：清空排序、磨损、外观、高级筛选并重新请求列表
+  // 重置筛选：清空排序、磨损、外观、高级筛选并重新请求列表（在售/在租均支持）
   const handleResetYYYPFilter = async () => {
-    if (yyypFilterType.value !== 'on_sale' || !yyypCurrentWeapon.value) return
+    if (!yyypCurrentWeapon.value) return
+    if (yyypFilterType.value !== 'on_sale' && yyypFilterType.value !== 'on_lease') return
     yyypSortTypeKey.value = ''
     yyypWearRange.value = ''
     yyypExterior.value = ''
     yyypExtraParams.value = {}
-    await handleYYYPFilterChange('on_sale')
+    await handleYYYPFilterChange(yyypFilterType.value)
     ElMessage.success('已重置筛选')
   }
 

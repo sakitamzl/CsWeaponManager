@@ -68,9 +68,9 @@
             筛选
           </button>
 
-          <!-- 重置筛选 - 放在筛选与排序下拉中间 -->
+          <!-- 重置筛选 - 在售/在租均显示，放在筛选与排序下拉中间 -->
           <el-button
-            v-if="yyypFilterType === 'on_sale'"
+            v-if="yyypFilterType === 'on_sale' || yyypFilterType === 'on_lease'"
             size="small"
             class="yyyp-reset-filter-btn yyyp-header-height-btn"
             @click.stop="handleResetYYYPFilter"
@@ -79,9 +79,9 @@
             重置
           </el-button>
 
-          <!-- 排序选择器 - 在售时由 BuyPriceSortList 动态填充 -->
+          <!-- 排序选择器 - 在售/在租由 listConfig 动态填充，样式与在售一致 -->
           <el-select
-            v-if="yyypFilterType === 'on_sale' && sortOptions.length > 0"
+            v-if="(yyypFilterType === 'on_sale' || yyypFilterType === 'on_lease') && sortOptions.length > 0"
             :model-value="currentSortKey"
             class="yyyp-header-select yyyp-sort-select"
             placeholder="排序方式"
@@ -96,9 +96,9 @@
             />
           </el-select>
 
-          <!-- 磨损区间选择器 - 在售时由 AbradeRangeList 动态填充 -->
+          <!-- 磨损区间选择器 - 在售/在租由 listConfig 动态填充 -->
           <el-select
-            v-if="yyypFilterType === 'on_sale' && wearRangeOptions.length > 0"
+            v-if="(yyypFilterType === 'on_sale' || yyypFilterType === 'on_lease') && wearRangeOptions.length > 0"
             :model-value="currentWearRange"
             class="yyyp-header-select yyyp-wear-select"
             placeholder="磨损区间"
@@ -115,15 +115,15 @@
           </el-select>
         </div>
       </div>
-      <!-- 红框区域：表头中间外观平铺（在售时显示，点击用 QueryString 的 id 刷新列表） -->
-      <div v-if="yyypFilterType === 'on_sale'" class="yyyp-header-exterior" @click.stop>
-        <template v-for="(opt, idx) in exteriorOptions" :key="opt.value">
+      <!-- 红框区域：在售/在租均显示外观(Exterior)，在售为售价、在租为租金(LeasePrice)，居左显示 -->
+      <div v-if="headerTagOptions.length > 0" class="yyyp-header-exterior" @click.stop>
+        <template v-for="(opt, idx) in headerTagOptions" :key="opt.value">
           <span v-if="idx > 0" class="exterior-divider">|</span>
           <button
             type="button"
             class="exterior-btn"
-            :class="{ active: currentExterior === opt.value }"
-            @click.stop="handleExteriorChange(opt.value)"
+            :class="{ active: headerTagCurrentValue === opt.value }"
+            @click.stop="handleHeaderTagChange(opt.value)"
           >
             <span class="exterior-btn-label">{{ opt.label }}</span>
             <span v-if="opt.sellPrice != null && opt.sellPrice !== ''" class="exterior-btn-price">¥{{ opt.sellPrice }}</span>
@@ -153,15 +153,6 @@
           :title="isFavorited ? '取消收藏' : '添加到收藏'"
         />
         <el-button
-          type="success"
-          size="small"
-          class="yyyp-header-height-btn"
-          :icon="ShoppingCart"
-          @click.stop="handleOpenWantedDialog"
-        >
-          求购
-        </el-button>
-        <el-button
           v-if="isMultiSelectMode"
           type="info"
           size="small"
@@ -174,9 +165,10 @@
           :type="isMultiSelectMode ? 'warning' : 'info'"
           size="small"
           class="yyyp-header-height-btn yyyp-multi-select-toggle-btn"
+          :disabled="yyypFilterType === 'on_lease'"
           @click.stop="toggleMultiSelectMode"
         >
-          {{ isMultiSelectMode ? '取消多选' : '多选' }}
+          {{ yyypFilterType === 'on_lease' ? '批量借入' : (isMultiSelectMode ? '取消多选' : '多选') }}
         </el-button>
       </div>
     </div>
@@ -806,6 +798,9 @@ const {
   exteriorOptions,
   currentExterior,
   handleExteriorChange,
+  headerTagOptions,
+  headerTagCurrentValue,
+  handleHeaderTagChange,
   handleResetYYYPFilter,
 
   filterDialogVisible,

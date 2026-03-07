@@ -347,18 +347,23 @@ class WeaponClassIDModel(BaseModel):
                     skip_count += 1
                     continue
 
-                # 悠悠有品平台：优先通过 steam_hash_name 查找
+                # 悠悠有品平台：通过 steam_hash_name 查找，有匹配则更新，没有匹配则插入
                 if platform == 'yyyp':
-                    # 获取 CommodityHashName (对应 steam_hash_name)
-                    steam_hash_name = weapon_data.get('en_weapon_name') or weapon_data.get('steam_hash_name')
-                    
+                    # 获取 steam_hash_name（兼容 en_weapon_name / steam_hash_name / CommodityHashName）
+                    steam_hash_name = (
+                        weapon_data.get('en_weapon_name')
+                        or weapon_data.get('steam_hash_name')
+                        or weapon_data.get('CommodityHashName')
+                    )
+                    if isinstance(steam_hash_name, str):
+                        steam_hash_name = steam_hash_name.strip() or None
+
                     if steam_hash_name:
-                        # 先通过 steam_hash_name 查找
                         existing_records = cls.find_by_steam_hash_name(steam_hash_name)
-                        
                         if existing_records:
-                            # 记录已存在，更新 yyyp_id, yyyp_class_name 和新的价格、数量字段
+                            # 有匹配的 steam_hash_name：只做更新，不插入
                             yyyp_class_name = weapon_data.get('yyyp_class_name', '')
+                            market_listing_item_name = weapon_data.get('CommodityName') or weapon_data.get('market_listing_item_name', '')
                             yyyp_price = weapon_data.get('yyyp_Price', '')
                             yyyp_rent = weapon_data.get('yyyp_Rent', '')
                             yyyp_on_sale_count = weapon_data.get('yyyp_OnSaleCount', '')
@@ -368,6 +373,7 @@ class WeaponClassIDModel(BaseModel):
                             update_fields = [
                                 "[yyyp_id] = ?",
                                 "[yyyp_class_name] = ?",
+                                "[market_listing_item_name] = ?",
                                 "[yyyp_Price] = ?",
                                 "[yyyp_Rent] = ?",
                                 "[yyyp_OnSaleCount] = ?",
@@ -376,55 +382,49 @@ class WeaponClassIDModel(BaseModel):
                             ]
                             params = [
                                 platform_id, yyyp_class_name,
+                                market_listing_item_name,
                                 yyyp_price, yyyp_rent,
                                 yyyp_on_sale_count, yyyp_on_lease_count,
                                 icon_url,
                                 steam_hash_name
                             ]
-
                             sql_update = f'''UPDATE {cls.get_table_name()} 
                                            SET {', '.join(update_fields)} 
                                            WHERE [steam_hash_name] = ?'''
                             affected_rows = db.execute_update(sql_update, tuple(params))
-                            
                             if affected_rows > 0:
                                 success_count += 1
                                 update_count += 1
                                 print(f"✅ 更新悠悠有品数据成功 (steam_hash_name匹配): yyyp_id={platform_id}, steam_hash_name={steam_hash_name}, "
                                       f"价格={yyyp_price}, 租金={yyyp_rent}, 在售={yyyp_on_sale_count}, 出租={yyyp_on_lease_count}")
                             continue
-                    
-                    # 如果没有 steam_hash_name 或未找到匹配记录，插入新记录
-                    # 需要映射字段名：en_weapon_name -> steam_hash_name, CommodityName -> market_listing_item_name
+
+                    # 没有匹配的 steam_hash_name：进行数据写入（插入新记录），而不是更新
                     insert_data = {}
-                    if 'en_weapon_name' in weapon_data:
-                        insert_data['steam_hash_name'] = weapon_data['en_weapon_name']
-                    elif 'steam_hash_name' in weapon_data:
-                        insert_data['steam_hash_name'] = weapon_data['steam_hash_name']
-                    
-                    if 'CommodityName' in weapon_data:
-                        insert_data['market_listing_item_name'] = weapon_data['CommodityName']
-                    elif 'market_listing_item_name' in weapon_data:
-                        insert_data['market_listing_item_name'] = weapon_data['market_listing_item_name']
-                    
-                    # 复制其他字段
+                    insert_data['steam_hash_name'] = (
+                        weapon_data.get('en_weapon_name')
+                        or weapon_data.get('steam_hash_name')
+                        or weapon_data.get('CommodityHashName')
+                    )
+                    insert_data['market_listing_item_name'] = (
+                        weapon_data.get('CommodityName')
+                        or weapon_data.get('market_listing_item_name')
+                    )
                     for key in ['yyyp_id', 'yyyp_class_name', 'weapon_type', 'weapon_name', 'item_name', 'float_range', 'Rarity',
                                 'yyyp_Price', 'yyyp_Rent', 'yyyp_OnSaleCount', 'yyyp_OnLeaseCount', 'icon_url']:
                         if key in weapon_data:
                             insert_data[key] = weapon_data[key]
                     
-                    # 检查是否有必需的主键
-                    if 'steam_hash_name' not in insert_data or not insert_data['steam_hash_name']:
+                    if not insert_data.get('steam_hash_name'):
                         print(f"悠悠有品数据缺少 steam_hash_name 字段，跳过: yyyp_id={platform_id}")
                         skip_count += 1
                         continue
                     
-                    # 插入新记录
                     new_weapon = cls(**insert_data)
                     if new_weapon.save():
                         success_count += 1
                         insert_count += 1
-                        print(f"✅ 插入新悠悠有品数据: yyyp_id={platform_id}, steam_hash_name={insert_data['steam_hash_name']}")
+                        print(f"✅ 插入新悠悠有品数据 (无匹配steam_hash_name): yyyp_id={platform_id}, steam_hash_name={insert_data['steam_hash_name']}")
                 
                 # Steam平台：保持原有逻辑
                 elif platform == 'steam':
