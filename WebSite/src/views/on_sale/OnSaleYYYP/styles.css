@@ -75,6 +75,12 @@
   color: #fff;
 }
 
+.trade-type-tab.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 /* 筛选器样式 */
 .filters {
   margin-bottom: 1rem;

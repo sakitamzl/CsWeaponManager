@@ -48,8 +48,8 @@ def proxy_api(path):
     try:
         url = f'{BACKEND_URL}/{path}'
 
-        # 检查是否为流式端点
-        is_stream = path in ('api/update/download',)
+        # 检查是否为流式端点（如版本更新下载的 SSE 进度流）
+        is_stream = path.endswith('downloadUpdate') or 'version_update/units/update/downloadUpdate' in path
         timeout = 600 if is_stream else 30
 
         # 转发请求
@@ -70,7 +70,13 @@ def proxy_api(path):
                   if name.lower() not in excluded_headers]
 
         if is_stream:
-            return Response(resp.iter_content(chunk_size=1024), resp.status_code, headers)
+            # 保持 SSE 流式响应，使前端能实时收到进度与下载速度
+            return Response(
+                resp.iter_content(chunk_size=1024),
+                resp.status_code,
+                headers,
+                direct_passthrough=True
+            )
 
         return Response(resp.content, resp.status_code, headers)
     except Exception as e:

@@ -83,8 +83,8 @@
           v-for="type in tradeTypes"
           :key="type.value"
           class="trade-type-tab"
-          :class="{ active: selectedTradeType === type.value }"
-          @click="handleTradeTypeChange(type.value)"
+          :class="{ active: selectedTradeType === type.value, disabled: type.disabled }"
+          @click="type.disabled ? undefined : handleTradeTypeChange(type.value)"
         >
           <span class="trade-type-icon">{{ type.icon }}</span>
           <span class="trade-type-label">{{ type.label }}</span>

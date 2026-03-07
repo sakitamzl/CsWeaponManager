@@ -1,5 +1,13 @@
 <template>
   <div class="version-update-container">
+    <!-- 更新中灰屏遮罩：点击更新后变灰，轮询到 backend + spider 恢复后消失 -->
+    <div v-if="applyingUpdate" class="update-overlay">
+      <div class="update-overlay-content">
+        <el-icon class="update-overlay-icon is-loading"><Loading /></el-icon>
+        <p class="update-overlay-title">系统更新中</p>
+        <p class="update-overlay-status">{{ updateRestartStatus }}</p>
+      </div>
+    </div>
     <div class="doc-box">
       <div class="page-layout">
         <!-- 左侧区域：版本更新 + 文档目录 -->

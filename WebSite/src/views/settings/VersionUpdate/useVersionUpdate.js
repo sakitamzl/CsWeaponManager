@@ -19,7 +19,16 @@ export function useVersionUpdate() {
   const localUpdateExists = ref(false)
   const localUpdateSize = ref('')
   const downloaded = ref(false)
+  /** 正在应用更新（灰屏 + 轮询检测服务） */
+  const applyingUpdate = ref(false)
+  /** 更新重启过程中的状态文案 */
+  const updateRestartStatus = ref('')
   const headingIds = new Map()
+  /** 轮询检测的定时器，用于清理 */
+  let pollTimer = null
+  const POLL_INTERVAL_MS = 2000
+  const POLL_START_DELAY_MS = 10000
+  const POLL_TIMEOUT_MS = 5 * 60 * 1000
   let currentFilePath = ''
 
   // 创建自定义 renderer
@@ -540,15 +549,56 @@ export function useVersionUpdate() {
     return `${size.toFixed(1)} TB`
   }
 
-  // 执行更新（调用 update.bat）
+  // 检测 Backend 是否已启动（专用健康检查接口）
+  const checkBackendRunning = () => {
+    return fetch(apiUrls.backendHealth(), { method: 'GET' })
+      .then(r => r.ok)
+      .catch(() => false)
+  }
+
+  // 检测 Spider 是否已启动（专用健康检查接口）
+  const checkSpiderRunning = () => {
+    return fetch(apiUrls.spiderHealth(), { method: 'GET' })
+      .then(r => r.ok)
+      .catch(() => false)
+  }
+
+  // 轮询直到 Backend 与 Spider 均返回运行
+  const pollUntilServicesReady = (startTime) => {
+    if (Date.now() - startTime > POLL_TIMEOUT_MS) {
+      applyingUpdate.value = false
+      updateRestartStatus.value = ''
+      ElMessage.warning('检测超时，请手动刷新页面确认系统是否已更新')
+      return
+    }
+    updateRestartStatus.value = '正在检测 Backend 与 Spider 服务...'
+    Promise.all([checkBackendRunning(), checkSpiderRunning()]).then(([backendOk, spiderOk]) => {
+      if (backendOk && spiderOk) {
+        if (pollTimer) clearTimeout(pollTimer)
+        pollTimer = null
+        applyingUpdate.value = false
+        updateRestartStatus.value = ''
+        ElMessage.success('系统更新成功')
+        return
+      }
+      pollTimer = setTimeout(() => pollUntilServicesReady(startTime), POLL_INTERVAL_MS)
+    })
+  }
+
+  // 执行更新（调用 update.bat），然后灰屏并轮询检测服务
   const doApplyUpdate = async () => {
     try {
       const response = await axios.post(apiUrls.applyUpdate())
-      if (response.data.success) {
-        ElMessage.success('更新程序已启动，应用即将重启')
-      } else {
+      if (!response.data.success) {
         throw new Error(response.data.error || '启动更新失败')
       }
+      applyingUpdate.value = true
+      updateRestartStatus.value = '更新程序已启动，10 秒后开始检测服务...'
+      if (pollTimer) clearTimeout(pollTimer)
+      pollTimer = setTimeout(() => {
+        pollTimer = null
+        pollUntilServicesReady(Date.now())
+      }, POLL_START_DELAY_MS)
     } catch (err) {
       console.error('执行更新失败:', err)
       const serverMsg = err.response?.data?.error
@@ -610,6 +660,13 @@ export function useVersionUpdate() {
     checkLocalUpdate()
   })
 
+  onBeforeUnmount(() => {
+    if (pollTimer) {
+      clearTimeout(pollTimer)
+      pollTimer = null
+    }
+  })
+
   return {
     treeLoading,
     treeError,
@@ -637,6 +694,8 @@ export function useVersionUpdate() {
     localUpdateExists,
     localUpdateSize,
     downloaded,
+    applyingUpdate,
+    updateRestartStatus,
     handleCheckUpdate,
     handleDownloadUpdate,
     handleApplyUpdate,

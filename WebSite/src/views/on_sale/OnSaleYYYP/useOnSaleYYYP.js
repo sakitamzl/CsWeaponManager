@@ -1,4 +1,5 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Loading, CircleCheck, CircleClose } from '@element-plus/icons-vue'
 import axios from 'axios'
@@ -33,6 +34,9 @@ export default {
     MyFavorite
   },
   setup() {
+    const route = useRoute()
+    const router = useRouter()
+
     const loading = ref(false)
     const updating = ref(false)
     const autoFillLoading = ref(false)
@@ -47,15 +51,18 @@ export default {
     const cachedOfferCount = localStorage.getItem('yyyp_offer_count')
     const offerCount = ref(cachedOfferCount ? parseInt(cachedOfferCount) : 0)
 
-    // 交易类型 - 从localStorage读取上次选择，默认为'sale'
-    const savedTradeType = localStorage.getItem('yyyp_selected_trade_type') || 'sale'
-    const selectedTradeType = ref(savedTradeType)
+    // 子模块与 URL 同步：有效的 subType 与 tradeTypes 的 value 一致
+    const VALID_SUB_TYPES = ['sale', 'lease', 'sublease', 'presale', 'transfer', 'purchase_request', 'offer', 'favorite', 'rented_out', 'instant']
+    const selectedTradeType = computed(() => {
+      const sub = route.params.subType
+      return (sub && VALID_SUB_TYPES.includes(sub)) ? sub : 'sale'
+    })
     const tradeTypes = ref([
       { value: 'sale', label: '出售', icon: '💰' },
       { value: 'lease', label: '租赁', icon: '🔄' },
       { value: 'sublease', label: '转租', icon: '🔁' },
-      { value: 'presale', label: '预售', icon: '⏰' },
-      { value: 'transfer', label: '过户', icon: '📝' },
+      { value: 'presale', label: '预售', icon: '⏰', disabled: true },
+      { value: 'transfer', label: '过户', icon: '📝', disabled: true },
       { value: 'purchase_request', label: '求购', icon: '🛒' },
       { value: 'offer', label: '报价', icon: '💬' },
       { value: 'favorite', label: '关注', icon: '⭐' },
@@ -326,20 +333,13 @@ export default {
       cacheTradeTypeCount('favorite', count)
     }
 
-    // 处理交易类型切换
+    // 处理交易类型切换：通过 URL 切换子模块（加载由 route watch 触发）
     const handleTradeTypeChange = (tradeType) => {
-      selectedTradeType.value = tradeType
-      // 切换交易类型时清空多选
+      if (!VALID_SUB_TYPES.includes(tradeType)) return
+      router.push('/on-sale/yyyp/' + tradeType)
+      localStorage.setItem('yyyp_selected_trade_type', tradeType)
       selectedItems.value = []
-      // 如果是报价处理类型，强制使用列表模式
-      // 其他类型默认使用卡片模式
-      if (tradeType === 'offer') {
-        displayMode.value = 'list'
-      } else {
-        displayMode.value = 'card'
-      }
-      // 重新加载数据
-      loadOnSaleData()
+      displayMode.value = tradeType === 'offer' ? 'list' : 'card'
     }
 
     // 加载在售数据
@@ -722,14 +722,17 @@ export default {
           pageSize: 1000  // 直接获取完整数据，避免后续重复请求
         }).catch(() => null)
 
-        // 如果报价处理有数据，默认显示报价处理
-        if (totalOfferCount > 0) {
-          selectedTradeType.value = 'offer'
-          // 报价处理类型由子组件加载数据，这里不需要处理
-        } else {
-          // 否则显示出售数据，直接使用已获取的数据，避免重复调用
-          selectedTradeType.value = 'sale'
-          if (saleResponse?.data?.success) {
+        // 如果报价处理有数据且当前在出售页，则跳转到报价页；否则保持当前 URL
+        const currentSub = route.params.subType
+        if (totalOfferCount > 0 && currentSub === 'sale') {
+          router.replace('/on-sale/yyyp/offer')
+          return
+        }
+        if (totalOfferCount === 0 && currentSub === 'offer') {
+          router.replace('/on-sale/yyyp/sale')
+        }
+        // 当前为出售时，用已获取的数据填充
+        if (selectedTradeType.value === 'sale' && saleResponse?.data?.success) {
             // 转换出售数据格式以匹配前端期望
             const sellData = saleResponse.data.data?.commodityInfoList || []
             onSaleData.value = sellData.map(item => {
@@ -792,9 +795,8 @@ export default {
             // 缓存出售数量
             cacheTradeTypeCount('sale', onSaleData.value.length)
             ElMessage.success('加载成功')
-          } else {
+        } else if (selectedTradeType.value === 'sale') {
             ElMessage.error(saleResponse?.data?.message || '加载失败')
-          }
         }
       } catch (error) {
         console.error('检查初始数据失败:', error)
@@ -1862,9 +1864,24 @@ export default {
       return match ? parseFloat(match[0]) : null
     }
 
-    // 监听交易类型变化，保存到localStorage
+    // 监听交易类型（来自 URL）变化，保存到 localStorage
     watch(selectedTradeType, (newValue) => {
       localStorage.setItem('yyyp_selected_trade_type', newValue)
+    })
+
+    // URL 无效子模块时重定向到出售
+    watch(() => route.params.subType, (subType) => {
+      if (route.name === 'OnSaleYYYP' && subType && !VALID_SUB_TYPES.includes(subType)) {
+        router.replace('/on-sale/yyyp/sale')
+      }
+    }, { immediate: true })
+
+    // URL 子模块切换时（含浏览器前进/后退）：更新展示模式、清空多选、加载数据（跳过首次，由 checkAndLoadInitialData 处理）
+    watch(() => route.params.subType, (subType, prevSub) => {
+      if (route.name !== 'OnSaleYYYP' || subType === prevSub || prevSub === undefined) return
+      displayMode.value = subType === 'offer' ? 'list' : 'card'
+      selectedItems.value = []
+      loadOnSaleData()
     })
 
     let unwatchDevice = null

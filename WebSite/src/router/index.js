@@ -61,6 +61,14 @@ const routes = [
         children: [
           {
             path: 'yyyp',
+            redirect: () => {
+              const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('yyyp_selected_trade_type') : null
+              const valid = saved && /^(sale|lease|sublease|presale|transfer|purchase_request|offer|favorite|rented_out|instant)$/.test(saved)
+              return '/on-sale/yyyp/' + (valid ? saved : 'sale')
+            }
+          },
+          {
+            path: 'yyyp/:subType',
             name: 'OnSaleYYYP',
             component: () => import('@/views/on_sale/OnSaleYYYP/index.vue'),
             meta: { title: '悠悠有品' }

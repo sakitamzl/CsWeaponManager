@@ -2,6 +2,42 @@
   padding: 0;
   height: 100vh;
   overflow: hidden;
+  position: relative;
+}
+
+/* 更新中灰屏遮罩 */
+.update-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+.update-overlay-content {
+  text-align: center;
+  color: #e0e0e0;
+}
+
+.update-overlay-icon {
+  font-size: 48px;
+  color: #409eff;
+  margin-bottom: 1rem;
+}
+
+.update-overlay-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+}
+
+.update-overlay-status {
+  font-size: 0.875rem;
+  color: #b0b0b0;
+  margin: 0;
 }
 
 .doc-box {

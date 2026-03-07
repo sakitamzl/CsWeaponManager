@@ -666,6 +666,9 @@ export const API_CONFIG = {
 
     UPDATE_APPLY: '/backENDV2/src/use_webside/settings/version_update/units/update/applyUpdate',  // 执行更新
 
+    BACKEND_HEALTH: '/backENDV2/health',  // Backend 健康检查（更新后轮询用）
+    SPIDER_HEALTH: '/health',  // Spider 健康检查（更新后轮询用，相对 /spider 前缀）
+
     VERSION_DOCUMENTS_TREE: '/backENDV2/src/use_webside/settings/version_update/units/docs/getDocumentTree',
 
     VERSION_DOCUMENTS_FILE: '/backENDV2/src/use_webside/settings/version_update/units/docs/getDocumentFile',
@@ -1369,6 +1372,9 @@ export const apiUrls = {
   checkLocalUpdate: () => getApiUrl(API_CONFIG.ENDPOINTS.UPDATE_CHECK_LOCAL),  // 检查本地更新包
 
   applyUpdate: () => getApiUrl(API_CONFIG.ENDPOINTS.UPDATE_APPLY),  // 执行更新
+
+  backendHealth: () => getApiUrl(API_CONFIG.ENDPOINTS.BACKEND_HEALTH),  // Backend 健康检查
+  spiderHealth: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.SPIDER_HEALTH),  // Spider 健康检查
 
   versionDocumentsTree: () => getApiUrl(API_CONFIG.ENDPOINTS.VERSION_DOCUMENTS_TREE),
 
