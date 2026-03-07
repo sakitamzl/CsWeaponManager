@@ -9,7 +9,7 @@ from src.units.auto_process.task_scheduler import get_scheduler
 from src.API import backendV2_blueprint
 
 # 当前版本号
-CURRENT_VERSION = '2.5.1'
+CURRENT_VERSION = '2.5.2'
 
 app = Flask(__name__)
 CORS(app)

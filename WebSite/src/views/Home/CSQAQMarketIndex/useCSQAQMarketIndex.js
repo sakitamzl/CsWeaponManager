@@ -211,94 +211,77 @@ export function useCSQAQMarketIndex() {
   }
 
   /**
-   * 获取市场指数数据
+   * 获取市场指数数据：指数 API + 折线 API 分别请求，返回一个就显示一个
    */
   const fetchMarketIndexData = async () => {
     dataLoading.value = true
-    // console.log('[CSQAQ] 开始获取市场指数...')
+    let indexOk = false
+    let chartOk = false
 
-    try {
-      const response = await fetch(apiUrls.csqaqMarketIndex())
-      const result = await response.json()
-
-      // console.log('[CSQAQ] API 响应:', result)
-
-      if (result.code === 200 && result.data) {
-        // 新的数据结构包含两个API的响应
-        // result.data.market_index - 历史数据
-        // result.data.current_data - 当前所有指数数据
-
-        // 处理market_index数据（历史折线图）
-        if (result.data.market_index && result.data.market_index.data) {
-          const data = result.data.market_index.data
-
-          // 更新市场指数数据
-          marketIndexData.value = {
-            now: data.count?.now || 0,
-            amplitude: data.count?.amplitude || 0,
-            rate: data.count?.rate || 0,
-            max_value: data.count?.max_value || 0,
-            min_value: data.count?.min_value || 0,
-            consecutive_days: data.count?.consecutive_days || 0
-          }
-
-          // 解析折线图数据 - 使用 hourly_list（小时数据）
-          // 取最新的72小时数据（3天）
-          const hourlyList = data.hourly_list || []
-          const dataCount = 72 // 3天 = 72小时
-          const values = hourlyList.slice(-dataCount)
-
-          // 生成时间戳（假设最新数据是当前时间，往前推算）
-          const now = Date.now()
-          const timestamps = values.map((_, index) => {
-            const hoursAgo = values.length - 1 - index
-            return now - hoursAgo * 3600000 // 每小时 3600000 毫秒
-          })
-
-          chartData.value = {
-            timestamps: timestamps,
-            values: values
-          }
-
-          // console.log('[CSQAQ] 市场指数获取成功:', marketIndexData.value)
-          // console.log('[CSQAQ] 折线图数据获取成功,数据点数量:', chartData.value.values.length)
+    const applyIndex = (result) => {
+      if (result.code !== 200 || !result.data) return
+      const currentData = result.data.current_data?.data ?? result.data
+      const subIndexList = currentData.sub_index_data && Array.isArray(currentData.sub_index_data)
+        ? currentData.sub_index_data
+        : []
+      indexListData.value = subIndexList
+      const initIndex = subIndexList.find(item => item.name_key === 'init') || subIndexList[0]
+      if (initIndex) {
+        marketIndexData.value = {
+          now: initIndex.market_index ?? 0,
+          amplitude: initIndex.chg_num ?? 0,
+          rate: initIndex.chg_rate ?? 0,
+          max_value: initIndex.high ?? 0,
+          min_value: initIndex.low ?? 0,
+          consecutive_days: 0
         }
-
-        // 处理current_data数据（所有指数列表）
-        if (result.data.current_data && result.data.current_data.data) {
-          const currentData = result.data.current_data.data
-          if (currentData.sub_index_data && Array.isArray(currentData.sub_index_data)) {
-            indexListData.value = currentData.sub_index_data
-            // console.log('[CSQAQ] 指数列表获取成功,数量:', indexListData.value.length)
-          }
-        }
-
-        // 更新最后更新时间
-        lastUpdate.value = new Date()
-
-        // 手动更新图表（使用 nextTick 确保 DOM 已更新）
-        // 注意：不在这里初始化图表，由 watch(marketIndexData) 负责初始化
-        // 这里只负责在图表已存在的情况下更新数据
-        nextTick(() => {
-          if (chartInstance && chartData.value && chartData.value.values.length > 0) {
-            // console.log('[CSQAQ] 手动触发图表更新')
-            updateChart()
-          } else {
-            // console.log('[CSQAQ] 等待 watch 监听器初始化图表')
-          }
-        })
-
-        ElMessage.success('CSQAQ市场指数数据已更新')
-      } else {
-        console.error('[CSQAQ] 获取失败:', result.message)
-        ElMessage.error('获取市场指数失败: ' + (result.message || '未知错误'))
       }
-    } catch (error) {
-      console.error('[CSQAQ] 请求失败:', error)
-      ElMessage.error('网络请求失败: ' + error.message)
-    } finally {
-      dataLoading.value = false
+      lastUpdate.value = new Date()
+      indexOk = true
     }
+
+    const applyChart = (result) => {
+      if (result.code !== 200 || !result.data?.market_index?.data) return
+      const data = result.data.market_index.data
+      const hourlyList = data.hourly_list || []
+      const dataCount = 24
+      const values = hourlyList.slice(-dataCount)
+      const timestamps = data.timestamp && data.timestamp.length >= values.length
+        ? data.timestamp.slice(-dataCount)
+        : values.map((_, i) => Date.now() - (values.length - 1 - i) * 3600000)
+      chartData.value = { timestamps, values }
+      lastUpdate.value = new Date()
+      chartOk = true
+      nextTick(() => {
+        if (chartInstance && chartData.value?.values?.length) updateChart()
+      })
+    }
+
+    const pIndex = fetch(apiUrls.csqaqIndexData())
+      .then(r => r.json())
+      .then((result) => {
+        applyIndex(result)
+        return result
+      })
+      .catch((err) => {
+        console.error('[CSQAQ] 指数 API 失败:', err)
+        ElMessage.error('指数数据请求失败: ' + (err.message || '未知错误'))
+      })
+
+    const pChart = fetch(apiUrls.csqaqChartData())
+      .then(r => r.json())
+      .then((result) => {
+        applyChart(result)
+        return result
+      })
+      .catch((err) => {
+        console.error('[CSQAQ] 折线图 API 失败:', err)
+        ElMessage.error('折线图数据请求失败: ' + (err.message || '未知错误'))
+      })
+
+    await Promise.allSettled([pIndex, pChart])
+    dataLoading.value = false
+    if (indexOk || chartOk) ElMessage.success('CSQAQ市场指数数据已更新')
   }
 
 
