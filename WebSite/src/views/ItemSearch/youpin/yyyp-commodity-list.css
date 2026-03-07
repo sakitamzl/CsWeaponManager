@@ -19,11 +19,19 @@
   font-size: 14px;
   font-weight: 500;
   padding: 0 16px;
-  height: 100%;
+  height: 36px;
+  line-height: 36px;
   cursor: pointer;
   transition: all 0.3s ease;
   white-space: nowrap;
   outline: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.yyyp-filter-buttons .filter-btn .filter-count {
+  margin-left: 2px;
 }
 
 .yyyp-filter-buttons .filter-btn:hover {
@@ -46,6 +54,17 @@
   background: rgba(144, 147, 153, 0.1);
 }
 
+/* 筛选按钮选中时：原本底色，文字绿色 */
+.yyyp-filter-buttons .filter-btn.filter-advanced.active {
+  color: var(--el-color-success);
+  font-weight: 600;
+  background: rgba(64, 158, 255, 0.15);
+}
+.yyyp-filter-buttons .filter-btn.filter-advanced.active:hover {
+  color: var(--el-color-success);
+  background: rgba(64, 158, 255, 0.2);
+}
+
 /* 禁用状态的筛选按钮 */
 .yyyp-filter-buttons .filter-btn.disabled {
   cursor: not-allowed;
@@ -63,16 +82,26 @@
   color: var(--el-border-color);
   font-size: 14px;
   user-select: none;
-  height: 60%;
+  height: 36px;
   display: flex;
   align-items: center;
 }
 
-/* 表头红框区域：外观平铺（位于排序/磨损与总数/按钮之间） */
+/* 表头布局：红框区域居左，总数/按钮居右 */
+.yyyp-commodity-list .yyyp-collapse-header {
+  justify-content: flex-start;
+  gap: 1rem;
+}
+.yyyp-commodity-list .yyyp-weapon-info {
+  margin-left: auto;
+}
+
+/* 表头红框区域：外观平铺，居左显示 */
 .yyyp-header-exterior {
   flex-shrink: 0;
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 0;
   flex-wrap: wrap;
 }
@@ -83,13 +112,26 @@
   color: var(--el-text-color-regular);
   font-size: 14px;
   font-weight: 500;
-  padding: 0 12px;
-  height: 28px;
-  line-height: 28px;
+  padding: 6px 12px;
+  min-height: 28px;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
   outline: none;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.yyyp-header-exterior .exterior-btn-label {
+  line-height: 1.2;
+}
+
+.yyyp-header-exterior .exterior-btn-price {
+  font-size: 12px;
+  color: var(--el-color-primary);
+  font-weight: 600;
 }
 
 .yyyp-header-exterior .exterior-btn:hover {
@@ -108,6 +150,43 @@
   font-size: 14px;
   user-select: none;
   padding: 0 2px;
+}
+
+/* 表头排序/磨损下拉：缩小宽度、提高高度 */
+.yyyp-filter-buttons .yyyp-header-select {
+  height: 36px;
+}
+.yyyp-filter-buttons .yyyp-header-select :deep(.el-input__wrapper) {
+  min-height: 36px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.yyyp-filter-buttons .yyyp-sort-select {
+  width: 88px;
+  margin-left: 16px;
+}
+.yyyp-filter-buttons .yyyp-wear-select {
+  width: 100px;
+  margin-left: 8px;
+}
+.yyyp-filter-buttons .yyyp-reset-filter-btn {
+  margin-left: 8px;
+}
+
+/* 重置筛选、求购、多选、刷新、收藏 与下拉选择框同高 36px */
+.yyyp-reset-filter-btn.yyyp-header-height-btn,
+.yyyp-weapon-info .yyyp-header-height-btn {
+  height: 36px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.yyyp-weapon-info .yyyp-header-height-btn.is-circle {
+  width: 36px;
+  min-width: 36px;
+}
+/* 多选/取消多选 固定宽度，切换文案时位置不抖动 */
+.yyyp-weapon-info .yyyp-multi-select-toggle-btn {
+  min-width: 88px;
 }
 
 /* 悠悠有品武器信息区域调整 */
@@ -159,6 +238,16 @@
 
 .yyyp-filter-dialog :deep(.el-form-item) {
   margin-bottom: 18px;
+}
+
+.yyyp-filter-dialog .abrade-custom-inputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.yyyp-filter-dialog .abrade-sep {
+  color: var(--el-text-color-secondary);
 }
 
 .yyyp-filter-dialog :deep(.el-form-item__label) {

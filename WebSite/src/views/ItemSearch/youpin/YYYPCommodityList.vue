@@ -17,7 +17,7 @@
             :class="{ active: yyypFilterType === 'on_sale' }"
             @click.stop="handleFilterChange('on_sale')"
           >
-            在售
+            在售<span v-if="yyypFilterType === 'on_sale'" class="filter-count">({{ yyypTotalCount }})</span>
           </button>
           <span class="filter-divider">|</span>
           <button
@@ -25,7 +25,7 @@
             :class="{ active: yyypFilterType === 'on_lease' }"
             @click.stop="handleFilterChange('on_lease')"
           >
-            在租
+            在租<span v-if="yyypFilterType === 'on_lease'" class="filter-count">({{ yyypTotalCount }})</span>
           </button>
           <span class="filter-divider">|</span>
           <button
@@ -33,7 +33,7 @@
             :class="{ active: yyypFilterType === 'presale' }"
             @click.stop="handleFilterChange('presale')"
           >
-            预售
+            预售<span v-if="yyypFilterType === 'presale'" class="filter-count">({{ yyypTotalCount }})</span>
           </button>
           <span class="filter-divider">|</span>
           <button
@@ -41,7 +41,7 @@
             :class="{ active: yyypFilterType === 'wanted' }"
             @click.stop="handleFilterChange('wanted')"
           >
-            求购
+            求购<span v-if="yyypFilterType === 'wanted'" class="filter-count">({{ yyypTotalCount }})</span>
           </button>
           <span class="filter-divider">|</span>
           <button
@@ -62,20 +62,31 @@
           <span class="filter-divider">|</span>
           <button
             class="filter-btn filter-advanced"
+            :class="{ active: yyypHasFilterActive }"
             @click.stop="handleAdvancedFilter"
           >
             筛选
           </button>
 
+          <!-- 重置筛选 - 放在筛选与排序下拉中间 -->
+          <el-button
+            v-if="yyypFilterType === 'on_sale'"
+            size="small"
+            class="yyyp-reset-filter-btn yyyp-header-height-btn"
+            @click.stop="handleResetYYYPFilter"
+            title="重置排序、磨损、外观及高级筛选"
+          >
+            重置
+          </el-button>
+
           <!-- 排序选择器 - 在售时由 BuyPriceSortList 动态填充 -->
           <el-select
             v-if="yyypFilterType === 'on_sale' && sortOptions.length > 0"
             :model-value="currentSortKey"
-            size="small"
+            class="yyyp-header-select yyyp-sort-select"
             placeholder="排序方式"
             @click.stop
             @change="handleSortChange"
-            style="width: 120px; margin-left: 16px"
           >
             <el-option
               v-for="opt in sortOptions"
@@ -89,11 +100,10 @@
           <el-select
             v-if="yyypFilterType === 'on_sale' && wearRangeOptions.length > 0"
             :model-value="currentWearRange"
-            size="small"
+            class="yyyp-header-select yyyp-wear-select"
             placeholder="磨损区间"
             @click.stop
             @change="handleWearRangeChange"
-            style="width: 140px; margin-left: 8px"
             clearable
           >
             <el-option
@@ -105,7 +115,7 @@
           </el-select>
         </div>
       </div>
-      <!-- 红框区域：表头中间外观平铺（在售时显示，点击切换） -->
+      <!-- 红框区域：表头中间外观平铺（在售时显示，点击用 QueryString 的 id 刷新列表） -->
       <div v-if="yyypFilterType === 'on_sale'" class="yyyp-header-exterior" @click.stop>
         <template v-for="(opt, idx) in exteriorOptions" :key="opt.value">
           <span v-if="idx > 0" class="exterior-divider">|</span>
@@ -115,59 +125,58 @@
             :class="{ active: currentExterior === opt.value }"
             @click.stop="handleExteriorChange(opt.value)"
           >
-            {{ opt.label }}
+            <span class="exterior-btn-label">{{ opt.label }}</span>
+            <span v-if="opt.sellPrice != null && opt.sellPrice !== ''" class="exterior-btn-price">¥{{ opt.sellPrice }}</span>
           </button>
         </template>
       </div>
       <div class="yyyp-weapon-info">
-        <span class="total-count">总数: {{ yyypTotalCount }} 件</span>
-
-        <!-- 价格追踪按钮 - 移到右侧 -->
         <el-button
           type="primary"
           size="small"
+          class="yyyp-header-height-btn"
           :icon="Refresh"
+          circle
           @click.stop="handleRefreshYYYP"
           :loading="isSearching && searchSource === 'yyyp'"
-        >
-          刷新列表
-        </el-button>
-        <!-- 收藏按钮 -->
+          title="刷新列表"
+        />
         <el-button
           :type="isFavorited ? 'warning' : 'default'"
           size="small"
+          class="yyyp-favorite-btn yyyp-header-height-btn"
           :icon="isFavorited ? StarFilled : Star"
-          class="yyyp-favorite-btn"
+          circle
           :class="{ 'is-favorited': isFavorited }"
           :loading="favoriteLoading"
           @click.stop="toggleFavorite"
           :title="isFavorited ? '取消收藏' : '添加到收藏'"
-        >
-          {{ isFavorited ? '已收藏' : '收藏' }}
-        </el-button>
-        <!-- 发布求购按钮 -->
+        />
         <el-button
           type="success"
           size="small"
+          class="yyyp-header-height-btn"
           :icon="ShoppingCart"
           @click.stop="handleOpenWantedDialog"
         >
-          发布求购
-        </el-button>
-        <el-button
-          :type="isMultiSelectMode ? 'warning' : 'info'"
-          size="small"
-          @click.stop="toggleMultiSelectMode"
-        >
-          {{ isMultiSelectMode ? '取消多选' : '多选' }}
+          求购
         </el-button>
         <el-button
           v-if="isMultiSelectMode"
           type="info"
           size="small"
+          class="yyyp-header-height-btn"
           @click.stop="selectAllCommodities('yyyp')"
         >
           全选
+        </el-button>
+        <el-button
+          :type="isMultiSelectMode ? 'warning' : 'info'"
+          size="small"
+          class="yyyp-header-height-btn yyyp-multi-select-toggle-btn"
+          @click.stop="toggleMultiSelectMode"
+        >
+          {{ isMultiSelectMode ? '取消多选' : '多选' }}
         </el-button>
       </div>
     </div>
@@ -413,9 +422,45 @@
     >
       <el-form label-position="left" label-width="100px">
         <template v-for="filter in visibleFilters" :key="filter.FilterKey || filter.filterKey">
-          <!-- 有 Items 的下拉（名称标签、印花、挂件等） -->
+          <!-- 磨损区间：与表头下拉一致 + 自定义 xx-xx 输入 -->
           <el-form-item
-            v-if="filter.Items && filter.Items.length > 0"
+            v-if="(filter.FilterKey || filter.filterKey) === 'abrade' && filter.Items && filter.Items.length > 0"
+            label="磨损区间"
+          >
+            <el-select
+              :model-value="filterFormByKey['abrade']"
+              placeholder="请选择"
+              clearable
+              style="width: 100%"
+              @update:model-value="(v) => (filterFormByKey['abrade'] = v)"
+            >
+              <el-option
+                v-for="item in filter.Items"
+                :key="getAbradeOptionValue(item) || item.Name"
+                :label="item.Name || item.name || item.SimpleName || '不限'"
+                :value="getAbradeOptionValue(item)"
+              />
+              <el-option label="自定义" value="custom" />
+            </el-select>
+            <div v-if="filterFormByKey['abrade'] === 'custom'" class="abrade-custom-inputs">
+              <el-input
+                v-model="abradeCustomMin"
+                placeholder="最小"
+                clearable
+                style="width: 100px"
+              />
+              <span class="abrade-sep">-</span>
+              <el-input
+                v-model="abradeCustomMax"
+                placeholder="最大"
+                clearable
+                style="width: 100px"
+              />
+            </div>
+          </el-form-item>
+          <!-- 有 Items/NodeItems 的下拉（名称标签、印花搜枪、挂件等，排除 abrade；印花搜枪用 NodeItems 的 Name 填入） -->
+          <el-form-item
+            v-else-if="(filter.Items && filter.Items.length > 0) || getFilterSelectOptions(filter).length > 0"
             :label="filter.Name || filter.name || filter.FilterKey"
           >
             <el-select
@@ -426,14 +471,14 @@
               @update:model-value="(v) => (filterFormByKey[filter.FilterKey || filter.filterKey] = v)"
             >
               <el-option
-                v-for="item in filter.Items"
-                :key="item.QueryString || item.FixedVal || item.Name"
-                :label="item.Name || item.name || item.SimpleName || '不限'"
-                :value="getFilterItemValue(item)"
+                v-for="opt in getFilterSelectOptions(filter)"
+                :key="opt.value"
+                :label="opt.label"
+                :value="opt.value"
               />
             </el-select>
           </el-form-item>
-          <!-- 默认：单行输入（如图案模板等） -->
+          <!-- 默认：单行输入（如图案模板 paintSeed 等） -->
           <el-form-item v-else :label="filter.Name || filter.name || filter.FilterKey">
             <el-input
               :model-value="filterFormByKey[filter.FilterKey || filter.filterKey]"
@@ -728,6 +773,8 @@ const props = defineProps({
   yyypSortTypeKey: String,
   yyypWearRange: String,
   yyypExterior: String,
+  yyypEffectiveTemplateId: [String, Number],
+  yyypHasFilterActive: Boolean,
   selectedSteamId: String
 })
 
@@ -745,7 +792,8 @@ const emit = defineEmits([
   'sort-change',
   'wear-range-change',
   'exterior-change',
-  'template-info-config'
+  'template-info-config',
+  'reset-yyyp-filter'
 ])
 
 const {
@@ -758,11 +806,16 @@ const {
   exteriorOptions,
   currentExterior,
   handleExteriorChange,
+  handleResetYYYPFilter,
 
   filterDialogVisible,
   visibleFilters,
   filterFormByKey,
   getFilterItemValue,
+  getFilterSelectOptions,
+  getAbradeOptionValue,
+  abradeCustomMin,
+  abradeCustomMax,
   handleFilterChange,
   handleAdvancedFilter,
   handleResetFilter,

@@ -34,7 +34,7 @@ export function useYYYPCommodityList(props, emit) {
   const currentWearRange = computed(() => props.yyypWearRange ?? '')
   const currentExterior = computed(() => props.yyypExterior ?? '')
 
-  /** 表头「外观」筛选项：来自 Filters 中 FilterKey=Exterior 的 Items（兼容大小写） */
+  /** 表头「外观」筛选项：来自 Filters 中 FilterKey=Exterior 的 Items（兼容大小写），含 SellPrice、QueryString 用于展示与跳转 */
   const exteriorOptions = computed(() => {
     const filters = listConfig.value?.filters || []
     const key = (f) => String(f.FilterKey || f.filterKey || '').toLowerCase()
@@ -42,7 +42,8 @@ export function useYYYPCommodityList(props, emit) {
     const items = exterior?.Items || exterior?.items || []
     return items.map((item) => ({
       label: item.Name || item.name || item.SimpleName || '',
-      value: getFilterItemValue(item)
+      value: getFilterItemValue(item),
+      sellPrice: item.SellPrice ?? item.sellPrice ?? ''
     })).filter((o) => o.label)
   })
 
@@ -58,13 +59,22 @@ export function useYYYPCommodityList(props, emit) {
     emit('exterior-change', value || '')
   }
 
+  const handleResetYYYPFilter = () => {
+    handleResetFilter()
+    emit('reset-yyyp-filter')
+  }
+
   // ========== 高级筛选（由 Filters 动态渲染）==========
   const filterDialogVisible = ref(false)
   const filterFormByKey = ref({})
+  /** 磨损区间 - 自定义输入（当选择「自定义」时使用） */
+  const abradeCustomMin = ref('')
+  const abradeCustomMax = ref('')
 
   const visibleFilters = computed(() => {
     const filters = listConfig.value?.filters || []
-    return filters.filter((f) => f.IsShow !== false)
+    const key = (f) => String(f.FilterKey || f.filterKey || '').toLowerCase()
+    return filters.filter((f) => f.IsShow !== false && key(f) !== 'exterior')
   })
 
   /** 筛选项取值：优先 QueryString，为空时用 FixedVal 拼 id=xxx（如外观 崭新出厂） */
@@ -77,11 +87,41 @@ export function useYYYPCommodityList(props, emit) {
     return ''
   }
 
+  /** 获取筛选项下拉列表：若有 NodeItems（如印花搜枪）则用 NodeItems，否则用 Items；选项 label 用 Name */
+  function getFilterSelectOptions(filter) {
+    const items = filter.Items || filter.items || []
+    if (items.length === 0) return []
+    const hasNodeItems = items.some((i) => (i.NodeItems || i.nodeItems || []).length > 0)
+    const options = hasNodeItems
+      ? items.flatMap((i) => i.NodeItems || i.nodeItems || [])
+      : items
+    return options.map((opt) => ({
+      label: opt.Name ?? opt.name ?? opt.SimpleName ?? opt.simpleName ?? '不限',
+      value: getFilterItemValue(opt)
+    }))
+  }
+
+  /** 磨损区间选项 value：与表头下拉一致，为 "minVal-maxVal" 或 ''（全部） */
+  function getAbradeOptionValue(item) {
+    if (!item) return ''
+    const minVal = item.MinVal ?? item.minVal ?? ''
+    const maxVal = item.MaxVal ?? item.maxVal ?? ''
+    const name = (item.Name ?? item.name ?? '').toString()
+    if (name === '全部' || (minVal === '' && maxVal === '')) return ''
+    if (minVal !== '' && maxVal !== '') return `${minVal}-${maxVal}`
+    return ''
+  }
+
   const handleFilterChange = (filterType) => {
     emit('filter-change', filterType)
   }
 
   const handleAdvancedFilter = () => {
+    // 打开时同步表头磨损区间到表单
+    const currentAbrade = props.yyypWearRange ?? ''
+    if (currentAbrade && currentAbrade !== 'custom') {
+      filterFormByKey.value = { ...filterFormByKey.value, abrade: currentAbrade }
+    }
     filterDialogVisible.value = true
   }
 
@@ -91,6 +131,8 @@ export function useYYYPCommodityList(props, emit) {
       initial[f.FilterKey || f.filterKey] = ''
     })
     filterFormByKey.value = initial
+    abradeCustomMin.value = ''
+    abradeCustomMax.value = ''
   }
 
   function parseQueryStringToParams(qs) {
@@ -105,17 +147,33 @@ export function useYYYPCommodityList(props, emit) {
 
   const handleApplyFilter = () => {
     const extraParams = {}
+    let wearRange = undefined
     visibleFilters.value.forEach((f) => {
       const key = f.FilterKey || f.filterKey
+      if (key === 'abrade') {
+        const val = filterFormByKey.value[key]
+        if (val === 'custom') {
+          const min = abradeCustomMin.value?.trim()
+          const max = abradeCustomMax.value?.trim()
+          if (min !== '' || max !== '') wearRange = `${min || '0'}-${max || '1'}`
+        } else if (val != null && val !== '') {
+          wearRange = val
+        }
+        return
+      }
       const val = filterFormByKey.value[key]
       if (val == null || val === '') return
+      if (key === 'stickers') {
+        extraParams.commodityStickersTag = val
+        return
+      }
       if (typeof val === 'string' && val.includes('=')) {
         Object.assign(extraParams, parseQueryStringToParams(val))
       } else {
         extraParams[key] = val
       }
     })
-    emit('advanced-filter', extraParams)
+    emit('advanced-filter', { extraParams, wearRange })
     filterDialogVisible.value = false
   }
 
@@ -607,15 +665,15 @@ export function useYYYPCommodityList(props, emit) {
   const templateDetailRequestedKey = ref('')
   const favoriteStatusLoading = ref(false)
 
-  // 根据服务端 template/info 的 IsFavorite 同步收藏状态（同一 templateId+steamId 仅请求一次）
+  // 根据服务端 template/info 的 IsFavorite 同步收藏状态（同一 templateId+steamId 仅请求一次；模板 id 随选中外观切换）
   const fetchFavoriteStatus = async () => {
-    const weapon = props.yyypCurrentWeapon
+    const effectiveId = props.yyypEffectiveTemplateId ?? props.yyypCurrentWeapon?.yyyp_id
     const steamId = props.selectedSteamId
-    if (!weapon?.yyyp_id || !steamId) {
+    if (!effectiveId || !steamId) {
       isFavorited.value = false
       return
     }
-    const key = `${weapon.yyyp_id}_${steamId}`
+    const key = `${effectiveId}_${steamId}`
     if (templateDetailRequestedKey.value === key) return
     if (favoriteStatusLoading.value) return
     templateDetailRequestedKey.value = key
@@ -624,7 +682,7 @@ export function useYYYPCommodityList(props, emit) {
       const url = `${API_CONFIG.SPIDER_BASE_URL}/spiderApiV2/src/web_site/youping/units/item_search/on_sale/getTemplateInfo`
       const response = await axios.post(url, {
         steamId,
-        templateId: Number(weapon.yyyp_id)
+        templateId: Number(effectiveId)
       })
       const res = response.data
       if (res && res.success && res.data) {
@@ -918,12 +976,17 @@ export function useYYYPCommodityList(props, emit) {
     exteriorOptions,
     currentExterior,
     handleExteriorChange,
+    handleResetYYYPFilter,
 
     // 高级筛选（由 Filters 动态渲染）
     filterDialogVisible,
     visibleFilters,
     filterFormByKey,
     getFilterItemValue,
+    getFilterSelectOptions,
+    getAbradeOptionValue,
+    abradeCustomMin,
+    abradeCustomMax,
     handleFilterChange,
     handleAdvancedFilter,
     handleResetFilter,

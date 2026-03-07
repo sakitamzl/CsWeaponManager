@@ -400,6 +400,8 @@
       :yyypSortTypeKey="yyypSortTypeKey"
       :yyypWearRange="yyypWearRange"
       :yyypExterior="yyypExterior"
+      :yyypEffectiveTemplateId="yyypEffectiveTemplateId"
+      :yyypHasFilterActive="yyypHasFilterActive"
       :selectedSteamId="selectedSteamId"
       @toggle-yyyp-list="toggleYYYPList"
       @refresh-yyyp="handleRefreshYYYP"
@@ -415,6 +417,7 @@
       @wear-range-change="handleYYYPWearRangeChange"
       @exterior-change="handleYYYPExteriorChange"
       @template-info-config="handleTemplateInfoConfig"
+      @reset-yyyp-filter="handleResetYYYPFilter"
     />
 
     <!-- BUFF商品列表 -->
