@@ -61,6 +61,13 @@ export function useItemSearch() {
   const yyypLoadingMore = ref(false)  // 是否正在加载更多
   const yyypHasMore = ref(true)  // 是否还有更多数据
   const yyypFilterType = ref('on_sale')  // 悠悠有品当前筛选类型
+  // 在售列表配置（来自接口 BuyPriceSortList / AbradeRangeList / Filters）
+  const yyypListConfig = ref(null)
+  // 在售排序、磨损区间、高级筛选参数（仅 on_sale 时生效）
+  const yyypSortTypeKey = ref('')
+  const yyypWearRange = ref('')  // '' 或 'minVal_maxVal'，如 '0.00-0.01'
+  const yyypExterior = ref('')  // 表头外观筛选，值为 'id=xxx' 或 ''
+  const yyypExtraParams = ref({})
 
   // 多选模式相关
   const isMultiSelectMode = ref(false)  // 是否开启多选模式
@@ -518,6 +525,34 @@ export function useItemSearch() {
     return '#fff' // 默认白色
   }
 
+  // 构建悠悠有品在售列表请求体（排序、磨损区间、高级筛选）
+  const buildYYYPListRequest = (yyypId, pageIndex, pageSize) => {
+    const payload = {
+      steamId: selectedSteamId.value || '',
+      yyypId,
+      pageIndex,
+      pageSize: pageSize || yyypPageSize.value
+    }
+    if (yyypFilterType.value === 'on_sale') {
+      if (yyypSortTypeKey.value) payload.sortTypeKey = yyypSortTypeKey.value
+      const wr = yyypWearRange.value
+      if (wr && wr !== '') {
+        const [low, high] = wr.split('-').map(s => s?.trim())
+        if (low !== undefined && low !== '') payload.lowAbrade = low
+        if (high !== undefined && high !== '') payload.highAbrade = high
+      }
+      const extra = { ...(yyypExtraParams.value || {}) }
+      if (yyypExterior.value) {
+        yyypExterior.value.split('&').forEach((pair) => {
+          const [k, v] = pair.split('=').map((s) => (s || '').trim())
+          if (k) extra[k] = v
+        })
+      }
+      if (Object.keys(extra).length > 0) payload.extraParams = extra
+    }
+    return payload
+  }
+
   // 通过行数据搜索悠悠有品
   const handleSearchYYYPByRow = async (row) => {
     console.log('=== 开始执行 handleSearchYYYPByRow ===')
@@ -544,13 +579,8 @@ export function useItemSearch() {
     try {
       console.log('搜索悠悠有品:', row.market_listing_item_name, 'ID:', row.yyyp_id, 'SteamID:', selectedSteamId.value)
       
-      // 构建请求数据
-      const requestData = {
-        steamId: selectedSteamId.value || '',
-        yyypId: row.yyyp_id,
-        pageIndex: 1,
-        pageSize: 50
-      }
+      // 构建请求数据（在售时带上排序、磨损、筛选参数）
+      const requestData = buildYYYPListRequest(row.yyyp_id, 1, 50)
 
       // 根据筛选类型选择对应的V2 API
       let apiUrl
@@ -588,6 +618,18 @@ export function useItemSearch() {
         const totalCount = parsedData.totalCount || 0
         console.log('商品列表:', commodityList)
         console.log('在售总数:', totalCount)
+        
+        // 在售时保存列表配置（排序选项、磨损区间、筛选字段）供前端动态渲染
+        if (yyypFilterType.value === 'on_sale' && (parsedData.buyPriceSortList?.length || parsedData.abradeRangeList?.length || parsedData.filters?.length)) {
+          yyypListConfig.value = {
+            buyPriceSortList: parsedData.buyPriceSortList || [],
+            abradeRangeList: parsedData.abradeRangeList || [],
+            filters: parsedData.filters || []
+          }
+          if (!yyypSortTypeKey.value && parsedData.buyPriceSortList?.[0]?.sortTypeKey) {
+            yyypSortTypeKey.value = parsedData.buyPriceSortList[0].sortTypeKey
+          }
+        }
         
         // 更新状态，显示商品列表
         yyypCurrentWeapon.value = row
@@ -647,12 +689,7 @@ export function useItemSearch() {
     try {
       console.log(`加载悠悠有品第 ${nextPage} 页数据`)
       
-      const requestData = {
-        steamId: selectedSteamId.value || '',
-        yyypId: yyypCurrentWeapon.value.yyyp_id,
-        pageIndex: nextPage,
-        pageSize: 50
-      }
+      const requestData = buildYYYPListRequest(yyypCurrentWeapon.value.yyyp_id, nextPage, 50)
 
       // 根据筛选类型选择对应的V2 API
       let apiUrl
@@ -2531,12 +2568,14 @@ export function useItemSearch() {
     try {
       isSearching.value = true
 
-      const requestData = {
-        steamId: selectedSteamId.value || '',
-        yyypId: yyypCurrentWeapon.value.yyyp_id,
-        pageIndex: 1,
-        pageSize: 50
-      }
+      const requestData = filterType === 'on_sale'
+        ? buildYYYPListRequest(yyypCurrentWeapon.value.yyyp_id, 1, 50)
+        : {
+            steamId: selectedSteamId.value || '',
+            yyypId: yyypCurrentWeapon.value.yyyp_id,
+            pageIndex: 1,
+            pageSize: 50
+          }
 
       // 根据筛选类型选择对应的V2 API
       let apiUrl
@@ -2562,6 +2601,17 @@ export function useItemSearch() {
         const parsedData = response.data.data
         const commodityList = parsedData.commodityList || []
         const totalCount = parsedData.totalCount || 0
+
+        if (filterType === 'on_sale' && (parsedData.buyPriceSortList?.length || parsedData.abradeRangeList?.length || parsedData.filters?.length)) {
+          yyypListConfig.value = {
+            buyPriceSortList: parsedData.buyPriceSortList || [],
+            abradeRangeList: parsedData.abradeRangeList || [],
+            filters: parsedData.filters || []
+          }
+          if (!yyypSortTypeKey.value && parsedData.buyPriceSortList?.[0]?.sortTypeKey) {
+            yyypSortTypeKey.value = parsedData.buyPriceSortList[0].sortTypeKey
+          }
+        }
 
         // 更新商品列表
         yyypCommodities.value = commodityList
@@ -2596,21 +2646,47 @@ export function useItemSearch() {
     }
   }
 
-  const handleYYYPAdvancedFilter = (filterData) => {
-    console.log('应用高级筛选:', filterData)
+  // 排序变更（在售列表）：更新 sortTypeKey 并重新请求第一页
+  const handleYYYPSortChange = async (sortTypeKey) => {
+    if (yyypFilterType.value !== 'on_sale' || !yyypCurrentWeapon.value) return
+    yyypSortTypeKey.value = sortTypeKey || ''
+    await handleYYYPFilterChange('on_sale')
+  }
+
+  // 磨损区间变更（在售列表）：更新 wearRange 并重新请求第一页
+  const handleYYYPWearRangeChange = async (wearRangeValue) => {
+    if (yyypFilterType.value !== 'on_sale' || !yyypCurrentWeapon.value) return
+    yyypWearRange.value = wearRangeValue || ''
+    await handleYYYPFilterChange('on_sale')
+  }
+
+  // 表头外观变更（在售列表）：更新 exterior 并重新请求第一页
+  const handleYYYPExteriorChange = async (exteriorValue) => {
+    if (yyypFilterType.value !== 'on_sale' || !yyypCurrentWeapon.value) return
+    yyypExterior.value = exteriorValue || ''
+    await handleYYYPFilterChange('on_sale')
+  }
+
+  // getTemplateInfo 返回的列表配置（Filters/BuyPriceSortList/AbradeRangeList）用于排序、磨损、外观
+  const handleTemplateInfoConfig = (payload) => {
+    if (payload && (payload.buyPriceSortList?.length || payload.abradeRangeList?.length || payload.filters?.length)) {
+      yyypListConfig.value = {
+        buyPriceSortList: payload.buyPriceSortList || [],
+        abradeRangeList: payload.abradeRangeList || [],
+        filters: payload.filters || []
+      }
+    }
+  }
+
+  // 高级筛选应用：extraParams 为键值对，会传给 getCommodityList.extraParams
+  const handleYYYPAdvancedFilter = async (extraParams) => {
+    if (yyypFilterType.value !== 'on_sale' || !yyypCurrentWeapon.value) {
+      ElMessage.warning('请先在在售列表中选择武器')
+      return
+    }
+    yyypExtraParams.value = extraParams && typeof extraParams === 'object' ? extraParams : {}
+    await handleYYYPFilterChange('on_sale')
     ElMessage.success('筛选条件已应用')
-    // TODO: 根据筛选条件调用API
-    // filterData 包含：
-    // - templateId: 图案模板编号
-    // - wearMin, wearMax: 磨损区间
-    // - hasNameTag: 是否有名称标签 (null=全部, true=有, false=无)
-    // - nameTagText: 名称标签内容（当 hasNameTag=true 时）
-    // - hasStickerFilter: 是否有印花 (null=全部, true=有, false=无)
-    // - stickerName: 印花名称（当 hasStickerFilter=true 时）
-    // - hasPendant: 是否有挂件 (null=全部, true=有, false=无)
-    // - pendantName: 挂件名称（当 hasPendant=true 时）
-    // - fastDelivery: 极速发货
-    // - priceMin, priceMax: 价格区间
   }
 
   // 向子组件提供共享方法
@@ -2745,6 +2821,10 @@ export function useItemSearch() {
     yyypLoadingMore,
     yyypHasMore,
     yyypFilterType,
+    yyypListConfig,
+    yyypSortTypeKey,
+    yyypWearRange,
+    yyypExterior,
     paginatedYYYPCommodities,
     toggleYYYPList,
     handleBuyCommodity,
@@ -2782,6 +2862,10 @@ export function useItemSearch() {
     // 悠悠有品筛选
     handleYYYPFilterChange,
     handleYYYPAdvancedFilter,
+    handleYYYPSortChange,
+    handleYYYPWearRangeChange,
+    handleYYYPExteriorChange,
+    handleTemplateInfoConfig,
     // 求购供应
     supplyDialogVisible,
     supplyInventoryList,

@@ -396,6 +396,10 @@
       :yyypLoadingMore="yyypLoadingMore"
       :yyypHasMore="yyypHasMore"
       :yyypFilterType="yyypFilterType"
+      :yyypListConfig="yyypListConfig"
+      :yyypSortTypeKey="yyypSortTypeKey"
+      :yyypWearRange="yyypWearRange"
+      :yyypExterior="yyypExterior"
       :selectedSteamId="selectedSteamId"
       @toggle-yyyp-list="toggleYYYPList"
       @refresh-yyyp="handleRefreshYYYP"
@@ -407,6 +411,10 @@
       @fetch-single-nametag="fetchSingleNameTag"
       @filter-change="handleYYYPFilterChange"
       @advanced-filter="handleYYYPAdvancedFilter"
+      @sort-change="handleYYYPSortChange"
+      @wear-range-change="handleYYYPWearRangeChange"
+      @exterior-change="handleYYYPExteriorChange"
+      @template-info-config="handleTemplateInfoConfig"
     />
 
     <!-- BUFF商品列表 -->

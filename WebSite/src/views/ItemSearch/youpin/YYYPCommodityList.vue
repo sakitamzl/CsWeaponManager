@@ -67,29 +67,28 @@
             筛选
           </button>
 
-          <!-- 排序选择器 - 仅在在售模块下显示 -->
+          <!-- 排序选择器 - 在售时由 BuyPriceSortList 动态填充 -->
           <el-select
-            v-if="yyypFilterType === 'on_sale'"
-            v-model="sortType"
+            v-if="yyypFilterType === 'on_sale' && sortOptions.length > 0"
+            :model-value="currentSortKey"
             size="small"
             placeholder="排序方式"
             @click.stop
             @change="handleSortChange"
             style="width: 120px; margin-left: 16px"
           >
-            <el-option label="默认" value="default" />
-            <el-option label="热度" value="popularity" />
-            <el-option label="最新" value="newest" />
-            <el-option label="价格 ↑" value="price_asc" />
-            <el-option label="价格 ↓" value="price_desc" />
-            <el-option label="磨损 ↑" value="wear_asc" />
-            <el-option label="磨损 ↓" value="wear_desc" />
+            <el-option
+              v-for="opt in sortOptions"
+              :key="opt.value"
+              :label="opt.label"
+              :value="opt.value"
+            />
           </el-select>
 
-          <!-- 磨损区间选择器 - 仅在在售模块且有磨损区间时显示 -->
+          <!-- 磨损区间选择器 - 在售时由 AbradeRangeList 动态填充 -->
           <el-select
             v-if="yyypFilterType === 'on_sale' && wearRangeOptions.length > 0"
-            v-model="wearRange"
+            :model-value="currentWearRange"
             size="small"
             placeholder="磨损区间"
             @click.stop
@@ -97,15 +96,28 @@
             style="width: 140px; margin-left: 8px"
             clearable
           >
-            <el-option label="全部磨损" value="" />
             <el-option
               v-for="option in wearRangeOptions"
-              :key="option.value"
+              :key="String(option.value)"
               :label="option.label"
               :value="option.value"
             />
           </el-select>
         </div>
+      </div>
+      <!-- 红框区域：表头中间外观平铺（在售时显示，点击切换） -->
+      <div v-if="yyypFilterType === 'on_sale'" class="yyyp-header-exterior" @click.stop>
+        <template v-for="(opt, idx) in exteriorOptions" :key="opt.value">
+          <span v-if="idx > 0" class="exterior-divider">|</span>
+          <button
+            type="button"
+            class="exterior-btn"
+            :class="{ active: currentExterior === opt.value }"
+            @click.stop="handleExteriorChange(opt.value)"
+          >
+            {{ opt.label }}
+          </button>
+        </template>
       </div>
       <div class="yyyp-weapon-info">
         <span class="total-count">总数: {{ yyypTotalCount }} 件</span>
@@ -399,123 +411,39 @@
       :close-on-click-modal="false"
       class="yyyp-filter-dialog"
     >
-      <el-form :model="filterForm" label-position="left" label-width="100px">
-        <!-- 图案模板 -->
-        <el-form-item label="图案模板">
-          <el-input
-            v-model="filterForm.templateId"
-            placeholder="请输入模板编号0-1000"
-            clearable
-          />
-        </el-form-item>
-
-        <!-- 磨损区间 -->
-        <el-form-item label="磨损区间">
-          <div class="wear-range-inputs">
-            <el-input
-              v-model="filterForm.wearMin"
-              placeholder="最小值"
-              style="width: 48%"
-            />
-            <span style="margin: 0 2%">-</span>
-            <el-input
-              v-model="filterForm.wearMax"
-              placeholder="最大值"
-              style="width: 48%"
-            />
-          </div>
-        </el-form-item>
-
-        <!-- 名称标签 -->
-        <el-form-item label="名称标签">
-          <el-select
-            v-model="filterForm.hasNameTag"
-            placeholder="请选择"
-            clearable
-            style="width: 100%"
+      <el-form label-position="left" label-width="100px">
+        <template v-for="filter in visibleFilters" :key="filter.FilterKey || filter.filterKey">
+          <!-- 有 Items 的下拉（名称标签、印花、挂件等） -->
+          <el-form-item
+            v-if="filter.Items && filter.Items.length > 0"
+            :label="filter.Name || filter.name || filter.FilterKey"
           >
-            <el-option label="全部" :value="null" />
-            <el-option label="有名称标签" :value="true" />
-            <el-option label="无名称标签" :value="false" />
-          </el-select>
-        </el-form-item>
-
-        <!-- 名称标签二级菜单 -->
-        <el-form-item label="" v-if="filterForm.hasNameTag === true">
-          <el-input
-            v-model="filterForm.nameTagText"
-            placeholder="输入名称标签内容"
-            clearable
-          />
-        </el-form-item>
-
-        <!-- 印花搜枪 -->
-        <el-form-item label="印花搜枪">
-          <el-select
-            v-model="filterForm.hasStickerFilter"
-            placeholder="请选择"
-            clearable
-            style="width: 100%"
-          >
-            <el-option label="全部" :value="null" />
-            <el-option label="有印花" :value="true" />
-            <el-option label="无印花" :value="false" />
-          </el-select>
-        </el-form-item>
-
-        <!-- 印花搜枪二级菜单 -->
-        <el-form-item label="" v-if="filterForm.hasStickerFilter === true">
-          <el-input
-            v-model="filterForm.stickerName"
-            placeholder="输入印花名称"
-            clearable
-          />
-        </el-form-item>
-
-        <!-- 挂件 -->
-        <el-form-item label="挂件">
-          <el-select
-            v-model="filterForm.hasPendant"
-            placeholder="请选择"
-            clearable
-            style="width: 100%"
-          >
-            <el-option label="全部" :value="null" />
-            <el-option label="有挂件" :value="true" />
-            <el-option label="无挂件" :value="false" />
-          </el-select>
-        </el-form-item>
-
-        <!-- 挂件二级菜单 -->
-        <el-form-item label="" v-if="filterForm.hasPendant === true">
-          <el-input
-            v-model="filterForm.pendantName"
-            placeholder="输入挂件名称"
-            clearable
-          />
-        </el-form-item>
-
-        <!-- 极速发货 -->
-        <el-form-item label="极速发货">
-          <el-switch v-model="filterForm.fastDelivery" />
-        </el-form-item>
-
-        <!-- 出售价格 -->
-        <el-form-item label="出售价格">
-          <div class="price-range-inputs">
+            <el-select
+              :model-value="filterFormByKey[filter.FilterKey || filter.filterKey]"
+              placeholder="请选择"
+              clearable
+              style="width: 100%"
+              @update:model-value="(v) => (filterFormByKey[filter.FilterKey || filter.filterKey] = v)"
+            >
+              <el-option
+                v-for="item in filter.Items"
+                :key="item.QueryString || item.FixedVal || item.Name"
+                :label="item.Name || item.name || item.SimpleName || '不限'"
+                :value="getFilterItemValue(item)"
+              />
+            </el-select>
+          </el-form-item>
+          <!-- 默认：单行输入（如图案模板等） -->
+          <el-form-item v-else :label="filter.Name || filter.name || filter.FilterKey">
             <el-input
-              v-model="filterForm.priceMin"
-              placeholder="最低价格"
-              style="width: 48%"
+              :model-value="filterFormByKey[filter.FilterKey || filter.filterKey]"
+              :placeholder="filter.SubName || '请输入'"
+              clearable
+              @update:model-value="(v) => (filterFormByKey[filter.FilterKey || filter.filterKey] = v)"
             />
-            <span style="margin: 0 2%">-</span>
-            <el-input
-              v-model="filterForm.priceMax"
-              placeholder="最高价格"
-              style="width: 48%"
-            />
-          </div>
-        </el-form-item>
+          </el-form-item>
+        </template>
+        <el-empty v-if="visibleFilters.length === 0" description="暂无筛选项（请先加载在售列表）" />
       </el-form>
 
       <template #footer>
@@ -796,6 +724,10 @@ const props = defineProps({
   yyypLoadingMore: Boolean,
   yyypHasMore: Boolean,
   yyypFilterType: String,
+  yyypListConfig: Object,
+  yyypSortTypeKey: String,
+  yyypWearRange: String,
+  yyypExterior: String,
   selectedSteamId: String
 })
 
@@ -811,18 +743,26 @@ const emit = defineEmits([
   'filter-change',
   'advanced-filter',
   'sort-change',
-  'wear-range-change'
+  'wear-range-change',
+  'exterior-change',
+  'template-info-config'
 ])
 
 const {
-  sortType,
-  wearRange,
+  sortOptions,
   wearRangeOptions,
+  currentSortKey,
+  currentWearRange,
   handleSortChange,
   handleWearRangeChange,
+  exteriorOptions,
+  currentExterior,
+  handleExteriorChange,
 
   filterDialogVisible,
-  filterForm,
+  visibleFilters,
+  filterFormByKey,
+  getFilterItemValue,
   handleFilterChange,
   handleAdvancedFilter,
   handleResetFilter,

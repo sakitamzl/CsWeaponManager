@@ -5,96 +5,77 @@ import axios from 'axios'
 import { API_CONFIG, apiUrls } from '@/config/api.js'
 
 export function useYYYPCommodityList(props, emit) {
-  // ========== 排序和磨损区间 ==========
-  const sortType = ref('default')
-  const wearRange = ref('')
+  // ========== 排序和磨损区间（仅由 listConfig 填充，无默认数据）==========
+  const listConfig = computed(() => props.yyypListConfig || null)
+
+  const sortOptions = computed(() => {
+    const list = listConfig.value?.buyPriceSortList || []
+    return list.map((item) => ({
+      label: item.sortDesc || item.showName || item.sortTypeKey || '',
+      value: item.sortTypeKey || ''
+    })).filter((o) => o.value)
+  })
 
   const wearRangeOptions = computed(() => {
-    if (!props.yyypCurrentWeapon?.market_listing_item_name) return []
+    const list = listConfig.value?.abradeRangeList || []
+    return list.map((item) => {
+      const name = item.Name ?? item.name
+      const showName = item.ShowName ?? item.showName ?? name
+      const minVal = item.MinVal ?? item.minVal
+      const maxVal = item.MaxVal ?? item.maxVal
+      const value = (minVal != null && maxVal != null && minVal !== '' && maxVal !== '')
+        ? `${minVal}-${maxVal}`
+        : (name === '全部' || name === '自定义' ? '' : name)
+      return { label: showName || name, value }
+    })
+  })
 
-    const name = props.yyypCurrentWeapon.market_listing_item_name
+  const currentSortKey = computed(() => props.yyypSortTypeKey ?? '')
+  const currentWearRange = computed(() => props.yyypWearRange ?? '')
+  const currentExterior = computed(() => props.yyypExterior ?? '')
 
-    if (name.includes('崭新出厂') || name.includes('Factory New')) {
-      return [
-        { label: '0.00 - 0.01', value: '0.00-0.01' },
-        { label: '0.01 - 0.02', value: '0.01-0.02' },
-        { label: '0.02 - 0.03', value: '0.02-0.03' },
-        { label: '0.03 - 0.04', value: '0.03-0.04' },
-        { label: '0.04 - 0.07', value: '0.04-0.07' }
-      ]
-    }
-
-    if (name.includes('略有磨损') || name.includes('Minimal Wear')) {
-      return [
-        { label: '0.07 - 0.08', value: '0.07-0.08' },
-        { label: '0.08 - 0.09', value: '0.08-0.09' },
-        { label: '0.09 - 0.10', value: '0.09-0.10' },
-        { label: '0.10 - 0.11', value: '0.10-0.11' },
-        { label: '0.11 - 0.15', value: '0.11-0.15' }
-      ]
-    }
-
-    if (name.includes('久经沙场') || name.includes('Field-Tested')) {
-      return [
-        { label: '0.15 - 0.18', value: '0.15-0.18' },
-        { label: '0.18 - 0.21', value: '0.18-0.21' },
-        { label: '0.21 - 0.24', value: '0.21-0.24' },
-        { label: '0.24 - 0.27', value: '0.24-0.27' },
-        { label: '0.27 - 0.38', value: '0.27-0.38' }
-      ]
-    }
-
-    if (name.includes('破损不堪') || name.includes('Well-Worn')) {
-      return [
-        { label: '0.38 - 0.39', value: '0.38-0.39' },
-        { label: '0.39 - 0.40', value: '0.39-0.40' },
-        { label: '0.40 - 0.41', value: '0.40-0.41' },
-        { label: '0.41 - 0.42', value: '0.41-0.42' },
-        { label: '0.42 - 0.45', value: '0.42-0.45' }
-      ]
-    }
-
-    if (name.includes('战痕累累') || name.includes('Battle-Scarred')) {
-      return [
-        { label: '全部', value: '' },
-        { label: '0.45 - 0.50', value: '0.45-0.50' },
-        { label: '0.50 - 0.63', value: '0.50-0.63' },
-        { label: '0.63 - 0.76', value: '0.63-0.76' },
-        { label: '0.76 - 0.90', value: '0.76-0.90' },
-        { label: '0.90 - 1.00', value: '0.90-1.00' }
-      ]
-    }
-
-    return []
+  /** 表头「外观」筛选项：来自 Filters 中 FilterKey=Exterior 的 Items（兼容大小写） */
+  const exteriorOptions = computed(() => {
+    const filters = listConfig.value?.filters || []
+    const key = (f) => String(f.FilterKey || f.filterKey || '').toLowerCase()
+    const exterior = filters.find((f) => key(f) === 'exterior')
+    const items = exterior?.Items || exterior?.items || []
+    return items.map((item) => ({
+      label: item.Name || item.name || item.SimpleName || '',
+      value: getFilterItemValue(item)
+    })).filter((o) => o.label)
   })
 
   const handleSortChange = (value) => {
-    console.log('排序变更:', value)
     emit('sort-change', value)
   }
 
   const handleWearRangeChange = (value) => {
-    console.log('磨损区间变更:', value)
     emit('wear-range-change', value)
   }
 
-  // ========== 高级筛选 ==========
-  const filterDialogVisible = ref(false)
+  const handleExteriorChange = (value) => {
+    emit('exterior-change', value || '')
+  }
 
-  const filterForm = ref({
-    templateId: '',
-    wearMin: '',
-    wearMax: '',
-    hasNameTag: null,
-    nameTagText: '',
-    hasStickerFilter: null,
-    stickerName: '',
-    hasPendant: null,
-    pendantName: '',
-    fastDelivery: false,
-    priceMin: '',
-    priceMax: ''
+  // ========== 高级筛选（由 Filters 动态渲染）==========
+  const filterDialogVisible = ref(false)
+  const filterFormByKey = ref({})
+
+  const visibleFilters = computed(() => {
+    const filters = listConfig.value?.filters || []
+    return filters.filter((f) => f.IsShow !== false)
   })
+
+  /** 筛选项取值：优先 QueryString，为空时用 FixedVal 拼 id=xxx（如外观 崭新出厂） */
+  function getFilterItemValue(item) {
+    if (!item) return ''
+    const qs = item.QueryString ?? item.queryString
+    if (qs != null && qs !== '') return qs
+    const fixed = item.FixedVal ?? item.fixedVal
+    if (fixed != null && fixed !== '') return `id=${fixed}`
+    return ''
+  }
 
   const handleFilterChange = (filterType) => {
     emit('filter-change', filterType)
@@ -105,25 +86,36 @@ export function useYYYPCommodityList(props, emit) {
   }
 
   const handleResetFilter = () => {
-    filterForm.value = {
-      templateId: '',
-      wearMin: '',
-      wearMax: '',
-      hasNameTag: null,
-      nameTagText: '',
-      hasStickerFilter: null,
-      stickerName: '',
-      hasPendant: null,
-      pendantName: '',
-      fastDelivery: false,
-      priceMin: '',
-      priceMax: ''
-    }
+    const initial = {}
+    visibleFilters.value.forEach((f) => {
+      initial[f.FilterKey || f.filterKey] = ''
+    })
+    filterFormByKey.value = initial
+  }
+
+  function parseQueryStringToParams(qs) {
+    if (!qs || typeof qs !== 'string') return {}
+    const params = {}
+    qs.split('&').forEach((pair) => {
+      const [k, v] = pair.split('=').map((s) => decodeURIComponent(s || '').trim())
+      if (k) params[k] = v
+    })
+    return params
   }
 
   const handleApplyFilter = () => {
-    console.log('应用筛选:', filterForm.value)
-    emit('advanced-filter', filterForm.value)
+    const extraParams = {}
+    visibleFilters.value.forEach((f) => {
+      const key = f.FilterKey || f.filterKey
+      const val = filterFormByKey.value[key]
+      if (val == null || val === '') return
+      if (typeof val === 'string' && val.includes('=')) {
+        Object.assign(extraParams, parseQueryStringToParams(val))
+      } else {
+        extraParams[key] = val
+      }
+    })
+    emit('advanced-filter', extraParams)
     filterDialogVisible.value = false
   }
 
@@ -637,6 +629,13 @@ export function useYYYPCommodityList(props, emit) {
       const res = response.data
       if (res && res.success && res.data) {
         isFavorited.value = !!res.data.isFavorite
+        if (res.data.buyPriceSortList?.length || res.data.abradeRangeList?.length || res.data.filters?.length) {
+          emit('template-info-config', {
+            buyPriceSortList: res.data.buyPriceSortList || [],
+            abradeRangeList: res.data.abradeRangeList || [],
+            filters: res.data.filters || []
+          })
+        }
       } else {
         isFavorited.value = false
       }
@@ -667,7 +666,7 @@ export function useYYYPCommodityList(props, emit) {
     }
   )
 
-  // 在售列表加载完成后，间隔 1.5s 再请求模板详情一次（避免与列表同时请求导致 429）
+  // 在售列表加载完成后，间隔 0.3s 再请求模板详情一次（避免与列表同时请求导致 429）
   let detailDelayTimer = null
   watch(
     () => [props.isSearching, props.showYYYPList, props.yyypCurrentWeapon?.yyyp_id, props.selectedSteamId],
@@ -680,7 +679,7 @@ export function useYYYPCommodityList(props, emit) {
         detailDelayTimer = setTimeout(() => {
           detailDelayTimer = null
           fetchFavoriteStatus()
-        }, 1500)
+        }, 300)
       }
     }
   )
@@ -910,15 +909,21 @@ export function useYYYPCommodityList(props, emit) {
 
   return {
     // 排序和磨损区间
-    sortType,
-    wearRange,
+    sortOptions,
     wearRangeOptions,
+    currentSortKey,
+    currentWearRange,
     handleSortChange,
     handleWearRangeChange,
+    exteriorOptions,
+    currentExterior,
+    handleExteriorChange,
 
-    // 高级筛选
+    // 高级筛选（由 Filters 动态渲染）
     filterDialogVisible,
-    filterForm,
+    visibleFilters,
+    filterFormByKey,
+    getFilterItemValue,
     handleFilterChange,
     handleAdvancedFilter,
     handleResetFilter,
