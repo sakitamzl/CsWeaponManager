@@ -33,3 +33,4 @@ dev_tools_blueprint.route('/dev_tools/units/csqaq/uploadMapping', methods=['POST
 
 # 筛选数据
 dev_tools_blueprint.route('/dev_tools/units/filters/getSteamAccounts', methods=['GET'])(DevToolsFilters.get_steam_accounts)
+dev_tools_blueprint.route('/dev_tools/units/filters/getConfigAccounts', methods=['GET'])(DevToolsFilters.get_config_accounts)

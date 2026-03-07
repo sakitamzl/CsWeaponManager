@@ -424,7 +424,8 @@ export function useDevTool() {
       console.log('开始同步悠悠有品饰品映射, Steam ID:', selectedSteamIdYoupin.value)
 
       const response = await axios.post(apiUrls.youpinSyncWeaponTemplates(), {
-        steamId: selectedSteamIdYoupin.value
+        steamId: selectedSteamIdYoupin.value,
+        syncHistory: false  // dev-tools 获取映射不同步到历史表
       })
 
       if (response.data.success) {

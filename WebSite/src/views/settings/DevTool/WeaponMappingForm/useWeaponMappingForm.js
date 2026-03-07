@@ -6,7 +6,9 @@ import { apiUrls } from '@/config/api.js'
 export default function useWeaponMappingForm() {
   const selectedSteamIdYoupin = ref('')
   const selectedSteamIdBuff = ref('')
-  const steamIdList = ref([])
+  // 悠悠有品：key1=youpin key2=config 的账号列表；BUFF：key1=buff key2=config 的账号列表
+  const youpinConfigList = ref([])
+  const buffConfigList = ref([])
   const isSyncing = ref(false)
   const isSyncingBuff = ref(false)
   const lastSyncTime = ref('')
@@ -32,35 +34,42 @@ export default function useWeaponMappingForm() {
   const csqaqFileSelected = ref(false)
   const csqaqUploadResult = ref(null)
 
-  // 加载Steam ID列表
-  const loadSteamIdList = async () => {
+  // 加载悠悠有品配置账号列表（key1=youpin, key2=config）
+  const loadYoupinConfigList = async () => {
     try {
-      const response = await axios.get(apiUrls.devToolsSteamAccounts())
-      if (response.data.success && response.data.data.length > 0) {
-        steamIdList.value = response.data.data
-        console.log('已加载 Steam ID 列表:', steamIdList.value)
-        // 默认选择第一个
-        if (steamIdList.value.length > 0) {
-          const firstItem = steamIdList.value[0]
-          const defaultSteamId = firstItem.steamID || firstItem.steam_id || ''
-          if (!selectedSteamIdYoupin.value) {
-            selectedSteamIdYoupin.value = defaultSteamId
-          }
-          if (!selectedSteamIdBuff.value) {
-            selectedSteamIdBuff.value = defaultSteamId
-          }
+      const response = await axios.get(apiUrls.devToolsConfigAccounts('youpin'))
+      if (response.data.success && Array.isArray(response.data.data)) {
+        youpinConfigList.value = response.data.data
+        if (youpinConfigList.value.length > 0 && !selectedSteamIdYoupin.value) {
+          selectedSteamIdYoupin.value = youpinConfigList.value[0].steamID || ''
         }
       }
     } catch (error) {
-      console.error('加载Steam ID列表失败:', error)
-      ElMessage.error('加载Steam ID列表失败')
+      console.error('加载悠悠有品配置账号列表失败:', error)
+      ElMessage.error('加载悠悠有品配置账号列表失败')
+    }
+  }
+
+  // 加载BUFF配置账号列表（key1=buff, key2=config）
+  const loadBuffConfigList = async () => {
+    try {
+      const response = await axios.get(apiUrls.devToolsConfigAccounts('buff'))
+      if (response.data.success && Array.isArray(response.data.data)) {
+        buffConfigList.value = response.data.data
+        if (buffConfigList.value.length > 0 && !selectedSteamIdBuff.value) {
+          selectedSteamIdBuff.value = buffConfigList.value[0].steamID || ''
+        }
+      }
+    } catch (error) {
+      console.error('加载BUFF配置账号列表失败:', error)
+      ElMessage.error('加载BUFF配置账号列表失败')
     }
   }
 
   // 同步悠悠有品饰品映射
   const syncWeaponTemplates = async () => {
     if (!selectedSteamIdYoupin.value) {
-      ElMessage.warning('请先选择 Steam ID')
+      ElMessage.warning('请先选择悠悠有品账号')
       return
     }
 
@@ -70,7 +79,7 @@ export default function useWeaponMappingForm() {
 
     try {
       await ElMessageBox.confirm(
-        `确定要同步 Steam ID: ${selectedSteamIdYoupin.value} 的悠悠有品饰品映射吗？此操作可能需要一些时间。`,
+        `确定要同步所选悠悠有品账号的饰品映射吗？此操作可能需要一些时间。`,
         '确认同步',
         {
           confirmButtonText: '确定',
@@ -89,7 +98,8 @@ export default function useWeaponMappingForm() {
       console.log('开始同步悠悠有品饰品映射, Steam ID:', selectedSteamIdYoupin.value)
 
       const response = await axios.post(apiUrls.youpinSyncWeaponTemplates(), {
-        steamId: selectedSteamIdYoupin.value
+        steamId: selectedSteamIdYoupin.value,
+        syncHistory: false  // dev-tools 获取映射不同步到历史表
       })
 
       if (response.data.success) {
@@ -120,7 +130,7 @@ export default function useWeaponMappingForm() {
   // 同步BUFF饰品映射
   const syncBuffTemplates = async () => {
     if (!selectedSteamIdBuff.value) {
-      ElMessage.warning('请先选择 Steam ID')
+      ElMessage.warning('请先选择BUFF账号')
       return
     }
 
@@ -130,7 +140,7 @@ export default function useWeaponMappingForm() {
 
     try {
       await ElMessageBox.confirm(
-        `确定要同步 Steam ID: ${selectedSteamIdBuff.value} 的BUFF饰品映射吗？此操作可能需要一些时间。`,
+        `确定要同步所选BUFF账号的饰品映射吗？此操作可能需要一些时间。`,
         '确认同步',
         {
           confirmButtonText: '确定',
@@ -272,16 +282,18 @@ export default function useWeaponMappingForm() {
     ElMessage.error(errorMessage)
   }
 
-  // 组件挂载时加载Steam ID列表
+  // 组件挂载时加载悠悠有品/BUFF 配置账号列表（key1=youpin|buff, key2=config）
   onMounted(() => {
-    loadSteamIdList()
+    loadYoupinConfigList()
+    loadBuffConfigList()
   })
 
   return {
     apiUrls,
     selectedSteamIdYoupin,
     selectedSteamIdBuff,
-    steamIdList,
+    youpinConfigList,
+    buffConfigList,
     isSyncing,
     isSyncingBuff,
     lastSyncTime,

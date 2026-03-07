@@ -1,8 +1,7 @@
 <template>
   <div class="sync-section">
-    <h2 class="section-title">图片资源包</h2>
-
-    <div class="sync-controls">
+    <div class="section-header">
+      <h2 class="section-title">图片资源包</h2>
       <el-button
         type="primary"
         @click="downloadWeaponIcons"

@@ -22,9 +22,18 @@
   flex-wrap: wrap;
 }
 
+/* 选择设备下拉框：宽度固定，高度与同排按钮一致（32px） */
 .device-select {
   width: 300px;
   min-width: 280px;
+}
+
+.device-select :deep(.el-input__wrapper) {
+  min-height: 32px;
+  height: 32px;
+  padding-top: 0;
+  padding-bottom: 0;
+  box-sizing: border-box;
 }
 
 .device-info,

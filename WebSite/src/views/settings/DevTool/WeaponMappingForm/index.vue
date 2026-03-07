@@ -3,23 +3,24 @@
     <h2 class="section-title">平台饰品映射</h2>
     
     <div class="sync-controls">
-      <!-- 悠悠有品饰品映射 -->
+      <!-- 悠悠有品饰品映射（key1=youpin key2=config 的账号） -->
       <div class="control-group">
         <el-select 
           v-model="selectedSteamIdYoupin" 
-          placeholder="选择 Steam ID" 
+          placeholder="选择悠悠有品账号" 
           class="steam-id-select"
           :disabled="isSyncing"
         >
           <el-option 
-            v-for="item in steamIdList" 
-            :key="item.steamID || item.steam_id" 
-            :label="`${item.dataName || '未命名'} (${item.steamID || item.steam_id || '无ID'})`" 
-            :value="item.steamID || item.steam_id"
+            v-for="item in youpinConfigList" 
+            :key="item.dataID + '_' + (item.steamID || '')" 
+            :label="`${item.dataName || '未命名'} (${item.steamID || '无ID'})`" 
+            :value="item.steamID || ''"
           />
         </el-select>
         
         <el-button 
+          class="mapping-btn"
           type="success" 
           @click="syncWeaponTemplates"
           :disabled="!selectedSteamIdYoupin || isSyncing"
@@ -29,23 +30,24 @@
         </el-button>
       </div>
       
-      <!-- BUFF饰品映射 -->
+      <!-- BUFF饰品映射（key1=buff key2=config 的账号） -->
       <div class="control-group">
         <el-select 
           v-model="selectedSteamIdBuff" 
-          placeholder="选择 Steam ID" 
+          placeholder="选择BUFF账号" 
           class="steam-id-select"
           :disabled="isSyncingBuff"
         >
           <el-option 
-            v-for="item in steamIdList" 
-            :key="item.steamID || item.steam_id" 
-            :label="`${item.dataName || '未命名'} (${item.steamID || item.steam_id || '无ID'})`" 
-            :value="item.steamID || item.steam_id"
+            v-for="item in buffConfigList" 
+            :key="item.dataID + '_' + (item.steamID || '')" 
+            :label="`${item.dataName || '未命名'} (${item.steamID || '无ID'})`" 
+            :value="item.steamID || ''"
           />
         </el-select>
         
         <el-button 
+          class="mapping-btn"
           type="success" 
           @click="syncBuffTemplates"
           :disabled="!selectedSteamIdBuff || isSyncingBuff"
@@ -56,7 +58,7 @@
       </div>
 
       <!-- CSQAQ商品采集 -->
-      <div class="control-group">
+      <div class="control-group csqaq-group">
         <el-upload
           ref="csqaqUploadRef"
           :action="apiUrls.csqaqUploadMapping()"
@@ -68,8 +70,10 @@
           :on-success="handleCsqaqUploadSuccess"
           :on-error="handleCsqaqUploadError"
           :before-upload="beforeCsqaqUpload"
+          class="csqaq-upload-inline"
         >
           <el-button
+            class="csqaq-btn"
             type="success"
             :loading="isUploadingCsqaq"
           >
@@ -77,6 +81,7 @@
           </el-button>
         </el-upload>
         <el-button
+          class="csqaq-btn"
           type="primary"
           @click="submitCsqaqUpload"
           :disabled="!csqaqFileSelected || isUploadingCsqaq"
@@ -84,6 +89,10 @@
         >
           {{ isUploadingCsqaq ? '处理中...' : '提交上传' }}
         </el-button>
+        <span class="csqaq-file-path">
+          文件获取方法：
+          <a href="https://docs.csqaq.com/api-337690892" target="_blank" rel="noopener noreferrer">获取全量站内饰品ID - CSQAQ API 文档</a>
+        </span>
       </div>
     </div>
     

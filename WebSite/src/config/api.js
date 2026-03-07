@@ -482,6 +482,7 @@ export const API_CONFIG = {
 
     // DevTools筛选数据（V2 API）
     DEV_TOOLS_V2_STEAM_ACCOUNTS: '/backENDV2/src/use_webside/settings/dev_tools/units/filters/getSteamAccounts',
+    DEV_TOOLS_V2_GET_CONFIG_ACCOUNTS: '/backENDV2/src/use_webside/settings/dev_tools/units/filters/getConfigAccounts',
 
     
 
@@ -1213,6 +1214,7 @@ export const apiUrls = {
 
   // DevTools 筛选数据（V2 API）
   devToolsSteamAccounts: () => getApiUrl(API_CONFIG.ENDPOINTS.DEV_TOOLS_V2_STEAM_ACCOUNTS),
+  devToolsConfigAccounts: (key1) => getApiUrl(API_CONFIG.ENDPOINTS.DEV_TOOLS_V2_GET_CONFIG_ACCOUNTS) + (key1 ? `?key1=${encodeURIComponent(key1)}&key2=config` : ''),
 
 
 

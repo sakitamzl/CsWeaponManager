@@ -17,16 +17,16 @@
 
 .sync-controls {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   gap: 1rem;
-  flex-wrap: wrap;
 }
 
 .control-group {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
+  gap: 0.75rem;
   padding: 0.75rem;
   background-color: rgba(255, 255, 255, 0.02);
   border-radius: 0.5rem;
@@ -34,8 +34,44 @@
 }
 
 .steam-id-select {
-  width: 200px;
-  min-width: 180px;
+  width: 300px;
+  min-width: 300px;
+}
+
+/* 获取悠悠有品 / 获取BUFF 按钮统一宽度 */
+.mapping-btn {
+  min-width: 220px;
+}
+
+/* CSQAQ 区块：选择文件、提交上传 平齐高度，文件获取路径 同一行 */
+.csqaq-group {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.csqaq-upload-inline {
+  display: inline-flex;
+  align-items: center;
+}
+
+.csqaq-group .csqaq-btn {
+  height: 32px;
+  box-sizing: border-box;
+}
+
+.csqaq-file-path {
+  font-size: 0.875rem;
+  color: #888;
+  margin-left: 0.25rem;
+}
+
+.csqaq-file-path a {
+  color: #409EFF;
+  text-decoration: none;
+}
+
+.csqaq-file-path a:hover {
+  text-decoration: underline;
 }
 
 .sync-info {
