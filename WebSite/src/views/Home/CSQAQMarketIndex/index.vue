@@ -10,23 +10,29 @@
       <span>加载中...</span>
     </div>
 
-    <!-- 数据展示 - 市场指数和折线图 -->
-    <div v-else-if="marketIndexData" class="compact-content">
-      <!-- 市场指数 - 左边数据,右边小折线图 -->
+    <!-- 数据展示 - 折线图有数据即显示（不等指数），布局：指数左、折线图右 -->
+    <div v-else-if="chartData?.values?.length || marketIndexData" class="compact-content">
       <div class="main-item-with-chart">
+        <!-- 指数 - 左边（有指数数据时显示，否则占位） -->
         <div class="main-item-left">
-          <div class="list-content">
-            <div class="list-value">
-              <span class="main-value">{{ marketIndexData.now }}</span>
-              <span class="change-value" :class="marketIndexData.rate >= 0 ? 'positive' : 'negative'">
-                {{ marketIndexData.rate >= 0 ? '+' : '' }}{{ marketIndexData.rate }}%
-                ({{ marketIndexData.rate >= 0 ? '+' : '' }}{{ marketIndexData.amplitude }})
-              </span>
+          <template v-if="marketIndexData">
+            <div class="list-content">
+              <div class="list-value">
+                <span class="main-value">{{ marketIndexData.now }}</span>
+                <span class="change-value" :class="marketIndexData.rate >= 0 ? 'positive' : 'negative'">
+                  {{ marketIndexData.rate >= 0 ? '+' : '' }}{{ marketIndexData.rate }}%
+                  ({{ marketIndexData.rate >= 0 ? '+' : '' }}{{ marketIndexData.amplitude }})
+                </span>
+              </div>
+              <div class="list-update">更新时间: {{ formatUpdateTime }}</div>
             </div>
-            <div class="list-update">更新时间: {{ formatUpdateTime }}</div>
-          </div>
+          </template>
+          <template v-else>
+            <span class="loading-sub">加载指数中...</span>
+          </template>
         </div>
-        <div class="main-item-right">
+        <!-- 折线图 - 右边（有数据即显示，不等待指数） -->
+        <div v-if="chartData?.values?.length" class="main-item-right">
           <div ref="chartContainer" class="mini-chart-container"></div>
         </div>
       </div>
@@ -78,6 +84,7 @@ import { useCSQAQMarketIndex } from './useCSQAQMarketIndex.js'
 const {
   dataLoading,
   marketIndexData,
+  chartData,
   chartContainer,
   lastUpdate,
   indexListData

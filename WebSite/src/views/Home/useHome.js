@@ -1352,6 +1352,21 @@ export function useHome() {
       loadSellChartData()
     ])
 
+    // 确保 DOM 已更新后，若图表容器就绪但未绘制（首次加载时 ref 可能尚未绑定），用已有数据重绘
+    await nextTick()
+    if (inventoryChartRef.value && !inventoryChart && allInventoryData.value.length >= 0) {
+      await loadInventoryChart(allInventoryData.value)
+    }
+    if (componentChartRef.value && !componentChart && allComponentsData.value.length >= 0) {
+      await loadComponentChart(allComponentsData.value)
+    }
+    if (buyChartRef.value && !buyChart && allBuyData.value.length >= 0) {
+      await loadBuyChart(allBuyData.value)
+    }
+    if (sellChartRef.value && !sellChart && allSellData.value.length >= 0) {
+      await loadSellChart(allSellData.value)
+    }
+
     // 初始化 ResizeObserver
     await nextTick()
     initResizeObserver()
@@ -1438,7 +1453,7 @@ export function useHome() {
   // 设备类型监听取消函数
   let unwatchDevice = null
 
-  onMounted(() => {
+  onMounted(async () => {
     // 应用设备类型类到 body
     const deviceType = applyDeviceClass()
     console.log('当前设备类型:', deviceType)
@@ -1453,7 +1468,9 @@ export function useHome() {
       if (sellChart) sellChart.resize()
     })
 
-    loadAllStats()
+    // 等待 DOM 与 ref 就绪后再加载数据，避免图表容器未挂载时绘制失败
+    await nextTick()
+    await loadAllStats()
     // 监听窗口大小变化
     window.addEventListener('resize', handleResize)
   })

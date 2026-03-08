@@ -132,6 +132,17 @@
       </div>
       <div class="yyyp-weapon-info">
         <el-button
+          v-if="yyypCurrentWeapon && yyypCurrentWeapon.yyyp_id != null && yyypCurrentWeapon.yyyp_id !== ''"
+          type="success"
+          size="small"
+          class="yyyp-header-height-btn"
+          @click.stop="handleOpenWantedDialog"
+          :loading="submittingWanted"
+          title="发布求购"
+        >
+          发布求购
+        </el-button>
+        <el-button
           type="primary"
           size="small"
           class="yyyp-header-height-btn"

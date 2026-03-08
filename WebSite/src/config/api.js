@@ -332,9 +332,9 @@ export const API_CONFIG = {
     MINING_HISTORY_DELETE: (steamId) => `/backENDV2/src/use_spider/steam/mining/history/${steamId}`,  // 删除挖掘历史
     MINING_LATEST: '/backENDV2/src/use_spider/steam/mining/latest',        // 最新挖掘记录
 
-    CSQAQ_MARKET_INDEX: '/spiderApiV2/src/web_site/csqaq/units/home/market_index/getMarketIndex',  // 已拆分为下两个
-    CSQAQ_INDEX_DATA: '/spiderApiV2/src/web_site/csqaq/units/home/market_index/getIndexData',    // CSQAQ 指数（current_data）
-    CSQAQ_CHART_DATA: '/spiderApiV2/src/web_site/csqaq/units/home/market_index/getChartData',    // CSQAQ 折线图（最新24小时）
+    CSQAQ_MARKET_INDEX: '/spiderApiV2/src/web_site/csqaq/units/weapon_index/market_index/getMarketIndex',  // 已拆分为下两个
+    CSQAQ_INDEX_DATA: '/spiderApiV2/src/web_site/csqaq/units/weapon_index/market_index/getIndexData',    // CSQAQ 指数（current_data）
+    CSQAQ_CHART_DATA: '/spiderApiV2/src/web_site/csqaq/units/weapon_index/market_index/getChartData',    // CSQAQ 折线图（最新24小时）
     CSQAQ_KLINE: '/spiderApiV2/src/web_site/csqaq/units/data_website/market_overview/getKline',  // CSQAQ K线数据（V2 API）
 
     CSQAQ_GET_GOODS: '/csqaqSpiderV1/getGoodsList',  // CSQAQ同步获取商品

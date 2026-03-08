@@ -66,12 +66,20 @@
         <div class="form-label-col">
           <span class="form-label required">求购单价¥</span>
         </div>
-        <div class="form-input-col">
+        <div class="form-input-col form-input-with-btn">
           <el-input
             v-model="formData.unitPrice"
             :placeholder="`最低¥${templateData.purchase_info.min_price}`"
             @input="onPriceInput"
           />
+          <el-button
+            type="primary"
+            size="small"
+            class="one-click-price-btn"
+            @click="fillMaxPurchasePrice"
+          >
+            一键定价
+          </el-button>
         </div>
       </div>
 
@@ -128,7 +136,13 @@
         </div>
         <div class="footer-actions">
           <el-button @click="handleClose">取消</el-button>
-          <el-button type="primary" :disabled="!canSubmit" @click="handleConfirm">确定</el-button>
+          <el-button
+            type="primary"
+            :disabled="!canSubmit"
+            @click="handleConfirm"
+          >
+            {{ !isBalanceSufficient && !balanceLoading && totalPriceNum > 0 ? '余额不足' : '确定' }}
+          </el-button>
         </div>
       </div>
     </template>
@@ -179,10 +193,26 @@ const totalPrice = computed(() => {
   return (price * qty).toFixed(2)
 })
 
+/** 求购总价（数字，用于与余额比较） */
+const totalPriceNum = computed(() => parseFloat(totalPrice.value) || 0)
+
+/** 求购余额（数字） */
+const balanceYuan = computed(() =>
+  props.purchaseBalance != null ? Number(props.purchaseBalance.balance_yuan) : NaN
+)
+
+/** 余额是否充足：余额 ≥ 求购总价 */
+const isBalanceSufficient = computed(() =>
+  !isNaN(balanceYuan.value) && balanceYuan.value >= totalPriceNum.value
+)
+
 const canSubmit = computed(() => {
   const price = parseFloat(formData.value.unitPrice)
   const qty = parseInt(formData.value.quantity)
-  return !isNaN(price) && price > 0 && !isNaN(qty) && qty >= 1
+  const formValid = !isNaN(price) && price > 0 && !isNaN(qty) && qty >= 1
+  if (!formValid) return false
+  if (props.balanceLoading) return false
+  return isBalanceSufficient.value
 })
 
 const onPriceInput = () => {
@@ -191,6 +221,15 @@ const onPriceInput = () => {
 
 const onQuantityInput = () => {
   formData.value.quantity = formData.value.quantity.replace(/[^0-9]/g, '')
+}
+
+/** 一键定价：按求购最高价填入单价 */
+const fillMaxPurchasePrice = () => {
+  const maxPrice = props.templateData?.template_info?.max_purchase_price
+  if (maxPrice != null && maxPrice !== '') {
+    const str = String(maxPrice).replace(/[^0-9.]/g, '')
+    formData.value.unitPrice = str || '0'
+  }
 }
 
 const handleClose = () => {
@@ -224,6 +263,17 @@ const handleConfirm = async () => {
   const maxQty = props.templateData?.purchase_info?.quantity || 999
   if (qty > maxQty) {
     ElMessageBox.alert(`数量不能超过 ${maxQty}`, '提示', { type: 'warning' })
+    return
+  }
+
+  const total = price * qty
+  const balance = props.purchaseBalance != null ? Number(props.purchaseBalance.balance_yuan) : 0
+  if (balance < total) {
+    ElMessageBox.alert(
+      `求购余额不足，无法发布求购。当前余额 ¥${balance.toFixed(2)}，需要 ¥${total.toFixed(2)}。请从钱包转入或减少求购数量/单价。`,
+      '提示',
+      { type: 'warning' }
+    )
     return
   }
 
@@ -370,6 +420,29 @@ const handleConfirm = async () => {
 .form-input-col {
   flex: 1;
   min-width: 0;
+}
+
+.form-input-with-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-input-with-btn .el-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.form-input-with-btn .el-input .el-input__wrapper {
+  height: 32px;
+  box-sizing: border-box;
+}
+
+.one-click-price-btn {
+  flex-shrink: 0;
+  height: 32px;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .form-label {

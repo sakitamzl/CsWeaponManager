@@ -10,6 +10,14 @@
             placeholder="请输入ApiToken"
           />
         </el-form-item>
+        <el-form-item label="ApiKEY申请链接">
+          <a
+            href="https://csqaq.com/detail"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="api-key-link"
+          >https://csqaq.com/detail</a>
+        </el-form-item>
       </el-collapse-item>
     </el-collapse>
   </div>

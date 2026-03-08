@@ -197,6 +197,7 @@ export function useCSQAQMarketIndex() {
         }
       ]
     })
+    chartInstance.resize()
 
     // console.log('[CSQAQ] 图表已更新,数据点数量:', values.length)
   }
@@ -253,57 +254,62 @@ export function useCSQAQMarketIndex() {
       lastUpdate.value = new Date()
       chartOk = true
       nextTick(() => {
-        if (chartInstance && chartData.value?.values?.length) updateChart()
+        if (chartInstance && chartData.value?.values?.length) {
+          updateChart()
+          if (chartInstance) chartInstance.resize()
+        }
       })
     }
 
-    const pIndex = fetch(apiUrls.csqaqIndexData())
-      .then(r => r.json())
-      .then((result) => {
-        applyIndex(result)
-        return result
-      })
-      .catch((err) => {
-        console.error('[CSQAQ] 指数 API 失败:', err)
-        ElMessage.error('指数数据请求失败: ' + (err.message || '未知错误'))
-      })
-
-    const pChart = fetch(apiUrls.csqaqChartData())
-      .then(r => r.json())
-      .then((result) => {
-        applyChart(result)
-        return result
-      })
-      .catch((err) => {
-        console.error('[CSQAQ] 折线图 API 失败:', err)
-        ElMessage.error('折线图数据请求失败: ' + (err.message || '未知错误'))
-      })
-
-    await Promise.allSettled([pIndex, pChart])
-    dataLoading.value = false
+    // 先请求折线图，返回后立即结束 loading、先显示折线图，再请求指数
+    try {
+      const chartRes = await fetch(apiUrls.csqaqChartData()).then(r => r.json())
+      applyChart(chartRes)
+      dataLoading.value = false
+    } catch (err) {
+      console.error('[CSQAQ] 折线图 API 失败:', err)
+      ElMessage.error('折线图数据请求失败: ' + (err.message || '未知错误'))
+      dataLoading.value = false
+    }
+    try {
+      const indexRes = await fetch(apiUrls.csqaqIndexData()).then(r => r.json())
+      applyIndex(indexRes)
+    } catch (err) {
+      console.error('[CSQAQ] 指数 API 失败:', err)
+      ElMessage.error('指数数据请求失败: ' + (err.message || '未知错误'))
+    }
     if (indexOk || chartOk) ElMessage.success('CSQAQ市场指数数据已更新')
+
+    // 数据加载完成后再次确保折线图渲染：DOM 已显示（marketIndexData 已设），此时补初始化/更新
+    await nextTick()
+    if (chartContainer.value && chartData.value?.values?.length) {
+      if (!chartInstance) {
+        initChart()
+      }
+      if (chartInstance) {
+        updateChart()
+        chartInstance.resize()
+      }
+    }
   }
 
 
   // 监听 marketIndexData 变化,确保容器渲染后初始化图表
   watch(marketIndexData, (newData) => {
     if (newData) {
-      // console.log('[CSQAQ] marketIndexData 已加载,准备初始化图表')
       nextTick(() => {
-        // console.log('[CSQAQ] DOM 更新后,chartContainer.value:', !!chartContainer.value)
-        if (chartContainer.value && !chartInstance) {
-          // console.log('[CSQAQ] 容器已就绪,初始化图表')
-          const initSuccess = initChart()
-          // 如果初始化成功且数据已存在,立即更新图表
-          if (initSuccess && chartData.value && chartData.value.values && chartData.value.values.length > 0) {
-            // console.log('[CSQAQ] 数据已存在,立即更新图表')
+        nextTick(() => {
+          if (chartContainer.value && !chartInstance) {
+            const initSuccess = initChart()
+            if (initSuccess && chartData.value?.values?.length) {
+              updateChart()
+              if (chartInstance) chartInstance.resize()
+            }
+          } else if (chartInstance && chartData.value?.values?.length) {
             updateChart()
+            chartInstance.resize()
           }
-        } else if (!chartContainer.value) {
-          // console.warn('[CSQAQ] 容器尚未渲染到 DOM')
-        } else if (chartInstance) {
-          // console.log('[CSQAQ] 图表实例已存在，跳过初始化')
-        }
+        })
       })
     }
   })
@@ -361,6 +367,7 @@ export function useCSQAQMarketIndex() {
     // 状态
     dataLoading,
     marketIndexData,
+    chartData,
     chartContainer,
     lastUpdate,
     indexListData,

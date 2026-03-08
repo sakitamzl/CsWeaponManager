@@ -897,7 +897,7 @@ export function useYYYPCommodityList(props, emit) {
           referencePrice: ti.reference_price || '0',
           minSellPrice: ti.min_sell_price || '0',
           maxPurchasePrice: ti.max_purchase_price || '9999999.99',
-          purchasePrice,
+          purchasePrice: String(unitPrice).trim(),
           purchaseNum,
           needPaymentAmount: preCheckResult.needPaymentAmount,
           incrementServiceCode,
@@ -919,7 +919,8 @@ export function useYYYPCommodityList(props, emit) {
       }
     } catch (error) {
       if (error !== 'cancel') {
-        ElMessage.error('发布求购失败: ' + (error.message || '未知错误'))
+        const msg = error.response?.data?.message || error.message || '未知错误'
+        ElMessage.error('发布求购失败: ' + msg)
       }
     } finally {
       submittingWanted.value = false

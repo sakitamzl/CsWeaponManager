@@ -2114,6 +2114,7 @@ export function useDataSource() {
     const defaultType = availableTypes[0]
     inputForm.value.type = defaultType
     inputForm.value.name = getSourceTypeLabel(defaultType)
+    inputForm.value.enabled = true // 独立数据源创建时默认开启 status = 1
     
     addDialogVisible.value = true
   }

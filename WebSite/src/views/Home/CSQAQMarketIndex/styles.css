@@ -102,6 +102,12 @@
   color: #606266;
 }
 
+/* 指数加载占位 */
+.loading-sub {
+  font-size: 13px;
+  color: #606266;
+}
+
 /* 无数据 */
 .compact-empty {
   display: flex;
