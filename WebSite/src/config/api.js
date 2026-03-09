@@ -558,6 +558,7 @@ export const API_CONFIG = {
     STOCK_COMPONENTS_UPDATE_BUY_PRICE: (steamId, goodsAssetId) => `/backENDV2/src/use_webside/stock_components/units/price/updateBuyPrice/${steamId}/${goodsAssetId}`,
     STOCK_COMPONENTS_AUTO_FILL_PRICES: (steamId) => `/backENDV2/src/use_webside/stock_components/units/price/autoFillPrices/${steamId}`,
     STOCK_COMPONENTS_FILL_REFERENCE_PRICE: (steamId, source) => `/backENDV2/src/use_webside/stock_components/units/price/fillReferencePrice/${steamId}/${source}`,
+    STOCK_COMPONENTS_UPDATE_PRICES_FROM_CSQAQ: '/spiderApiV2/src/web_site/csqaq/units/stock_components/updatePricesFromCsqaq',
 
     // 悠悠有品租赁相关
 
@@ -1292,6 +1293,7 @@ export const apiUrls = {
   stockComponentsUpdateBuyPrice: (steamId, goodsAssetId) => getApiUrl(API_CONFIG.ENDPOINTS.STOCK_COMPONENTS_UPDATE_BUY_PRICE(steamId, goodsAssetId)),
   stockComponentsAutoFillPrices: (steamId) => getApiUrl(API_CONFIG.ENDPOINTS.STOCK_COMPONENTS_AUTO_FILL_PRICES(steamId)),
   stockComponentsFillReferencePrice: (steamId, source) => getApiUrl(API_CONFIG.ENDPOINTS.STOCK_COMPONENTS_FILL_REFERENCE_PRICE(steamId, source)),
+  stockComponentsUpdatePricesFromCsqaq: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.STOCK_COMPONENTS_UPDATE_PRICES_FROM_CSQAQ),
 
   // 悠悠有品租赁API
 

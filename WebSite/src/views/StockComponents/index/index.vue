@@ -806,6 +806,28 @@
         </span>
       </template>
     </el-dialog>
+
+    <!-- 更新平台价格：选择数据来源 -->
+    <el-dialog
+      v-model="platformPriceDialogVisible"
+      title="更新平台价格"
+      width="400px"
+      :close-on-click-modal="true"
+    >
+      <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
+        <el-button type="primary" @click="handleFillFromDatabase" :loading="platformPriceLoading">
+          从数据库同步
+        </el-button>
+        <el-button type="success" @click="handleFillFromCsqaq" :loading="platformPriceLoading">
+          从 CSQAQ 获取
+        </el-button>
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="platformPriceDialogVisible = false">取消</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 

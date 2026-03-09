@@ -32,6 +32,7 @@ export function useStockComponents() {
   const updateAbnormalLoading = ref(false)
   const autoFillLoading = ref(false)
   const platformPriceLoading = ref(false)
+  const platformPriceDialogVisible = ref(false)
   const searchText = ref('')
 
   // 视图模式持久化：默认卡片；如果本地保存了选择则恢复
@@ -1324,37 +1325,36 @@ export function useStockComponents() {
     }
   }
 
-  // 获取/更新所有平台价格（悠悠有品 + BUFF）
-  const handleFillAllPlatformPrices = async () => {
+  // 打开「更新平台价格」选择弹窗
+  const handleFillAllPlatformPrices = () => {
     if (!selectedSteamId.value) {
       ElMessage.warning('请先选择Steam账号')
       return
     }
+    platformPriceDialogVisible.value = true
+  }
 
+  // 从数据库同步：使用 weapon_classID 表的价格更新 steam_stockComponents（原有逻辑）
+  const handleFillFromDatabase = async () => {
+    platformPriceDialogVisible.value = false
     platformPriceLoading.value = true
     try {
-      ElMessage.info('正在更新平台价格（悠悠有品 + BUFF），请稍候...')
-
-      // 依次调用悠悠有品和BUFF价格接口，强制重新获取最新价格
+      ElMessage.info('正在从数据库同步平台价格（悠悠有品 + BUFF），请稍候...')
       const yyypResponse = await axios.post(
         apiUrls.stockComponentsFillReferencePrice(selectedSteamId.value, 'yyyp'),
         { force_update: true }
       )
-
       const buffResponse = await axios.post(
         apiUrls.stockComponentsFillReferencePrice(selectedSteamId.value, 'buff'),
         { force_update: true }
       )
-
-      // 检查两个接口的返回结果
       const yyypSuccess = yyypResponse.data.success
       const buffSuccess = buffResponse.data.success
-
       if (yyypSuccess && buffSuccess) {
         const yyypData = yyypResponse.data.data
         const buffData = buffResponse.data.data
         ElMessage.success({
-          message: `平台价格强制更新完成！\n悠悠有品：更新 ${yyypData.updated} 条\nBUFF：更新 ${buffData.updated} 条`,
+          message: `平台价格同步完成！\n悠悠有品：更新 ${yyypData.updated} 条\nBUFF：更新 ${buffData.updated} 条`,
           duration: 5000,
           showClose: true
         })
@@ -1365,13 +1365,41 @@ export function useStockComponents() {
       } else {
         ElMessage.error('平台价格更新失败')
       }
-
-      // 重新加载数据和统计信息
       await loadComponentStats()
       await (groupMode.value ? loadGroupedData() : loadComponentData())
     } catch (error) {
       console.error('平台价格更新失败:', error)
       ElMessage.error('平台价格更新失败: ' + (error.response?.data?.message || error.message))
+    } finally {
+      platformPriceLoading.value = false
+    }
+  }
+
+  // 从 CSQAQ 获取：Spider 调 CSQAQ 查价并写入 Backend steam_stockComponents
+  const handleFillFromCsqaq = async () => {
+    platformPriceDialogVisible.value = false
+    platformPriceLoading.value = true
+    try {
+      ElMessage.info('正在从 CSQAQ 获取平台价格，请稍候...')
+      const res = await axios.post(apiUrls.stockComponentsUpdatePricesFromCsqaq(), {
+        steam_id: selectedSteamId.value
+      })
+      const ok = res.data && res.data.success
+      const data = res.data && res.data.data
+      if (ok && data) {
+        ElMessage.success({
+          message: `CSQAQ 价格更新完成！写入 ${data.updated ?? 0} 条`,
+          duration: 4000,
+          showClose: true
+        })
+      } else {
+        ElMessage.error((res.data && res.data.message) || '从 CSQAQ 更新价格失败')
+      }
+      await loadComponentStats()
+      await (groupMode.value ? loadGroupedData() : loadComponentData())
+    } catch (error) {
+      console.error('从 CSQAQ 更新价格失败:', error)
+      ElMessage.error('从 CSQAQ 更新价格失败: ' + (error.response?.data?.message || error.message))
     } finally {
       platformPriceLoading.value = false
     }
@@ -1888,6 +1916,7 @@ export function useStockComponents() {
     updateAllLoading,
     updateAbnormalLoading,
     platformPriceLoading,
+    platformPriceDialogVisible,
     removeLoading,
     componentData,
     groupedData,
@@ -1952,6 +1981,8 @@ export function useStockComponents() {
     handleToggleGroupMode,
     handleFillReferencePrice,
     handleFillAllPlatformPrices,
+    handleFillFromDatabase,
+    handleFillFromCsqaq,
     startEdit,
     finishEdit,
     cancelEdit,
