@@ -30,6 +30,20 @@
   width: 120px;
 }
 
+.chart-controls .chart-view-toggle .el-radio-button__inner {
+  font-size: 18px !important;
+  padding: 6px 14px;
+}
+
+.chart-controls .chart-select .el-select .el-input__wrapper {
+  font-size: 18px !important;
+  height: 34px;
+}
+
+.chart-controls .el-button span {
+  font-size: 18px !important;
+}
+
 .chart-row {
   display: flex;
   gap: 16px;

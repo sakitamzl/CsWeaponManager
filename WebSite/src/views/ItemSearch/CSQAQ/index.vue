@@ -5,16 +5,6 @@
         <!-- 红框区域已隐藏：标题、饰品名、磨损条件按钮 -->
         <div class="good-detail-panel" v-loading="goodDetailLoading" element-loading-text="加载详情...">
           <template v-if="goodDetail?.data?.goods_info">
-            <div
-              v-if="statisticData?.length"
-              class="good-detail-statistic"
-              @click="openStatisticDialog"
-            >
-              <span class="label">当前存世量</span>
-              <span class="value">{{ statisticData[statisticData.length - 1].statistic }}</span>
-              <span class="hint">点击查看走势</span>
-            </div>
-
             <div class="good-detail-overview">
               <div class="overview-card overview-card--today" v-if="hasTodayStat(goodDetail.data.goods_info)">
                 <span class="overview-card-label">今日{{ getTodayDir(goodDetail.data.goods_info) }}</span>
@@ -121,7 +111,7 @@
       </div>
       <div class="chart-right">
         <div class="chart-controls">
-          <el-radio-group v-model="chartViewMode" size="small">
+          <el-radio-group v-model="chartViewMode" size="small" class="chart-view-toggle">
             <el-radio-button
               v-for="mode in CHART_VIEW_MODES"
               :key="mode.value"
@@ -165,7 +155,7 @@
 </template>
 
 <script>
-import { computed, toRef } from 'vue'
+import { computed, toRef, watch } from 'vue'
 import { useCSQAQ } from './useCSQAQ.js'
 
 export default {
@@ -173,19 +163,31 @@ export default {
   props: {
     chartWeapon: { type: Object, default: null },
     showYYYPList: { type: Boolean, default: false },
-    showBuffList: { type: Boolean, default: false }
+    showBuffList: { type: Boolean, default: false },
+    statisticDialogTrigger: { type: Number, default: 0 }
   },
-  setup(props) {
+  setup(props, { emit }) {
     const chartWeaponRef = toRef(props, 'chartWeapon')
     const showYYYPListRef = toRef(props, 'showYYYPList')
     const showBuffListRef = toRef(props, 'showBuffList')
+    const statisticTriggerRef = toRef(props, 'statisticDialogTrigger')
 
     const visible = computed(() => !!props.chartWeapon)
+
+    const csqaqState = useCSQAQ(chartWeaponRef, showYYYPListRef, showBuffListRef, {
+      onStatisticLoaded: (value) => emit('statistic-loaded', value)
+    })
+
+    watch(statisticTriggerRef, (val, oldVal) => {
+      if (val !== oldVal && val > 0 && csqaqState.openStatisticDialog) {
+        csqaqState.openStatisticDialog()
+      }
+    })
 
     return {
       visible,
       chartWeapon: chartWeaponRef,
-      ...useCSQAQ(chartWeaponRef, showYYYPListRef, showBuffListRef)
+      ...csqaqState
     }
   }
 }

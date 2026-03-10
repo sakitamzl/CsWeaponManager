@@ -42,46 +42,6 @@
         </el-button>
       </div>
 
-      <!-- CSQAQ K线图表 -->
-      <el-card class="chart-card" v-loading="loadingCSQAQ">
-        <template #header>
-          <div class="card-header">
-            <div class="header-left">
-              <div class="title-with-icon">
-                <img src="/icons/CSQAQ.png" alt="CSQAQ" class="title-icon" />
-                <span class="chart-title">CSQAQ 市场指数K线图</span>
-              </div>
-              
-              <!-- 市场统计信息 -->
-              <div class="stats-inline" v-if="statsDataCSQAQ">
-                <div class="stat-inline-item">
-                  <span class="stat-inline-label">当前指数</span>
-                  <span class="stat-inline-value" :class="{ 'up': statsDataCSQAQ.change > 0, 'down': statsDataCSQAQ.change < 0 }">
-                    {{ statsDataCSQAQ.latest }}
-                  </span>
-                </div>
-                <div class="stat-inline-item">
-                  <span class="stat-inline-label">涨跌幅</span>
-                  <span class="stat-inline-value" :class="{ 'up': statsDataCSQAQ.change > 0, 'down': statsDataCSQAQ.change < 0 }">
-                    {{ statsDataCSQAQ.change > 0 ? '+' : '' }}{{ statsDataCSQAQ.change }}%
-                  </span>
-                </div>
-                <div class="stat-inline-item">
-                  <span class="stat-inline-label">最高</span>
-                  <span class="stat-inline-value">{{ statsDataCSQAQ.high }}</span>
-                </div>
-                <div class="stat-inline-item">
-                  <span class="stat-inline-label">最低</span>
-                  <span class="stat-inline-value">{{ statsDataCSQAQ.low }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </template>
-        
-        <div ref="chartRefCSQAQ" class="chart-container"></div>
-      </el-card>
-
       <!-- SteamDT K线图表 -->
       <el-card class="chart-card" v-loading="loadingSteamDT" v-if="queryForm.period !== '4h'">
         <template #header>
@@ -140,12 +100,9 @@ import { useMarketOverview } from './useMarketOverview.js'
 const {
   loading,
   loadingSteamDT,
-  loadingCSQAQ,
   chartRefSteamDT,
-  chartRefCSQAQ,
   lastUpdateTime,
   statsDataSteamDT,
-  statsDataCSQAQ,
   queryForm,
   changePeriod,
   fetchAllData,

@@ -82,13 +82,10 @@ export function useItemSearch() {
     return Object.keys(extra).length > 0
   })
 
-  // 当前 CSQAQ 存世量（用于“搜索结果”标题处展示）
-  const csqaqStatisticValue = computed(() => {
-    const statList = chartWeapon.value?.csqaq_statistic_list
-    if (!Array.isArray(statList) || statList.length === 0) return null
-    const last = statList[statList.length - 1]
-    return last?.statistic ?? null
-  })
+  // 表头展示的存世量（由 CSQAQ 子组件加载完成后通过事件写入，切换饰品时清空）
+  const headerStatisticValue = ref(null)
+  // 触发 CSQAQ 子组件打开存世量曲线对话框的计数器
+  const statisticDialogTrigger = ref(0)
 
   // 多选模式相关
   const isMultiSelectMode = ref(false)  // 是否开启多选模式
@@ -2596,6 +2593,15 @@ export function useItemSearch() {
 
   // 当前选中的武器（供 CSQAQ 组件使用）：仅在选择悠悠有品或 BUFF 并加载对应列表后有值，不因搜索而自动取第一条
   const chartWeapon = computed(() => yyypCurrentWeapon.value || buffCurrentWeapon.value)
+  watch(chartWeapon, () => {
+    headerStatisticValue.value = null
+  })
+
+  const openStatisticFromHeader = () => {
+    document.querySelector('.chart-card')?.scrollIntoView({ behavior: 'smooth' })
+    // 通知 CSQAQ 子组件打开存世量曲线对话框
+    statisticDialogTrigger.value++
+  }
 
   // 悠悠有品筛选处理
   const handleYYYPFilterChange = async (filterType) => {
@@ -2813,7 +2819,8 @@ export function useItemSearch() {
     displayMode,
     toggleSearchResults,
     currentViewingWeaponName,
-    csqaqStatisticValue,
+    headerStatisticValue,
+    statisticDialogTrigger,
     handleSearchWeapon,
     handleRefreshSearch,
     handleSteamIdChange,
@@ -2926,6 +2933,7 @@ export function useItemSearch() {
     handleCurrentChange,
     // 第三方网站跳转
     openCSQAQ,
+    openStatisticFromHeader,
     openSteamDT,
     chartWeapon,
     // 悠悠有品筛选

@@ -8,14 +8,10 @@ import { apiUrls } from '@/config/api'
 export function useMarketOverview() {
   const loading = ref(false)
   const loadingSteamDT = ref(false)
-  const loadingCSQAQ = ref(false)
   const chartRefSteamDT = ref(null)
-  const chartRefCSQAQ = ref(null)
   const lastUpdateTime = ref('')
   const statsDataSteamDT = ref(null)
-  const statsDataCSQAQ = ref(null)
   let chartInstanceSteamDT = null
-  let chartInstanceCSQAQ = null
   
   const queryForm = reactive({
     period: '1h'
@@ -217,9 +213,6 @@ export function useMarketOverview() {
     if (chartRefSteamDT.value) {
       chartInstanceSteamDT = initChart(chartRefSteamDT.value, chartInstanceSteamDT)
     }
-    if (chartRefCSQAQ.value) {
-      chartInstanceCSQAQ = initChart(chartRefCSQAQ.value, chartInstanceCSQAQ)
-    }
   }
   
   // 计算移动平均线
@@ -269,38 +262,10 @@ export function useMarketOverview() {
     }
   }
   
-  // 获取 CSQAQ 数据
-  const fetchCSQAQData = async () => {
-    loadingCSQAQ.value = true
-    try {
-      const response = await axios.get(apiUrls.csqaqKline(), {
-        params: {
-          period: queryForm.period
-        }
-      })
-      
-      if (response.data && response.data.code === 200) {
-        const data = response.data.data
-        updateChart(data, chartInstanceCSQAQ, 'CSQAQ')
-        updateStats(data, 'CSQAQ')
-      } else {
-        throw new Error(response.data.message || 'CSQAQ数据加载失败')
-      }
-    } catch (error) {
-      console.error('获取CSQAQ数据失败:', error)
-      ElMessage.error('获取CSQAQ数据失败: ' + (error.message || '请检查网络连接'))
-    } finally {
-      loadingCSQAQ.value = false
-    }
-  }
-  
   // 获取所有数据
   const fetchAllData = async () => {
     loading.value = true
-    await Promise.all([
-      fetchSteamDTData(),
-      fetchCSQAQData()
-    ])
+    await fetchSteamDTData()
     lastUpdateTime.value = new Date().toLocaleString('zh-CN')
     loading.value = false
     ElMessage.success('数据加载成功')
@@ -571,8 +536,6 @@ export function useMarketOverview() {
     
     if (dataSource === 'SteamDT') {
       statsDataSteamDT.value = stats
-    } else if (dataSource === 'CSQAQ') {
-      statsDataCSQAQ.value = stats
     }
   }
   
@@ -587,9 +550,6 @@ export function useMarketOverview() {
     if (chartInstanceSteamDT) {
       chartInstanceSteamDT.resize()
     }
-    if (chartInstanceCSQAQ) {
-      chartInstanceCSQAQ.resize()
-    }
   }
   
   onMounted(async () => {
@@ -603,21 +563,15 @@ export function useMarketOverview() {
     if (chartInstanceSteamDT) {
       chartInstanceSteamDT.dispose()
     }
-    if (chartInstanceCSQAQ) {
-      chartInstanceCSQAQ.dispose()
-    }
     window.removeEventListener('resize', handleResize)
   })
 
   return {
     loading,
     loadingSteamDT,
-    loadingCSQAQ,
     chartRefSteamDT,
-    chartRefCSQAQ,
     lastUpdateTime,
     statsDataSteamDT,
-    statsDataCSQAQ,
     queryForm,
     changePeriod,
     fetchAllData,

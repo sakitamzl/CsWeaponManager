@@ -95,11 +95,11 @@
             当前饰品：{{ currentViewingWeaponName }}
           </span>
           <span
-            v-if="csqaqStatisticValue != null"
+            v-if="headerStatisticValue != null"
             class="csqaq-statistic-in-results"
-            @click.stop="openCSQAQFromHeader"
+            @click.stop="openStatisticFromHeader"
           >
-            存世量：{{ csqaqStatisticValue }}
+            存世量：{{ headerStatisticValue }}
           </span>
         </span>
         <div class="header-actions">
@@ -456,6 +456,8 @@
       :chart-weapon="chartWeapon"
       :show-yyyp-list="showYYYPList"
       :show-buff-list="showBuffList"
+      :statistic-dialog-trigger="statisticDialogTrigger"
+      @statistic-loaded="headerStatisticValue = $event"
     />
 
     <!-- 多选模式下的操作栏 -->

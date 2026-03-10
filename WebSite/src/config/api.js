@@ -332,13 +332,12 @@ export const API_CONFIG = {
     MINING_HISTORY_DELETE: (steamId) => `/backENDV2/src/use_spider/steam/mining/history/${steamId}`,  // 删除挖掘历史
     MINING_LATEST: '/backENDV2/src/use_spider/steam/mining/latest',        // 最新挖掘记录
 
-    CSQAQ_MARKET_INDEX: '/spiderApiV2/src/web_site/csqaq/units/weapon_index/market_index/getMarketIndex',  // 已拆分为下两个
-    CSQAQ_INDEX_DATA: '/spiderApiV2/src/web_site/csqaq/units/weapon_index/market_index/getIndexData',    // CSQAQ 指数（current_data）
-    CSQAQ_CHART_DATA: '/spiderApiV2/src/web_site/csqaq/units/weapon_index/market_index/getChartData',    // CSQAQ 折线图（最新24小时）
-    CSQAQ_KLINE: '/spiderApiV2/src/web_site/csqaq/units/data_website/market_overview/getKline',  // CSQAQ K线数据（V2 API）
-    CSQAQ_WEAPON_INFO_CHART: '/spiderApiV2/src/web_site/csqaq/units/weapon_info/chart',  // 单件饰品图表（good_id/key/platform/period/style）
-    CSQAQ_WEAPON_INFO_GOOD: '/spiderApiV2/src/web_site/csqaq/units/weapon_info/infoGood',  // 单件饰品详情（query: id）
-    CSQAQ_WEAPON_INFO_STATISTIC: '/spiderApiV2/src/web_site/csqaq/units/weapon_info/statistic',  // 单件饰品存世量走势（query: id）
+    CSQAQ_MARKET_INDEX: '/spiderApiV2/src/web_site/csqaq/units/QAQ_API/weapon_index/market_index/getMarketIndex',  // 已拆分为下两个
+    CSQAQ_INDEX_DATA: '/spiderApiV2/src/web_site/csqaq/units/QAQ_API/weapon_index/market_index/getIndexData',    // CSQAQ 指数（current_data）
+    CSQAQ_CHART_DATA: '/spiderApiV2/src/web_site/csqaq/units/QAQ_API/weapon_index/market_index/getChartData',    // CSQAQ 折线图（最新24小时）
+    CSQAQ_WEAPON_INFO_CHART: '/spiderApiV2/src/web_site/csqaq/units/QAQ_API/weapon_info/chart',  // 单件饰品图表（good_id/key/platform/period/style）
+    CSQAQ_WEAPON_INFO_GOOD: '/spiderApiV2/src/web_site/csqaq/units/QAQ_API/weapon_info/infoGood',  // 单件饰品详情（query: id）
+    CSQAQ_WEAPON_INFO_STATISTIC: '/spiderApiV2/src/web_site/csqaq/units/QAQ_API/weapon_info/statistic',  // 单件饰品存世量走势（query: id）
 
     CSQAQ_GET_GOODS: '/csqaqSpiderV1/getGoodsList',  // CSQAQ同步获取商品
 
@@ -561,7 +560,7 @@ export const API_CONFIG = {
     STOCK_COMPONENTS_UPDATE_BUY_PRICE: (steamId, goodsAssetId) => `/backENDV2/src/use_webside/stock_components/units/price/updateBuyPrice/${steamId}/${goodsAssetId}`,
     STOCK_COMPONENTS_AUTO_FILL_PRICES: (steamId) => `/backENDV2/src/use_webside/stock_components/units/price/autoFillPrices/${steamId}`,
     STOCK_COMPONENTS_FILL_REFERENCE_PRICE: (steamId, source) => `/backENDV2/src/use_webside/stock_components/units/price/fillReferencePrice/${steamId}/${source}`,
-    STOCK_COMPONENTS_UPDATE_PRICES_FROM_CSQAQ: '/spiderApiV2/src/web_site/csqaq/units/stock_components/updatePricesFromCsqaq',
+    STOCK_COMPONENTS_UPDATE_PRICES_FROM_CSQAQ: '/spiderApiV2/src/web_site/csqaq/units/QAQ_API/stock_components/updatePricesFromCsqaq',
 
     // 悠悠有品租赁相关
 
@@ -1044,7 +1043,6 @@ export const apiUrls = {
   csqaqMarketIndex: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_MARKET_INDEX),
   csqaqIndexData: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_INDEX_DATA),
   csqaqChartData: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_CHART_DATA),
-  csqaqKline: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_KLINE),
   csqaqWeaponInfoChart: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_WEAPON_INFO_CHART),
   csqaqWeaponInfoGood: (id) => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_WEAPON_INFO_GOOD) + (id != null ? `?id=${encodeURIComponent(id)}` : ''),
   csqaqWeaponInfoStatistic: (id) => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_WEAPON_INFO_STATISTIC) + (id != null ? `?id=${encodeURIComponent(id)}` : ''),

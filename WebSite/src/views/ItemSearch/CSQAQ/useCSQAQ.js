@@ -8,8 +8,10 @@ import { apiUrls } from '@/config/api.js'
  * @param {import('vue').ComputedRef|import('vue').Ref} chartWeapon - 当前选中的武器（来自 yyypCurrentWeapon 或 buffCurrentWeapon）
  * @param {import('vue').Ref} showYYYPList
  * @param {import('vue').Ref} showBuffList
+ * @param {{ onStatisticLoaded?: (value: number) => void }} [options] - 存世量加载完成后回调（用于表头展示）
  */
-export function useCSQAQ(chartWeapon, showYYYPList, showBuffList) {
+export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) {
+  const { onStatisticLoaded } = options
   const chartGoodId = ref(null)
   const chartData = ref(null)
   const chartLoading = ref(false)
@@ -156,9 +158,10 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList) {
         statisticData.value = null
         return
       }
-      // 左侧详情与存世量只在当前饰品首次加载时请求，右侧图表交互（切换周期/平台/视图）不重复请求
-      if (!goodDetail.value) fetchGoodDetail(goodId)
-      if (!statisticData.value) fetchStatisticData()
+      // 加载顺序：1) 左侧详情 2) 右侧图表 3) 存世量；每步完成即展示
+      if (!goodDetail.value) await fetchGoodDetail(goodId)
+      chartLoading.value = true
+      chartData.value = null
       const response = await fetch(apiUrls.csqaqWeaponInfoChart(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -193,6 +196,13 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList) {
         chartData.value = null
         clearChartInstance()
         ElMessage.warning(res.msg || '获取图表数据失败')
+      }
+      if (!statisticData.value?.length) {
+        await fetchStatisticData()
+        if (statisticData.value?.length && onStatisticLoaded) {
+          const last = statisticData.value[statisticData.value.length - 1]
+          onStatisticLoaded(last.statistic)
+        }
       }
     } catch (e) {
       console.error('fetchChartData:', e)
