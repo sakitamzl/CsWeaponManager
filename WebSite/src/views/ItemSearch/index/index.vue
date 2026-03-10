@@ -94,6 +94,13 @@
           <span v-if="currentViewingWeaponName" class="current-weapon-in-results">
             当前饰品：{{ currentViewingWeaponName }}
           </span>
+          <span
+            v-if="csqaqStatisticValue != null"
+            class="csqaq-statistic-in-results"
+            @click.stop="openCSQAQFromHeader"
+          >
+            存世量：{{ csqaqStatisticValue }}
+          </span>
         </span>
         <div class="header-actions">
           <el-pagination
@@ -443,8 +450,9 @@
       @buy-buff-commodity="handleBuyBuffCommodity"
     />
 
-    <!-- CSQAQ 单件饰品图表（独立组件） -->
+    <!-- CSQAQ 单件饰品图表（始终置于最下方） -->
     <ItemSearchCSQAQ
+      :key="(chartWeapon && (chartWeapon.market_listing_item_name || chartWeapon.yyyp_id)) || 'none'"
       :chart-weapon="chartWeapon"
       :show-yyyp-list="showYYYPList"
       :show-buff-list="showBuffList"

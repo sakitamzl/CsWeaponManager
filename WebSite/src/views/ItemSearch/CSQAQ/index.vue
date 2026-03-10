@@ -2,24 +2,17 @@
   <div v-if="visible" class="card chart-card">
     <div class="chart-row">
       <div class="chart-left">
-        <div class="chart-header">
-          <span class="chart-title">CSQAQ 图表 · {{ chartWeapon.market_listing_item_name }}</span>
-        </div>
+        <!-- 红框区域已隐藏：标题、饰品名、磨损条件按钮 -->
         <div class="good-detail-panel" v-loading="goodDetailLoading" element-loading-text="加载详情...">
           <template v-if="goodDetail?.data?.goods_info">
-            <div class="good-detail-main">
-              <div class="good-detail-name">{{ goodDetail.data.goods_info.name }}</div>
-              <div class="good-detail-buttons" v-if="goodDetail.data.button_list?.length">
-                <el-button
-                  v-for="btn in goodDetail.data.button_list"
-                  :key="btn.id"
-                  :type="btn.current ? 'primary' : 'default'"
-                  size="small"
-                  @click="selectGoodDetailButton(btn)"
-                >
-                  {{ btn.name }}
-                </el-button>
-              </div>
+            <div
+              v-if="statisticData?.length"
+              class="good-detail-statistic"
+              @click="openStatisticDialog"
+            >
+              <span class="label">当前存世量</span>
+              <span class="value">{{ statisticData[statisticData.length - 1].statistic }}</span>
+              <span class="hint">点击查看走势</span>
             </div>
 
             <div class="good-detail-overview">
@@ -128,6 +121,15 @@
       </div>
       <div class="chart-right">
         <div class="chart-controls">
+          <el-radio-group v-model="chartViewMode" size="small">
+            <el-radio-button
+              v-for="mode in CHART_VIEW_MODES"
+              :key="mode.value"
+              :label="mode.value"
+            >
+              {{ mode.label }}
+            </el-radio-button>
+          </el-radio-group>
           <el-select v-model="chartKey" placeholder="数据类型" size="small" class="chart-select">
             <el-option v-for="opt in CHART_KEY_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
@@ -148,6 +150,17 @@
         </div>
       </div>
     </div>
+    <el-dialog
+      v-model="statisticDialogVisible"
+      title="存世量走势"
+      width="70%"
+      destroy-on-close
+    >
+      <div class="statistic-chart-body" v-loading="statisticLoading" element-loading-text="加载存世量...">
+        <div ref="statisticChartRef" class="csqaq-chart-dom statistic-chart-dom" />
+        <div v-if="!statisticLoading && !statisticData?.length" class="chart-empty">暂无存世量数据</div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -167,7 +180,7 @@ export default {
     const showYYYPListRef = toRef(props, 'showYYYPList')
     const showBuffListRef = toRef(props, 'showBuffList')
 
-    const visible = computed(() => props.chartWeapon && (props.showYYYPList || props.showBuffList))
+    const visible = computed(() => !!props.chartWeapon)
 
     return {
       visible,

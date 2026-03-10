@@ -82,6 +82,14 @@ export function useItemSearch() {
     return Object.keys(extra).length > 0
   })
 
+  // 当前 CSQAQ 存世量（用于“搜索结果”标题处展示）
+  const csqaqStatisticValue = computed(() => {
+    const statList = chartWeapon.value?.csqaq_statistic_list
+    if (!Array.isArray(statList) || statList.length === 0) return null
+    const last = statList[statList.length - 1]
+    return last?.statistic ?? null
+  })
+
   // 多选模式相关
   const isMultiSelectMode = ref(false)  // 是否开启多选模式
   const selectedCommodities = ref([])   // 选中的商品列表
@@ -2586,7 +2594,7 @@ export function useItemSearch() {
     }
   }
 
-  // 当前选中的武器（供 CSQAQ 组件使用）
+  // 当前选中的武器（供 CSQAQ 组件使用）：仅在选择悠悠有品或 BUFF 并加载对应列表后有值，不因搜索而自动取第一条
   const chartWeapon = computed(() => yyypCurrentWeapon.value || buffCurrentWeapon.value)
 
   // 悠悠有品筛选处理
@@ -2805,6 +2813,7 @@ export function useItemSearch() {
     displayMode,
     toggleSearchResults,
     currentViewingWeaponName,
+    csqaqStatisticValue,
     handleSearchWeapon,
     handleRefreshSearch,
     handleSteamIdChange,

@@ -338,6 +338,7 @@ export const API_CONFIG = {
     CSQAQ_KLINE: '/spiderApiV2/src/web_site/csqaq/units/data_website/market_overview/getKline',  // CSQAQ K线数据（V2 API）
     CSQAQ_WEAPON_INFO_CHART: '/spiderApiV2/src/web_site/csqaq/units/weapon_info/chart',  // 单件饰品图表（good_id/key/platform/period/style）
     CSQAQ_WEAPON_INFO_GOOD: '/spiderApiV2/src/web_site/csqaq/units/weapon_info/infoGood',  // 单件饰品详情（query: id）
+    CSQAQ_WEAPON_INFO_STATISTIC: '/spiderApiV2/src/web_site/csqaq/units/weapon_info/statistic',  // 单件饰品存世量走势（query: id）
 
     CSQAQ_GET_GOODS: '/csqaqSpiderV1/getGoodsList',  // CSQAQ同步获取商品
 
@@ -1046,6 +1047,7 @@ export const apiUrls = {
   csqaqKline: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_KLINE),
   csqaqWeaponInfoChart: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_WEAPON_INFO_CHART),
   csqaqWeaponInfoGood: (id) => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_WEAPON_INFO_GOOD) + (id != null ? `?id=${encodeURIComponent(id)}` : ''),
+  csqaqWeaponInfoStatistic: (id) => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_WEAPON_INFO_STATISTIC) + (id != null ? `?id=${encodeURIComponent(id)}` : ''),
 
   csqaqGetGoods: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_GET_GOODS),
 

@@ -39,7 +39,6 @@
 .chart-left {
   flex: 3 1 0;
   min-width: 0;
-  min-height: 600px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -59,12 +58,41 @@
 /* CSQAQ 单件饰品详情（左侧面板） */
 .good-detail-panel {
   flex: 1;
-  min-height: 200px;
+  min-height: 0;
+  height: 100%;
   padding: 12px;
   background: transparent;
   border-radius: 8px;
   overflow-y: auto;
   color: var(--el-text-color-primary);
+}
+
+.good-detail-statistic {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
+.good-detail-statistic .label {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.good-detail-statistic .value {
+  font-size: 18px;
+  font-weight: 600;
+  color: #e6a23c;
+}
+
+.good-detail-statistic .hint {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.good-detail-statistic:hover .value {
+  color: #f3d19e;
 }
 
 .good-detail-main {
@@ -263,7 +291,7 @@
 
 .chart-body {
   position: relative;
-  min-height: 600px;
+  min-height: 0;
   flex: 1;
   min-width: 0;
   width: 100%;
@@ -271,7 +299,7 @@
 
 .csqaq-chart-dom {
   width: 100% !important;
-  height: 600px;
+  height: 100%;
   min-width: 0;
 }
 
@@ -282,4 +310,14 @@
   transform: translate(-50%, -50%);
   color: var(--el-text-color-secondary);
   font-size: 14px;
+}
+
+.statistic-chart-body {
+  position: relative;
+  min-height: 360px;
+  width: 100%;
+}
+
+.statistic-chart-body .csqaq-chart-dom.statistic-chart-dom {
+  height: 360px;
 }
