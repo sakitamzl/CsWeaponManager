@@ -443,6 +443,13 @@
       @buy-buff-commodity="handleBuyBuffCommodity"
     />
 
+    <!-- CSQAQ 单件饰品图表（独立组件） -->
+    <ItemSearchCSQAQ
+      :chart-weapon="chartWeapon"
+      :show-yyyp-list="showYYYPList"
+      :show-buff-list="showBuffList"
+    />
+
     <!-- 多选模式下的操作栏 -->
     <div v-if="isMultiSelectMode && selectedCommodities.length > 0" class="multi-select-actions">
       <div class="selected-count">
@@ -904,6 +911,7 @@ import { useItemSearch } from './useItemSearch.js'
 import { CaretRight, CaretBottom, Check, Loading } from '@element-plus/icons-vue'
 import YYYPCommodityList from '../youpin/YYYPCommodityList.vue'
 import BuffCommodityList from '../BUFF/BuffCommodityList.vue'
+import ItemSearchCSQAQ from '../CSQAQ/index.vue'
 
 export default {
   name: 'ItemSearch',
@@ -913,7 +921,8 @@ export default {
     Check,
     Loading,
     YYYPCommodityList,
-    BuffCommodityList
+    BuffCommodityList,
+    ItemSearchCSQAQ
   },
   setup() {
     return useItemSearch()

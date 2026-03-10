@@ -1,0 +1,285 @@
+/* CSQAQ 单件饰品图表 */
+.chart-card {
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+}
+
+.chart-header {
+  margin-bottom: 0.75rem;
+}
+
+.chart-title {
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.chart-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.chart-controls .chart-select {
+  width: 120px;
+}
+
+.chart-row {
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.chart-left {
+  flex: 3 1 0;
+  min-width: 0;
+  min-height: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chart-right {
+  flex: 7 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-right .chart-controls {
+  flex-shrink: 0;
+}
+
+/* CSQAQ 单件饰品详情（左侧面板） */
+.good-detail-panel {
+  flex: 1;
+  min-height: 200px;
+  padding: 12px;
+  background: transparent;
+  border-radius: 8px;
+  overflow-y: auto;
+  color: var(--el-text-color-primary);
+}
+
+.good-detail-main {
+  margin-bottom: 12px;
+}
+
+.good-detail-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.good-detail-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.good-detail-overview {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.overview-card {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #fff;
+}
+
+.overview-card--today {
+  background: #1e5631;
+}
+
+.overview-card--week {
+  background: #8b2635;
+}
+
+.overview-card-label {
+  font-size: 12px;
+  opacity: 0.95;
+}
+
+.overview-card-value {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.good-detail-platforms {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.platform-block {
+  padding: 10px 12px;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+}
+
+.platform-title {
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.platform-title .platform-arrow {
+  margin-left: auto;
+  color: var(--el-text-color-secondary);
+  font-size: 14px;
+}
+
+.platform-title .tag-low {
+  background: rgba(103, 194, 58, 0.25);
+  color: #67c23a;
+  border-color: #67c23a;
+}
+
+.platform-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+}
+
+.platform-col .platform-row {
+  padding: 2px 0;
+}
+
+.platform-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 0;
+}
+
+.platform-row .label {
+  color: var(--el-text-color-secondary);
+  margin-right: 8px;
+}
+
+.platform-row .value {
+  color: var(--el-text-color-primary);
+  font-weight: 500;
+}
+
+.good-detail-section {
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+}
+
+.section-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+  padding: 10px 12px;
+  background: transparent;
+  border-radius: 6px;
+}
+
+.section-col .good-detail-row {
+  padding: 3px 0;
+}
+
+.good-detail-section .good-detail-row {
+  padding: 3px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.good-detail-section .good-detail-row .label {
+  color: var(--el-text-color-secondary);
+}
+
+.good-detail-section .good-detail-row .value {
+  color: var(--el-text-color-primary);
+  font-weight: 500;
+}
+
+.time-row {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--el-border-color-lighter);
+  color: var(--el-text-color-secondary);
+}
+
+.time-row .value.time {
+  color: var(--el-text-color-secondary);
+  font-weight: normal;
+}
+
+.good-detail-empty {
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  text-align: center;
+  padding: 24px 0;
+}
+
+.good-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.good-detail-row .label {
+  color: var(--el-text-color-secondary);
+}
+
+.good-detail-row .value {
+  color: var(--el-text-color-primary);
+  font-weight: 500;
+}
+
+.chart-body {
+  position: relative;
+  min-height: 600px;
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+.csqaq-chart-dom {
+  width: 100% !important;
+  height: 600px;
+  min-width: 0;
+}
+
+.chart-empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--el-text-color-secondary);
+  font-size: 14px;
+}

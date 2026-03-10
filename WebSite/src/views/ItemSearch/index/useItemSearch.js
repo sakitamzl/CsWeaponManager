@@ -1,4 +1,4 @@
-import { ref, onMounted, onUnmounted, computed, provide } from 'vue'
+import { ref, onMounted, onUnmounted, computed, provide, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -2586,6 +2586,9 @@ export function useItemSearch() {
     }
   }
 
+  // 当前选中的武器（供 CSQAQ 组件使用）
+  const chartWeapon = computed(() => yyypCurrentWeapon.value || buffCurrentWeapon.value)
+
   // 悠悠有品筛选处理
   const handleYYYPFilterChange = async (filterType) => {
     console.log('悠悠有品筛选类型:', filterType)
@@ -2915,6 +2918,7 @@ export function useItemSearch() {
     // 第三方网站跳转
     openCSQAQ,
     openSteamDT,
+    chartWeapon,
     // 悠悠有品筛选
     handleYYYPFilterChange,
     handleYYYPAdvancedFilter,

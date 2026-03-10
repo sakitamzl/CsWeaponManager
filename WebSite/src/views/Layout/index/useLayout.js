@@ -66,11 +66,12 @@ export function useLayout() {
       title: '库存组件',
       icon: '/icons/stock-components.png'
     },
-    {
-      path: '/data-website',
-      title: '第三方数据',
-      icon: '/icons/data-website.png'
-    },
+    // 已屏蔽：/data-website 入口（仅前端隐藏，代码保留）
+    // {
+    //   path: '/data-website',
+    //   title: '第三方数据',
+    //   icon: '/icons/data-website.png'
+    // },
     {
       path: '/data-spider',
       title: '数据挖掘',

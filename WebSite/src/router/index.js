@@ -186,27 +186,28 @@ const routes = [
           }
         ]
       },
-      {
-        path: '/data-website',
-        name: 'DataWebsite',
-        component: DataWebsite,
-        meta: { title: '第三方数据' },
-        redirect: '/data-website/market-overview',
-        children: [
-          {
-            path: 'market-overview',
-            name: 'MarketOverview',
-            component: () => import('@/views/data_website/MarketOverview/index.vue'),
-            meta: { title: '市场大盘' }
-          },
-          {
-            path: 'item-search',
-            name: 'DataWebsiteItemSearch',
-            component: () => import('@/views/data_website/ItemSearch/index.vue'),
-            meta: { title: '饰品搜索' }
-          }
-        ]
-      },
+      // 已屏蔽：/data-website 第三方数据页面（仅前端隐藏，代码保留）
+      // {
+      //   path: '/data-website',
+      //   name: 'DataWebsite',
+      //   component: DataWebsite,
+      //   meta: { title: '第三方数据' },
+      //   redirect: '/data-website/market-overview',
+      //   children: [
+      //     {
+      //       path: 'market-overview',
+      //       name: 'MarketOverview',
+      //       component: () => import('@/views/data_website/MarketOverview/index.vue'),
+      //       meta: { title: '市场大盘' }
+      //     },
+      //     {
+      //       path: 'item-search',
+      //       name: 'DataWebsiteItemSearch',
+      //       component: () => import('@/views/data_website/ItemSearch/index.vue'),
+      //       meta: { title: '饰品搜索' }
+      //     }
+      //   ]
+      // },
       {
         path: '/data-spider',
         name: 'DataSpider',
