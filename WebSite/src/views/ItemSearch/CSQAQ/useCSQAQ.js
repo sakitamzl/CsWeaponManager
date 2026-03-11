@@ -525,24 +525,10 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
     const profitVols = buckets.map((b) => b.profit)
     const option = {
       backgroundColor: 'transparent',
-      title: [
-        {
-          text: '套牢筹码',
-          right: '2%',
-          top: 4,
-          textStyle: { color: '#67c23a', fontSize: 11 }
-        },
-        {
-          text: '获利筹码',
-          right: '2%',
-          top: 20,
-          textStyle: { color: '#ef5350', fontSize: 11 }
-        }
-      ],
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: 'rgba(50,50,50,0.95)', borderColor: '#555', textStyle: { color: '#e0e0e0' } },
       grid: [
-        { left: '2%', right: '50%', top: '18%', height: '72%', containLabel: true },
-        { left: '50%', right: '4%', top: '18%', height: '72%', containLabel: true }
+        { left: '2%', right: '50%', top: '18%', bottom: '10%', containLabel: true },
+        { left: '50%', right: '4%', top: '18%', bottom: '14.5%', containLabel: true }
       ],
       xAxis: [
         { type: 'category', data: dates, boundaryGap: true, axisLine: { lineStyle: { color: '#555' } }, axisLabel: { color: '#999', rotate: 45 }, gridIndex: 0 },
@@ -575,6 +561,7 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
           type: 'category',
           data: priceLabels,
           inverse: false,
+          boundaryGap: false,
           position: 'left',
           gridIndex: 1,
           axisLine: { show: false },
