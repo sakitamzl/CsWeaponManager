@@ -336,6 +336,7 @@ export const API_CONFIG = {
     CSQAQ_INDEX_DATA: '/spiderApiV2/src/web_site/csqaq/units/QAQ_API/weapon_index/market_index/getIndexData',    // CSQAQ 指数（current_data）
     CSQAQ_CHART_DATA: '/spiderApiV2/src/web_site/csqaq/units/QAQ_API/weapon_index/market_index/getChartData',    // CSQAQ 折线图（最新24小时）
     CSQAQ_WEAPON_INFO_CHART: '/spiderApiV2/src/web_site/csqaq/units/QAQ_API/weapon_info/chart',  // 单件饰品图表（good_id/key/platform/period/style）
+    CSQAQ_WEAPON_INFO_KLINE: '/spiderApiV2/src/web_site/csqaq/units/QAQ_API/weapon_info/kline',  // 单件饰品K线（无头浏览器，query: good_id, period, platform）
     CSQAQ_WEAPON_INFO_GOOD: '/spiderApiV2/src/web_site/csqaq/units/QAQ_API/weapon_info/infoGood',  // 单件饰品详情（query: id）
     CSQAQ_WEAPON_INFO_STATISTIC: '/spiderApiV2/src/web_site/csqaq/units/QAQ_API/weapon_info/statistic',  // 单件饰品存世量走势（query: id）
 
@@ -1044,6 +1045,14 @@ export const apiUrls = {
   csqaqIndexData: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_INDEX_DATA),
   csqaqChartData: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_CHART_DATA),
   csqaqWeaponInfoChart: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_WEAPON_INFO_CHART),
+  csqaqWeaponInfoKline: (goodId, period, platform) => {
+      const base = getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_WEAPON_INFO_KLINE)
+      if (goodId == null) return base
+      const params = new URLSearchParams({ good_id: goodId })
+      if (period != null && period !== '') params.set('period', period)
+      if (platform != null && platform !== '') params.set('platform', platform)
+      return base + '?' + params.toString()
+    },
   csqaqWeaponInfoGood: (id) => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_WEAPON_INFO_GOOD) + (id != null ? `?id=${encodeURIComponent(id)}` : ''),
   csqaqWeaponInfoStatistic: (id) => getSpiderApiUrl(API_CONFIG.ENDPOINTS.CSQAQ_WEAPON_INFO_STATISTIC) + (id != null ? `?id=${encodeURIComponent(id)}` : ''),
 

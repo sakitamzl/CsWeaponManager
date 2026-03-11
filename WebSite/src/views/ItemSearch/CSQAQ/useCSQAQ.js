@@ -24,6 +24,11 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
   const chartViewMode = ref('line') // line | kline | chips
   const csqaqChartRef = ref(null)
   let csqaqChartInstance = null
+  const klineData = ref(null)
+  const klineLoading = ref(false)
+  // K 线图专用：周期默认日线，平台默认 BUFF
+  const klinePeriod = ref('1d')   // 1h | 4h | 1d | 1w
+  const klinePlatform = ref(1)   // 1 BUFF, 2 悠悠有品
   const statisticData = ref(null)
   const statisticLoading = ref(false)
   const statisticChartRef = ref(null)
@@ -86,6 +91,16 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
     { value: 'line', label: '走势图' },
     { value: 'kline', label: 'K 线图' },
     { value: 'chips', label: '获利筹码' }
+  ]
+  const KLINE_PERIOD_OPTIONS = [
+    { value: '1h', label: '1小时' },
+    { value: '4h', label: '4小时' },
+    { value: '1d', label: '日线' },
+    { value: '1w', label: '周线' }
+  ]
+  const KLINE_PLATFORM_OPTIONS = [
+    { value: 1, label: 'BUFF' },
+    { value: 2, label: '悠悠有品' }
   ]
 
   watch(chartPlatform, (platform) => {
@@ -292,9 +307,113 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
     nextTick(() => { csqaqChartInstance?.resize() })
   }
 
+  const calculateMA = (data, period) => {
+    const result = []
+    for (let i = 0; i < data.length; i++) {
+      if (i < period - 1) {
+        result.push('-')
+        continue
+      }
+      let sum = 0
+      for (let j = 0; j < period; j++) {
+        sum += data[i - j][1]
+      }
+      result.push((sum / period).toFixed(2))
+    }
+    return result
+  }
+
+  const fetchKlineData = async () => {
+    const goodId = chartGoodId.value
+    if (goodId == null) {
+      klineData.value = []
+      return
+    }
+    klineLoading.value = true
+    klineData.value = null
+    try {
+      const response = await fetch(apiUrls.csqaqWeaponInfoKline(goodId, klinePeriod.value, klinePlatform.value), { method: 'GET', headers: { Accept: 'application/json' } })
+      if (!response.ok) throw new Error('请求失败')
+      const res = await response.json()
+      if (res.code === 200 && Array.isArray(res.data)) {
+        klineData.value = res.data.length ? res.data : []
+      } else {
+        klineData.value = []
+      }
+    } catch (e) {
+      console.error('fetchKlineData:', e)
+      klineData.value = []
+      ElMessage.error('K线数据加载失败')
+    } finally {
+      klineLoading.value = false
+    }
+    await nextTick()
+    renderKlineChart()
+  }
+
   const renderKlineChart = () => {
-    // 暂未接入真实 K 线数据，避免使用推算的假数据，这里仅清空图表
+    if (!csqaqChartRef.value) return
+    if (!klineData.value?.length && chartGoodId.value != null) {
+      fetchKlineData()
+      return
+    }
+    if (!klineData.value?.length) {
+      clearChartInstance()
+      return
+    }
+    const el = csqaqChartRef.value
+    const { clientWidth, clientHeight } = el
+    if (!clientWidth || !clientHeight) {
+      setTimeout(renderKlineChart, 100)
+      return
+    }
     clearChartInstance()
+    csqaqChartInstance = echarts.init(el)
+    const data = klineData.value
+    const times = data.map(item => item.time)
+    const klineArr = data.map(item => [
+      parseFloat(item.open),
+      parseFloat(item.close),
+      parseFloat(item.low),
+      parseFloat(item.high)
+    ])
+    const volumeData = data.map((item) => {
+      const open = parseFloat(item.open)
+      const close = parseFloat(item.close)
+      let volume = parseFloat(item.volume || 0)
+      if (volume === 0) volume = Math.abs(parseFloat(item.high) - parseFloat(item.low)) * 100
+      return { value: volume, isUp: close >= open }
+    })
+    const ma5 = calculateMA(klineArr, 5)
+    const ma10 = calculateMA(klineArr, 10)
+    const ma20 = calculateMA(klineArr, 20)
+    const option = {
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis', axisPointer: { type: 'cross' }, backgroundColor: 'rgba(50,50,50,0.95)', borderColor: '#555', textStyle: { color: '#e0e0e0' } },
+      legend: { data: ['K线', 'MA5', 'MA10', 'MA20'], textStyle: { color: '#999' }, top: 0 },
+      grid: [
+        { left: '2%', right: '2%', top: '12%', height: '58%', containLabel: true },
+        { left: '2%', right: '2%', top: '76%', height: '16%', containLabel: true }
+      ],
+      xAxis: [
+        { type: 'category', data: times, boundaryGap: true, axisLine: { lineStyle: { color: '#555' } }, axisLabel: { color: '#999', show: false }, gridIndex: 0 },
+        { type: 'category', data: times, boundaryGap: true, axisLine: { lineStyle: { color: '#555' } }, axisLabel: { color: '#999', rotate: 45 }, gridIndex: 1 }
+      ],
+      yAxis: [
+        { scale: true, splitLine: { lineStyle: { color: '#333' } }, axisLabel: { color: '#999' }, gridIndex: 0 },
+        { scale: true, splitLine: { show: false }, axisLabel: { color: '#999', fontSize: 10 }, gridIndex: 1 }
+      ],
+      dataZoom: [{ type: 'inside', xAxisIndex: [0, 1], start: Math.max(0, (1 - 60 / data.length) * 100), end: 100 }],
+      series: [
+        { name: 'K线', type: 'candlestick', data: klineArr, itemStyle: { color: '#ef5350', color0: '#00c853', borderColor: '#ef5350', borderColor0: '#00c853' }, xAxisIndex: 0, yAxisIndex: 0 },
+        { name: 'MA5', type: 'line', data: ma5, smooth: true, lineStyle: { width: 1, color: '#409eff' }, showSymbol: false, xAxisIndex: 0, yAxisIndex: 0 },
+        { name: 'MA10', type: 'line', data: ma10, smooth: true, lineStyle: { width: 1, color: '#e6a23c' }, showSymbol: false, xAxisIndex: 0, yAxisIndex: 0 },
+        { name: 'MA20', type: 'line', data: ma20, smooth: true, lineStyle: { width: 1, color: '#909399' }, showSymbol: false, xAxisIndex: 0, yAxisIndex: 0 },
+        { name: '成交量', type: 'bar', data: volumeData, itemStyle: { color: (params) => (params.data.isUp ? '#ef5350' : '#00c853') }, xAxisIndex: 1, yAxisIndex: 1 }
+      ]
+    }
+    csqaqChartInstance.setOption(option)
+    nextTick(() => { csqaqChartInstance?.resize() })
   }
 
   const renderChipsChart = () => {
@@ -303,17 +422,19 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
   }
 
   const renderActiveChart = () => {
+    if (chartViewMode.value === 'kline') {
+      renderKlineChart()
+      return
+    }
+    if (chartViewMode.value === 'chips') {
+      renderChipsChart()
+      return
+    }
     if (!chartData.value?.timestamp?.length) {
       clearChartInstance()
       return
     }
-    if (chartViewMode.value === 'kline') {
-      renderKlineChart()
-    } else if (chartViewMode.value === 'chips') {
-      renderChipsChart()
-    } else {
-      renderLineChart()
-    }
+    renderLineChart()
   }
 
   const fetchStatisticData = async () => {
@@ -393,6 +514,7 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
     if (yes) {
       chartGoodId.value = null
       chartData.value = null
+      klineData.value = null
       goodDetail.value = null
       statisticData.value = null
       clearChartInstance()
@@ -404,6 +526,7 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
   watch(chartWeapon, (weapon) => {
     chartGoodId.value = null
     chartData.value = null
+    klineData.value = null
     goodDetail.value = null
     statisticData.value = null
     clearChartInstance()
@@ -414,6 +537,19 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
   watch([chartKey, chartPlatform, chartPeriod, chartStyle], () => {
     if (chartWeapon.value && chartGoodId.value != null) scheduleChartFetch()
   })
+
+  watch([klinePeriod, klinePlatform], () => {
+    if (chartViewMode.value === 'kline' && chartWeapon.value && chartGoodId.value != null) scheduleKlineFetch()
+  })
+
+  let klineFetchTimer = null
+  const scheduleKlineFetch = () => {
+    if (klineFetchTimer) clearTimeout(klineFetchTimer)
+    klineFetchTimer = setTimeout(() => {
+      klineFetchTimer = null
+      fetchKlineData()
+    }, 150)
+  }
 
   const selectGoodDetailButton = (btn) => {
     if (!btn || btn.current) return
@@ -509,6 +645,8 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
     chartGoodId,
     chartData,
     chartLoading,
+    klineData,
+    klineLoading,
     goodDetail,
     goodDetailLoading,
     chartKey,
@@ -518,12 +656,17 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
     chartViewMode,
     csqaqChartRef,
     showChartStyleSelect,
+    klinePeriod,
+    klinePlatform,
+    KLINE_PERIOD_OPTIONS,
+    KLINE_PLATFORM_OPTIONS,
     CHART_KEY_OPTIONS,
     CHART_PLATFORM_OPTIONS,
     CHART_PERIOD_OPTIONS,
     CHART_STYLE_OPTIONS,
     CHART_VIEW_MODES,
     fetchChartData,
+    fetchKlineData,
     selectGoodDetailButton,
     formatPrice,
     formatRate,

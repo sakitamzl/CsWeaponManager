@@ -120,23 +120,57 @@
               {{ mode.label }}
             </el-radio-button>
           </el-radio-group>
-          <el-select v-model="chartKey" placeholder="数据类型" size="small" class="chart-select">
-            <el-option v-for="opt in CHART_KEY_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
-          </el-select>
-          <el-select v-model="chartPlatform" placeholder="平台" size="small" class="chart-select">
-            <el-option v-for="opt in CHART_PLATFORM_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
-          </el-select>
-          <el-select v-model="chartPeriod" placeholder="周期" size="small" class="chart-select">
-            <el-option v-for="opt in CHART_PERIOD_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
-          </el-select>
-          <el-select v-if="showChartStyleSelect" v-model="chartStyle" placeholder="款式" size="small" class="chart-select">
-            <el-option v-for="opt in CHART_STYLE_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
-          </el-select>
-          <el-button type="primary" size="small" :loading="chartLoading" @click="fetchChartData">刷新</el-button>
+          <!-- K 线图：1小时/4小时/日线/周线 + 平台下拉，默认日线、BUFF -->
+          <template v-if="chartViewMode === 'kline'">
+            <el-radio-group v-model="klinePeriod" size="small" class="chart-view-toggle kline-period-toggle">
+              <el-radio-button
+                v-for="opt in KLINE_PERIOD_OPTIONS"
+                :key="opt.value"
+                :label="opt.value"
+              >
+                {{ opt.label }}
+              </el-radio-button>
+            </el-radio-group>
+            <el-select v-model="klinePlatform" placeholder="平台" size="small" class="chart-select">
+              <el-option v-for="opt in KLINE_PLATFORM_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+            </el-select>
+          </template>
+          <!-- 走势图 / 获利筹码：数据类型、平台、周期、款式 -->
+          <template v-else>
+            <el-select v-model="chartKey" placeholder="数据类型" size="small" class="chart-select">
+              <el-option v-for="opt in CHART_KEY_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+            </el-select>
+            <el-select v-model="chartPlatform" placeholder="平台" size="small" class="chart-select">
+              <el-option v-for="opt in CHART_PLATFORM_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+            </el-select>
+            <el-select v-model="chartPeriod" placeholder="周期" size="small" class="chart-select">
+              <el-option v-for="opt in CHART_PERIOD_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+            </el-select>
+            <el-select v-if="showChartStyleSelect" v-model="chartStyle" placeholder="款式" size="small" class="chart-select">
+              <el-option v-for="opt in CHART_STYLE_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+            </el-select>
+          </template>
+          <el-button
+            type="primary"
+            size="small"
+            :loading="chartViewMode === 'kline' ? klineLoading : chartLoading"
+            @click="chartViewMode === 'kline' ? fetchKlineData() : fetchChartData()"
+          >
+            刷新
+          </el-button>
         </div>
-        <div class="chart-body" v-loading="chartLoading" element-loading-text="加载图表...">
+        <div
+          class="chart-body"
+          v-loading="chartLoading || (chartViewMode === 'kline' && klineLoading)"
+          :element-loading-text="chartViewMode === 'kline' ? '加载K线...' : '加载图表...'"
+        >
           <div ref="csqaqChartRef" class="csqaq-chart-dom" />
-          <div v-if="!chartLoading && !chartData?.timestamp?.length" class="chart-empty">暂无数据</div>
+          <div
+            v-if="!(chartLoading || (chartViewMode === 'kline' && klineLoading)) && (chartViewMode === 'kline' ? !klineData?.length : !chartData?.timestamp?.length)"
+            class="chart-empty"
+          >
+            暂无数据
+          </div>
         </div>
       </div>
     </div>
