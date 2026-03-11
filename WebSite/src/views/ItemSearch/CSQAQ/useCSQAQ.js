@@ -519,9 +519,10 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
     clearChartInstance()
     csqaqChartInstance = echarts.init(el)
     const priceCenter = (p) => p + bucketStep / 2
-    const maxVol = Math.max(1, ...buckets.map((b) => Math.max(b.trapped, b.profit)))
-    const trappedBarData = buckets.map((b) => [-b.trapped, priceCenter(b.price)])
-    const profitBarData = buckets.map((b) => [b.profit, priceCenter(b.price)])
+    const priceLabels = buckets.map((b) => priceCenter(b.price).toFixed(0))
+    const maxVol = Math.max(1, ...buckets.map((b) => b.trapped + b.profit))
+    const trappedVols = buckets.map((b) => b.trapped)
+    const profitVols = buckets.map((b) => b.profit)
     const option = {
       backgroundColor: 'transparent',
       title: [
@@ -549,10 +550,10 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
           type: 'value',
           name: '成交量',
           position: 'bottom',
-          min: -maxVol,
+          min: 0,
           max: maxVol,
-          axisLine: { lineStyle: { color: '#555' }, onZero: true },
-          axisLabel: { color: '#999', formatter: (v) => Math.abs(v) },
+          axisLine: { lineStyle: { color: '#555' } },
+          axisLabel: { color: '#999' },
           splitLine: { lineStyle: { color: '#333', type: 'dashed' } },
           gridIndex: 1
         }
@@ -571,21 +572,21 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
           gridIndex: 0
         },
         {
-          type: 'value',
-          scale: true,
-          min: priceMin,
-          max: priceMax,
+          type: 'category',
+          data: priceLabels,
+          inverse: false,
           position: 'left',
           gridIndex: 1,
           axisLine: { show: false },
           axisLabel: { show: false },
+          axisTick: { show: false },
           splitLine: { show: false }
         }
       ],
       series: [
         { name: '价格', type: 'line', data: avg.map(Number), symbol: 'none', lineStyle: { color: '#6b9fff', width: 2 }, xAxisIndex: 0, yAxisIndex: 0 },
-        { name: '套牢筹码', type: 'bar', data: trappedBarData, itemStyle: { color: '#67c23a' }, barGap: '-100%', barCategoryGap: '0%', barMaxWidth: 3, xAxisIndex: 1, yAxisIndex: 1 },
-        { name: '获利筹码', type: 'bar', data: profitBarData, itemStyle: { color: '#ef5350' }, barGap: '-100%', barCategoryGap: '0%', barMaxWidth: 3, xAxisIndex: 1, yAxisIndex: 1 }
+        { name: '套牢筹码', type: 'bar', data: trappedVols, stack: 'chip', itemStyle: { color: '#67c23a' }, barCategoryGap: '0%', xAxisIndex: 1, yAxisIndex: 1 },
+        { name: '获利筹码', type: 'bar', data: profitVols, stack: 'chip', itemStyle: { color: '#ef5350' }, barCategoryGap: '0%', xAxisIndex: 1, yAxisIndex: 1 }
       ]
     }
     csqaqChartInstance.setOption(option)
