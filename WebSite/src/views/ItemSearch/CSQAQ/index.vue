@@ -120,6 +120,10 @@
               {{ mode.label }}
             </el-radio-button>
           </el-radio-group>
+          <!-- 获利筹码：与切换按钮同一行显示全部汇总数据 -->
+          <span v-if="chartViewMode === 'chips' && chipSummary" class="chart-controls-chip-summary">
+            获利比例：{{ chipSummary.profitRatio }}%　平均成本：¥{{ chipSummary.avgCost.toFixed(2) }}　90%成本：{{ chipSummary.p90Low.toFixed(0) }}-{{ chipSummary.p90High.toFixed(0) }}　集中度：{{ chipSummary.concentration }}%
+          </span>
           <!-- K 线图：1小时/4小时/日线/周线 + 平台下拉，默认日线、BUFF -->
           <template v-if="chartViewMode === 'kline'">
             <el-radio-group v-model="klinePeriod" size="small" class="chart-view-toggle kline-period-toggle">
@@ -135,8 +139,8 @@
               <el-option v-for="opt in KLINE_PLATFORM_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
             </el-select>
           </template>
-          <!-- 走势图 / 获利筹码：数据类型、平台、周期、款式 -->
-          <template v-else>
+          <!-- 走势图：数据类型、平台、周期、款式（获利筹码模式不显示下拉与刷新） -->
+          <template v-else-if="chartViewMode !== 'chips'">
             <el-select v-model="chartKey" placeholder="数据类型" size="small" class="chart-select">
               <el-option v-for="opt in CHART_KEY_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
             </el-select>
@@ -151,6 +155,7 @@
             </el-select>
           </template>
           <el-button
+            v-if="chartViewMode !== 'chips'"
             type="primary"
             size="small"
             :loading="chartViewMode === 'kline' ? klineLoading : chartLoading"
@@ -161,12 +166,12 @@
         </div>
         <div
           class="chart-body"
-          v-loading="chartLoading || (chartViewMode === 'kline' && klineLoading)"
-          :element-loading-text="chartViewMode === 'kline' ? '加载K线...' : '加载图表...'"
+          v-loading="chartLoading || (chartViewMode === 'kline' && klineLoading) || (chartViewMode === 'chips' && chipLoading)"
+          :element-loading-text="chartViewMode === 'kline' ? '加载K线...' : chartViewMode === 'chips' ? '加载筹码...' : '加载图表...'"
         >
           <div ref="csqaqChartRef" class="csqaq-chart-dom" />
           <div
-            v-if="!(chartLoading || (chartViewMode === 'kline' && klineLoading)) && (chartViewMode === 'kline' ? !klineData?.length : !chartData?.timestamp?.length)"
+            v-if="!(chartLoading || (chartViewMode === 'kline' && klineLoading) || (chartViewMode === 'chips' && chipLoading)) && (chartViewMode === 'kline' ? !klineData?.length : chartViewMode === 'chips' ? !chipData?.date?.length : !chartData?.timestamp?.length)"
             class="chart-empty"
           >
             暂无数据

@@ -29,6 +29,9 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
   // K 线图专用：周期默认日线，平台默认 BUFF
   const klinePeriod = ref('1d')   // 1h | 4h | 1d | 1w
   const klinePlatform = ref(1)   // 1 BUFF, 2 悠悠有品
+  const chipData = ref(null)    // 获利筹码 chipData：{ low, high, avg, volume, date }
+  const chipLoading = ref(false)
+  const chipSummary = ref(null) // 获利筹码汇总 { profitRatio, avgCost, p90Low, p90High, concentration }，供控制栏同一行展示
   const statisticData = ref(null)
   const statisticLoading = ref(false)
   const statisticChartRef = ref(null)
@@ -416,9 +419,177 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
     nextTick(() => { csqaqChartInstance?.resize() })
   }
 
+  const fetchChipData = async () => {
+    const goodId = chartGoodId.value
+    if (goodId == null) {
+      chipData.value = null
+      return
+    }
+    chipLoading.value = true
+    chipData.value = null
+    try {
+      const response = await fetch(apiUrls.csqaqWeaponInfoChipData(goodId), { method: 'GET', headers: { Accept: 'application/json' } })
+      if (!response.ok) throw new Error('请求失败')
+      const res = await response.json()
+      if (res.code === 200 && res.data && (res.data.low?.length || res.data.avg?.length)) {
+        chipData.value = res.data
+      } else {
+        chipData.value = null
+      }
+    } catch (e) {
+      console.error('fetchChipData:', e)
+      chipData.value = null
+      ElMessage.error('筹码数据加载失败')
+    } finally {
+      chipLoading.value = false
+    }
+    await nextTick()
+    renderChipsChart()
+  }
+
   const renderChipsChart = () => {
-    // 暂未接入真实获利筹码数据，避免使用推算的假数据，这里仅清空图表
+    if (!csqaqChartRef.value) return
+    if (!chipData.value && chartGoodId.value != null) {
+      fetchChipData()
+      return
+    }
+    if (!chipData.value || !chipData.value.date?.length) {
+      chipSummary.value = null
+      clearChartInstance()
+      return
+    }
+    const el = csqaqChartRef.value
+    const { clientWidth, clientHeight } = el
+    if (!clientWidth || !clientHeight) {
+      setTimeout(renderChipsChart, 100)
+      return
+    }
+    const raw = chipData.value
+    const dates = raw.date || []
+    const low = raw.low || []
+    const high = raw.high || []
+    const avg = raw.avg || []
+    const volume = raw.volume || []
+    const len = dates.length
+    if (!len) {
+      clearChartInstance()
+      return
+    }
+    const currentPrice = avg[len - 1] != null ? Number(avg[len - 1]) : (Number(high[len - 1]) + Number(low[len - 1])) / 2
+    const priceMin = Math.min(...low.map(Number).filter((n) => !Number.isNaN(n)), currentPrice)
+    const priceMax = Math.max(...high.map(Number).filter((n) => !Number.isNaN(n)), currentPrice)
+    const range = priceMax - priceMin || 1
+    const bucketStep = 1
+    const bucketCount = Math.ceil(range / bucketStep) + 1
+    const buckets = Array.from({ length: bucketCount }, (_, i) => ({ price: priceMin + i * bucketStep, trapped: 0, profit: 0 }))
+    let totalVol = 0
+    for (let i = 0; i < len; i++) {
+      const lo = Number(low[i])
+      const hi = Number(high[i])
+      const v = Number(volume[i]) || 0
+      const a = Number(avg[i])
+      if (Number.isNaN(lo) || Number.isNaN(hi)) continue
+      totalVol += v
+      const idx = Math.min(bucketCount - 1, Math.floor((a - priceMin) / bucketStep))
+      if (idx >= 0 && idx < bucketCount) {
+        if (a < currentPrice) buckets[idx].profit += v
+        else buckets[idx].trapped += v
+      }
+    }
+    const profitVol = buckets.reduce((s, b) => s + b.profit, 0)
+    const profitRatio = totalVol > 0 ? ((profitVol / totalVol) * 100).toFixed(2) : '0'
+    const avgCost = totalVol > 0 ? buckets.reduce((s, b) => s + (b.price + bucketStep / 2) * (b.profit + b.trapped), 0) / totalVol : currentPrice
+    const sorted = buckets.slice().sort((a, b) => a.price - b.price)
+    let acc = 0
+    let p90Low = priceMin
+    let p90High = priceMax
+    for (const b of sorted) {
+      const v = b.profit + b.trapped
+      acc += v
+      if (acc >= totalVol * 0.05) { p90Low = b.price; break }
+    }
+    acc = 0
+    for (let i = sorted.length - 1; i >= 0; i--) {
+      acc += sorted[i].profit + sorted[i].trapped
+      if (acc >= totalVol * 0.05) { p90High = sorted[i].price + bucketStep; break }
+    }
+    const concentration = avgCost > 0 ? (((p90High - p90Low) / avgCost) * 100).toFixed(2) : '0'
+    chipSummary.value = { profitRatio, avgCost, p90Low, p90High, concentration }
+
     clearChartInstance()
+    csqaqChartInstance = echarts.init(el)
+    const priceCenter = (p) => p + bucketStep / 2
+    const maxVol = Math.max(1, ...buckets.map((b) => Math.max(b.trapped, b.profit)))
+    const trappedBarData = buckets.map((b) => [-b.trapped, priceCenter(b.price)])
+    const profitBarData = buckets.map((b) => [b.profit, priceCenter(b.price)])
+    const option = {
+      backgroundColor: 'transparent',
+      title: [
+        {
+          text: '套牢筹码',
+          right: '2%',
+          top: 4,
+          textStyle: { color: '#67c23a', fontSize: 11 }
+        },
+        {
+          text: '获利筹码',
+          right: '2%',
+          top: 20,
+          textStyle: { color: '#ef5350', fontSize: 11 }
+        }
+      ],
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: 'rgba(50,50,50,0.95)', borderColor: '#555', textStyle: { color: '#e0e0e0' } },
+      grid: [
+        { left: '2%', right: '50%', top: '18%', height: '72%', containLabel: true },
+        { left: '50%', right: '4%', top: '18%', height: '72%', containLabel: true }
+      ],
+      xAxis: [
+        { type: 'category', data: dates, boundaryGap: true, axisLine: { lineStyle: { color: '#555' } }, axisLabel: { color: '#999', rotate: 45 }, gridIndex: 0 },
+        {
+          type: 'value',
+          name: '成交量',
+          position: 'bottom',
+          min: -maxVol,
+          max: maxVol,
+          axisLine: { lineStyle: { color: '#555' }, onZero: true },
+          axisLabel: { color: '#999', formatter: (v) => Math.abs(v) },
+          splitLine: { lineStyle: { color: '#333', type: 'dashed' } },
+          gridIndex: 1
+        }
+      ],
+      yAxis: [
+        {
+          type: 'value',
+          scale: true,
+          name: '价格',
+          min: priceMin,
+          max: priceMax,
+          position: 'right',
+          splitLine: { lineStyle: { color: '#333' } },
+          axisLine: { lineStyle: { color: '#555' } },
+          axisLabel: { color: '#999' },
+          gridIndex: 0
+        },
+        {
+          type: 'value',
+          scale: true,
+          min: priceMin,
+          max: priceMax,
+          position: 'left',
+          gridIndex: 1,
+          axisLine: { show: false },
+          axisLabel: { show: false },
+          splitLine: { show: false }
+        }
+      ],
+      series: [
+        { name: '价格', type: 'line', data: avg.map(Number), symbol: 'none', lineStyle: { color: '#6b9fff', width: 2 }, xAxisIndex: 0, yAxisIndex: 0 },
+        { name: '套牢筹码', type: 'bar', data: trappedBarData, itemStyle: { color: '#67c23a' }, barGap: '-100%', barCategoryGap: '0%', barMaxWidth: 3, xAxisIndex: 1, yAxisIndex: 1 },
+        { name: '获利筹码', type: 'bar', data: profitBarData, itemStyle: { color: '#ef5350' }, barGap: '-100%', barCategoryGap: '0%', barMaxWidth: 3, xAxisIndex: 1, yAxisIndex: 1 }
+      ]
+    }
+    csqaqChartInstance.setOption(option)
+    nextTick(() => { csqaqChartInstance?.resize() })
   }
 
   const renderActiveChart = () => {
@@ -515,6 +686,8 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
       chartGoodId.value = null
       chartData.value = null
       klineData.value = null
+      chipData.value = null
+      chipSummary.value = null
       goodDetail.value = null
       statisticData.value = null
       clearChartInstance()
@@ -527,11 +700,17 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
     chartGoodId.value = null
     chartData.value = null
     klineData.value = null
+    chipData.value = null
+    chipSummary.value = null
     goodDetail.value = null
     statisticData.value = null
     clearChartInstance()
     clearStatisticChartInstance()
-    if (weapon) scheduleChartFetch()
+    if (weapon) {
+      scheduleChartFetch()
+      if (chartViewMode.value === 'kline') scheduleKlineFetch()
+      if (chartViewMode.value === 'chips') scheduleChipFetch()
+    }
   }, { immediate: true })
 
   watch([chartKey, chartPlatform, chartPeriod, chartStyle], () => {
@@ -542,12 +721,25 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
     if (chartViewMode.value === 'kline' && chartWeapon.value && chartGoodId.value != null) scheduleKlineFetch()
   })
 
+  watch(chartViewMode, () => {
+    if (chartViewMode.value === 'chips' && chartWeapon.value && chartGoodId.value != null) scheduleChipFetch()
+  })
+
   let klineFetchTimer = null
   const scheduleKlineFetch = () => {
     if (klineFetchTimer) clearTimeout(klineFetchTimer)
     klineFetchTimer = setTimeout(() => {
       klineFetchTimer = null
       fetchKlineData()
+    }, 150)
+  }
+
+  let chipFetchTimer = null
+  const scheduleChipFetch = () => {
+    if (chipFetchTimer) clearTimeout(chipFetchTimer)
+    chipFetchTimer = setTimeout(() => {
+      chipFetchTimer = null
+      fetchChipData()
     }, 150)
   }
 
@@ -647,6 +839,9 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
     chartLoading,
     klineData,
     klineLoading,
+    chipData,
+    chipLoading,
+    chipSummary,
     goodDetail,
     goodDetailLoading,
     chartKey,
@@ -667,6 +862,7 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
     CHART_VIEW_MODES,
     fetchChartData,
     fetchKlineData,
+    fetchChipData,
     selectGoodDetailButton,
     formatPrice,
     formatRate,

@@ -35,6 +35,13 @@
   padding: 6px 14px;
 }
 
+.chart-controls-chip-summary {
+  margin-left: 8px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  white-space: nowrap;
+}
+
 .chart-controls .chart-select .el-select .el-input__wrapper {
   font-size: 18px !important;
   height: 34px;
