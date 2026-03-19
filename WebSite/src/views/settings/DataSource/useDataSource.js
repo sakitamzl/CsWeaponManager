@@ -232,11 +232,14 @@ export function useDataSource() {
     'buff': 2,
     'youpin': 3,
     'csfloat': 4,
-    'perfectworld': 5
+    'perfectworld': 5,
+    'c5game': 6,
+    'igxe': 6,
+    'ecosteam': 6
   }
 
   // 独立数据源类型列表
-  const independentDataSourceTypes = ['csqaq', 'steamdt']
+  const independentDataSourceTypes = ['csqaq', 'steamdt', 'c5game', 'igxe', 'ecosteam']
 
   // 独立数据源的计算属性
   const independentDataSources = computed(() => {
@@ -306,7 +309,10 @@ export function useDataSource() {
       youpin: '悠悠有品',
       csfloat: 'CsFloat',
       csqaq: 'CSQAQ',
-      steamdt: 'SteamDT'
+      steamdt: 'SteamDT',
+      c5game: 'C5 GAME',
+      igxe: 'IGXE',
+      ecosteam: 'ECOsteam'
     }
     return labels[type] || type
   }
@@ -704,7 +710,7 @@ export function useDataSource() {
         requestData.configJson = JSON.stringify({
           apiUrl: inputForm.value.apiUrl,
           apiKey: inputForm.value.apiKey,
-          sleep_time: '6000'
+          sleep_time: (inputForm.value.sleepTime?.toString?.() || '6000')
         })
       }
 
