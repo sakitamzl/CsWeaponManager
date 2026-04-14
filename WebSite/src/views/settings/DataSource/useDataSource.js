@@ -2400,8 +2400,9 @@ export function useDataSource() {
     }
   }
 
-  // 编辑对话框中的Steam"全部采集"功能（全量采集 - 从数据库已有数据的下一页开始获取所有数据）
-  const handleEditSteamCollectAll = async () => {
+  // 编辑对话框中的Steam"首次数据获取"功能
+  // limitParams: { limitType: 'all'|'count'|'date', limitCount: number, limitDate: 'YYYY-MM-DD' }
+  const handleEditSteamCollectAll = async (limitParams = {}) => {
     if (!editForm.value.name) {
       ElMessage.error('数据源信息不完整')
       return
@@ -2412,7 +2413,6 @@ export function useDataSource() {
       return
     }
 
-    // 确保只有Steam类型才能调用全部采集
     if (editForm.value.type !== 'steam') {
       ElMessage.error('只有Steam数据源才支持全部采集功能')
       return
@@ -2423,45 +2423,48 @@ export function useDataSource() {
       return
     }
 
+    const { limitType = 'all', limitCount = null, limitDate = null } = limitParams
+
+    let limitDesc = ''
+    if (limitType === 'count') limitDesc = `（条数限制: ${limitCount}）`
+    else if (limitType === 'date') limitDesc = `（日期限制: ${limitDate} 之后）`
+
     try {
-      // 添加到采集中的列表
       startCollecting(editingSourceId.value)
-      
-      ElMessage.info(`开始执行Steam全量采集（从数据库已有数据继续获取）: ${editForm.value.name}`)
-      
-      // 准备发送给爬虫的数据 - 按照采集接口一样的传值方法
+
+      ElMessage.info(`开始执行Steam首次数据获取: ${editForm.value.name}${limitDesc}`)
+
       const spiderData = {
-        // 后端API只需要 steamId，会自动从配置中读取cookie
         steamId: editForm.value.steamID || '',
+        limit_type: limitType,
+        limit_count: limitCount,
+        limit_date: limitDate,
       }
-      
-      console.log('发送给Steam全量采集爬虫的数据:', spiderData)
-      
-      // 调用全量采集爬虫API（NoneData接口）
+
+      console.log('发送给Steam数据获取爬虫的数据:', spiderData)
+
       const response = await axios.post(apiUrls.steamSyncHistoryData(), spiderData)
 
-      // 后端成功返回 200 状态码
       if (response.status === 200) {
-        ElMessage.success(`${editForm.value.name} Steam全量采集完成！`)
-        console.log('Steam全量采集响应:', response.data)
+        ElMessage.success(`${editForm.value.name} Steam数据获取完成！`)
+        console.log('Steam数据获取响应:', response.data)
       } else {
-        ElMessage.error(`Steam全量采集失败: ${response.data}`)
+        ElMessage.error(`Steam数据获取失败: ${response.data}`)
       }
     } catch (error) {
-      console.error('Steam全量采集失败:', error)
-      let errorMessage = `Steam全量采集 ${editForm.value.name} 失败`
-      
+      console.error('Steam数据获取失败:', error)
+      let errorMessage = `Steam数据获取 ${editForm.value.name} 失败`
+
       if (error.response) {
-        errorMessage = error.response.data?.message || `Steam全量采集失败 (${error.response.status})`
+        errorMessage = error.response.data?.message || `Steam数据获取失败 (${error.response.status})`
       } else if (error.request) {
         errorMessage = '无法连接到Steam爬虫服务器'
       } else {
-        errorMessage = error.message || 'Steam全量采集失败'
+        errorMessage = error.message || 'Steam数据获取失败'
       }
-      
+
       ElMessage.error(errorMessage)
     } finally {
-      // 从采集中的列表移除
       stopCollecting(editingSourceId.value)
     }
   }

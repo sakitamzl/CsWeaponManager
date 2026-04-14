@@ -275,10 +275,10 @@
             <el-button 
               v-if="editForm.type === 'steam'" 
               type="warning" 
-              @click="handleEditSteamCollectAll"
+              @click="openFirstFetchDialog('steam')"
               :loading="collectingSourceIds.has(editingSourceId)"
             >
-              全部采集
+              首次数据获取
             </el-button>
             <el-button 
               v-if="editForm.type === 'csfloat'" 
@@ -1502,6 +1502,11 @@ export default {
         if (mode === 'count') params.limitCount = firstFetchLimitCount.value
         if (mode === 'date') params.limitDate = firstFetchLimitDate.value
         dsData.handleEditCsfloatCollectAll(params)
+      } else if (firstFetchCurrentType.value === 'steam') {
+        const params = { limitType: mode }
+        if (mode === 'count') params.limitCount = firstFetchLimitCount.value
+        if (mode === 'date') params.limitDate = firstFetchLimitDate.value
+        dsData.handleEditSteamCollectAll(params)
       }
     }
 
