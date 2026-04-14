@@ -1396,6 +1396,7 @@
         <div v-else-if="firstFetchLimitMode === 'date'" class="first-fetch-step">
           <p class="first-fetch-tip">获取该日期之后的数据：</p>
           <div
+            ref="dateNavWrapperRef"
             class="ffetch-date-nav"
             :class="{ 'at-max': isFirstFetchPanelAtMax, 'at-min': isFirstFetchPanelAtMin }"
           >
@@ -1408,8 +1409,6 @@
               format="YYYY-MM-DD"
               value-format="YYYY-MM-DD"
               :teleported="false"
-              @calendar-change="onFirstFetchPanelNav"
-              @panel-change="onFirstFetchPanelNav"
               @visible-change="onFirstFetchPickerVisible"
             />
           </div>
@@ -1431,7 +1430,7 @@
 
 
 <script>
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { Plus, User, Grid, Loading, CircleCheck, DataAnalysis } from '@element-plus/icons-vue'
 import { useDataSource } from './useDataSource.js'
 import SteamForm from './TransactionSource/SteamForm/index.vue'
@@ -1497,8 +1496,86 @@ export default {
       return time.getTime() > Date.now() || time.getTime() < minDate
     }
 
-    // 日历面板当前显示的年月（用于限制导航箭头）
+    // ── 日历面板导航限制（MutationObserver 方案）──────────────────────────
+    const dateNavWrapperRef = ref(null)
     const firstFetchPanelDate = ref(new Date())
+    let panelObserver = null
+    let snapLock = false
+
+    const MIN_YEAR = 2012, MIN_MONTH = 0
+    const getMaxYear = () => new Date().getFullYear()
+    const getMaxMonth = () => new Date().getMonth()
+
+    // 解析面板标题中的年月，如 "2026年 4月" → { year:2026, month:3 }
+    const parsePanelHeader = (wrapper) => {
+      const text = (wrapper.querySelector('.el-date-picker__header')?.textContent || '').replace(/\s+/g, '')
+      const m = text.match(/(\d{4})年(\d{1,2})月/)
+      return m ? { year: parseInt(m[1]), month: parseInt(m[2]) - 1 } : null
+    }
+
+    // 点击面板内的导航按钮（dir: 'prev'|'next'，isYear: 是否年跳转）
+    const clickNavBtn = (wrapper, dir, isYear) => {
+      const btns = wrapper.querySelectorAll(`.el-date-picker__${dir}-btn`)
+      // prev: [0]=prev-year [1]=prev-month  |  next: [0]=next-month [1]=next-year
+      const idx = dir === 'prev' ? (isYear ? 0 : 1) : (isYear ? 1 : 0)
+      btns[idx]?.click()
+    }
+
+    // 强制将面板导航至目标年月
+    const snapPanelTo = (wrapper, targetYear, targetMonth) => {
+      const cur = parsePanelHeader(wrapper)
+      if (!cur) return
+      const diff = (cur.year - targetYear) * 12 + (cur.month - targetMonth)
+      if (diff === 0) return
+      const dir = diff > 0 ? 'prev' : 'next'
+      const abs = Math.abs(diff)
+      const years = Math.floor(abs / 12)
+      const months = abs % 12
+      for (let i = 0; i < years; i++) clickNavBtn(wrapper, dir, true)
+      for (let i = 0; i < months; i++) clickNavBtn(wrapper, dir, false)
+    }
+
+    // MutationObserver 回调：检测是否越界并自动弹回
+    const onPanelMutation = () => {
+      if (snapLock) return
+      const wrapper = dateNavWrapperRef.value
+      if (!wrapper) return
+      const cur = parsePanelHeader(wrapper)
+      if (!cur) return
+
+      const maxY = getMaxYear(), maxM = getMaxMonth()
+      const isOver  = cur.year > maxY || (cur.year === maxY && cur.month > maxM)
+      const isUnder = cur.year < MIN_YEAR || (cur.year === MIN_YEAR && cur.month < MIN_MONTH)
+
+      if (isOver || isUnder) {
+        snapLock = true
+        const ty = isOver ? maxY : MIN_YEAR
+        const tm = isOver ? maxM : MIN_MONTH
+        snapPanelTo(wrapper, ty, tm)
+        firstFetchPanelDate.value = new Date(ty, tm, 1)
+        setTimeout(() => { snapLock = false }, 150)
+      } else {
+        firstFetchPanelDate.value = new Date(cur.year, cur.month, 1)
+      }
+    }
+
+    const detachPanelObserver = () => {
+      panelObserver?.disconnect()
+      panelObserver = null
+    }
+
+    const attachPanelObserver = () => {
+      detachPanelObserver()
+      nextTick(() => {
+        const wrapper = dateNavWrapperRef.value
+        if (!wrapper) return
+        const panel = wrapper.querySelector('.el-picker-panel')
+        if (!panel) return
+        onPanelMutation() // 初始检查
+        panelObserver = new MutationObserver(onPanelMutation)
+        panelObserver.observe(panel, { childList: true, subtree: true })
+      })
+    }
 
     const isFirstFetchPanelAtMax = computed(() => {
       const d = firstFetchPanelDate.value
@@ -1509,20 +1586,19 @@ export default {
 
     const isFirstFetchPanelAtMin = computed(() => {
       const d = firstFetchPanelDate.value
-      return d.getFullYear() < 2012 ||
-        (d.getFullYear() === 2012 && d.getMonth() === 0)
+      return d.getFullYear() < MIN_YEAR ||
+        (d.getFullYear() === MIN_YEAR && d.getMonth() === MIN_MONTH)
     })
 
-    const onFirstFetchPanelNav = (date) => {
-      if (date) firstFetchPanelDate.value = new Date(date)
-    }
-
-    // 日期选择器展开时，将面板重置到已选日期或今天
+    // 日期选择器打开/关闭时挂载/卸载 Observer
     const onFirstFetchPickerVisible = (visible) => {
       if (visible) {
         firstFetchPanelDate.value = firstFetchLimitDate.value
           ? new Date(firstFetchLimitDate.value)
           : new Date()
+        attachPanelObserver()
+      } else {
+        detachPanelObserver()
       }
     }
 
@@ -1537,9 +1613,9 @@ export default {
       handleFirstFetchAll,
       handleFirstFetchLimitConfirm,
       disableFetchDates,
+      dateNavWrapperRef,
       isFirstFetchPanelAtMax,
       isFirstFetchPanelAtMin,
-      onFirstFetchPanelNav,
       onFirstFetchPickerVisible,
     }
   }
