@@ -2236,8 +2236,9 @@ export function useDataSource() {
     }
   }
 
-  // 编辑对话框中的BUFF"全部获取"功能
-  const handleEditBuffCollectAll = async () => {
+  // 编辑对话框中的BUFF"首次数据获取/全部获取"功能
+  // limitParams: { limitType: 'all'|'count'|'date', limitCount: number, limitDate: 'YYYY-MM-DD' }
+  const handleEditBuffCollectAll = async (limitParams = {}) => {
     if (!editForm.value.name) {
       ElMessage.error('数据源信息不完整')
       return
@@ -2248,7 +2249,6 @@ export function useDataSource() {
       return
     }
 
-    // 确保只有BUFF类型才能调用全部获取
     if (editForm.value.type !== 'buff') {
       ElMessage.error('只有BUFF数据源才支持全部获取功能')
       return
@@ -2259,54 +2259,55 @@ export function useDataSource() {
       return
     }
 
-    try {
-      // 添加到采集中的列表
-      startCollecting(editingSourceId.value)
-      
-      ElMessage.info(`开始执行BUFF全部获取: ${editForm.value.name}`)
-      
-      // 准备发送给爬虫的数据 - 按照采集接口一样的传值方法
-      const spiderData = {
-        // 后端API需要的字段
-        cookie: editForm.value.cookie || '',
-        system_version: editForm.value.systemVersion || '',
-        system_type: editForm.value.systemType || '',
-        steamID: editForm.value.steamID || '',
+    const { limitType = 'all', limitCount = null, limitDate = null } = limitParams
 
-        // 额外的数据源信息（可选）
+    const limitDesc = limitType === 'count'
+      ? `（条数限制: ${limitCount}）`
+      : limitType === 'date'
+        ? `（日期限制: ${limitDate} 及之后）`
+        : '（全量）'
+
+    try {
+      startCollecting(editingSourceId.value)
+
+      ElMessage.info(`开始执行BUFF数据获取 ${limitDesc}: ${editForm.value.name}`)
+
+      const spiderData = {
+        steamID: editForm.value.steamID || '',
         dataID: editingSourceId.value,
         dataName: editForm.value.name,
         type: editForm.value.type,
-        enabled: editForm.value.enabled
+        enabled: editForm.value.enabled,
+        // 限制参数
+        limit_type: limitType,
+        limit_count: limitCount,
+        limit_date: limitDate,
       }
-      
-      console.log('发送给BUFF全部获取爬虫的数据:', spiderData)
-      
-      // 调用全部获取爬虫API
+
+      console.log('发送给BUFF数据获取爬虫的数据:', spiderData)
+
       const response = await axios.post(apiUrls.buffSyncHistoryData(), spiderData)
 
-      // 后端成功返回 200 状态码
       if (response.status === 200) {
-        ElMessage.success(`${editForm.value.name} BUFF全部获取完成！`)
-        console.log('BUFF全部获取响应:', response.data)
+        ElMessage.success(`${editForm.value.name} BUFF数据获取完成！`)
+        console.log('BUFF数据获取响应:', response.data)
       } else {
-        ElMessage.error(`BUFF全部获取失败: ${response.data}`)
+        ElMessage.error(`BUFF数据获取失败: ${response.data}`)
       }
     } catch (error) {
-      console.error('BUFF全部获取失败:', error)
-      let errorMessage = `BUFF全部获取 ${editForm.value.name} 失败`
-      
+      console.error('BUFF数据获取失败:', error)
+      let errorMessage = `BUFF数据获取 ${editForm.value.name} 失败`
+
       if (error.response) {
-        errorMessage = error.response.data?.message || `BUFF全部获取失败 (${error.response.status})`
+        errorMessage = error.response.data?.message || `BUFF数据获取失败 (${error.response.status})`
       } else if (error.request) {
         errorMessage = '无法连接到BUFF爬虫服务器'
       } else {
-        errorMessage = error.message || 'BUFF全部获取失败'
+        errorMessage = error.message || 'BUFF数据获取失败'
       }
-      
+
       ElMessage.error(errorMessage)
     } finally {
-      // 从采集中的列表移除
       stopCollecting(editingSourceId.value)
     }
   }

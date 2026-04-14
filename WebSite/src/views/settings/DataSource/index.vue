@@ -1486,9 +1486,17 @@ export default {
 
     const handleFirstFetchLimitConfirm = () => {
       firstFetchDialogVisible.value = false
-      if (firstFetchCurrentType.value === 'buff') dsData.handleEditBuffCollectAll()
-      else if (firstFetchCurrentType.value === 'youpin') dsData.handleEditCollectAll()
-      else if (firstFetchCurrentType.value === 'csfloat') dsData.handleEditCsfloatCollectAll()
+      const mode = firstFetchLimitMode.value
+      if (firstFetchCurrentType.value === 'buff') {
+        const params = { limitType: mode }
+        if (mode === 'count') params.limitCount = firstFetchLimitCount.value
+        if (mode === 'date') params.limitDate = firstFetchLimitDate.value
+        dsData.handleEditBuffCollectAll(params)
+      } else if (firstFetchCurrentType.value === 'youpin') {
+        dsData.handleEditCollectAll()
+      } else if (firstFetchCurrentType.value === 'csfloat') {
+        dsData.handleEditCsfloatCollectAll()
+      }
     }
 
     const disableFetchDates = (time) => {
