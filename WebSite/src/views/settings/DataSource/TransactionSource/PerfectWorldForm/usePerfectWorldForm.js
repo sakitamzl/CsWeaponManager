@@ -69,13 +69,13 @@ export default function usePerfectWorldForm(props, { emit }) {
             const data = response.data.data
             
             updateForm({
-              appversion: data.appversion,
+              appversion: data.appVersion,
               device: data.device,
-              gameType: data.gameType,
+              gameType: data.gameTypeStr || data.gameType,
               platform: data.platform,
               pwToken: data.token,
               tdSign: data.tdSign,
-              pwSteamID: data.steamID
+              pwSteamID: data.steamId
             })
             
             ElMessage.success('完美世界APP Token 获取成功!')
