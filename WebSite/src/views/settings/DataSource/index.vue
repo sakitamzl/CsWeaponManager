@@ -1493,9 +1493,15 @@ export default {
         if (mode === 'date') params.limitDate = firstFetchLimitDate.value
         dsData.handleEditBuffCollectAll(params)
       } else if (firstFetchCurrentType.value === 'youpin') {
-        dsData.handleEditCollectAll()
+        const params = { limitType: mode }
+        if (mode === 'count') params.limitCount = firstFetchLimitCount.value
+        if (mode === 'date') params.limitDate = firstFetchLimitDate.value
+        dsData.handleEditCollectAll(params)
       } else if (firstFetchCurrentType.value === 'csfloat') {
-        dsData.handleEditCsfloatCollectAll()
+        const params = { limitType: mode }
+        if (mode === 'count') params.limitCount = firstFetchLimitCount.value
+        if (mode === 'date') params.limitDate = firstFetchLimitDate.value
+        dsData.handleEditCsfloatCollectAll(params)
       }
     }
 

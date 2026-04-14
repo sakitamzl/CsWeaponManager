@@ -2171,8 +2171,9 @@ export function useDataSource() {
     resetForm() // 关闭时重置表单
   }
 
-  // 编辑对话框中的"全部采集"功能
-  const handleEditCollectAll = async () => {
+  // 编辑对话框中的悠悠有品"首次数据获取/全部获取"功能
+  // limitParams: { limitType: 'all'|'count'|'date', limitCount: number, limitDate: 'YYYY-MM-DD' }
+  const handleEditCollectAll = async (limitParams = {}) => {
     if (!editForm.value.name) {
       ElMessage.error('数据源信息不完整')
       return
@@ -2194,41 +2195,46 @@ export function useDataSource() {
       return
     }
 
-    try {
-      // 添加到采集中的列表
-      startCollecting(editingSourceId.value)
-      
-      ElMessage.info(`开始执行悠悠有品全部采集: ${editForm.value.name}`)
-      
-      // 准备发送给爬虫的数据 - NoneData接口只需要steamId，后端会根据steamId获取完整配置
-      const spiderData = {
-        steamId: editForm.value.steamId || ''
-      }
-      
-      console.log('发送给悠悠有品全部采集爬虫的数据:', spiderData)
+    const { limitType = 'all', limitCount = null, limitDate = null } = limitParams
 
-      // 调用全部采集爬虫API
+    let limitDesc = ''
+    if (limitType === 'count') limitDesc = `（条数限制: ${limitCount}）`
+    else if (limitType === 'date') limitDesc = `（日期限制: ${limitDate} 之后）`
+
+    try {
+      startCollecting(editingSourceId.value)
+
+      ElMessage.info(`开始执行悠悠有品首次数据获取: ${editForm.value.name}${limitDesc}`)
+
+      const spiderData = {
+        steamId: editForm.value.steamId || '',
+        limit_type: limitType,
+        limit_count: limitCount,
+        limit_date: limitDate,
+      }
+
+      console.log('发送给悠悠有品数据获取爬虫的数据:', spiderData)
+
       const response = await axios.post(apiUrls.youpinSyncHistoryData(), spiderData)
 
-      // 后端成功返回 200 状态码
       if (response.status === 200) {
-        ElMessage.success(`${editForm.value.name} 悠悠有品全部采集完成！`)
-        console.log('悠悠有品全部采集响应:', response.data)
+        ElMessage.success(`${editForm.value.name} 悠悠有品数据获取完成！`)
+        console.log('悠悠有品数据获取响应:', response.data)
       } else {
-        ElMessage.error(`悠悠有品全部采集失败: ${response.data}`)
+        ElMessage.error(`悠悠有品数据获取失败: ${response.data}`)
       }
     } catch (error) {
-      console.error('悠悠有品全部采集失败:', error)
-      let errorMessage = `悠悠有品全部采集 ${editForm.value.name} 失败`
-      
+      console.error('悠悠有品数据获取失败:', error)
+      let errorMessage = `悠悠有品数据获取 ${editForm.value.name} 失败`
+
       if (error.response) {
-        errorMessage = error.response.data?.message || `悠悠有品全部采集失败 (${error.response.status})`
+        errorMessage = error.response.data?.message || `悠悠有品数据获取失败 (${error.response.status})`
       } else if (error.request) {
         errorMessage = '无法连接到悠悠有品爬虫服务器'
       } else {
-        errorMessage = error.message || '悠悠有品全部采集失败'
+        errorMessage = error.message || '悠悠有品数据获取失败'
       }
-      
+
       ElMessage.error(errorMessage)
     } finally {
       // 从采集中的列表移除
@@ -2313,7 +2319,8 @@ export function useDataSource() {
   }
 
   // 编辑对话框中的 CsFloat "全部采集" 功能
-  const handleEditCsfloatCollectAll = async () => {
+  // limitParams: { limitType: 'all'|'count'|'date', limitCount: number, limitDate: 'YYYY-MM-DD' }
+  const handleEditCsfloatCollectAll = async (limitParams = {}) => {
     if (!editForm.value.name) {
       ElMessage.error('数据源信息不完整')
       return
@@ -2345,37 +2352,46 @@ export function useDataSource() {
       return
     }
 
+    const { limitType = 'all', limitCount = null, limitDate = null } = limitParams
+
+    let limitDesc = ''
+    if (limitType === 'count') limitDesc = `（条数限制: ${limitCount}）`
+    else if (limitType === 'date') limitDesc = `（日期限制: ${limitDate} 之后）`
+
     try {
       startCollecting(editingSourceId.value)
 
-      ElMessage.info(`开始执行CsFloat全部采集: ${editForm.value.name}`)
+      ElMessage.info(`开始执行CsFloat首次数据获取: ${editForm.value.name}${limitDesc}`)
 
       const response = await axios.post(apiUrls.csfloatSyncHistoryData(), {
         steamId,
+        limit_type: limitType,
+        limit_count: limitCount,
+        limit_date: limitDate,
       })
 
       if (response.status === 200) {
         const result = response.data || {}
         if (result.success === false) {
-          ElMessage.error(result.message || 'CsFloat 全部采集失败')
+          ElMessage.error(result.message || 'CsFloat 数据获取失败')
         } else {
-          ElMessage.success(result.message || 'CsFloat 全部采集完成！')
+          ElMessage.success(result.message || 'CsFloat 数据获取完成！')
         }
       } else {
-        ElMessage.error(`CsFloat 全部采集失败: ${response.data}`)
+        ElMessage.error(`CsFloat 数据获取失败: ${response.data}`)
       }
     } catch (error) {
-      console.error('CsFloat 全部采集失败:', error)
-      let errorMessage = `CsFloat 全部采集 ${editForm.value.name} 失败`
+      console.error('CsFloat 数据获取失败:', error)
+      let errorMessage = `CsFloat 数据获取 ${editForm.value.name} 失败`
 
       if (error.response) {
         errorMessage =
           error.response.data?.message ||
-          `CsFloat 全部采集失败 (${error.response.status})`
+          `CsFloat 数据获取失败 (${error.response.status})`
       } else if (error.request) {
         errorMessage = '无法连接到CsFloat爬虫服务器'
       } else {
-        errorMessage = error.message || 'CsFloat 全部采集失败'
+        errorMessage = error.message || 'CsFloat 数据获取失败'
       }
 
       ElMessage.error(errorMessage)
