@@ -325,3 +325,23 @@ class VersionUpdateData:
             return jsonify({'success': True, 'message': '更新程序已启动'})
         except Exception as e:
             return jsonify({'success': False, 'error': str(e)}), 500
+
+    @staticmethod
+    def restart_system():
+        """调用 update.bat 重启系统（不检查更新包是否存在）"""
+        try:
+            import subprocess
+            base_dir = _get_base_dir()
+            update_bat = os.path.join(base_dir, 'update.bat')
+
+            if not os.path.exists(update_bat):
+                return jsonify({'success': False, 'error': 'update.bat 不存在'}), 400
+
+            subprocess.Popen(
+                ['cmd.exe', '/c', 'start', '', update_bat],
+                cwd=base_dir,
+                creationflags=subprocess.CREATE_NEW_CONSOLE
+            )
+            return jsonify({'success': True, 'message': '系统重启程序已启动'})
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)}), 500

@@ -23,6 +23,10 @@ export function useVersionUpdate() {
   const applyingUpdate = ref(false)
   /** 更新重启过程中的状态文案 */
   const updateRestartStatus = ref('')
+  /** 遮罩标题（更新/重启时不同） */
+  const overlayTitle = ref('系统更新中')
+  /** 正在重启系统中 */
+  const restarting = ref(false)
   const headingIds = new Map()
   /** 轮询检测的定时器，用于清理 */
   let pollTimer = null
@@ -592,6 +596,7 @@ export function useVersionUpdate() {
       if (!response.data.success) {
         throw new Error(response.data.error || '启动更新失败')
       }
+      overlayTitle.value = '系统更新中'
       applyingUpdate.value = true
       updateRestartStatus.value = '更新程序已启动，10 秒后开始检测服务...'
       if (pollTimer) clearTimeout(pollTimer)
@@ -632,6 +637,45 @@ export function useVersionUpdate() {
     } else {
       // 没有本地更新包，直接下载
       await handleDownloadUpdate()
+    }
+  }
+
+  // 重启系统
+  const handleRestartSystem = async () => {
+    try {
+      await ElMessageBox.confirm(
+        '确定要重启系统吗？重启期间所有服务将暂时不可用。',
+        '重启系统',
+        {
+          confirmButtonText: '确定重启',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      )
+    } catch {
+      return
+    }
+
+    restarting.value = true
+    try {
+      const response = await axios.post(apiUrls.restartSystem())
+      if (!response.data.success) {
+        throw new Error(response.data.error || '启动重启失败')
+      }
+      overlayTitle.value = '系统重启中'
+      applyingUpdate.value = true
+      updateRestartStatus.value = '重启程序已启动，10 秒后开始检测服务...'
+      if (pollTimer) clearTimeout(pollTimer)
+      pollTimer = setTimeout(() => {
+        pollTimer = null
+        pollUntilServicesReady(Date.now())
+      }, POLL_START_DELAY_MS)
+    } catch (err) {
+      console.error('重启系统失败:', err)
+      const serverMsg = err.response?.data?.error
+      ElMessage.error(serverMsg || err.message || '重启系统失败')
+    } finally {
+      restarting.value = false
     }
   }
 
@@ -699,6 +743,9 @@ export function useVersionUpdate() {
     handleCheckUpdate,
     handleDownloadUpdate,
     handleApplyUpdate,
-    handleCancelUpdate
+    handleCancelUpdate,
+    restarting,
+    handleRestartSystem,
+    overlayTitle
   }
 }

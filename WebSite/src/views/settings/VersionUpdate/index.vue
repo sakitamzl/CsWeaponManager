@@ -4,7 +4,7 @@
     <div v-if="applyingUpdate" class="update-overlay">
       <div class="update-overlay-content">
         <el-icon class="update-overlay-icon is-loading"><Loading /></el-icon>
-        <p class="update-overlay-title">系统更新中</p>
+        <p class="update-overlay-title">{{ overlayTitle }}</p>
         <p class="update-overlay-status">{{ updateRestartStatus }}</p>
       </div>
     </div>
@@ -24,16 +24,28 @@
                 <span class="value">v{{ currentVersion }}</span>
               </div>
 
-              <el-button
-                type="primary"
-                size="small"
-                @click="handleCheckUpdate"
-                :loading="checkingUpdate"
-                style="width: 100%;"
-              >
-                <el-icon v-if="!checkingUpdate"><Refresh /></el-icon>
-                {{ checkingUpdate ? '检查中...' : '检查更新' }}
-              </el-button>
+              <div style="display: flex; gap: 6px;">
+                <el-button
+                  type="primary"
+                  size="small"
+                  @click="handleCheckUpdate"
+                  :loading="checkingUpdate"
+                  style="flex: 1;"
+                >
+                  <el-icon v-if="!checkingUpdate"><Refresh /></el-icon>
+                  {{ checkingUpdate ? '检查中...' : '检查更新' }}
+                </el-button>
+                <el-button
+                  type="warning"
+                  size="small"
+                  @click="handleRestartSystem"
+                  :loading="restarting"
+                  style="flex: 1;"
+                >
+                  <el-icon v-if="!restarting"><RefreshRight /></el-icon>
+                  {{ restarting ? '重启中...' : '重启系统' }}
+                </el-button>
+              </div>
             </div>
 
             <!-- 发现新版本 -->
@@ -177,7 +189,7 @@
 <script>
 import { useVersionUpdate } from './useVersionUpdate.js'
 import TreeNode from './TreeNode.vue'
-import { Loading, Document, Refresh, Download, SuccessFilled } from '@element-plus/icons-vue'
+import { Loading, Document, Refresh, RefreshRight, Download, SuccessFilled } from '@element-plus/icons-vue'
 
 export default {
   name: 'VersionUpdate',
@@ -186,6 +198,7 @@ export default {
     Loading,
     Document,
     Refresh,
+    RefreshRight,
     Download,
     SuccessFilled
   },

@@ -20,3 +20,4 @@ version_update_blueprint.route('/version_update/units/update/checkUpdate', metho
 version_update_blueprint.route('/version_update/units/update/downloadUpdate', methods=['POST'])(VersionUpdateData.download_update)
 version_update_blueprint.route('/version_update/units/update/checkLocalUpdate', methods=['GET'])(VersionUpdateData.check_local_update)
 version_update_blueprint.route('/version_update/units/update/applyUpdate', methods=['POST'])(VersionUpdateData.apply_update)
+version_update_blueprint.route('/version_update/units/update/restartSystem', methods=['POST'])(VersionUpdateData.restart_system)

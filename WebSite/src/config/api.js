@@ -674,6 +674,8 @@ export const API_CONFIG = {
 
     UPDATE_APPLY: '/backENDV2/src/use_webside/settings/version_update/units/update/applyUpdate',  // 执行更新
 
+    UPDATE_RESTART: '/backENDV2/src/use_webside/settings/version_update/units/update/restartSystem',  // 重启系统
+
     BACKEND_HEALTH: '/backENDV2/health',  // Backend 健康检查（更新后轮询用）
     SPIDER_HEALTH: '/health',  // Spider 健康检查（更新后轮询用，相对 /spider 前缀）
 
@@ -1395,6 +1397,8 @@ export const apiUrls = {
   checkLocalUpdate: () => getApiUrl(API_CONFIG.ENDPOINTS.UPDATE_CHECK_LOCAL),  // 检查本地更新包
 
   applyUpdate: () => getApiUrl(API_CONFIG.ENDPOINTS.UPDATE_APPLY),  // 执行更新
+
+  restartSystem: () => getApiUrl(API_CONFIG.ENDPOINTS.UPDATE_RESTART),  // 重启系统
 
   backendHealth: () => getApiUrl(API_CONFIG.ENDPOINTS.BACKEND_HEALTH),  // Backend 健康检查
   spiderHealth: () => getSpiderApiUrl(API_CONFIG.ENDPOINTS.SPIDER_HEALTH),  // Spider 健康检查
