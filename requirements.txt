@@ -10,3 +10,4 @@ selenium==4.40.0
 pymysql
 pyinstaller
 qrcode[pil]
+psutil

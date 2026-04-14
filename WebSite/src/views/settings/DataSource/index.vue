@@ -259,18 +259,18 @@
             <el-button 
               v-if="editForm.type === 'youpin'" 
               type="warning" 
-              @click="handleEditCollectAll"
+              @click="openFirstFetchDialog('youpin')"
               :loading="collectingSourceIds.has(editingSourceId)"
             >
-              全部采集
+              首次数据获取
             </el-button>
             <el-button 
               v-if="editForm.type === 'buff'" 
               type="warning" 
-              @click="handleEditBuffCollectAll"
+              @click="openFirstFetchDialog('buff')"
               :loading="collectingSourceIds.has(editingSourceId)"
             >
-              全部获取
+              首次数据获取
             </el-button>
             <el-button 
               v-if="editForm.type === 'steam'" 
@@ -283,10 +283,10 @@
             <el-button 
               v-if="editForm.type === 'csfloat'" 
               type="warning" 
-              @click="handleEditCsfloatCollectAll"
+              @click="openFirstFetchDialog('csfloat')"
               :loading="collectingSourceIds.has(editingSourceId)"
             >
-              全部采集
+              首次数据获取
             </el-button>
             <el-button 
               type="danger" 
@@ -1334,11 +1334,104 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 首次数据获取对话框 -->
+    <el-dialog
+      v-model="firstFetchDialogVisible"
+      title="首次数据获取"
+      width="420px"
+      :close-on-click-modal="true"
+      @closed="firstFetchLimitMode = null"
+    >
+      <div class="first-fetch-dialog-content">
+        <!-- 第一步：选择全部获取或限制获取 -->
+        <div v-if="!firstFetchLimitMode" class="first-fetch-step">
+          <div class="first-fetch-actions">
+            <el-button type="primary" size="large" @click="firstFetchLimitMode = 'confirm-all'" style="flex: 1;">
+              全部获取
+            </el-button>
+            <el-button type="warning" size="large" @click="firstFetchLimitMode = 'select'" style="flex: 1;">
+              限制获取
+            </el-button>
+          </div>
+        </div>
+
+        <!-- 全部获取确认 -->
+        <div v-else-if="firstFetchLimitMode === 'confirm-all'" class="first-fetch-step">
+          <p class="first-fetch-tip">将获取该数据源的全部历史数据，数据量较大时耗时较长，确认继续？</p>
+          <div class="first-fetch-actions">
+            <el-button @click="firstFetchLimitMode = null" style="flex: 1;">取消</el-button>
+            <el-button type="primary" @click="handleFirstFetchAll" style="flex: 1;">确认获取</el-button>
+          </div>
+        </div>
+
+        <!-- 第二步：选择限制类型 -->
+        <div v-else-if="firstFetchLimitMode === 'select'" class="first-fetch-step">
+          <div class="first-fetch-limit-types">
+            <el-button type="primary" size="default" @click="firstFetchLimitMode = 'count'" style="flex: 1;">
+              按照条数限制
+            </el-button>
+            <el-button type="primary" size="default" @click="firstFetchLimitMode = 'date'" style="flex: 1;">
+              按时间限制
+            </el-button>
+          </div>
+        </div>
+
+        <!-- 按条数限制 -->
+        <div v-else-if="firstFetchLimitMode === 'count'" class="first-fetch-step">
+          <p class="first-fetch-tip">设置最多获取条数：</p>
+          <el-input-number
+            v-model="firstFetchLimitCount"
+            :min="1"
+            :max="100000"
+            :controls="false"
+            style="width: 100%;"
+          />
+          <div class="first-fetch-actions" style="margin-top: 16px;">
+            <el-button type="primary" @click="handleFirstFetchLimitConfirm" style="flex: 1;">确认获取</el-button>
+          </div>
+        </div>
+
+        <!-- 按时间限制 -->
+        <div v-else-if="firstFetchLimitMode === 'date'" class="first-fetch-step">
+          <p class="first-fetch-tip">获取该日期之后的数据：</p>
+          <div
+            class="ffetch-date-nav"
+            :class="{ 'at-max': isFirstFetchPanelAtMax, 'at-min': isFirstFetchPanelAtMin }"
+          >
+            <el-date-picker
+              v-model="firstFetchLimitDate"
+              type="date"
+              placeholder="请选择截止日期"
+              style="width: 100%;"
+              :disabled-date="disableFetchDates"
+              format="YYYY-MM-DD"
+              value-format="YYYY-MM-DD"
+              :teleported="false"
+              @calendar-change="onFirstFetchPanelNav"
+              @panel-change="onFirstFetchPanelNav"
+              @visible-change="onFirstFetchPickerVisible"
+            />
+          </div>
+          <div class="first-fetch-actions" style="margin-top: 16px;">
+            <el-button
+              type="primary"
+              @click="handleFirstFetchLimitConfirm"
+              :disabled="!firstFetchLimitDate"
+              style="flex: 1;"
+            >
+              确认获取
+            </el-button>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 
 <script>
+import { ref, computed } from 'vue'
 import { Plus, User, Grid, Loading, CircleCheck, DataAnalysis } from '@element-plus/icons-vue'
 import { useDataSource } from './useDataSource.js'
 import SteamForm from './TransactionSource/SteamForm/index.vue'
@@ -1367,7 +1460,88 @@ export default {
     SteamdtForm
   },
   setup() {
-    return useDataSource()
+    const dsData = useDataSource()
+
+    // 首次数据获取弹窗状态
+    const firstFetchDialogVisible = ref(false)
+    const firstFetchLimitMode = ref(null) // null / 'select' / 'count' / 'date'
+    const firstFetchLimitCount = ref(1000)
+    const firstFetchLimitDate = ref('')
+    const firstFetchCurrentType = ref('') // 'buff' / 'youpin' / 'csfloat'
+
+    const openFirstFetchDialog = (type) => {
+      firstFetchCurrentType.value = type
+      firstFetchLimitMode.value = null
+      firstFetchLimitCount.value = 1000
+      firstFetchLimitDate.value = ''
+      firstFetchDialogVisible.value = true
+    }
+
+    const handleFirstFetchAll = () => {
+      firstFetchDialogVisible.value = false
+      firstFetchLimitMode.value = null
+      if (firstFetchCurrentType.value === 'buff') dsData.handleEditBuffCollectAll()
+      else if (firstFetchCurrentType.value === 'youpin') dsData.handleEditCollectAll()
+      else if (firstFetchCurrentType.value === 'csfloat') dsData.handleEditCsfloatCollectAll()
+    }
+
+    const handleFirstFetchLimitConfirm = () => {
+      firstFetchDialogVisible.value = false
+      if (firstFetchCurrentType.value === 'buff') dsData.handleEditBuffCollectAll()
+      else if (firstFetchCurrentType.value === 'youpin') dsData.handleEditCollectAll()
+      else if (firstFetchCurrentType.value === 'csfloat') dsData.handleEditCsfloatCollectAll()
+    }
+
+    const disableFetchDates = (time) => {
+      const minDate = new Date('2012-01-01').getTime()
+      return time.getTime() > Date.now() || time.getTime() < minDate
+    }
+
+    // 日历面板当前显示的年月（用于限制导航箭头）
+    const firstFetchPanelDate = ref(new Date())
+
+    const isFirstFetchPanelAtMax = computed(() => {
+      const d = firstFetchPanelDate.value
+      const now = new Date()
+      return d.getFullYear() > now.getFullYear() ||
+        (d.getFullYear() === now.getFullYear() && d.getMonth() >= now.getMonth())
+    })
+
+    const isFirstFetchPanelAtMin = computed(() => {
+      const d = firstFetchPanelDate.value
+      return d.getFullYear() < 2012 ||
+        (d.getFullYear() === 2012 && d.getMonth() === 0)
+    })
+
+    const onFirstFetchPanelNav = (date) => {
+      if (date) firstFetchPanelDate.value = new Date(date)
+    }
+
+    // 日期选择器展开时，将面板重置到已选日期或今天
+    const onFirstFetchPickerVisible = (visible) => {
+      if (visible) {
+        firstFetchPanelDate.value = firstFetchLimitDate.value
+          ? new Date(firstFetchLimitDate.value)
+          : new Date()
+      }
+    }
+
+    return {
+      ...dsData,
+      firstFetchDialogVisible,
+      firstFetchLimitMode,
+      firstFetchLimitCount,
+      firstFetchLimitDate,
+      firstFetchCurrentType,
+      openFirstFetchDialog,
+      handleFirstFetchAll,
+      handleFirstFetchLimitConfirm,
+      disableFetchDates,
+      isFirstFetchPanelAtMax,
+      isFirstFetchPanelAtMin,
+      onFirstFetchPanelNav,
+      onFirstFetchPickerVisible,
+    }
   }
 }
 </script>

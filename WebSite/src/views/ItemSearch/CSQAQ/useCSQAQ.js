@@ -21,7 +21,7 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
   const chartPlatform = ref(2)
   const chartPeriod = ref(30)
   const chartStyle = ref('all_style')
-  const chartViewMode = ref('line') // line | kline | chips
+  const chartViewMode = ref('line') // line | statistic | kline | chips
   const csqaqChartRef = ref(null)
   let csqaqChartInstance = null
   const klineData = ref(null)
@@ -32,10 +32,6 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
   const chipData = ref(null)    // 获利筹码 chipData：{ low, high, avg, volume, date }
   const chipLoading = ref(false)
   const chipSummary = ref(null) // 获利筹码汇总 { profitRatio, avgCost, p90Low, p90High, concentration }，供控制栏同一行展示
-  const statisticData = ref(null)
-  const statisticLoading = ref(false)
-  const statisticChartRef = ref(null)
-  let statisticChartInstance = null
   const statisticDialogVisible = ref(false)
 
   const CHART_KEY_OPTIONS_ALL = [
@@ -92,6 +88,7 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
 
   const CHART_VIEW_MODES = [
     { value: 'line', label: '走势图' },
+    { value: 'statistic', label: '存世量' },
     { value: 'kline', label: 'K 线图' },
     { value: 'chips', label: '获利筹码' }
   ]
@@ -143,8 +140,13 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
         return
       }
       const res = await response.json()
-      if (res.code === 200 && res.data) goodDetail.value = res
-      else goodDetail.value = null
+      if (res.code === 200 && res.data) {
+        goodDetail.value = res
+        const statistic = res.data?.goods_info?.statistic
+        if (statistic != null && onStatisticLoaded) onStatisticLoaded(statistic)
+      } else {
+        goodDetail.value = null
+      }
     } catch (e) {
       console.error('fetchGoodDetail:', e)
       goodDetail.value = null
@@ -173,7 +175,6 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
         ElMessage.warning('未找到该饰品的 CSQAQ ID，无法加载图表')
         clearChartInstance()
         goodDetail.value = null
-        statisticData.value = null
         return
       }
       // 加载顺序：1) 左侧详情 2) 右侧图表 3) 存世量；每步完成即展示
@@ -215,13 +216,6 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
         clearChartInstance()
         ElMessage.warning(res.msg || '获取图表数据失败')
       }
-      if (!statisticData.value?.length) {
-        await fetchStatisticData()
-        if (statisticData.value?.length && onStatisticLoaded) {
-          const last = statisticData.value[statisticData.value.length - 1]
-          onStatisticLoaded(last.statistic)
-        }
-      }
     } catch (e) {
       console.error('fetchChartData:', e)
       chartData.value = null
@@ -236,13 +230,6 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
     if (csqaqChartInstance) {
       csqaqChartInstance.dispose()
       csqaqChartInstance = null
-    }
-  }
-
-  const clearStatisticChartInstance = () => {
-    if (statisticChartInstance) {
-      statisticChartInstance.dispose()
-      statisticChartInstance = null
     }
   }
 
@@ -581,6 +568,7 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
   }
 
   const renderActiveChart = () => {
+    if (chartViewMode.value === 'statistic') return
     if (chartViewMode.value === 'kline') {
       renderKlineChart()
       return
@@ -596,75 +584,8 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
     renderLineChart()
   }
 
-  const fetchStatisticData = async () => {
-    const goodId = chartGoodId.value
-    if (goodId == null) {
-      statisticData.value = null
-      clearStatisticChartInstance()
-      return
-    }
-    statisticLoading.value = true
-    statisticData.value = null
-    try {
-      const response = await fetch(apiUrls.csqaqWeaponInfoStatistic(goodId), { method: 'GET', headers: { Accept: 'application/json' } })
-      if (!response.ok) {
-        statisticData.value = null
-        return
-      }
-      const res = await response.json()
-      if (res.code === 200 && Array.isArray(res.data)) {
-        statisticData.value = res.data
-      } else {
-        statisticData.value = null
-      }
-    } catch (e) {
-      console.error('fetchStatisticData:', e)
-      statisticData.value = null
-    } finally {
-      statisticLoading.value = false
-    }
-  }
-
-  const renderStatisticChart = () => {
-    if (!statisticChartRef.value || !statisticData.value?.length) return
-    const el = statisticChartRef.value
-    const { clientWidth, clientHeight } = el
-    if (!clientWidth || !clientHeight) {
-      setTimeout(() => {
-        renderStatisticChart()
-      }, 100)
-      return
-    }
-    clearStatisticChartInstance()
-    statisticChartInstance = echarts.init(el)
-    const dates = statisticData.value.map(item => {
-      const d = new Date(item.created_at)
-      return `${d.getMonth() + 1}/${d.getDate()}`
-    })
-    const values = statisticData.value.map(item => item.statistic)
-    const minMax = getScaleMinMax(values)
-    const option = {
-      title: { text: '存世量走势（近180天）', left: 'center', top: 4, textStyle: { fontSize: 12, color: '#999' } },
-      tooltip: { trigger: 'axis', backgroundColor: 'rgba(50,50,50,0.95)', borderColor: '#555', textStyle: { color: '#e0e0e0' } },
-      grid: { left: '2%', right: '2%', bottom: '12%', top: '14%', containLabel: true },
-      xAxis: { type: 'category', data: dates, boundaryGap: false, axisLine: { lineStyle: { color: '#555' } }, axisLabel: { color: '#999', rotate: 45, interval: 'auto' } },
-      yAxis: { type: 'value', min: minMax.min, max: minMax.max, name: '存世量', nameTextStyle: { color: '#999' }, axisLine: { lineStyle: { color: '#555' } }, axisLabel: { color: '#999' }, splitLine: { lineStyle: { color: '#333' } } },
-      series: [{ name: '存世量', type: 'line', data: values, smooth: true, lineStyle: { width: 2, color: '#e6a23c' }, itemStyle: { color: '#e6a23c' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(230, 162, 60, 0.3)' }, { offset: 1, color: 'rgba(230, 162, 60, 0.05)' }] } } }]
-    }
-    statisticChartInstance.setOption(option)
-    nextTick(() => { statisticChartInstance?.resize() })
-  }
-
-  const openStatisticDialog = async () => {
-    if (!chartGoodId.value) return
-    if (!statisticData.value || !statisticData.value.length) {
-      await fetchStatisticData()
-    }
+  const openStatisticDialog = () => {
     statisticDialogVisible.value = true
-    await nextTick()
-    if (statisticData.value && statisticData.value.length) {
-      renderStatisticChart()
-    }
   }
 
   // 只要有 chartWeapon 就加载对应饰品；flush: 'post' 确保 DOM 已渲染后再请求
@@ -677,9 +598,7 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
       chipData.value = null
       chipSummary.value = null
       goodDetail.value = null
-      statisticData.value = null
       clearChartInstance()
-      clearStatisticChartInstance()
       scheduleChartFetch()
     }
   }, { immediate: true, flush: 'post' })
@@ -691,9 +610,7 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
     chipData.value = null
     chipSummary.value = null
     goodDetail.value = null
-    statisticData.value = null
     clearChartInstance()
-    clearStatisticChartInstance()
     if (weapon) {
       scheduleChartFetch()
       if (chartViewMode.value === 'kline') scheduleKlineFetch()
@@ -764,6 +681,12 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
     }
   }
   const formatDecimal = (v) => (v == null || v === '') ? '-' : (Number.isNaN(Number(v)) ? String(v) : Number(v).toFixed(2))
+  const formatStatistic = (v) => (v == null || v === '') ? '-' : (Number.isNaN(Number(v)) ? String(v) : Number(v).toLocaleString())
+
+  const statisticDisplayValue = computed(() => {
+    const g = goodDetail.value?.data?.goods_info
+    return g?.statistic != null ? formatStatistic(g.statistic) : '-'
+  })
 
   const hasTodayStat = (g) => g && (g.sell_price_rate_1 != null || g.sell_price_1 != null)
   const hasWeekStat = (g) => g && (g.sell_price_rate_7 != null || g.sell_price_7 != null)
@@ -800,7 +723,6 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
 
   const handleChartResize = () => {
     csqaqChartInstance?.resize()
-    statisticChartInstance?.resize()
   }
 
   watch(chartViewMode, () => {
@@ -818,13 +740,14 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
   onUnmounted(() => {
     window.removeEventListener('resize', handleChartResize)
     clearChartInstance()
-    clearStatisticChartInstance()
   })
 
   return {
     chartGoodId,
     chartData,
     chartLoading,
+    statisticDisplayValue,
+    formatStatistic,
     klineData,
     klineLoading,
     chipData,
@@ -870,9 +793,6 @@ export function useCSQAQ(chartWeapon, showYYYPList, showBuffList, options = {}) 
     isYyypPriceLow,
     hasYyypLeaseData,
     hasSteamConversionData,
-    statisticData,
-    statisticLoading,
-    statisticChartRef,
     statisticDialogVisible,
     openStatisticDialog
   }

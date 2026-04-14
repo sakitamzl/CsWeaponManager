@@ -101,6 +101,37 @@
               </div>
             </div>
 
+            <div
+              class="good-detail-statistic"
+              v-if="goodDetail.data.goods_info.statistic != null"
+              @click="openStatisticDialog"
+            >
+              <span class="label">存世量</span>
+              <span class="value">{{ formatStatistic(goodDetail.data.goods_info.statistic) }}</span>
+              <span class="hint">点击查看</span>
+            </div>
+
+            <div class="good-detail-section" v-if="(goodDetail.data.container || []).length">
+              <div class="section-title">所属武器箱</div>
+              <div class="container-list">
+                <div
+                  v-for="c in goodDetail.data.container"
+                  :key="c.id"
+                  class="container-item"
+                >
+                  <img v-if="c.url" :src="c.url" class="container-img" alt="" />
+                  <div class="container-info">
+                    <div class="container-name">{{ c.name }}</div>
+                    <div class="container-meta">
+                      <span v-if="c.price != null">¥{{ formatPrice(c.price) }}</span>
+                      <span v-if="c.comment" class="container-comment">{{ c.comment }}</span>
+                      <span v-if="c.roi != null">ROI {{ formatRate(c.roi) }}%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div class="good-detail-row time-row" v-if="goodDetail.data.goods_info.updated_at">
               <span class="label">更新时间</span>
               <span class="value time">{{ formatUpdatedAt(goodDetail.data.goods_info.updated_at) }}</span>
@@ -111,7 +142,12 @@
       </div>
       <div class="chart-right">
         <div class="chart-controls">
-          <el-radio-group v-model="chartViewMode" size="small" class="chart-view-toggle">
+          <el-radio-group
+            v-model="chartViewMode"
+            size="small"
+            class="chart-view-toggle"
+            :disabled="(chartViewMode === 'line' && chartLoading) || (chartViewMode === 'kline' && klineLoading) || (chartViewMode === 'chips' && chipLoading)"
+          >
             <el-radio-button
               v-for="mode in CHART_VIEW_MODES"
               :key="mode.value"
@@ -124,9 +160,9 @@
           <span v-if="chartViewMode === 'chips' && chipSummary" class="chart-controls-chip-summary">
             获利比例：{{ chipSummary.profitRatio }}%　平均成本：¥{{ chipSummary.avgCost.toFixed(2) }}　90%成本：{{ chipSummary.p90Low.toFixed(0) }}-{{ chipSummary.p90High.toFixed(0) }}　集中度：{{ chipSummary.concentration }}%
           </span>
-          <!-- K 线图：1小时/4小时/日线/周线 + 平台下拉，默认日线、BUFF -->
+          <!-- K 线图：1小时/4小时/日线/周线 + 平台下拉，默认日线、BUFF；加载中禁用切换 -->
           <template v-if="chartViewMode === 'kline'">
-            <el-radio-group v-model="klinePeriod" size="small" class="chart-view-toggle kline-period-toggle">
+            <el-radio-group v-model="klinePeriod" size="small" class="chart-view-toggle kline-period-toggle" :disabled="klineLoading">
               <el-radio-button
                 v-for="opt in KLINE_PERIOD_OPTIONS"
                 :key="opt.value"
@@ -135,12 +171,12 @@
                 {{ opt.label }}
               </el-radio-button>
             </el-radio-group>
-            <el-select v-model="klinePlatform" placeholder="平台" size="small" class="chart-select">
+            <el-select v-model="klinePlatform" placeholder="平台" size="small" class="chart-select" :disabled="klineLoading">
               <el-option v-for="opt in KLINE_PLATFORM_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
             </el-select>
           </template>
-          <!-- 走势图：数据类型、平台、周期、款式（获利筹码模式不显示下拉与刷新） -->
-          <template v-else-if="chartViewMode !== 'chips'">
+          <!-- 走势图：数据类型、平台、周期、款式（存世量/获利筹码模式不显示下拉与刷新） -->
+          <template v-else-if="chartViewMode !== 'chips' && chartViewMode !== 'statistic'">
             <el-select v-model="chartKey" placeholder="数据类型" size="small" class="chart-select">
               <el-option v-for="opt in CHART_KEY_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
             </el-select>
@@ -155,7 +191,7 @@
             </el-select>
           </template>
           <el-button
-            v-if="chartViewMode !== 'chips'"
+            v-if="chartViewMode !== 'chips' && chartViewMode !== 'statistic'"
             type="primary"
             size="small"
             :loading="chartViewMode === 'kline' ? klineLoading : chartLoading"
@@ -166,28 +202,35 @@
         </div>
         <div
           class="chart-body"
-          v-loading="chartLoading || (chartViewMode === 'kline' && klineLoading) || (chartViewMode === 'chips' && chipLoading)"
+          v-loading="chartViewMode !== 'statistic' && (chartLoading || (chartViewMode === 'kline' && klineLoading) || (chartViewMode === 'chips' && chipLoading))"
           :element-loading-text="chartViewMode === 'kline' ? '加载K线...' : chartViewMode === 'chips' ? '加载筹码...' : '加载图表...'"
         >
-          <div ref="csqaqChartRef" class="csqaq-chart-dom" />
-          <div
-            v-if="!(chartLoading || (chartViewMode === 'kline' && klineLoading) || (chartViewMode === 'chips' && chipLoading)) && (chartViewMode === 'kline' ? !klineData?.length : chartViewMode === 'chips' ? !chipData?.date?.length : !chartData?.timestamp?.length)"
-            class="chart-empty"
-          >
-            暂无数据
+          <!-- 存世量模式：直接显示数值 -->
+          <div v-if="chartViewMode === 'statistic'" class="chart-body-statistic">
+            <span class="statistic-value-label">当前存世量</span>
+            <span class="statistic-value-number">{{ statisticDisplayValue }}</span>
           </div>
+          <template v-else>
+            <div ref="csqaqChartRef" class="csqaq-chart-dom" />
+            <div
+              v-if="!(chartLoading || (chartViewMode === 'kline' && klineLoading) || (chartViewMode === 'chips' && chipLoading)) && (chartViewMode === 'kline' ? !klineData?.length : chartViewMode === 'chips' ? !chipData?.date?.length : !chartData?.timestamp?.length)"
+              class="chart-empty"
+            >
+              暂无数据
+            </div>
+          </template>
         </div>
       </div>
     </div>
     <el-dialog
       v-model="statisticDialogVisible"
-      title="存世量走势"
-      width="70%"
+      title="存世量"
+      width="400px"
       destroy-on-close
     >
-      <div class="statistic-chart-body" v-loading="statisticLoading" element-loading-text="加载存世量...">
-        <div ref="statisticChartRef" class="csqaq-chart-dom statistic-chart-dom" />
-        <div v-if="!statisticLoading && !statisticData?.length" class="chart-empty">暂无存世量数据</div>
+      <div class="statistic-value-body">
+        <span class="statistic-value-label">当前存世量</span>
+        <span class="statistic-value-number">{{ statisticDisplayValue }}</span>
       </div>
     </el-dialog>
   </div>

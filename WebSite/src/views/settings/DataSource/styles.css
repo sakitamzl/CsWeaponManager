@@ -657,3 +657,47 @@
   background-color: rgba(0, 0, 0, 0.7) !important;
 }
 
+/* 首次数据获取对话框 */
+.first-fetch-dialog-content {
+  padding: 8px 4px;
+}
+
+.first-fetch-step {
+  display: flex;
+  flex-direction: column;
+}
+
+.first-fetch-tip {
+  color: #ccc;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.first-fetch-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.first-fetch-limit-types {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 0;
+}
+
+/* 日期选择器导航箭头限制 */
+.ffetch-date-nav {
+  position: relative;
+}
+
+.ffetch-date-nav.at-max :deep(.el-date-picker__next-btn) {
+  opacity: 0.25;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.ffetch-date-nav.at-min :deep(.el-date-picker__prev-btn) {
+  opacity: 0.25;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
