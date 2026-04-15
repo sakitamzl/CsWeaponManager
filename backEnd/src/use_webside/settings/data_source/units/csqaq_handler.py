@@ -2,12 +2,12 @@
 """
 CSQAQ 数据源处理器
 迁移自 backEnd/src/web_side/CSQAQ/csqaq_api.py
+统一使用 DatabaseManager + 参数化 SQL
 """
 
 import json
 from flask import request, jsonify
-from src.db_manager.index.model.config import ConfigModel
-from src.db_manager.index.model.weapon_classID import WeaponClassIDModel
+from src.db_manager.database import DatabaseManager
 
 
 class CsqaqHandler:
@@ -56,24 +56,26 @@ class CsqaqHandler:
             inserted = 0
             failed = 0
 
-            db = WeaponClassIDModel().db
+            db = DatabaseManager()
 
             for item in data:
                 try:
                     csqaq_id = item.get('id')
                     market_hash_name = item.get('market_hash_name')
-                    item_name_cn = item.get('name', '')
 
                     if not csqaq_id or not market_hash_name:
                         failed += 1
                         continue
 
-                    existing_records = WeaponClassIDModel.find_by_steam_hash_name(market_hash_name)
-
-                    if existing_records:
-                        for record in existing_records:
-                            update_sql = "UPDATE weapon_classID SET csqaq_id = ? WHERE id = ?"
-                            db.execute_update(update_sql, (csqaq_id, record.id))
+                    chk = db.execute_query(
+                        "SELECT 1 FROM weapon_classID WHERE [steam_hash_name] = ? LIMIT 1",
+                        (market_hash_name,),
+                    )
+                    if chk:
+                        db.execute_update(
+                            "UPDATE weapon_classID SET [csqaq_id] = ? WHERE [steam_hash_name] = ?",
+                            (csqaq_id, market_hash_name),
+                        )
                         updated += 1
                     else:
                         failed += 1
@@ -111,19 +113,22 @@ class CsqaqHandler:
         从数据库config表中查询 key1='csqaq' AND key2='config' 的配置
         """
         try:
-            configs = ConfigModel.find_by_keys('csqaq', 'config')
+            rows = DatabaseManager().execute_query(
+                "SELECT [dataID], [dataName], [value] FROM config WHERE [key1] = ? AND [key2] = ? LIMIT 1",
+                ("csqaq", "config"),
+            )
 
-            if not configs or len(configs) == 0:
+            if not rows or not rows[0]:
                 return jsonify({
                     'success': False,
                     'code': 404,
                     'message': 'CSQAQ配置不存在，请先在【设置 > 数据源管理】中添加CSQAQ数据源'
                 }), 404
 
-            config = configs[0]
+            data_id, data_name, value = rows[0][0], rows[0][1], rows[0][2]
 
             try:
-                config_data = json.loads(config.value)
+                config_data = json.loads(value)
                 api_token = config_data.get('ApiToken', '')
 
                 if not api_token:
@@ -138,8 +143,8 @@ class CsqaqHandler:
                     'code': 200,
                     'data': {
                         'ApiToken': api_token,
-                        'dataName': config.dataName,
-                        'dataID': config.dataID
+                        'dataName': data_name,
+                        'dataID': data_id
                     }
                 }), 200
 

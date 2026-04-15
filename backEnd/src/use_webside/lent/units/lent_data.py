@@ -3,7 +3,7 @@ Lent 页面数据查询模块
 提供出租记录的筛选查询、时间范围搜索、类型磨损搜索
 """
 from flask import jsonify, request
-from src.units.execution_db import Date_base
+from src.db_manager.database import DatabaseManager
 
 
 class LentData:
@@ -77,7 +77,7 @@ class LentData:
             ORDER BY lean_start_time DESC
             LIMIT ? OFFSET ?
             """
-            db = Date_base()
+            db = DatabaseManager()
             result = db.execute_query(sql, (max, min))
             if result:
                 return jsonify(result), 200
@@ -114,7 +114,7 @@ class LentData:
                 """
                 params = (status, max, min)
 
-            db = Date_base()
+            db = DatabaseManager()
             result = db.execute_query(sql, params)
             if result:
                 return jsonify(result), 200
@@ -152,7 +152,7 @@ class LentData:
                 """
                 params = (last_status, max, min)
 
-            db = Date_base()
+            db = DatabaseManager()
             result = db.execute_query(sql, params)
             if result:
                 return jsonify(result), 200
@@ -183,7 +183,7 @@ class LentData:
             LIMIT {max_limit} OFFSET {min_offset}
             """
 
-            db = Date_base()
+            db = DatabaseManager()
             result = db.execute_query(sql, params)
 
             if result:
@@ -207,7 +207,7 @@ class LentData:
             ORDER BY lean_start_time DESC
             """
             params = (f"{start_date} 00:00:00", f"{end_date} 23:59:59")
-            db = Date_base()
+            db = DatabaseManager()
             result = db.execute_query(sql, params)
             return jsonify(result or []), 200
         except Exception as e:
@@ -254,7 +254,7 @@ class LentData:
             where_clause = " AND ".join(conditions)
             offset = (page - 1) * page_size
 
-            db = Date_base()
+            db = DatabaseManager()
 
             # 获取总数
             count_sql = f"SELECT COUNT(*) FROM lent WHERE {where_clause}"

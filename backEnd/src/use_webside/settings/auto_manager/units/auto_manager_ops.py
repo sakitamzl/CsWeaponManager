@@ -4,6 +4,7 @@
 """
 from flask import jsonify
 from src.units.log import Log
+from src.db_manager.database import DatabaseManager
 from src.units.execution_db import Date_base
 from src.units.auto_process.task_scheduler import get_scheduler
 import json
@@ -17,13 +18,13 @@ class AutoManagerOps:
     def toggle_task(task_id):
         """切换自动化管理任务的启用状态"""
         try:
-            db = Date_base()
+            db = DatabaseManager()
 
             # 查询当前状态和配置
             query_sql = f"SELECT status, value FROM config WHERE dataID = {task_id} AND key2 = 'auto_manager'"
-            success, result = db.select(query_sql)
+            result = db.execute_query(query_sql, ())
 
-            if not success or not result:
+            if not result:
                 return jsonify({
                     'success': False,
                     'message': '任务不存在'
@@ -54,16 +55,16 @@ class AutoManagerOps:
             else:
                 update_sql = f"UPDATE config SET status = '{new_status}' WHERE dataID = {task_id} AND key2 = 'auto_manager'"
 
-            update_result = db.update(update_sql)
+            update_result = Date_base().update(update_sql)
 
-            if update_result:
+            if update_result is True:
                 # 重新查询任务以获取最新的执行时间
                 query_sql = f"SELECT value FROM config WHERE dataID = {task_id} AND key2 = 'auto_manager'"
-                success, result = db.select(query_sql)
+                result = db.execute_query(query_sql, ())
 
                 next_run = None
                 last_run = None
-                if success and result and result[0][0]:
+                if result and result[0][0]:
                     try:
                         config = json.loads(result[0][0])
                         next_run = config.get('nextRun')

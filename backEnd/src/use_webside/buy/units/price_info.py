@@ -3,28 +3,35 @@ Buy 页面价格查询模块
 根据 steam_hash_name 查询 weapon_classID 表中的悠悠有品和BUFF价格信息
 """
 from flask import jsonify
+from src.units.execution_db import Date_base
 
 
 class BuyPriceInfo:
 
     @staticmethod
     def get_yyyp_price_info(steam_hash_name):
-        """根据 steam_hash_name 查询价格信息（包括悠悠有品和BUFF）"""
+        """根据 steam_hash_name 查询价格信息（包括悠悠有品和BUFF），使用参数化 SQL"""
         try:
-            from src.db_manager.index.model.weapon_classID import WeaponClassIDModel
+            sql = """
+            SELECT [yyyp_Price], [yyyp_OnSaleCount], [buff_Price], [buff_OnSaleCount], [market_listing_item_name]
+            FROM weapon_classID
+            WHERE [steam_hash_name] = ?
+            LIMIT 1
+            """
+            db = Date_base()
+            rows = db.execute_query(sql, (steam_hash_name,))
 
-            results = WeaponClassIDModel.find_by_steam_hash_name(steam_hash_name)
-
-            if results and len(results) > 0:
-                weapon_info = results[0]
+            if rows and len(rows) > 0:
+                row = rows[0]
+                yyyp_price, yyyp_on_sale_count, buff_price, buff_on_sale_count, market_listing_item_name = row
                 return jsonify({
                     'success': True,
                     'data': {
-                        'yyyp_price': weapon_info.yyyp_Price if weapon_info.yyyp_Price else None,
-                        'yyyp_on_sale_count': weapon_info.yyyp_OnSaleCount if weapon_info.yyyp_OnSaleCount else None,
-                        'buff_price': weapon_info.buff_Price if weapon_info.buff_Price else None,
-                        'buff_on_sale_count': weapon_info.buff_OnSaleCount if weapon_info.buff_OnSaleCount else None,
-                        'market_listing_item_name': weapon_info.market_listing_item_name if weapon_info.market_listing_item_name else None
+                        'yyyp_price': yyyp_price if yyyp_price else None,
+                        'yyyp_on_sale_count': yyyp_on_sale_count if yyyp_on_sale_count else None,
+                        'buff_price': buff_price if buff_price else None,
+                        'buff_on_sale_count': buff_on_sale_count if buff_on_sale_count else None,
+                        'market_listing_item_name': market_listing_item_name if market_listing_item_name else None
                     }
                 }), 200
             else:

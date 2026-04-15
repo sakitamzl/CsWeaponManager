@@ -1,10 +1,10 @@
 ﻿"""
 Sell 页面数据查询模块
 提供出售记录的筛选查询、时间范围搜索、类型磨损搜索
+统一使用 DatabaseManager + 参数化 SQL
 """
 from flask import jsonify, request
-from src.units.execution_db import Date_base
-from src.db_manager.index.model.sell import SellModel
+from src.db_manager.database import DatabaseManager
 
 
 class SellData:
@@ -84,7 +84,7 @@ class SellData:
             LIMIT {max_limit} OFFSET {min_offset}
             """
 
-            db = Date_base()
+            db = DatabaseManager()
             result = db.execute_query(sql, params)
 
             if result:
@@ -105,7 +105,7 @@ class SellData:
             ORDER BY order_time DESC
             """
             params = (f"{start_date} 00:00:00", f"{end_date} 23:59:59")
-            db = Date_base()
+            db = DatabaseManager()
             result = db.execute_query(sql, params)
             return jsonify(result or []), 200
         except Exception as e:
@@ -140,38 +140,45 @@ class SellData:
                 conditions.append(f"float_range IN ({placeholders})")
                 params.extend(float_ranges)
 
+            if not conditions:
+                return jsonify({
+                    'success': True,
+                    'data': [],
+                    'total': 0,
+                    'page': page,
+                    'page_size': page_size
+                }), 200
+
+            where_clause = " AND ".join(conditions)
             offset = (page - 1) * page_size
 
-            where_clause = " AND ".join(conditions) if conditions else ""
+            db = DatabaseManager()
 
-            total = SellModel.count(where_clause, tuple(params))
+            count_sql = f"SELECT COUNT(*) FROM sell WHERE {where_clause}"
+            count_result = db.execute_query(count_sql, tuple(params))
+            total = int(count_result[0][0]) if count_result else 0
 
-            records = SellModel.find_all(where_clause, tuple(params), limit=page_size, offset=offset)
+            data_sql = f"""
+            SELECT [ID], weapon_name, weapon_type, item_name, weapon_float, float_range,
+                   price, price_original, buyer_name, status, status_sub, [from], order_time,
+                   steam_id, st, sou
+            FROM sell
+            WHERE {where_clause}
+            ORDER BY order_time DESC
+            LIMIT ? OFFSET ?
+            """
+            data_result = db.execute_query(
+                data_sql, tuple(params) + (page_size, offset)
+            )
 
-            data = []
-            for record in records:
-                data.append([
-                    record.ID,
-                    record.weapon_name,
-                    record.weapon_type,
-                    record.item_name,
-                    record.weapon_float,
-                    record.float_range,
-                    record.price,
-                    record.price_original,
-                    record.buyer_name,
-                    record.status,
-                    record.status_sub,
-                    getattr(record, 'from', None),
-                    record.order_time,
-                    record.steam_id,
-                    getattr(record, 'st', None),
-                    getattr(record, 'sou', None),
-                ])
+            records = []
+            if data_result:
+                for row in data_result:
+                    records.append(list(row))
 
             return jsonify({
                 'success': True,
-                'data': data,
+                'data': records,
                 'total': total,
                 'page': page,
                 'page_size': page_size

@@ -4,7 +4,8 @@ Inventory 页面库存数据模块
 """
 from flask import jsonify, request
 from src.db_manager.database import DatabaseManager
-from src.db_manager.steam.model.steam_inventory import SteamInventoryModel
+
+STEAM_INVENTORY_TABLE = "steam_inventory"
 
 
 def get_auto_price(item_name):
@@ -231,7 +232,7 @@ class InventoryData:
                 si.weapon_type, si.weapon_float, si.remark, si.data_user, si.buy_price, si.yyyp_price,
                 si.buff_price, si.steam_price, si.order_time, si.steam_hash_name,
                 si.sticker, si.pendant, si.rename
-            FROM {SteamInventoryModel.get_table_name()} si
+            FROM {STEAM_INVENTORY_TABLE} si
             WHERE {where_clause.replace('data_user', 'si.data_user').replace('weapon_type', 'si.weapon_type').replace('float_range', 'si.float_range').replace('item_name', 'si.item_name').replace('weapon_name', 'si.weapon_name')}
             ORDER BY
                 CASE
@@ -309,8 +310,10 @@ class InventoryData:
                     }
                     records.append(record)
 
-            # 获取总数
-            total = SteamInventoryModel.count(where_clause, tuple(params))
+            # 获取总数（纯 SQL，与列表筛选条件一致）
+            count_sql = f"SELECT COUNT(*) FROM {STEAM_INVENTORY_TABLE} WHERE {where_clause}"
+            total_rows = db.execute_query(count_sql, tuple(params))
+            total = int(total_rows[0][0]) if total_rows else 0
 
             return jsonify({
                 'success': True,

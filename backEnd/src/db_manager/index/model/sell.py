@@ -141,6 +141,12 @@ class SellModel(BaseModel):
                 'not_null': False,
                 'default': None
             }
+            ,
+            'ID_sub': {
+                'type': 'TEXT',
+                'not_null': False,
+                'default': None
+            }
         }
     
     @classmethod

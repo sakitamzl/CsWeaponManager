@@ -3,7 +3,7 @@ Sell 页面统计模块
 提供出售记录的统计信息（总数、总金额、平均价格、状态分布等）
 """
 from flask import jsonify, request
-from src.units.execution_db import Date_base
+from src.db_manager.database import DatabaseManager
 from .sell_data import SellData
 
 
@@ -28,7 +28,7 @@ class SellStats:
             {where_clause}
             """
 
-            db = Date_base()
+            db = DatabaseManager()
             result = db.execute_query(sql, params)
 
             if result and len(result) > 0:
@@ -72,7 +72,7 @@ class SellStats:
             WHERE order_time BETWEEN ? AND ?
             """
             params = (f"{start_date} 00:00:00", f"{end_date} 23:59:59")
-            db = Date_base()
+            db = DatabaseManager()
             result = db.execute_query(sql, params)
 
             if result and len(result) > 0:
@@ -128,7 +128,7 @@ class SellStats:
             if conditions:
                 where_clause = "WHERE " + " AND ".join(conditions)
 
-            db = Date_base()
+            db = DatabaseManager()
 
             sql = f"""
             SELECT

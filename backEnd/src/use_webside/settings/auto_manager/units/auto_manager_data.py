@@ -4,6 +4,7 @@
 """
 from flask import jsonify, request
 from src.units.log import Log
+from src.db_manager.database import DatabaseManager
 from src.units.execution_db import Date_base
 from src.units.auto_process.task_scheduler import get_scheduler
 import json
@@ -16,7 +17,7 @@ class AutoManagerData:
     def get_task_list():
         """获取所有自动化管理任务配置"""
         try:
-            db = Date_base()
+            db = DatabaseManager()
 
             query_sql = """
             SELECT dataID, dataName, key1, value, status
@@ -25,10 +26,10 @@ class AutoManagerData:
             ORDER BY dataID DESC
             """
 
-            success, results = db.select(query_sql)
+            results = db.execute_query(query_sql, ())
 
             tasks = []
-            if success and results:
+            if results:
                 for row in results:
                     try:
                         config = json.loads(row[3]) if row[3] else {}
@@ -73,7 +74,7 @@ class AutoManagerData:
                     'message': '请求数据不能为空'
                 }), 400
 
-            db = Date_base()
+            db = DatabaseManager()
 
             task_name = data.get('taskName', '').replace("'", "''")
             automate_type = data.get('automateType', '').replace("'", "''")
@@ -88,11 +89,11 @@ class AutoManagerData:
             VALUES ('{task_name}', '{automate_type}', 'auto_manager', '{config_json_escaped}', '{enabled}')
             """
 
-            result = db.insert(insert_sql)
+            ok = Date_base().insert(insert_sql)
 
-            if result:
-                success, last_id_result = db.select("SELECT last_insert_rowid()")
-                new_id = last_id_result[0][0] if success and last_id_result else None
+            if ok is True:
+                last_id_result = db.execute_query("SELECT last_insert_rowid()", ())
+                new_id = last_id_result[0][0] if last_id_result else None
 
                 if enabled == '1':
                     scheduler = get_scheduler()
@@ -129,7 +130,7 @@ class AutoManagerData:
                     'message': '请求数据不能为空'
                 }), 400
 
-            db = Date_base()
+            db = DatabaseManager()
 
             task_name = data.get('taskName', '').replace("'", "''")
             automate_type = data.get('automateType', '').replace("'", "''")
@@ -145,9 +146,9 @@ class AutoManagerData:
             WHERE dataID = {task_id} AND key2 = 'auto_manager'
             """
 
-            result = db.update(update_sql)
+            ok = Date_base().update(update_sql)
 
-            if result:
+            if ok is True:
                 scheduler = get_scheduler()
                 scheduler.reload_task(task_id)
 
@@ -173,7 +174,7 @@ class AutoManagerData:
     def delete_task(task_id):
         """删除自动化管理任务"""
         try:
-            db = Date_base()
+            db = DatabaseManager()
 
             # 先停止后台任务
             try:
@@ -184,9 +185,9 @@ class AutoManagerData:
 
             delete_sql = f"DELETE FROM config WHERE dataID = {task_id} AND key2 = 'auto_manager'"
 
-            result = db.delete(delete_sql)
+            ok = Date_base().update(delete_sql)
 
-            if result:
+            if ok is True:
                 Log().write_log(f"删除自动化任务成功: taskId={task_id}", 'info')
                 return jsonify({
                     'success': True,

@@ -1,4 +1,5 @@
 ﻿from flask import jsonify, request
+from src.db_manager.database import DatabaseManager
 from src.units.execution_db import Date_base
 from datetime import datetime
 import logging
@@ -13,12 +14,12 @@ class SysMessageHandler:
     def get_sys_message_data(page, limit):
         """获取通知列表数据（分页）"""
         try:
-            db = Date_base()
+            db = DatabaseManager()
             offset = (page - 1) * limit
 
             sql_count = "SELECT COUNT(*) FROM sys_message"
-            success_count, result_count = db.select(sql_count)
-            total_count = result_count[0][0] if success_count and result_count else 0
+            result_count = db.execute_query(sql_count, ())
+            total_count = result_count[0][0] if result_count else 0
 
             sql = f"""
             SELECT
@@ -40,10 +41,7 @@ class SysMessageHandler:
             LIMIT {limit} OFFSET {offset}
             """
 
-            success, result = db.select(sql)
-
-            if not success:
-                return jsonify({'success': False, 'message': '查询失败', 'data': [], 'total': 0}), 500
+            result = db.execute_query(sql, ())
 
             notifications = []
             if result:
@@ -74,25 +72,25 @@ class SysMessageHandler:
     def get_sys_message_stats():
         """获取通知统计数据"""
         try:
-            db = Date_base()
+            db = DatabaseManager()
 
-            _, result_total = db.select("SELECT COUNT(*) FROM sys_message")
+            result_total = db.execute_query("SELECT COUNT(*) FROM sys_message", ())
             total_count = result_total[0][0] if result_total else 0
 
-            _, result_unread = db.select("SELECT COUNT(*) FROM sys_message WHERE is_read = 0")
+            result_unread = db.execute_query("SELECT COUNT(*) FROM sys_message WHERE is_read = 0", ())
             unread_count = result_unread[0][0] if result_unread else 0
 
-            _, result_type = db.select("SELECT type, COUNT(*) as count FROM sys_message GROUP BY type")
+            result_type = db.execute_query("SELECT type, COUNT(*) as count FROM sys_message GROUP BY type", ())
             type_stats = {str(row[0]): row[1] for row in result_type} if result_type else {}
 
-            _, result_level = db.select("SELECT level, COUNT(*) as count FROM sys_message GROUP BY level")
+            result_level = db.execute_query("SELECT level, COUNT(*) as count FROM sys_message GROUP BY level", ())
             level_stats = {str(row[0]): row[1] for row in result_level} if result_level else {}
 
-            _, result_source = db.select("""
+            result_source = db.execute_query("""
                 SELECT source, COUNT(*) as count FROM sys_message
                 WHERE source IS NOT NULL AND source != ''
                 GROUP BY source ORDER BY count DESC
-            """)
+            """, ())
             source_stats = {row[0]: row[1] for row in result_source} if result_source else {}
 
             return jsonify({
@@ -115,11 +113,11 @@ class SysMessageHandler:
     def get_sys_message_types():
         """获取所有通知类型"""
         try:
-            db = Date_base()
-            _, result = db.select("""
+            db = DatabaseManager()
+            result = db.execute_query("""
                 SELECT DISTINCT type FROM sys_message
                 WHERE type IS NOT NULL AND type != '' ORDER BY type
-            """)
+            """, ())
             types = [row[0] for row in result if row[0]] if result else []
             return jsonify({'success': True, 'data': types}), 200
         except Exception as e:
@@ -130,11 +128,11 @@ class SysMessageHandler:
     def get_sys_message_sources():
         """获取所有通知来源"""
         try:
-            db = Date_base()
-            _, result = db.select("""
+            db = DatabaseManager()
+            result = db.execute_query("""
                 SELECT DISTINCT source FROM sys_message
                 WHERE source IS NOT NULL AND source != '' ORDER BY source
-            """)
+            """, ())
             sources = [row[0] for row in result if row[0]] if result else []
             return jsonify({'success': True, 'data': sources}), 200
         except Exception as e:
@@ -151,14 +149,14 @@ class SysMessageHandler:
             if not notification_ids:
                 return jsonify({'success': False, 'message': '通知ID不能为空'}), 400
 
-            db = Date_base()
+            db = DatabaseManager()
             read_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             ids_str = ', '.join([str(id) for id in notification_ids])
 
             sql = f"UPDATE sys_message SET is_read = 1, read_time = '{read_time}' WHERE notification_id IN ({ids_str})"
-            success, affected_rows = db.update(sql)
+            affected_rows = db.execute_update(sql, ())
 
-            if success:
+            if affected_rows >= 0:
                 return jsonify({'success': True, 'message': f'成功标记 {affected_rows} 条通知为已读'}), 200
             return jsonify({'success': False, 'message': '标记失败'}), 500
 
@@ -170,12 +168,12 @@ class SysMessageHandler:
     def mark_all_as_read():
         """标记所有通知为已读"""
         try:
-            db = Date_base()
+            db = DatabaseManager()
             read_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             sql = f"UPDATE sys_message SET is_read = 1, read_time = '{read_time}' WHERE is_read = 0"
-            success, affected_rows = db.update(sql)
+            affected_rows = db.execute_update(sql, ())
 
-            if success:
+            if affected_rows >= 0:
                 return jsonify({'success': True, 'message': f'成功标记 {affected_rows} 条通知为已读'}), 200
             return jsonify({'success': False, 'message': '标记失败'}), 500
 
@@ -193,12 +191,12 @@ class SysMessageHandler:
             if not notification_ids:
                 return jsonify({'success': False, 'message': '通知ID不能为空'}), 400
 
-            db = Date_base()
+            db = DatabaseManager()
             ids_str = ', '.join([str(id) for id in notification_ids])
             sql = f"DELETE FROM sys_message WHERE notification_id IN ({ids_str})"
-            success, affected_rows = db.delete(sql)
+            affected_rows = db.execute_update(sql, ())
 
-            if success:
+            if affected_rows >= 0:
                 return jsonify({'success': True, 'message': f'成功删除 {affected_rows} 条通知'}), 200
             return jsonify({'success': False, 'message': '删除失败'}), 500
 
@@ -219,21 +217,21 @@ class SysMessageHandler:
                 return jsonify({'success': False, 'message': '关键词不能为空', 'data': []}), 400
 
             offset = (page - 1) * page_size
-            db = Date_base()
+            db = DatabaseManager()
 
-            _, result_count = db.select(f"""
+            result_count = db.execute_query(f"""
                 SELECT COUNT(*) FROM sys_message
                 WHERE title LIKE '%{keyword}%' OR content LIKE '%{keyword}%' OR related_id LIKE '%{keyword}%'
-            """)
+            """, ())
             total_count = result_count[0][0] if result_count else 0
 
-            _, result = db.select(f"""
+            result = db.execute_query(f"""
                 SELECT notification_id, title, content, type, level, is_read, source,
                        related_id, action_url, create_time, read_time, expire_time, extra_data
                 FROM sys_message
                 WHERE title LIKE '%{keyword}%' OR content LIKE '%{keyword}%' OR related_id LIKE '%{keyword}%'
                 ORDER BY create_time DESC LIMIT {page_size} OFFSET {offset}
-            """)
+            """, ())
 
             notifications = []
             if result:
@@ -265,21 +263,21 @@ class SysMessageHandler:
                 return jsonify({'success': False, 'message': '开始日期和结束日期不能为空', 'data': []}), 400
 
             offset = (page - 1) * page_size
-            db = Date_base()
+            db = DatabaseManager()
 
-            _, result_count = db.select(f"""
+            result_count = db.execute_query(f"""
                 SELECT COUNT(*) FROM sys_message
                 WHERE DATE(create_time) BETWEEN '{start_date}' AND '{end_date}'
-            """)
+            """, ())
             total_count = result_count[0][0] if result_count else 0
 
-            _, result = db.select(f"""
+            result = db.execute_query(f"""
                 SELECT notification_id, title, content, type, level, is_read, source,
                        related_id, action_url, create_time, read_time, expire_time, extra_data
                 FROM sys_message
                 WHERE DATE(create_time) BETWEEN '{start_date}' AND '{end_date}'
                 ORDER BY create_time DESC LIMIT {page_size} OFFSET {offset}
-            """)
+            """, ())
 
             notifications = []
             if result:
@@ -310,7 +308,7 @@ class SysMessageHandler:
             page_size = data.get('page_size', 20)
 
             offset = (page - 1) * page_size
-            db = Date_base()
+            db = DatabaseManager()
 
             where_conditions = []
             if notification_types:
@@ -327,15 +325,15 @@ class SysMessageHandler:
 
             where_clause = " AND ".join(where_conditions) if where_conditions else "1=1"
 
-            _, result_count = db.select(f"SELECT COUNT(*) FROM sys_message WHERE {where_clause}")
+            result_count = db.execute_query(f"SELECT COUNT(*) FROM sys_message WHERE {where_clause}", ())
             total_count = result_count[0][0] if result_count else 0
 
-            _, result = db.select(f"""
+            result = db.execute_query(f"""
                 SELECT notification_id, title, content, type, level, is_read, source,
                        related_id, action_url, create_time, read_time, expire_time, extra_data
                 FROM sys_message WHERE {where_clause}
                 ORDER BY create_time DESC LIMIT {page_size} OFFSET {offset}
-            """)
+            """, ())
 
             notifications = []
             if result:
@@ -364,10 +362,10 @@ class SysMessageHandler:
             if not title or not content:
                 return jsonify({'success': False, 'message': '标题和内容不能为空'}), 400
 
-            db = Date_base()
+            db = DatabaseManager()
             create_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            _, result_max = db.select("SELECT MAX(notification_id) FROM sys_message")
+            result_max = db.execute_query("SELECT MAX(notification_id) FROM sys_message", ())
             max_id = result_max[0][0] if result_max and result_max[0][0] else 0
             notification_id = max_id + 1
 
@@ -390,9 +388,9 @@ class SysMessageHandler:
             )
             """
 
-            success, _ = db.insert(sql)
+            ok = Date_base().insert(sql)
 
-            if success:
+            if ok is True:
                 return jsonify({'success': True, 'message': '通知创建成功', 'data': {'notification_id': notification_id}}), 200
             return jsonify({'success': False, 'message': '通知创建失败'}), 500
 

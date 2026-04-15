@@ -5,7 +5,7 @@ Steam库存历史数据模块
 """
 from flask import jsonify, request
 from src.units.log import Log
-from src.units.execution_db import Date_base
+from src.db_manager.database import DatabaseManager
 
 
 class SteamInventoryHistoryData:
@@ -60,7 +60,7 @@ class SteamInventoryHistoryData:
             sort_direction = 'DESC' if sort_order.lower() == 'desc' else 'ASC'
             offset = (page - 1) * page_size
 
-            db = Date_base()
+            db = DatabaseManager()
 
             # 主查询
             data_sql = f"""
@@ -72,10 +72,10 @@ class SteamInventoryHistoryData:
             LIMIT {page_size} OFFSET {offset}
             """
 
-            success, results = db.select(data_sql)
+            results = db.execute_query(data_sql, ())
 
             records = []
-            if success and results:
+            if results:
                 for row in results:
                     records.append({
                         'instanceid': row[0],
@@ -96,7 +96,7 @@ class SteamInventoryHistoryData:
             SELECT COUNT(*) FROM steam_inventoryhistory
             WHERE {where_clause}
             """
-            count_success, count_result = db.select(count_sql)
+            count_result = db.execute_query(count_sql, ())
             total_count = count_result[0][0] if count_success and count_result else 0
 
             # 可选统计
@@ -113,8 +113,8 @@ class SteamInventoryHistoryData:
                 WHERE {where_clause} AND trade_type = '-'
                 """
 
-                gain_success, gain_result = db.select(gain_sql)
-                loss_success, loss_result = db.select(loss_sql)
+                gain_result = db.execute_query(gain_sql, ())
+                loss_result = db.execute_query(loss_sql, ())
 
                 gain_count = gain_result[0][0] if gain_success and gain_result else 0
                 loss_count = loss_result[0][0] if loss_success and loss_result else 0

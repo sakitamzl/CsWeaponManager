@@ -3,7 +3,7 @@ BuffMessageBox Data 模块
 提供 BUFF 消息盒子的数据查询端点
 """
 from flask import jsonify
-from src.units.execution_db import Date_base
+from src.db_manager.database import DatabaseManager
 
 
 class BuffMessageBoxData:
@@ -12,12 +12,12 @@ class BuffMessageBoxData:
     def get_message_data(page, limit):
         """获取消息列表数据（分页）"""
         try:
-            db = Date_base()
+            db = DatabaseManager()
             offset = (page - 1) * limit
 
             sql_count = "SELECT COUNT(*) FROM buff_messagebox"
-            success_count, result_count = db.select(sql_count)
-            total = result_count[0][0] if success_count and result_count else 0
+            result_count = db.execute_query(sql_count, ())
+            total = result_count[0][0] if result_count else 0
 
             sql = f"""
             SELECT
@@ -38,10 +38,7 @@ class BuffMessageBoxData:
             ORDER BY createTime DESC
             LIMIT {limit} OFFSET {offset}
             """
-            success, result = db.select(sql)
-
-            if not success:
-                return jsonify({'success': False, 'error': '查询失败', 'data': [], 'total': 0}), 500
+            result = db.execute_query(sql, ())
 
             data = []
             if result:
@@ -71,12 +68,12 @@ class BuffMessageBoxData:
     def get_message_types():
         """获取所有消息类型（distinct sentName）"""
         try:
-            db = Date_base()
+            db = DatabaseManager()
             sql = "SELECT DISTINCT sentName FROM buff_messagebox WHERE sentName IS NOT NULL AND sentName != '' ORDER BY sentName"
-            success, result = db.select(sql)
+            result = db.execute_query(sql, ())
 
             types = []
-            if success and result:
+            if result:
                 for r in result:
                     if r[0]:
                         types.append(r[0])

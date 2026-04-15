@@ -8,8 +8,7 @@ import json
 import traceback
 import requests as http_requests
 from flask import request, jsonify
-from src.db_manager.index.model.weapon_classID import WeaponClassIDModel
-from src.db_manager.index.model.config import ConfigModel
+from src.db_manager.database import DatabaseManager
 from src.units.log import Log
 
 logger = Log()
@@ -76,8 +75,7 @@ class ItemSearchHandler:
                 LIMIT 50
             """
 
-            instance = WeaponClassIDModel()
-            results = instance.db.execute_query(sql, tuple(params))
+            results = DatabaseManager().execute_query(sql, tuple(params))
 
             items = []
             for row in results:
@@ -121,8 +119,7 @@ class ItemSearchHandler:
                 ORDER BY weapon_name
             """
 
-            instance = WeaponClassIDModel()
-            results = instance.db.execute_query(sql, (weapon_type,))
+            results = DatabaseManager().execute_query(sql, (weapon_type,))
             weapon_names = [row[0] for row in results if row[0]]
 
             return jsonify({'success': True, 'data': weapon_names}), 200
@@ -144,15 +141,17 @@ class ItemSearchHandler:
 
             logger.write_log(f"获取 CSQAQ 详细信息: id={csqaq_id}", 'info')
 
-            configs = ConfigModel.find_by_keys('csqaq', 'config')
-            if not configs or len(configs) == 0:
+            cfg_rows = DatabaseManager().execute_query(
+                "SELECT [value] FROM config WHERE [key1] = ? AND [key2] = ? LIMIT 1",
+                ("csqaq", "config"),
+            )
+            if not cfg_rows or not cfg_rows[0] or not cfg_rows[0][0]:
                 return jsonify({
                     'success': False,
                     'message': 'CSQAQ配置不存在，请先在【设置 > 数据源管理】中添加CSQAQ数据源'
                 }), 404
 
-            config = configs[0]
-            config_data = json.loads(config.value)
+            config_data = json.loads(cfg_rows[0][0])
             api_token = config_data.get('ApiToken', '')
 
             if not api_token:
@@ -204,22 +203,33 @@ class ItemSearchHandler:
 
             logger.write_log(f"批量查询印花价格: 共 {len(steam_hash_names)} 个", 'info')
 
+            db = DatabaseManager()
+            placeholders = ",".join(["?"] * len(steam_hash_names))
+            sql_batch = f"""
+            SELECT [steam_hash_name], [yyyp_Price], [buff_Price], [market_listing_item_name],
+                   [icon_url], [weapon_type], [item_name], [yyyp_OnSaleCount], [buff_OnSaleCount]
+            FROM weapon_classID
+            WHERE [steam_hash_name] IN ({placeholders})
+            """
+            rows = db.execute_query(sql_batch, tuple(steam_hash_names))
+            by_hash = {r[0]: r for r in rows} if rows else {}
+
             result_map = {}
             for steam_hash_name in steam_hash_names:
                 if not steam_hash_name:
                     continue
-                records = WeaponClassIDModel.find_by_steam_hash_name(steam_hash_name)
-                if records and len(records) > 0:
-                    record = records[0]
+                row = by_hash.get(steam_hash_name)
+                if row:
+                    (_, yyyp_p, buff_p, mname, icon, wtype, iname, yyyp_cnt, buff_cnt) = row
                     result_map[steam_hash_name] = {
-                        'yyyp_price': record.yyyp_Price if record.yyyp_Price else None,
-                        'buff_price': record.buff_Price if record.buff_Price else None,
-                        'market_listing_item_name': record.market_listing_item_name if record.market_listing_item_name else None,
-                        'icon_url': record.icon_url if record.icon_url else None,
-                        'weapon_type': record.weapon_type if record.weapon_type else None,
-                        'item_name': record.item_name if record.item_name else None,
-                        'yyyp_on_sale_count': record.yyyp_OnSaleCount if record.yyyp_OnSaleCount else None,
-                        'buff_on_sale_count': record.buff_OnSaleCount if record.buff_OnSaleCount else None
+                        'yyyp_price': yyyp_p if yyyp_p else None,
+                        'buff_price': buff_p if buff_p else None,
+                        'market_listing_item_name': mname if mname else None,
+                        'icon_url': icon if icon else None,
+                        'weapon_type': wtype if wtype else None,
+                        'item_name': iname if iname else None,
+                        'yyyp_on_sale_count': yyyp_cnt if yyyp_cnt else None,
+                        'buff_on_sale_count': buff_cnt if buff_cnt else None,
                     }
                 else:
                     result_map[steam_hash_name] = None

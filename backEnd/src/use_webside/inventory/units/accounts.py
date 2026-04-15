@@ -18,10 +18,10 @@ class InventoryAccounts:
             db = DatabaseManager()
 
             steam_config_sql = """
-            SELECT dataID, dataName, value, steamID
+            SELECT [dataID], [dataName], [value], [steamID]
             FROM config
-            WHERE key1 = ? AND key2 = ?
-            ORDER BY dataID
+            WHERE [key1] = ? AND [key2] = ?
+            ORDER BY [dataID]
             """
             steam_config_results = db.execute_query(steam_config_sql, ('steam', 'config'))
 
@@ -97,10 +97,10 @@ class InventoryAccounts:
         try:
             db = DatabaseManager()
             sql = """
-            SELECT dataID, dataName, value, steamID
+            SELECT [dataID], [dataName], [value], [steamID]
             FROM config
-            WHERE key1 = ? AND key2 = ? AND (steamID = ? OR value LIKE ?)
-            ORDER BY dataID
+            WHERE [key1] = ? AND [key2] = ? AND ([steamID] = ? OR [value] LIKE ?)
+            ORDER BY [dataID]
             LIMIT 1
             """
             results = db.execute_query(sql, ('steam', 'config', steam_id, f'%"steamID":"{steam_id}"%'))
@@ -150,28 +150,33 @@ class InventoryAccounts:
 
             # 查询是否已存在
             check_sql = """
-            SELECT dataID FROM config
-            WHERE key1 = ? AND key2 = ? AND (steamID = ? OR value LIKE ?)
+            SELECT [dataID] FROM config
+            WHERE [key1] = ? AND [key2] = ? AND ([steamID] = ? OR [value] LIKE ?)
             LIMIT 1
             """
-            existing = db.execute_query(check_sql, ('steam', 'config', steam_id, f'%"steamID":"{steam_id}"%'))
+            existing = db.execute_query(
+                check_sql,
+                ("steam", "config", steam_id, f'%"steamID":"{steam_id}"%'),
+            )
 
             value_json = json.dumps(data, ensure_ascii=False)
-            data_name = data.get('dataName', steam_id)
+            data_name = data.get("dataName", steam_id)
 
             if existing:
                 data_id = existing[0][0]
                 update_sql = """
-                UPDATE config SET value = ?, dataName = ?, steamID = ?
-                WHERE dataID = ?
+                UPDATE config SET [value] = ?, [dataName] = ?, [steamID] = ?
+                WHERE [dataID] = ?
                 """
-                db.execute_query(update_sql, (value_json, data_name, steam_id, data_id))
+                db.execute_update(update_sql, (value_json, data_name, steam_id, data_id))
             else:
                 insert_sql = """
-                INSERT INTO config (key1, key2, dataName, value, steamID)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO config ([key1], [key2], [dataName], [value], [steamID], [status])
+                VALUES (?, ?, ?, ?, ?, '1')
                 """
-                db.execute_query(insert_sql, ('steam', 'config', data_name, value_json, steam_id))
+                db.execute_insert(
+                    insert_sql, ("steam", "config", data_name, value_json, steam_id)
+                )
 
             return jsonify({'success': True, 'message': '保存成功'}), 200
 

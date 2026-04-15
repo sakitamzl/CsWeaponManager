@@ -4,7 +4,6 @@ Buy 页面数据查询模块
 """
 from flask import jsonify, request
 from src.units.execution_db import Date_base
-from src.db_manager.index.model.buy import BuyModel
 
 
 class BuyData:
@@ -96,10 +95,12 @@ class BuyData:
 
     @staticmethod
     def count_buy_number():
-        """获取购买记录总数"""
+        """获取购买记录总数（SQL 计数，便于后续切换 MySQL 时统一走参数化查询层）"""
         try:
-            records = BuyModel.find_all()
-            count = len(records)
+            sql = "SELECT COUNT(*) FROM buy"
+            db = Date_base()
+            result = db.execute_query(sql, ())
+            count = int(result[0][0]) if result and result[0] else 0
             return jsonify({"count": count}), 200
         except Exception as e:
             print(f"查询购买数量失败: {e}")

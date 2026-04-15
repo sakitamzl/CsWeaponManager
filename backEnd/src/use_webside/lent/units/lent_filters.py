@@ -3,7 +3,7 @@ Lent 页面筛选选项模块
 提供武器类型、磨损等级、状态、子状态、平台、用户等下拉选项数据
 """
 from flask import jsonify, request
-from src.units.execution_db import Date_base
+from src.db_manager.database import DatabaseManager
 
 
 class LentFilters:
@@ -12,7 +12,7 @@ class LentFilters:
     def get_weapon_types():
         """获取租赁武器类型唯一值（UNION lent + yyyp_lent）"""
         try:
-            db = Date_base()
+            db = DatabaseManager()
             sql = """
             SELECT DISTINCT weapon_type
             FROM (
@@ -47,7 +47,7 @@ class LentFilters:
     def get_float_ranges():
         """获取磨损等级唯一值（UNION lent + yyyp_lent）"""
         try:
-            db = Date_base()
+            db = DatabaseManager()
             sql = """
             SELECT DISTINCT float_range
             FROM (
@@ -82,7 +82,7 @@ class LentFilters:
     def get_status_list():
         """获取租赁状态唯一值（UNION lent + yyyp_lent）"""
         try:
-            db = Date_base()
+            db = DatabaseManager()
             sql = """
             SELECT DISTINCT status FROM lent WHERE status IS NOT NULL AND status != ''
             UNION
@@ -120,7 +120,7 @@ class LentFilters:
         """获取租赁子状态（query param: ?status=）"""
         try:
             status = request.args.get('status', '').strip()
-            db = Date_base()
+            db = DatabaseManager()
             params = []
 
             if not status or status.lower() == 'all':
@@ -170,7 +170,7 @@ class LentFilters:
     def get_platform_list():
         """获取平台来源唯一值（UNION lent + yyyp_lent）"""
         try:
-            db = Date_base()
+            db = DatabaseManager()
             sql = """
             SELECT DISTINCT "from" AS platform
             FROM lent
@@ -192,7 +192,7 @@ class LentFilters:
     def get_lenter_list():
         """获取出租用户唯一值（UNION lent + yyyp_lent）"""
         try:
-            db = Date_base()
+            db = DatabaseManager()
             sql = """
             SELECT DISTINCT data_user
             FROM lent

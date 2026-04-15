@@ -1,9 +1,10 @@
 ﻿"""
 Sell 页面筛选选项模块
 提供下拉框数据：数据用户列表、武器类型、磨损等级、状态、子状态
+统一使用 DatabaseManager + 参数化 SQL
 """
 from flask import jsonify, request
-from src.units.execution_db import Date_base
+from src.db_manager.database import DatabaseManager
 import logging
 
 logger = logging.getLogger(__name__)
@@ -14,25 +15,26 @@ class SellFilters:
     @staticmethod
     def get_data_user_list():
         """获取 sell 表中 data_user 去重列表"""
-        sql = """
-        SELECT DISTINCT data_user
-        FROM sell
-        WHERE data_user IS NOT NULL AND data_user != ''
-        ORDER BY data_user
-        """
-        result = Date_base().select(sql)
-        if result and len(result) == 2:
-            flag, data = result
-            if flag:
-                users = [row[0] for row in data if row and row[0]]
-                return jsonify(users), 200
-        return jsonify([]), 500
+        try:
+            sql = """
+            SELECT DISTINCT data_user
+            FROM sell
+            WHERE data_user IS NOT NULL AND data_user != ''
+            ORDER BY data_user
+            """
+            db = DatabaseManager()
+            rows = db.execute_query(sql, ())
+            users = [row[0] for row in rows if row and row[0]] if rows else []
+            return jsonify(users), 200
+        except Exception as e:
+            logger.error(f"获取 data_user 列表失败: {e}")
+            return jsonify([]), 500
 
     @staticmethod
     def get_weapon_types():
         """获取所有武器类型的唯一值（按优先级排序）"""
         try:
-            db = Date_base()
+            db = DatabaseManager()
             sql = """
             SELECT DISTINCT weapon_type
             FROM sell
@@ -52,10 +54,10 @@ class SellFilters:
                 END,
                 weapon_type
             """
-            success, result = db.select(sql)
+            result = db.execute_query(sql, ())
 
             weapon_types = []
-            if success and result:
+            if result:
                 for row in result:
                     if row[0]:
                         weapon_types.append(row[0])
@@ -77,7 +79,7 @@ class SellFilters:
     def get_float_ranges():
         """获取所有磨损等级的唯一值（优先显示主要磨损等级）"""
         try:
-            db = Date_base()
+            db = DatabaseManager()
             sql = """
             SELECT DISTINCT float_range
             FROM sell
@@ -93,10 +95,10 @@ class SellFilters:
                 END,
                 float_range
             """
-            success, result = db.select(sql)
+            result = db.execute_query(sql, ())
 
             float_ranges = []
-            if success and result:
+            if result:
                 for row in result:
                     if row[0]:
                         float_ranges.append(row[0])
@@ -118,7 +120,7 @@ class SellFilters:
     def get_status_list():
         """获取所有状态的唯一值"""
         try:
-            db = Date_base()
+            db = DatabaseManager()
             sql = """
             SELECT DISTINCT status
             FROM sell
@@ -132,10 +134,10 @@ class SellFilters:
                 END,
                 status
             """
-            success, result = db.select(sql)
+            result = db.execute_query(sql, ())
 
             status_list = []
-            if success and result:
+            if result:
                 for row in result:
                     if row[0]:
                         status_list.append(row[0])
@@ -158,7 +160,7 @@ class SellFilters:
         """根据指定状态获取对应的子状态唯一值列表"""
         try:
             status = request.args.get('status', '').strip()
-            db = Date_base()
+            db = DatabaseManager()
             if not status or status == 'all':
                 sql = """
                 SELECT DISTINCT status_sub
@@ -167,20 +169,20 @@ class SellFilters:
                   AND status_sub != ''
                 ORDER BY status_sub
                 """
+                result = db.execute_query(sql, ())
             else:
-                safe_status = status.replace("'", "''")
-                sql = f"""
+                sql = """
                 SELECT DISTINCT status_sub
                 FROM sell
-                WHERE status = '{safe_status}'
+                WHERE status = ?
                   AND status_sub IS NOT NULL
                   AND status_sub != ''
                 ORDER BY status_sub
                 """
-            success, result = db.select(sql)
+                result = db.execute_query(sql, (status,))
 
             sub_list = []
-            if success and result:
+            if result:
                 for row in result:
                     if row[0]:
                         sub_list.append(row[0])

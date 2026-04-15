@@ -4,7 +4,7 @@
 """
 from flask import jsonify, request
 from src.units.log import Log
-from src.units.execution_db import Date_base
+from src.db_manager.database import DatabaseManager
 import json
 
 
@@ -29,16 +29,16 @@ class DevToolsFilters:
             key1_escaped = key1.replace("'", "''")
             key2_escaped = key2.replace("'", "''")
 
-            db = Date_base()
+            db = DatabaseManager()
             sql = f"""
                 SELECT dataID, dataName, value, steamID
                 FROM config
                 WHERE key1 = '{key1_escaped}' AND key2 = '{key2_escaped}'
                 ORDER BY dataID
             """
-            success, results = db.select(sql)
+            results = db.execute_query(sql, ())
             accounts = []
-            if success and results:
+            if results:
                 for row in results:
                     data_id = row[0]
                     data_name = row[1] if row[1] else ''
@@ -78,7 +78,7 @@ class DevToolsFilters:
         try:
             classid_filter = request.args.get('classid', '')
 
-            db = Date_base()
+            db = DatabaseManager()
 
             steam_config_sql = """
             SELECT dataID, dataName, value, steamID
@@ -87,11 +87,11 @@ class DevToolsFilters:
             ORDER BY dataID
             """
 
-            success, results = db.select(steam_config_sql)
+            results = db.execute_query(steam_config_sql, ())
 
             steam_ids = []
 
-            if success and results:
+            if results:
                 for row in results:
                     data_id = row[0]
                     data_name = row[1] if row[1] else None
@@ -125,7 +125,7 @@ class DevToolsFilters:
                         WHERE data_user = '{steam_id}' AND if_inventory = '1'
                         """
 
-                    count_success, count_result = db.select(count_sql)
+                    count_result = db.execute_query(count_sql, ())
                     item_count = count_result[0][0] if count_success and count_result else 0
 
                     steam_ids.append({

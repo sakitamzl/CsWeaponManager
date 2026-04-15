@@ -152,7 +152,7 @@ class HomeCharts:
 
             sql = """
             SELECT
-                id, weapon_name, item_name, weapon_type, float_range,
+                [ID], weapon_name, item_name, weapon_type, float_range,
                 weapon_float, price, order_time, [from], data_user,
                 status, status_sub, steam_hash_name
             FROM buy
@@ -205,7 +205,7 @@ class HomeCharts:
 
             sql = """
             SELECT
-                id, weapon_name, item_name, weapon_type, float_range,
+                [ID], weapon_name, item_name, weapon_type, float_range,
                 weapon_float, price, order_time, [from], data_user,
                 status, status_sub, steam_hash_name
             FROM sell

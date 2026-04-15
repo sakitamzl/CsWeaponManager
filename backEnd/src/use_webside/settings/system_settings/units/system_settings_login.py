@@ -5,6 +5,7 @@
 """
 from flask import jsonify, request
 from src.units.log import Log
+from src.db_manager.database import DatabaseManager
 from src.units.execution_db import Date_base
 import hashlib
 import traceback
@@ -17,8 +18,8 @@ class SystemSettingsLogin:
     def _get_config_value(db, key1, key2, default_value=None):
         """从config表获取配置值"""
         sql = f"SELECT value FROM config WHERE key1 = '{key1}' AND key2 = '{key2}'"
-        success, results = db.select(sql)
-        if success and results:
+        results = db.execute_query(sql, ())
+        if results:
             return results[0][0]
         return default_value
 
@@ -26,19 +27,19 @@ class SystemSettingsLogin:
     def _set_config_value(db, key1, key2, value, data_name=None):
         """设置config表配置值（存在则更新，不存在则插入）"""
         check_sql = f"SELECT dataID FROM config WHERE key1 = '{key1}' AND key2 = '{key2}'"
-        success, results = db.select(check_sql)
+        results = db.execute_query(check_sql, ())
         escaped_value = value.replace("'", "''")
-        if success and results:
+        if results:
             if data_name:
                 escaped_name = data_name.replace("'", "''")
                 sql = f"UPDATE config SET value = '{escaped_value}', dataName = '{escaped_name}' WHERE key1 = '{key1}' AND key2 = '{key2}'"
             else:
                 sql = f"UPDATE config SET value = '{escaped_value}' WHERE key1 = '{key1}' AND key2 = '{key2}'"
-            db.update(sql)
+            Date_base().update(sql)
         else:
             escaped_name = (data_name or '').replace("'", "''")
             sql = f"INSERT INTO config (key1, key2, value, dataName, status) VALUES ('{key1}', '{key2}', '{escaped_value}', '{escaped_name}', '1')"
-            db.insert(sql)
+            Date_base().insert(sql)
 
     @staticmethod
     def _hash_password(password):
@@ -54,7 +55,7 @@ class SystemSettingsLogin:
     def get_settings():
         """获取登录设置"""
         try:
-            db = Date_base()
+            db = DatabaseManager()
 
             enable_login_value = SystemSettingsLogin._get_config_value(db, 'user', 'login', '0')
             enable_login = enable_login_value == '1'
@@ -107,7 +108,7 @@ class SystemSettingsLogin:
                         'message': '启用登录验证时，密码不能为空'
                     }), 400
 
-            db = Date_base()
+            db = DatabaseManager()
 
             SystemSettingsLogin._set_config_value(db, 'user', 'login', '1' if enable_login else '0', '登录验证开关')
 
@@ -149,7 +150,7 @@ class SystemSettingsLogin:
                     'message': '用户名和密码不能为空'
                 }), 400
 
-            db = Date_base()
+            db = DatabaseManager()
 
             enable_login_value = SystemSettingsLogin._get_config_value(db, 'user', 'login', '0')
             if enable_login_value != '1':

@@ -1,10 +1,10 @@
 ﻿"""
 Rental 页面筛选选项模块
 提供下拉框数据：武器类型、磨损等级、状态、子状态、平台、用户列表
-查询 rental 表
+查询 rental 表；统一 DatabaseManager + 参数化 SQL
 """
 from flask import jsonify
-from src.units.execution_db import Date_base
+from src.db_manager.database import DatabaseManager
 
 
 class RentalFilters:
@@ -19,13 +19,9 @@ class RentalFilters:
             WHERE weapon_type IS NOT NULL AND weapon_type != ''
             ORDER BY weapon_type
             """
-            result = Date_base().select(sql)
-            if result and len(result) == 2:
-                flag, data = result
-                if flag:
-                    weapon_types = [row[0] for row in data if row[0]]
-                    return jsonify({"success": True, "data": weapon_types}), 200
-            return jsonify({"success": True, "data": []}), 200
+            rows = DatabaseManager().execute_query(sql, ())
+            weapon_types = [row[0] for row in rows if row and row[0]] if rows else []
+            return jsonify({"success": True, "data": weapon_types}), 200
         except Exception as e:
             print(f"获取武器类型失败: {e}")
             return jsonify({"success": False, "message": str(e)}), 500
@@ -48,13 +44,9 @@ class RentalFilters:
                     ELSE 6
                 END
             """
-            result = Date_base().select(sql)
-            if result and len(result) == 2:
-                flag, data = result
-                if flag:
-                    float_ranges = [row[0] for row in data if row[0]]
-                    return jsonify({"success": True, "data": float_ranges}), 200
-            return jsonify({"success": True, "data": []}), 200
+            rows = DatabaseManager().execute_query(sql, ())
+            float_ranges = [row[0] for row in rows if row and row[0]] if rows else []
+            return jsonify({"success": True, "data": float_ranges}), 200
         except Exception as e:
             print(f"获取磨损等级失败: {e}")
             return jsonify({"success": False, "message": str(e)}), 500
@@ -69,13 +61,9 @@ class RentalFilters:
             WHERE status IS NOT NULL AND status != ''
             ORDER BY status
             """
-            result = Date_base().select(sql)
-            if result and len(result) == 2:
-                flag, data = result
-                if flag:
-                    status_list = [row[0] for row in data if row[0]]
-                    return jsonify({"success": True, "data": status_list}), 200
-            return jsonify({"success": True, "data": []}), 200
+            rows = DatabaseManager().execute_query(sql, ())
+            status_list = [row[0] for row in rows if row and row[0]] if rows else []
+            return jsonify({"success": True, "data": status_list}), 200
         except Exception as e:
             print(f"获取状态列表失败: {e}")
             return jsonify({"success": False, "message": str(e)}), 500
@@ -91,23 +79,19 @@ class RentalFilters:
                 WHERE last_status IS NOT NULL AND last_status != ''
                 ORDER BY last_status
                 """
+                rows = DatabaseManager().execute_query(sql, ())
             else:
-                safe_status = status.replace("'", "''")
-                sql = f"""
+                sql = """
                 SELECT DISTINCT last_status
                 FROM rental
-                WHERE status = '{safe_status}'
+                WHERE status = ?
                     AND last_status IS NOT NULL
                     AND last_status != ''
                 ORDER BY last_status
                 """
-            result = Date_base().select(sql)
-            if result and len(result) == 2:
-                flag, data = result
-                if flag:
-                    status_sub_list = [row[0] for row in data if row[0]]
-                    return jsonify({"success": True, "data": status_sub_list}), 200
-            return jsonify({"success": True, "data": []}), 200
+                rows = DatabaseManager().execute_query(sql, (status,))
+            status_sub_list = [row[0] for row in rows if row and row[0]] if rows else []
+            return jsonify({"success": True, "data": status_sub_list}), 200
         except Exception as e:
             print(f"获取子状态列表失败: {e}")
             return jsonify({"success": False, "message": str(e)}), 500
@@ -122,13 +106,9 @@ class RentalFilters:
             WHERE "from" IS NOT NULL AND "from" != ''
             ORDER BY "from"
             """
-            result = Date_base().select(sql)
-            if result and len(result) == 2:
-                flag, data = result
-                if flag:
-                    platform_list = [row[0] for row in data if row[0]]
-                    return jsonify({"success": True, "data": platform_list}), 200
-            return jsonify({"success": True, "data": []}), 200
+            rows = DatabaseManager().execute_query(sql, ())
+            platform_list = [row[0] for row in rows if row and row[0]] if rows else []
+            return jsonify({"success": True, "data": platform_list}), 200
         except Exception as e:
             print(f"获取平台列表失败: {e}")
             return jsonify({"success": False, "message": str(e)}), 500
@@ -143,13 +123,9 @@ class RentalFilters:
             WHERE data_user IS NOT NULL AND data_user != ''
             ORDER BY data_user
             """
-            result = Date_base().select(sql)
-            if result and len(result) == 2:
-                flag, data = result
-                if flag:
-                    user_list = [row[0] for row in data if row[0]]
-                    return jsonify({"success": True, "data": user_list}), 200
-            return jsonify({"success": True, "data": []}), 200
+            rows = DatabaseManager().execute_query(sql, ())
+            user_list = [row[0] for row in rows if row and row[0]] if rows else []
+            return jsonify({"success": True, "data": user_list}), 200
         except Exception as e:
             print(f"获取用户列表失败: {e}")
             return jsonify({"success": False, "message": str(e)}), 500

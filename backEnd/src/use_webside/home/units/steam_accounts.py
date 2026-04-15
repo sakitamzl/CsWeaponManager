@@ -18,10 +18,10 @@ class SteamAccounts:
             db = DatabaseManager()
 
             steam_config_sql = """
-            SELECT dataID, dataName, value, steamID
+            SELECT [dataID], [dataName], [value], [steamID]
             FROM config
-            WHERE key1 = 'steam' AND key2 = 'config'
-            ORDER BY dataID
+            WHERE [key1] = 'steam' AND [key2] = 'config'
+            ORDER BY [dataID]
             """
             steam_config_results = db.execute_query(steam_config_sql)
 

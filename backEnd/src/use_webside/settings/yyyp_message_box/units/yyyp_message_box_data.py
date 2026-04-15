@@ -3,7 +3,7 @@ YyypMessageBox Data 模块
 提供悠悠有品消息盒子的数据查询端点
 """
 from flask import jsonify, request
-from src.units.execution_db import Date_base
+from src.db_manager.database import DatabaseManager
 
 
 class YyypMessageBoxData:
@@ -12,12 +12,12 @@ class YyypMessageBoxData:
     def get_message_data(page, limit):
         """获取消息列表数据（分页）"""
         try:
-            db = Date_base()
+            db = DatabaseManager()
             offset = (page - 1) * limit
 
             sql_count = "SELECT COUNT(*) FROM yyyp_messagebox"
-            success_count, result_count = db.select(sql_count)
-            total_count = result_count[0][0] if success_count and result_count else 0
+            result_count = db.execute_query(sql_count, ())
+            total_count = result_count[0][0] if result_count else 0
 
             sql = f"""
             SELECT
@@ -38,10 +38,7 @@ class YyypMessageBoxData:
             ORDER BY createTime DESC
             LIMIT {limit} OFFSET {offset}
             """
-            success, result = db.select(sql)
-
-            if not success:
-                return jsonify({'success': False, 'message': '查询失败', 'data': [], 'total': 0}), 500
+            result = db.execute_query(sql, ())
 
             messages = []
             if result:
@@ -71,20 +68,20 @@ class YyypMessageBoxData:
     def get_message_stats():
         """获取消息统计数据"""
         try:
-            db = Date_base()
+            db = DatabaseManager()
 
             sql_total = "SELECT COUNT(*) FROM yyyp_messagebox"
-            success_total, result_total = db.select(sql_total)
-            total_count = result_total[0][0] if success_total and result_total else 0
+            result_total = db.execute_query(sql_total, ())
+            total_count = result_total[0][0] if result_total else 0
 
             sql_type = """
             SELECT message_type, COUNT(*) as count
             FROM yyyp_messagebox
             GROUP BY message_type
             """
-            success_type, result_type = db.select(sql_type)
+            result_type = db.execute_query(sql_type, ())
             type_stats = {}
-            if success_type and result_type:
+            if result_type:
                 for row in result_type:
                     type_stats[str(row[0])] = row[1]
 
@@ -95,9 +92,9 @@ class YyypMessageBoxData:
             GROUP BY sentName
             ORDER BY count DESC
             """
-            success_sent, result_sent = db.select(sql_sent)
+            result_sent = db.execute_query(sql_sent, ())
             sent_stats = {}
-            if success_sent and result_sent:
+            if result_sent:
                 for row in result_sent:
                     sent_stats[row[0]] = row[1]
 
@@ -106,10 +103,10 @@ class YyypMessageBoxData:
             FROM yyyp_messagebox
             GROUP BY readStatus
             """
-            success_read, result_read = db.select(sql_read)
+            result_read = db.execute_query(sql_read, ())
             read_count = 0
             unread_count = 0
-            if success_read and result_read:
+            if result_read:
                 for row in result_read:
                     if row[0] == 1:
                         read_count = row[1]
@@ -134,17 +131,17 @@ class YyypMessageBoxData:
     def get_message_types():
         """获取所有消息类型（distinct sentName）"""
         try:
-            db = Date_base()
+            db = DatabaseManager()
             sql = """
             SELECT DISTINCT sentName
             FROM yyyp_messagebox
             WHERE sentName IS NOT NULL AND sentName != ''
             ORDER BY sentName
             """
-            success, result = db.select(sql)
+            result = db.execute_query(sql, ())
 
             types = []
-            if success and result:
+            if result:
                 for row in result:
                     if row[0]:
                         types.append(row[0])
@@ -168,7 +165,7 @@ class YyypMessageBoxData:
 
             keyword_escaped = keyword.replace("'", "''")
             offset = (page - 1) * page_size
-            db = Date_base()
+            db = DatabaseManager()
 
             sql_count = f"""
             SELECT COUNT(*)
@@ -178,8 +175,8 @@ class YyypMessageBoxData:
                OR orderNo LIKE '%{keyword_escaped}%'
                OR sentName LIKE '%{keyword_escaped}%'
             """
-            success_count, result_count = db.select(sql_count)
-            total_count = result_count[0][0] if success_count and result_count else 0
+            result_count = db.execute_query(sql_count, ())
+            total_count = result_count[0][0] if result_count else 0
 
             sql = f"""
             SELECT
@@ -204,10 +201,7 @@ class YyypMessageBoxData:
             ORDER BY createTime DESC
             LIMIT {page_size} OFFSET {offset}
             """
-            success, result = db.select(sql)
-
-            if not success:
-                return jsonify({'success': False, 'message': '搜索失败', 'data': [], 'total': 0}), 500
+            result = db.execute_query(sql, ())
 
             messages = []
             if result:
@@ -249,15 +243,15 @@ class YyypMessageBoxData:
             start_date = str(start_date).replace("'", "''")
             end_date = str(end_date).replace("'", "''")
             offset = (page - 1) * page_size
-            db = Date_base()
+            db = DatabaseManager()
 
             sql_count = f"""
             SELECT COUNT(*)
             FROM yyyp_messagebox
             WHERE DATE(createTime) BETWEEN '{start_date}' AND '{end_date}'
             """
-            success_count, result_count = db.select(sql_count)
-            total_count = result_count[0][0] if success_count and result_count else 0
+            result_count = db.execute_query(sql_count, ())
+            total_count = result_count[0][0] if result_count else 0
 
             sql = f"""
             SELECT
@@ -279,10 +273,7 @@ class YyypMessageBoxData:
             ORDER BY createTime DESC
             LIMIT {page_size} OFFSET {offset}
             """
-            success, result = db.select(sql)
-
-            if not success:
-                return jsonify({'success': False, 'message': '搜索失败', 'data': [], 'total': 0}), 500
+            result = db.execute_query(sql, ())
 
             messages = []
             if result:
@@ -323,15 +314,15 @@ class YyypMessageBoxData:
             escaped_types = [t.replace("'", "''") for t in message_types]
             types_str = "', '".join(escaped_types)
             offset = (page - 1) * page_size
-            db = Date_base()
+            db = DatabaseManager()
 
             sql_count = f"""
             SELECT COUNT(*)
             FROM yyyp_messagebox
             WHERE sentName IN ('{types_str}')
             """
-            success_count, result_count = db.select(sql_count)
-            total_count = result_count[0][0] if success_count and result_count else 0
+            result_count = db.execute_query(sql_count, ())
+            total_count = result_count[0][0] if result_count else 0
 
             sql = f"""
             SELECT
@@ -353,10 +344,7 @@ class YyypMessageBoxData:
             ORDER BY createTime DESC
             LIMIT {page_size} OFFSET {offset}
             """
-            success, result = db.select(sql)
-
-            if not success:
-                return jsonify({'success': False, 'message': '搜索失败', 'data': [], 'total': 0}), 500
+            result = db.execute_query(sql, ())
 
             messages = []
             if result:

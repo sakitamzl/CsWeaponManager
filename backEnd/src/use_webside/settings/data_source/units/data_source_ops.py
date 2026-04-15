@@ -4,6 +4,7 @@
 """
 from flask import jsonify, request
 from src.units.log import Log
+from src.db_manager.database import DatabaseManager
 from src.units.execution_db import Date_base
 import time
 import random
@@ -56,10 +57,10 @@ class DataSourceOps:
             # 验证数据源是否存在且启用
             check_sql = f"SELECT dataName, status FROM config WHERE dataID = {data_id} LIMIT 1"
 
-            db = Date_base()
-            success, result = db.select(check_sql)
+            db = DatabaseManager()
+            result = db.execute_query(check_sql, ())
 
-            if not success or not result:
+            if not result:
                 return jsonify({
                     'success': False,
                     'message': '数据源不存在'
@@ -111,10 +112,10 @@ class DataSourceOps:
 
             update_sql = f"UPDATE config SET status = '{status}' WHERE dataID = {data_id}"
 
-            db = Date_base()
-            result = db.update(update_sql)
+            db = DatabaseManager()
+            ok = Date_base().update(update_sql)
 
-            if result:
+            if ok is True:
                 return jsonify({
                     'success': True,
                     'message': f'数据源已{"启用" if enabled else "禁用"}'

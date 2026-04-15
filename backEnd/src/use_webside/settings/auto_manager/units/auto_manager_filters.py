@@ -5,7 +5,7 @@
 """
 from flask import jsonify, request
 from src.units.log import Log
-from src.units.execution_db import Date_base
+from src.db_manager.database import DatabaseManager
 import json
 
 
@@ -18,7 +18,7 @@ class AutoManagerFilters:
         try:
             classid_filter = request.args.get('classid', '')
 
-            db = Date_base()
+            db = DatabaseManager()
 
             steam_config_sql = """
             SELECT dataID, dataName, value, steamID
@@ -27,11 +27,11 @@ class AutoManagerFilters:
             ORDER BY dataID
             """
 
-            success, results = db.select(steam_config_sql)
+            results = db.execute_query(steam_config_sql, ())
 
             steam_ids = []
 
-            if success and results:
+            if results:
                 for row in results:
                     data_id = row[0]
                     data_name = row[1] if row[1] else None
@@ -69,7 +69,7 @@ class AutoManagerFilters:
                         WHERE data_user = '{steam_id}' AND if_inventory = '1'
                         """
 
-                    count_success, count_result = db.select(count_sql)
+                    count_result = db.execute_query(count_sql, ())
                     item_count = count_result[0][0] if count_success and count_result else 0
 
                     steam_ids.append({
@@ -121,8 +121,8 @@ class AutoManagerFilters:
                 ORDER BY dataID DESC
             """
 
-            db = Date_base()
-            flag, result = db.select(sql)
+            db = DatabaseManager()
+            result = db.execute_query(sql, ())
 
             data = []
             if result:
