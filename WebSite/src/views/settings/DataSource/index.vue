@@ -152,6 +152,7 @@
             <el-option label="网易BUFF" value="buff" />
             <el-option label="悠悠有品" value="youpin" />
             <el-option label="CsFloat" value="csfloat" />
+            <el-option label="C5 GAME" value="c5game" />
             <el-option label="CSQAQ" value="csqaq" />
           </el-select>
         </el-form-item>
@@ -213,6 +214,18 @@
           @token-success="handleEditSubmit"
         />
 
+        <!-- C5 GAME特有配置 -->
+        <C5GameForm
+          v-else-if="editForm.type === 'c5game'"
+          ref="c5gameFormRef"
+          :form="editForm"
+          :is-edit-mode="true"
+          :proxy-address="proxyAddress"
+          @update:form="Object.assign(editForm, $event)"
+          @update:proxyAddress="proxyAddress = $event"
+          @token-success="handleEditSubmit"
+        />
+
         <!-- CSQAQ特有配置 -->
         <CsqaqForm
           v-else-if="editForm.type === 'csqaq'"
@@ -247,7 +260,7 @@
           </el-form-item>
         </template>
 
-        <el-form-item v-if="['youpin', 'buff', 'steam', 'csfloat'].includes(editForm.type)" label="是否自动采集">
+        <el-form-item v-if="['youpin', 'buff', 'steam', 'csfloat', 'c5game'].includes(editForm.type)" label="是否自动采集">
           <el-switch v-model="editForm.enabled" />
         </el-form-item>
 
@@ -284,6 +297,14 @@
               v-if="editForm.type === 'csfloat'" 
               type="warning" 
               @click="openFirstFetchDialog('csfloat')"
+              :loading="collectingSourceIds.has(editingSourceId)"
+            >
+              首次数据获取
+            </el-button>
+            <el-button 
+              v-if="editForm.type === 'c5game'" 
+              type="warning" 
+              @click="openFirstFetchDialog('c5game')"
               :loading="collectingSourceIds.has(editingSourceId)"
             >
               首次数据获取
@@ -367,6 +388,15 @@
             >
               <span>CsFloat</span>
               <span v-if="isTypeDisabled('csfloat')" style="color: #909399; font-size: 12px; margin-left: 10px;">(已存在)</span>
+            </el-option>
+            <el-option 
+              v-if="!isIndependentDataSourceMode"
+              label="C5 GAME" 
+              value="c5game" 
+              :disabled="isTypeDisabled('c5game')"
+            >
+              <span>C5 GAME</span>
+              <span v-if="isTypeDisabled('c5game')" style="color: #909399; font-size: 12px; margin-left: 10px;">(已存在)</span>
             </el-option>
             <el-option 
               v-if="isIndependentDataSourceMode"
@@ -943,6 +973,18 @@
           @token-success="handleSubmit"
         />
         
+        <!-- C5 GAME特有配置 -->
+        <C5GameForm
+          v-else-if="inputForm.type === 'c5game'"
+          ref="c5gameFormRef"
+          :form="inputForm"
+          :is-edit-mode="false"
+          :proxy-address="proxyAddress"
+          @update:form="Object.assign(inputForm, $event)"
+          @update:proxyAddress="proxyAddress = $event"
+          @token-success="handleSubmit"
+        />
+        
         <!-- CsFloat特有配置 (旧代码保留，待删除) -->
         <template v-if="false && inputForm.type === 'csfloat'">
           <el-form-item>
@@ -1052,7 +1094,7 @@
         />
         
         <!-- 通用配置 -->
-        <template v-else-if="inputForm.type && inputForm.type !== 'youpin' && inputForm.type !== 'steam' && inputForm.type !== 'perfectworld' && inputForm.type !== 'csfloat' && inputForm.type !== 'csqaq' && inputForm.type !== 'steamdt'">
+        <template v-else-if="inputForm.type && inputForm.type !== 'youpin' && inputForm.type !== 'steam' && inputForm.type !== 'perfectworld' && inputForm.type !== 'csfloat' && inputForm.type !== 'c5game' && inputForm.type !== 'csqaq' && inputForm.type !== 'steamdt'">
           <el-form-item label="API地址">
             <el-input 
               v-model="inputForm.apiUrl" 
@@ -1320,7 +1362,7 @@
           </el-collapse>
         </template>
         
-        <el-form-item v-if="['youpin', 'buff', 'steam', 'csfloat'].includes(inputForm.type)" label="是否自动采集">
+        <el-form-item v-if="['youpin', 'buff', 'steam', 'csfloat', 'c5game'].includes(inputForm.type)" label="是否自动采集">
           <el-switch v-model="inputForm.enabled" />
         </el-form-item>
       </el-form>
@@ -1438,6 +1480,7 @@ import YoupinForm from './TransactionSource/YoupinForm/index.vue'
 import BuffForm from './TransactionSource/BuffForm/index.vue'
 import PerfectWorldForm from './TransactionSource/PerfectWorldForm/index.vue'
 import CsfloatForm from './TransactionSource/CsfloatForm/index.vue'
+import C5GameForm from './TransactionSource/C5GameForm/index.vue'
 import CsqaqForm from './QuerySorurce/CsqaqForm/index.vue'
 import SteamdtForm from './QuerySorurce/SteamdtForm/index.vue'
 
@@ -1455,6 +1498,7 @@ export default {
     BuffForm,
     PerfectWorldForm,
     CsfloatForm,
+    C5GameForm,
     CsqaqForm,
     SteamdtForm
   },

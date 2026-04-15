@@ -31,6 +31,7 @@ export function useDataSource() {
   const buffFormRef = ref(null)
   const perfectWorldFormRef = ref(null)
   const csfloatFormRef = ref(null)
+  const c5gameFormRef = ref(null)
   
   // 注意：全局自动采集定时器在 main.js 中初始化，无需在组件中管理
   
@@ -146,6 +147,22 @@ export function useDataSource() {
     csfloatAcceptEncoding: '',
     csfloatCookie: '',
     csfloatSteamID: '',
+    // C5 GAME 特有字段
+    c5gameAccessToken: '',
+    c5gameDeviceId: '',
+    c5gameDeviceModel: '',
+    c5gameDeviceOs: '',
+    c5gameUserAgent: '',
+    c5gameAppVersionCode: '',
+    c5gameAppChannel: '',
+    c5gameSource: '',
+    c5gameSign: '',
+    c5gameRdi: '',
+    c5gameAcceptLanguage: '',
+    c5gameXUa: '',
+    c5gameStartReqTime: '',
+    c5gameContentType: '',
+    c5gameAcceptEncoding: '',
     // CSQAQ特有字段
     csqaqApiToken: '',
     // SteamDT特有字段
@@ -215,6 +232,22 @@ export function useDataSource() {
     csfloatAcceptEncoding: '',
     csfloatCookie: '',
     csfloatSteamID: '',
+    // C5 GAME 特有字段
+    c5gameAccessToken: '',
+    c5gameDeviceId: '',
+    c5gameDeviceModel: '',
+    c5gameDeviceOs: '',
+    c5gameUserAgent: '',
+    c5gameAppVersionCode: '',
+    c5gameAppChannel: '',
+    c5gameSource: '',
+    c5gameSign: '',
+    c5gameRdi: '',
+    c5gameAcceptLanguage: '',
+    c5gameXUa: '',
+    c5gameStartReqTime: '',
+    c5gameContentType: '',
+    c5gameAcceptEncoding: '',
     // CSQAQ特有字段
     csqaqApiToken: '',
     // SteamDT特有字段
@@ -239,7 +272,7 @@ export function useDataSource() {
   }
 
   // 独立数据源类型列表
-  const independentDataSourceTypes = ['csqaq', 'steamdt', 'c5game', 'igxe', 'ecosteam']
+  const independentDataSourceTypes = ['csqaq', 'steamdt', 'igxe', 'ecosteam']
 
   // 独立数据源的计算属性
   const independentDataSources = computed(() => {
@@ -576,6 +609,21 @@ export function useDataSource() {
       }
     }
 
+    if (inputForm.value.type === 'c5game') {
+      if (!inputForm.value.steamID) {
+        ElMessage.error('请填写SteamID')
+        return
+      }
+      if (!inputForm.value.c5gameAccessToken) {
+        ElMessage.error('请填写访问令牌（x-access-token）')
+        return
+      }
+      if (!inputForm.value.c5gameUserAgent) {
+        ElMessage.error('请填写 User Agent')
+        return
+      }
+    }
+
     submitting.value = true
     try {
       // 获取当前时间作为创建时间
@@ -693,6 +741,26 @@ export function useDataSource() {
           'Accept-Encoding': inputForm.value.csfloatAcceptEncoding,
           'Cookie': inputForm.value.csfloatCookie,
           steamID: inputForm.value.csfloatSteamID,
+          sleep_time: '6000'
+        })
+      } else if (inputForm.value.type === 'c5game') {
+        requestData.configJson = JSON.stringify({
+          steamID: inputForm.value.steamID,
+          user_agent: inputForm.value.c5gameUserAgent,
+          accept_encoding: inputForm.value.c5gameAcceptEncoding,
+          x_device_os: inputForm.value.c5gameDeviceOs,
+          content_type: inputForm.value.c5gameContentType,
+          x_source: inputForm.value.c5gameSource,
+          x_device_model: inputForm.value.c5gameDeviceModel,
+          rdi: inputForm.value.c5gameRdi,
+          accept_language: inputForm.value.c5gameAcceptLanguage,
+          x_ua: inputForm.value.c5gameXUa,
+          x_start_req_time: inputForm.value.c5gameStartReqTime,
+          x_device_id: inputForm.value.c5gameDeviceId,
+          x_access_token: inputForm.value.c5gameAccessToken,
+          x_app_channel: inputForm.value.c5gameAppChannel,
+          x_app_version_code: inputForm.value.c5gameAppVersionCode,
+          x_sign: inputForm.value.c5gameSign,
           sleep_time: '6000'
         })
       } else if (inputForm.value.type === 'csqaq') {
@@ -1317,6 +1385,22 @@ export function useDataSource() {
       csfloatAcceptEncoding: '',
       csfloatCookie: '',
       csfloatSteamID: '',
+      // C5 GAME 特有字段
+      c5gameAccessToken: '',
+      c5gameDeviceId: '',
+      c5gameDeviceModel: '',
+      c5gameDeviceOs: '',
+      c5gameUserAgent: '',
+      c5gameAppVersionCode: '',
+      c5gameAppChannel: '',
+      c5gameSource: '',
+      c5gameSign: '',
+      c5gameRdi: '',
+      c5gameAcceptLanguage: '',
+      c5gameXUa: '',
+      c5gameStartReqTime: '',
+      c5gameContentType: '',
+      c5gameAcceptEncoding: '',
       // CSQAQ特有字段
       csqaqApiToken: '',
       // SteamDT特有字段
@@ -1950,6 +2034,29 @@ export function useDataSource() {
       editForm.value.csfloatCookie = config.Cookie || config.cookie || ''
       editForm.value.csfloatSteamID = config.steamID || ''
       editForm.value.updateFreq = config.updateFreq || source.updateFreq || '15min'
+    } else if (source.type === 'c5game') {
+      console.log('C5 GAME配置解析:', config)
+      editForm.value.steamID = config.steamID || source.steamID || ''
+      editForm.value.c5gameAccessToken = config.x_access_token || ''
+      editForm.value.c5gameDeviceId = config.x_device_id || ''
+      editForm.value.c5gameDeviceModel = config.x_device_model || ''
+      editForm.value.c5gameDeviceOs = config.x_device_os || ''
+      editForm.value.c5gameUserAgent = config.user_agent || ''
+      editForm.value.c5gameAppVersionCode = config.x_app_version_code != null && config.x_app_version_code !== ''
+        ? String(config.x_app_version_code)
+        : ''
+      editForm.value.c5gameAppChannel = config.x_app_channel || ''
+      editForm.value.c5gameSource = config.x_source != null && config.x_source !== '' ? String(config.x_source) : ''
+      editForm.value.c5gameSign = config.x_sign || ''
+      editForm.value.c5gameRdi = config.rdi || ''
+      editForm.value.c5gameAcceptLanguage = config.accept_language || ''
+      editForm.value.c5gameXUa = config.x_ua || ''
+      editForm.value.c5gameStartReqTime = config.x_start_req_time != null && config.x_start_req_time !== ''
+        ? String(config.x_start_req_time)
+        : ''
+      editForm.value.c5gameContentType = config.content_type || ''
+      editForm.value.c5gameAcceptEncoding = config.accept_encoding || ''
+      editForm.value.updateFreq = config.updateFreq || source.updateFreq || '15min'
     } else if (source.type === 'csqaq') {
       // CSQAQ配置
       console.log('CSQAQ配置解析:', config)
@@ -1985,6 +2092,9 @@ export function useDataSource() {
     }
     if (csfloatFormRef.value?.cleanup) {
       await csfloatFormRef.value.cleanup()
+    }
+    if (c5gameFormRef.value?.cleanup) {
+      await c5gameFormRef.value.cleanup()
     }
 
     // 清除 Token 获取定时器
@@ -2068,6 +2178,22 @@ export function useDataSource() {
       csfloatAcceptEncoding: '',
       csfloatCookie: '',
       csfloatSteamID: '',
+      // C5 GAME 特有字段
+      c5gameAccessToken: '',
+      c5gameDeviceId: '',
+      c5gameDeviceModel: '',
+      c5gameDeviceOs: '',
+      c5gameUserAgent: '',
+      c5gameAppVersionCode: '',
+      c5gameAppChannel: '',
+      c5gameSource: '',
+      c5gameSign: '',
+      c5gameRdi: '',
+      c5gameAcceptLanguage: '',
+      c5gameXUa: '',
+      c5gameStartReqTime: '',
+      c5gameContentType: '',
+      c5gameAcceptEncoding: '',
       // CSQAQ特有字段
       csqaqApiToken: ''
     }
@@ -2089,6 +2215,9 @@ export function useDataSource() {
     currentSteamID.value = steamID // 记录当前分组的steamID
     isIndependentDataSourceMode.value = false // 清除独立数据源模式
     resetForm() // 先重置表单
+    if (steamID && steamID !== '未设置') {
+      inputForm.value.steamID = steamID
+    }
     addDialogVisible.value = true
   }
 
@@ -2139,6 +2268,9 @@ export function useDataSource() {
     }
     if (csfloatFormRef.value?.cleanup) {
       await csfloatFormRef.value.cleanup()
+    }
+    if (c5gameFormRef.value?.cleanup) {
+      await c5gameFormRef.value.cleanup()
     }
 
     // 清除二维码轮询定时器
@@ -2746,6 +2878,21 @@ export function useDataSource() {
       }
     }
 
+    if (editForm.value.type === 'c5game') {
+      if (!editForm.value.steamID) {
+        ElMessage.error('请填写SteamID')
+        return
+      }
+      if (!editForm.value.c5gameAccessToken) {
+        ElMessage.error('请填写访问令牌（x-access-token）')
+        return
+      }
+      if (!editForm.value.c5gameUserAgent) {
+        ElMessage.error('请填写 User Agent')
+        return
+      }
+    }
+
     editSubmitting.value = true
     try {
       let requestData = {
@@ -2851,6 +2998,27 @@ export function useDataSource() {
           'Accept-Encoding': editForm.value.csfloatAcceptEncoding,
           'Cookie': editForm.value.csfloatCookie,
           steamID: editForm.value.csfloatSteamID,
+          updateFreq: editForm.value.updateFreq,
+          sleep_time: '6000'
+        })
+      } else if (editForm.value.type === 'c5game') {
+        requestData.configJson = JSON.stringify({
+          steamID: editForm.value.steamID,
+          user_agent: editForm.value.c5gameUserAgent,
+          accept_encoding: editForm.value.c5gameAcceptEncoding,
+          x_device_os: editForm.value.c5gameDeviceOs,
+          content_type: editForm.value.c5gameContentType,
+          x_source: editForm.value.c5gameSource,
+          x_device_model: editForm.value.c5gameDeviceModel,
+          rdi: editForm.value.c5gameRdi,
+          accept_language: editForm.value.c5gameAcceptLanguage,
+          x_ua: editForm.value.c5gameXUa,
+          x_start_req_time: editForm.value.c5gameStartReqTime,
+          x_device_id: editForm.value.c5gameDeviceId,
+          x_access_token: editForm.value.c5gameAccessToken,
+          x_app_channel: editForm.value.c5gameAppChannel,
+          x_app_version_code: editForm.value.c5gameAppVersionCode,
+          x_sign: editForm.value.c5gameSign,
           updateFreq: editForm.value.updateFreq,
           sleep_time: '6000'
         })
@@ -3749,6 +3917,7 @@ export function useDataSource() {
     buffFormRef,
     perfectWorldFormRef,
     csfloatFormRef,
+    c5gameFormRef,
     // GetAppToken 相关
     buffTokenLoading,
     yyypTokenLoading,
