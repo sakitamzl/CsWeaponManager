@@ -160,7 +160,8 @@ class MiningHandler:
         try:
             db = DatabaseManager()
             result = db.execute_query(
-                "SELECT source_steam_id, MAX(mining_time) as latest_time FROM user_inventory_mining GROUP BY source_steam_id ORDER BY latest_time DESC LIMIT 1"
+                "SELECT source_steam_id, MAX(mining_time) as latest_time FROM user_inventory_mining GROUP BY source_steam_id ORDER BY latest_time DESC LIMIT 1",
+                (),
             )
             if result:
                 return jsonify({'success': True, 'data': {'source_steam_id': result[0][0], 'latest_time': result[0][1]}}), 200
@@ -209,8 +210,10 @@ class MiningHandler:
 
             results = db.execute_query(query_sql, tuple(params))
 
-            count_params = [p for p in params if p not in ([limit, offset] if limit is not None else ([offset] if offset > 0 else []))]
-            count_result = db.execute_query(f"SELECT COUNT(*) FROM user_inventory_mining WHERE {where_sql}", tuple(count_params[:len(where_clauses)]))
+            count_result = db.execute_query(
+                f"SELECT COUNT(*) FROM user_inventory_mining WHERE {where_sql}",
+                tuple(params[: len(where_clauses)]),
+            )
             total_count = count_result[0][0] if count_result else 0
 
             columns = ['id', 'source_steam_id', 'target_steam_id', 'relationship', 'persona_name', 'avatar_url', 'profile_url', 'assetid', 'instanceid', 'classid', 'item_name', 'weapon_name', 'steam_hash_name', 'float_range', 'weapon_type', 'weapon_float', 'icon_url', 'market_price', 'sticker', 'pendant', 'rename', 'rarity', 'tradable', 'marketable', 'mining_time', 'created_at']
@@ -246,14 +249,23 @@ class MiningHandler:
             latest_r = db.execute_query("SELECT mining_time FROM user_inventory_mining WHERE source_steam_id = ? ORDER BY mining_time DESC LIMIT 1", (source_steam_id,))
             latest_time = latest_r[0][0] if latest_r else None
 
-            value_where = "source_steam_id = ? AND market_price IS NOT NULL AND market_price != '' AND market_price != '0'"
-            total_value_r = db.execute_query(f"SELECT SUM(CAST(market_price AS REAL)) FROM user_inventory_mining WHERE {value_where}", (source_steam_id,))
+            value_base = (
+                "SELECT SUM(CAST(market_price AS REAL)) FROM user_inventory_mining "
+                "WHERE source_steam_id = ? AND market_price IS NOT NULL AND market_price != '' AND market_price != '0'"
+            )
+            total_value_r = db.execute_query(value_base, (source_steam_id,))
             total_value = round(total_value_r[0][0], 2) if total_value_r and total_value_r[0][0] else 0
 
-            self_value_r = db.execute_query(f"SELECT SUM(CAST(market_price AS REAL)) FROM user_inventory_mining WHERE {value_where} AND relationship = 'self'", (source_steam_id,))
+            self_value_r = db.execute_query(
+                value_base + " AND relationship = 'self'",
+                (source_steam_id,),
+            )
             self_value = round(self_value_r[0][0], 2) if self_value_r and self_value_r[0][0] else 0
 
-            friends_value_r = db.execute_query(f"SELECT SUM(CAST(market_price AS REAL)) FROM user_inventory_mining WHERE {value_where} AND relationship = 'friend'", (source_steam_id,))
+            friends_value_r = db.execute_query(
+                value_base + " AND relationship = 'friend'",
+                (source_steam_id,),
+            )
             friends_value = round(friends_value_r[0][0], 2) if friends_value_r and friends_value_r[0][0] else 0
 
             user_value_result = db.execute_query(

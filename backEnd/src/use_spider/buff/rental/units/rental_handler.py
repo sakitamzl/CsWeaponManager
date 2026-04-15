@@ -3,7 +3,7 @@ BUFF rental 处理模块
 提供 Spider 所需的租入记录查询、插入与状态更新接口
 """
 from flask import jsonify, request
-from src.units.execution_db import Date_base
+from src.db_manager.database import DatabaseManager
 from src.units.now_time import today
 from src.db_manager.manager import RentalModel
 
@@ -14,14 +14,13 @@ class RentalHandler:
     def count_data(data_user):
         """统计指定用户的 BUFF 租入订单数量"""
         try:
-            sql = f"SELECT COUNT(*) FROM rental WHERE data_user = '{data_user}' AND \"from\" = 'buff'"
-            result = Date_base().select(sql)
-            if result and len(result) == 2:
-                flag, data = result
-                if flag and len(data) > 0:
-                    count = data[0][0]
-                    return jsonify({"count": count}), 200
-            return jsonify({"count": 0}), 200
+            db = DatabaseManager()
+            rows = db.execute_query(
+                'SELECT COUNT(*) FROM rental WHERE data_user = ? AND "from" = ?',
+                (data_user, 'buff'),
+            )
+            count = rows[0][0] if rows else 0
+            return jsonify({"count": count}), 200
         except Exception as e:
             print(f"统计BUFF租入订单数量失败: {e}")
             import traceback
@@ -113,19 +112,19 @@ class RentalHandler:
     def get_latest_data(data_user):
         """获取指定用户最新的 BUFF 租入订单数据"""
         try:
-            sql = f"""
-            SELECT ID, lean_start_time
-            FROM rental
-            WHERE data_user = '{data_user}' AND \"from\" = 'buff'
-            ORDER BY lean_start_time DESC
-            LIMIT 1
-            """
-            result = Date_base().select(sql)
-
-            if result and len(result) == 2:
-                flag, data = result
-                if flag and len(data) > 0:
-                    return jsonify({"ID": data[0][0], "order_time": data[0][1]}), 200
+            db = DatabaseManager()
+            rows = db.execute_query(
+                """
+                SELECT ID, lean_start_time
+                FROM rental
+                WHERE data_user = ? AND "from" = ?
+                ORDER BY lean_start_time DESC
+                LIMIT 1
+                """,
+                (data_user, 'buff'),
+            )
+            if rows:
+                return jsonify({"ID": rows[0][0], "order_time": rows[0][1]}), 200
 
             return jsonify({"message": "数据库为空，请先执行全量采集"}), 200
 
@@ -140,28 +139,25 @@ class RentalHandler:
         """查询指定用户需要更新状态的 BUFF 租入订单"""
         try:
             current_time = today()
-            sql = f"""
-            SELECT ID
-            FROM rental
-            WHERE data_user = '{data_user}'
-                AND \"from\" = 'buff'
-                AND status NOT IN ('已完成', '已取消', '已归还')
-                AND (
-                    (lean_end_time <= '{current_time}' AND status = '租赁中')
-                    OR
-                    status NOT IN ('租赁中')
-                )
-            ORDER BY lean_start_time DESC
-            """
-            result = Date_base().select(sql)
-
-            if result and len(result) == 2:
-                flag, data = result
-                if flag:
-                    order_ids = [row[0] for row in data]
-                    return jsonify({"not_end_orders": order_ids}), 200
-
-            return jsonify({"not_end_orders": []}), 200
+            db = DatabaseManager()
+            rows = db.execute_query(
+                """
+                SELECT ID
+                FROM rental
+                WHERE data_user = ?
+                    AND "from" = ?
+                    AND status NOT IN ('已完成', '已取消', '已归还')
+                    AND (
+                        (lean_end_time <= ? AND status = '租赁中')
+                        OR
+                        status NOT IN ('租赁中')
+                    )
+                ORDER BY lean_start_time DESC
+                """,
+                (data_user, 'buff', current_time),
+            )
+            order_ids = [row[0] for row in rows] if rows else []
+            return jsonify({"not_end_orders": order_ids}), 200
 
         except Exception as e:
             print(f"查询未结束BUFF租入订单失败: {e}")
@@ -181,25 +177,15 @@ class RentalHandler:
             if not order_id:
                 return jsonify({"success": False, "error": "订单ID不能为空"}), 400
 
+            db = DatabaseManager()
             if state_sub is not None:
-                sql = f"""
-                UPDATE rental
-                SET status = '{state}', last_status = '{state_sub}'
-                WHERE ID = '{order_id}' AND \"from\" = 'buff'
-                """
+                sql = 'UPDATE rental SET status = ?, last_status = ? WHERE ID = ? AND "from" = ?'
+                db.execute_update(sql, (state, state_sub, order_id, 'buff'))
             else:
-                sql = f"""
-                UPDATE rental
-                SET status = '{state}'
-                WHERE ID = '{order_id}' AND \"from\" = 'buff'
-                """
+                sql = 'UPDATE rental SET status = ? WHERE ID = ? AND "from" = ?'
+                db.execute_update(sql, (state, order_id, 'buff'))
 
-            result = Date_base().update(sql)
-
-            if result:
-                return jsonify({"success": True, "message": "状态更新成功"}), 200
-            else:
-                return jsonify({"success": False, "error": "状态更新失败"}), 500
+            return jsonify({"success": True, "message": "状态更新成功"}), 200
 
         except Exception as e:
             print(f"更新BUFF租入订单状态失败: {e}")

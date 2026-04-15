@@ -20,7 +20,7 @@ class RentalHandler:
                 sql = """
                     SELECT lean_start_time
                     FROM rental
-                    WHERE data_user = ? AND `from` = ?
+                    WHERE data_user = ? AND "from" = ?
                     ORDER BY lean_start_time DESC
                     LIMIT 1
                 """
@@ -52,7 +52,7 @@ class RentalHandler:
         try:
             if data_from:
                 count = RentalModel.count(
-                    where="data_user = ? AND `from` = ?",
+                    where='data_user = ? AND "from" = ?',
                     params=(steamId, data_from)
                 )
             else:
@@ -70,7 +70,7 @@ class RentalHandler:
         try:
             current_time = today()
             if data_from:
-                where_clause = "lean_end_time <= ? AND last_status != '完成' AND `from` = ?"
+                where_clause = "lean_end_time <= ? AND last_status != '完成' AND \"from\" = ?"
                 params = (current_time, data_from)
             else:
                 where_clause = "lean_end_time <= ? AND last_status != '完成'"

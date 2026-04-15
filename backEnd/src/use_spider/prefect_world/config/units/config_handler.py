@@ -18,7 +18,10 @@ class ConfigHandler:
         try:
             print(f"[DEBUG] 查询完美世界配置，Steam ID: {steam_id}")
             db = DatabaseManager()
-            results = db.execute_query("SELECT value FROM config WHERE key1 = 'perfectworld'")
+            results = db.execute_query(
+                "SELECT value FROM config WHERE key1 = 'perfectworld'",
+                (),
+            )
             print(f"[DEBUG] 查询到 {len(results) if results else 0} 条完美世界配置记录")
 
             if not results:
