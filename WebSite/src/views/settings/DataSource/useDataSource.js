@@ -2215,9 +2215,6 @@ export function useDataSource() {
     currentSteamID.value = steamID // 记录当前分组的steamID
     isIndependentDataSourceMode.value = false // 清除独立数据源模式
     resetForm() // 先重置表单
-    if (steamID && steamID !== '未设置') {
-      inputForm.value.steamID = steamID
-    }
     addDialogVisible.value = true
   }
 

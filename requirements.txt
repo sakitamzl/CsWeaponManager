@@ -11,3 +11,5 @@ pymysql
 pyinstaller
 qrcode[pil]
 psutil
+h2
+brotli
