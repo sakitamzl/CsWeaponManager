@@ -1676,6 +1676,74 @@ export function useDataSource() {
     }
   }
 
+  // C5 GAME 专用爬虫采集（增量）
+  const startC5gameSpiderCollection = async (source) => {
+    if (!source.enabled) {
+      ElMessage.warning('请先启用数据源')
+      return
+    }
+
+    if (collectingSourceIds.value.has(source.dataID)) {
+      ElMessage.info('该数据源正在采集中...')
+      return
+    }
+
+    const steamId =
+      source.steamID ||
+      source.config?.steamID ||
+      source.config?.steamId ||
+      source.config?.steam_id ||
+      ''
+
+    if (!steamId) {
+      ElMessage.error('请先在数据源配置中填写 SteamID')
+      return
+    }
+
+    try {
+      startCollecting(source.dataID)
+
+      ElMessage.info(`开始采集C5 GAME数据: ${source.dataName}`)
+
+      const spiderData = { steamId }
+      const response = await axios.post(apiUrls.c5gameSyncNewData(), spiderData)
+
+      if (response.status === 200) {
+        const result = response.data || {}
+        if (result.success === false) {
+          ElMessage.error(result.message || 'C5 GAME采集失败')
+        } else {
+          const message = result.message || 'C5 GAME采集完成'
+          const sellNew = result.data?.sell_new ?? '0'
+          ElMessage.success(`${source.dataName} - ${message} (卖:${sellNew})`)
+
+          const now = new Date()
+          source.lastUpdate = now
+          await updateLastUpdateInDatabase(source.dataID, now.toISOString())
+        }
+      } else {
+        ElMessage.error(`C5 GAME采集失败: ${response.data}`)
+      }
+    } catch (error) {
+      console.error('C5 GAME采集失败:', error)
+      let errorMessage = `C5 GAME采集 ${source.dataName} 失败`
+
+      if (error.response) {
+        errorMessage =
+          error.response.data?.message ||
+          `C5 GAME采集失败 (${error.response.status})`
+      } else if (error.request) {
+        errorMessage = '无法连接到C5 GAME爬虫服务器'
+      } else {
+        errorMessage = error.message || 'C5 GAME采集失败'
+      }
+
+      ElMessage.error(errorMessage)
+    } finally {
+      stopCollecting(source.dataID)
+    }
+  }
+
   // Steam专用爬虫采集函数（增量采集 - 只获取新数据）
   const startSteamSpiderCollection = async (source) => {
     if (!source.enabled) {
@@ -1761,6 +1829,10 @@ export function useDataSource() {
     
     if (source.type === 'csfloat') {
       return startCsfloatSpiderCollection(source)
+    }
+
+    if (source.type === 'c5game') {
+      return startC5gameSpiderCollection(source)
     }
     
     // 如果是Steam，调用Steam爬虫采集
@@ -2521,6 +2593,87 @@ export function useDataSource() {
         errorMessage = '无法连接到CsFloat爬虫服务器'
       } else {
         errorMessage = error.message || 'CsFloat 数据获取失败'
+      }
+
+      ElMessage.error(errorMessage)
+    } finally {
+      stopCollecting(editingSourceId.value)
+    }
+  }
+
+  // 编辑对话框中的 C5 GAME「首次数据获取」
+  // limitParams: { limitType: 'all'|'count'|'date', limitCount: number, limitDate: 'YYYY-MM-DD' }
+  const handleEditC5gameCollectAll = async (limitParams = {}) => {
+    if (!editForm.value.name) {
+      ElMessage.error('数据源信息不完整')
+      return
+    }
+
+    if (!editForm.value.enabled) {
+      ElMessage.warning('请先启用数据源')
+      return
+    }
+
+    if (editForm.value.type !== 'c5game') {
+      ElMessage.error('只有 C5 GAME 数据源才支持该功能')
+      return
+    }
+
+    if (collectingSourceIds.value.has(editingSourceId.value)) {
+      ElMessage.info('该数据源正在采集中...')
+      return
+    }
+
+    const steamId =
+      editForm.value.steamID ||
+      editForm.value.steamId ||
+      ''
+
+    if (!steamId) {
+      ElMessage.error('请先填写 C5 GAME 数据源的 SteamID')
+      return
+    }
+
+    const { limitType = 'all', limitCount = null, limitDate = null } = limitParams
+
+    let limitDesc = ''
+    if (limitType === 'count') limitDesc = `（条数限制: ${limitCount}）`
+    else if (limitType === 'date') limitDesc = `（日期限制: ${limitDate} 之后）`
+
+    try {
+      startCollecting(editingSourceId.value)
+
+      ElMessage.info(`开始执行 C5 GAME 首次数据获取: ${editForm.value.name}${limitDesc}`)
+
+      const response = await axios.post(apiUrls.c5gameSyncHistoryData(), {
+        steamId,
+        limit_type: limitType,
+        limit_count: limitCount,
+        limit_date: limitDate,
+      })
+
+      if (response.status === 200) {
+        const result = response.data || {}
+        if (result.success === false) {
+          ElMessage.error(result.message || 'C5 GAME 数据获取失败')
+        } else {
+          ElMessage.success(result.message || 'C5 GAME 数据获取完成！')
+        }
+      } else {
+        ElMessage.error(`C5 GAME 数据获取失败: ${response.data}`)
+      }
+    } catch (error) {
+      console.error('C5 GAME 数据获取失败:', error)
+      let errorMessage = `C5 GAME 数据获取 ${editForm.value.name} 失败`
+
+      if (error.response) {
+        errorMessage =
+          error.response.data?.message ||
+          `C5 GAME 数据获取失败 (${error.response.status})`
+      } else if (error.request) {
+        errorMessage = '无法连接到 C5 GAME 爬虫服务器'
+      } else {
+        errorMessage = error.message || 'C5 GAME 数据获取失败'
       }
 
       ElMessage.error(errorMessage)
@@ -3975,6 +4128,7 @@ export function useDataSource() {
     editSteamdtCollapse,
     handleEditBuffCollectAll,
     handleEditCsfloatCollectAll,
+    handleEditC5gameCollectAll,
     handleEditSteamCollectAll,
     handleEditDelete,
     openAddDialog,

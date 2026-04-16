@@ -1510,7 +1510,7 @@ export default {
     const firstFetchLimitMode = ref(null) // null / 'select' / 'count' / 'date'
     const firstFetchLimitCount = ref(1000)
     const firstFetchLimitDate = ref('')
-    const firstFetchCurrentType = ref('') // 'buff' / 'youpin' / 'csfloat'
+    const firstFetchCurrentType = ref('') // 'buff' / 'youpin' / 'csfloat' / 'steam' / 'c5game'
 
     const openFirstFetchDialog = (type) => {
       firstFetchCurrentType.value = type
@@ -1526,6 +1526,7 @@ export default {
       if (firstFetchCurrentType.value === 'buff') dsData.handleEditBuffCollectAll()
       else if (firstFetchCurrentType.value === 'youpin') dsData.handleEditCollectAll()
       else if (firstFetchCurrentType.value === 'csfloat') dsData.handleEditCsfloatCollectAll()
+      else if (firstFetchCurrentType.value === 'c5game') dsData.handleEditC5gameCollectAll()
     }
 
     const handleFirstFetchLimitConfirm = () => {
@@ -1551,6 +1552,11 @@ export default {
         if (mode === 'count') params.limitCount = firstFetchLimitCount.value
         if (mode === 'date') params.limitDate = firstFetchLimitDate.value
         dsData.handleEditSteamCollectAll(params)
+      } else if (firstFetchCurrentType.value === 'c5game') {
+        const params = { limitType: mode }
+        if (mode === 'count') params.limitCount = firstFetchLimitCount.value
+        if (mode === 'date') params.limitDate = firstFetchLimitDate.value
+        dsData.handleEditC5gameCollectAll(params)
       }
     }
 
