@@ -144,8 +144,8 @@ class SellModel(BaseModel):
             ,
             'ID_sub': {
                 'type': 'TEXT',
+                'primary_key': True,
                 'not_null': False,
-                'default': None
             }
         }
     

@@ -64,7 +64,10 @@
     <el-collapse v-model="appCollapse" style="margin-bottom: 20px;">
       <el-collapse-item title="应用信息配置" name="app">
         <el-form-item label="User Agent" required>
-          <el-input v-model="form.c5gameUserAgent" placeholder="请输入user-agent" />
+          <el-input
+            v-model="form.c5gameUserAgent"
+            placeholder="须与 x-sign 同一次抓包，如 C5GAME App;409020;Flutter (Android)"
+          />
         </el-form-item>
         <el-form-item label="应用版本号" required>
           <el-input v-model="form.c5gameAppVersionCode" placeholder="请输入x-app-version-code" />
@@ -102,7 +105,7 @@
           <el-input v-model="form.c5gameAcceptLanguage" placeholder="请输入accept-language" />
         </el-form-item>
         <el-form-item label="UA标识">
-          <el-input v-model="form.c5gameXUa" placeholder="请输入x-ua" />
+          <el-input v-model="form.c5gameXUa" placeholder="须与 user-agent 同客户端，如 Dart/3.8.1 或 Dalvik/…" />
         </el-form-item>
         <el-form-item label="请求开始时间">
           <el-input v-model="form.c5gameStartReqTime" placeholder="请输入x-start-req-time" />
