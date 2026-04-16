@@ -4,7 +4,9 @@ C5GAME sell Spider V2 API 模块
 """
 from flask import Blueprint
 from .units.sell_insert import SellInsert
+from .units.sell_query import SellQuery
 
 sell_spider_blueprint = Blueprint("c5game_sell_spider", __name__)
 sell_spider_blueprint.route("/sell/insert_db", methods=["POST"])(SellInsert.insert_db)
+sell_spider_blueprint.route("/sell/getLatestData/<user_id>", methods=["GET"])(SellQuery.get_latest_data)
 

@@ -5,8 +5,10 @@ C5GAME Spider V2 API 模块
 - 向下传递给 sell 子模块
 """
 from flask import Blueprint
+from .buy.API import buy_spider_blueprint
 from .sell.API import sell_spider_blueprint
 
 c5game_spider_blueprint = Blueprint("c5game_spider", __name__)
+c5game_spider_blueprint.register_blueprint(buy_spider_blueprint)
 c5game_spider_blueprint.register_blueprint(sell_spider_blueprint)
 

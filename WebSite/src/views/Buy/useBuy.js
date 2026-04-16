@@ -21,7 +21,7 @@ export function useBuy() {
   const floatRanges = ref([])
   const statusList = ref([])
   const statusSubList = ref([])
-  const sourceList = ref(['yyyp', 'buff', 'csfloat', 'SMK', 'ING'])
+  const sourceList = ref(['yyyp', 'buff', 'csfloat', 'SMK', 'ING', 'c5game'])
   const dataUserList = ref([])
   const statusSubFilter = ref('')
   const currentPage = ref(1)
@@ -159,7 +159,11 @@ export function useBuy() {
       buff: 'BUFF',
       csfloat: 'CsFloat',
       SMK: 'steam市场',
-      ING: '游戏内购'
+      ING: '游戏内购',
+      c5game: 'C5GAME',
+      C5game: 'C5GAME',
+      C5: 'C5GAME',
+      C5GAME: 'C5GAME'
     }
     return map[val] || val
   }
