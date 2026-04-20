@@ -25,6 +25,7 @@ data_source_blueprint.route('/data_source/units/data/deleteDataSource/<int:data_
 data_source_blueprint.route('/data_source/units/ops/testConnection', methods=['POST'])(DataSourceOps.test_connection)
 data_source_blueprint.route('/data_source/units/ops/collectDataSource/<int:data_id>', methods=['POST'])(DataSourceOps.collect_data_source)
 data_source_blueprint.route('/data_source/units/ops/toggleDataSource/<int:data_id>', methods=['PUT'])(DataSourceOps.toggle_data_source)
+data_source_blueprint.route('/data_source/units/ops/updateC5AccessToken', methods=['POST'])(DataSourceOps.update_c5_access_token)
 
 # 武器查询路由
 data_source_blueprint.route('/data_source/units/weapon/search', methods=['GET'])(WeaponQuery.search_weapon)

@@ -9,6 +9,7 @@ from src.units.execution_db import Date_base
 import time
 import random
 from datetime import datetime
+import json
 
 
 class DataSourceOps:
@@ -128,6 +129,60 @@ class DataSourceOps:
 
         except Exception as e:
             Log().write_log(f"切换数据源状态失败: {str(e)}", 'error')
+            return jsonify({
+                'success': False,
+                'message': f'服务器错误: {str(e)}'
+            }), 500
+
+    @staticmethod
+    def update_c5_access_token():
+        """按 steamID 更新 C5 数据源 config 中的 x_access_token。"""
+        try:
+            data = request.get_json() or {}
+            steam_id = str(data.get("steamID") or "").strip()
+            access_token = str(data.get("accessToken") or "").strip()
+            if not steam_id or not access_token:
+                return jsonify({
+                    'success': False,
+                    'message': 'steamID 和 accessToken 不能为空'
+                }), 400
+
+            db = DatabaseManager()
+            rows = db.execute_query(
+                "SELECT dataID, value FROM config WHERE key1 = 'c5game' AND key2 = 'config' AND steamID = ? ORDER BY dataID DESC LIMIT 1",
+                (steam_id,),
+            )
+            if not rows:
+                return jsonify({
+                    'success': False,
+                    'message': f'未找到 steamID={steam_id} 的 C5 数据源'
+                }), 404
+
+            data_id, value = rows[0]
+            try:
+                config = json.loads(value or "{}")
+                if not isinstance(config, dict):
+                    config = {}
+            except Exception:
+                config = {}
+
+            config["x_access_token"] = access_token
+            updated_value = json.dumps(config, ensure_ascii=False).replace("'", "''")
+            update_sql = f"UPDATE config SET value = '{updated_value}' WHERE dataID = {int(data_id)} AND key2 = 'config'"
+            ok = Date_base().update(update_sql)
+            if ok is not True:
+                return jsonify({
+                    'success': False,
+                    'message': '更新 accessToken 失败'
+                }), 500
+
+            return jsonify({
+                'success': True,
+                'message': 'C5 accessToken 更新成功',
+                'data': {'dataID': data_id, 'steamID': steam_id}
+            }), 200
+        except Exception as e:
+            Log().write_log(f"更新 C5 accessToken 失败: {str(e)}", 'error')
             return jsonify({
                 'success': False,
                 'message': f'服务器错误: {str(e)}'
