@@ -1948,6 +1948,37 @@ export function useDataSource() {
     }
   }
 
+  const toggleEditSourceStatus = async (enabled) => {
+    if (!editingSourceId.value) return
+    try {
+      const response = await axios.put(apiUrls.dataSourceToggle(editingSourceId.value), {
+        enabled: !!enabled
+      })
+      const result = response.data
+      if (result.success) {
+        const current = dataSources.value.find(item => item.dataID === editingSourceId.value)
+        if (current) {
+          current.enabled = !!enabled
+        }
+        ElMessage.success(`数据源已${enabled ? '启用' : '禁用'}`)
+      } else {
+        ElMessage.error(result.message || '状态更新失败')
+        editForm.value.enabled = !enabled
+      }
+    } catch (error) {
+      let errorMessage = '状态更新失败'
+      if (error.response) {
+        errorMessage = error.response.data?.message || `更新失败 (${error.response.status})`
+      } else if (error.request) {
+        errorMessage = '无法连接到API服务器'
+      } else {
+        errorMessage = error.message || '状态更新失败'
+      }
+      ElMessage.error(errorMessage)
+      editForm.value.enabled = !enabled
+    }
+  }
+
   const editSource = (source) => {
     // 记录当前编辑的数据源ID
     editingSourceId.value = source.dataID
@@ -2209,6 +2240,9 @@ export function useDataSource() {
 
     // 展开列表
     isListCollapsed.value = false
+
+    // 关闭编辑弹窗时同步最新状态，确保主页面列表与弹窗操作一致
+    await loadDataSources()
 
     // 对话框关闭时清理状态
     editingSourceId.value = null
@@ -4097,6 +4131,7 @@ export function useDataSource() {
     testSourceConnection,
     startCollection,
     editSource,
+    toggleEditSourceStatus,
     handleEditDialogClose,
     handleEditSubmit,
     handleEditCollectAll,

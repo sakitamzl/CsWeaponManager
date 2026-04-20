@@ -261,7 +261,7 @@
         </template>
 
         <el-form-item v-if="['youpin', 'buff', 'steam', 'csfloat', 'c5game'].includes(editForm.type)" label="数据源状态">
-          <el-switch v-model="editForm.enabled" />
+          <el-switch v-model="editForm.enabled" @change="toggleEditSourceStatus" />
         </el-form-item>
 
       </el-form>
