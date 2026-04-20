@@ -163,6 +163,9 @@ export function useDataSource() {
     c5gameStartReqTime: '',
     c5gameContentType: '',
     c5gameAcceptEncoding: '',
+    c5gameAutoLogin: false,
+    c5gameAutoLoginUsername: '',
+    c5gameAutoLoginPassword: '',
     // CSQAQ特有字段
     csqaqApiToken: '',
     // SteamDT特有字段
@@ -248,6 +251,9 @@ export function useDataSource() {
     c5gameStartReqTime: '',
     c5gameContentType: '',
     c5gameAcceptEncoding: '',
+    c5gameAutoLogin: false,
+    c5gameAutoLoginUsername: '',
+    c5gameAutoLoginPassword: '',
     // CSQAQ特有字段
     csqaqApiToken: '',
     // SteamDT特有字段
@@ -622,6 +628,16 @@ export function useDataSource() {
         ElMessage.error('请填写 User Agent')
         return
       }
+      if (inputForm.value.c5gameAutoLogin) {
+        if (!inputForm.value.c5gameAutoLoginUsername) {
+          ElMessage.error('请填写 C5 自动登录用户名')
+          return
+        }
+        if (!inputForm.value.c5gameAutoLoginPassword) {
+          ElMessage.error('请填写 C5 自动登录密码')
+          return
+        }
+      }
     }
 
     submitting.value = true
@@ -761,6 +777,9 @@ export function useDataSource() {
           x_app_channel: inputForm.value.c5gameAppChannel,
           x_app_version_code: inputForm.value.c5gameAppVersionCode,
           x_sign: inputForm.value.c5gameSign,
+          auto_login: inputForm.value.c5gameAutoLogin,
+          auto_login_username: inputForm.value.c5gameAutoLoginUsername,
+          auto_login_password: inputForm.value.c5gameAutoLoginPassword,
           sleep_time: '6000'
         })
       } else if (inputForm.value.type === 'csqaq') {
@@ -2128,6 +2147,9 @@ export function useDataSource() {
         : ''
       editForm.value.c5gameContentType = config.content_type || ''
       editForm.value.c5gameAcceptEncoding = config.accept_encoding || ''
+      editForm.value.c5gameAutoLogin = !!config.auto_login
+      editForm.value.c5gameAutoLoginUsername = config.auto_login_username || ''
+      editForm.value.c5gameAutoLoginPassword = config.auto_login_password || ''
       editForm.value.updateFreq = config.updateFreq || source.updateFreq || '15min'
     } else if (source.type === 'csqaq') {
       // CSQAQ配置
@@ -2266,6 +2288,9 @@ export function useDataSource() {
       c5gameStartReqTime: '',
       c5gameContentType: '',
       c5gameAcceptEncoding: '',
+      c5gameAutoLogin: false,
+      c5gameAutoLoginUsername: '',
+      c5gameAutoLoginPassword: '',
       // CSQAQ特有字段
       csqaqApiToken: ''
     }
@@ -3041,6 +3066,16 @@ export function useDataSource() {
         ElMessage.error('请填写 User Agent')
         return
       }
+      if (editForm.value.c5gameAutoLogin) {
+        if (!editForm.value.c5gameAutoLoginUsername) {
+          ElMessage.error('请填写 C5 自动登录用户名')
+          return
+        }
+        if (!editForm.value.c5gameAutoLoginPassword) {
+          ElMessage.error('请填写 C5 自动登录密码')
+          return
+        }
+      }
     }
 
     editSubmitting.value = true
@@ -3169,6 +3204,9 @@ export function useDataSource() {
           x_app_channel: editForm.value.c5gameAppChannel,
           x_app_version_code: editForm.value.c5gameAppVersionCode,
           x_sign: editForm.value.c5gameSign,
+          auto_login: editForm.value.c5gameAutoLogin,
+          auto_login_username: editForm.value.c5gameAutoLoginUsername,
+          auto_login_password: editForm.value.c5gameAutoLoginPassword,
           updateFreq: editForm.value.updateFreq,
           sleep_time: '6000'
         })

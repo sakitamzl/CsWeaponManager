@@ -62,16 +62,6 @@
         <el-form-item label="SteamID" required>
           <el-input v-model="form.pwSteamID" placeholder="请输入SteamID" />
         </el-form-item>
-        <el-form-item v-if="isEditMode" label="更新频率">
-          <el-select v-model="form.updateFreq" placeholder="选择更新频率" style="width: 100%;">
-            <el-option label="每15分钟" value="15min" />
-            <el-option label="每小时" value="1hour" />
-            <el-option label="每3小时" value="3hour" />
-            <el-option label="每6小时" value="6hour" />
-            <el-option label="每12小时" value="12hour" />
-            <el-option label="每天" value="daily" />
-          </el-select>
-        </el-form-item>
       </el-collapse-item>
     </el-collapse>
   </div>
