@@ -968,17 +968,15 @@ export function useDataSource() {
             tokenCheckTimer.value = null
           }
           
-          // 停止代理服务器
-          stopBuffTokenCollection()
-          
-          // 自动保存
+          // 自动保存后回调关闭代理服务器
           ElMessage.info('正在自动保存数据源配置...')
-          setTimeout(() => {
+          setTimeout(async () => {
             if (isEdit) {
-              handleEditSubmit()
+              await handleEditSubmit()
             } else {
-              handleSubmit()
+              await handleSubmit()
             }
+            await stopBuffTokenCollection()
           }, 1000)
         } else if (response.data.code === 202) {
           // 数据正在收集中
@@ -1096,17 +1094,15 @@ export function useDataSource() {
             tokenCheckTimer.value = null
           }
           
-          // 停止代理服务器
-          stopYyypTokenCollection()
-          
-          // 自动保存
+          // 自动保存后回调关闭代理服务器
           ElMessage.info('正在自动保存数据源配置...')
-          setTimeout(() => {
+          setTimeout(async () => {
             if (isEdit) {
-              handleEditSubmit()
+              await handleEditSubmit()
             } else {
-              handleSubmit()
+              await handleSubmit()
             }
+            await stopYyypTokenCollection()
           }, 1000)
         } else if (response.data.code === 202) {
           // 数据正在收集中
@@ -1195,17 +1191,15 @@ export function useDataSource() {
             inputForm.value.pwSteamID = data.steamId || inputForm.value.pwSteamID
           }
           
-          // 停止代理
-          stopPerfectWorldTokenCollection()
-          
-          // 自动保存
+          // 自动保存后回调关闭代理服务器
           ElMessage.info('正在自动保存数据源配置...')
-          setTimeout(() => {
+          setTimeout(async () => {
             if (isEdit) {
-              handleEditSubmit()
+              await handleEditSubmit()
             } else {
-              handleSubmit()
+              await handleSubmit()
             }
+            await stopPerfectWorldTokenCollection()
           }, 1000)
         } else if (response.data.code === 202) {
           // 数据正在收集中
@@ -1316,17 +1310,15 @@ export function useDataSource() {
             tokenCheckTimer.value = null
           }
           
-          // 停止代理服务器
-          stopCsfloatTokenCollection()
-          
-          // 自动保存
+          // 自动保存后回调关闭代理服务器
           ElMessage.info('正在自动保存数据源配置...')
-          setTimeout(() => {
+          setTimeout(async () => {
             if (isEdit) {
-              handleEditSubmit()
+              await handleEditSubmit()
             } else {
-              handleSubmit()
+              await handleSubmit()
             }
+            await stopCsfloatTokenCollection()
           }, 1000)
         } else if (response.data.code === 202) {
           // 数据正在收集中
