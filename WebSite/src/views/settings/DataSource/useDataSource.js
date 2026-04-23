@@ -271,10 +271,10 @@ export function useDataSource() {
     'buff': 2,
     'youpin': 3,
     'csfloat': 4,
-    'perfectworld': 5,
-    'c5game': 6,
+    'c5game': 5,
     'igxe': 6,
-    'ecosteam': 6
+    'ecosteam': 6,
+    'perfectworld': 999
   }
 
   // 独立数据源类型列表
