@@ -8,6 +8,19 @@ from src.db_manager.index.model.buy import BuyModel
 
 class BuyQuery:
     @staticmethod
+    def count_data(user_id):
+        """统计指定用户 C5GAME 平台购买记录数量"""
+        try:
+            count = BuyModel.count(
+                "data_user = ? AND \"from\" IN ('c5game', 'C5', 'C5game')",
+                (user_id,),
+            )
+            return jsonify({"count": int(count or 0)}), 200
+        except Exception as exc:
+            print(f"统计 C5GAME 购买数据失败: {exc}")
+            return jsonify({"count": 0}), 500
+
+    @staticmethod
     def get_latest_data(user_id):
         """获取指定用户 C5GAME 平台最新一条购买记录（ID 和订单时间）"""
         try:
