@@ -19,6 +19,7 @@ echo if ($content -match '"version"\s*:\s*"([^"]+)"'^) { $oldVersion = $matches[
 echo $content = [regex]::Replace($content, '"version"\s*:\s*"([^"]+)"', '"version": "%VERSION_NUM%"') >> "%TEMP_PS%"
 echo $Utf8NoBomEncoding = New-Object System.Text.UTF8Encoding $False >> "%TEMP_PS%"
 echo [System.IO.File]::WriteAllText($filePath, $content, $Utf8NoBomEncoding) >> "%TEMP_PS%"
+
 echo Write-Host "Version synced: $oldVersion -^> %VERSION_NUM%" >> "%TEMP_PS%"
 powershell -NoProfile -ExecutionPolicy Bypass -File %TEMP_PS%
 if %errorlevel% neq 0 (
