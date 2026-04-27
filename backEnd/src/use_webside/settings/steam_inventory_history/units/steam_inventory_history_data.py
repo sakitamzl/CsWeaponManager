@@ -97,7 +97,7 @@ class SteamInventoryHistoryData:
             WHERE {where_clause}
             """
             count_result = db.execute_query(count_sql, ())
-            total_count = count_result[0][0] if count_success and count_result else 0
+            total_count = count_result[0][0] if count_result else 0
 
             # 可选统计
             gain_count = 0

@@ -11,6 +11,27 @@
   border: 1px solid rgba(58, 58, 58, 0.8);
 }
 
+.config-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+:deep(.task-config-dialog .el-dialog__body) {
+  padding-top: 16px;
+  padding-bottom: 12px;
+}
+
+:deep(.task-config-dialog .el-form) {
+  width: 100%;
+}
+
+:deep(.task-config-dialog .el-form-item__content > .el-select),
+:deep(.task-config-dialog .el-form-item__content > .el-input),
+:deep(.task-config-dialog .el-form-item__content > .el-input-number) {
+  width: 100% !important;
+}
+
 .task-list-section,
 .history-section {
   background: rgba(26, 26, 26, 0.6);
@@ -37,6 +58,54 @@
 }
 
 .task-list-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.task-group {
+  margin-bottom: 20px;
+}
+
+.task-group-collapse {
+  border: none;
+}
+
+.task-group-collapse :deep(.el-collapse-item__header) {
+  background: rgba(35, 35, 35, 0.7);
+  border: 1px solid rgba(58, 58, 58, 0.8);
+  border-radius: 6px;
+  padding: 0 12px;
+  min-height: 42px;
+}
+
+.task-group-collapse :deep(.el-collapse-item__wrap) {
+  background: transparent;
+  border-bottom: none;
+}
+
+.task-group-collapse :deep(.el-collapse-item__content) {
+  padding-bottom: 0;
+}
+
+.task-group-collapse :deep(.el-collapse-item:last-child) {
+  margin-bottom: 0;
+}
+
+.task-group-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.task-group-count {
+  color: #909399;
+  font-size: 13px;
+}
+
+.task-group-actions {
+  margin-left: auto;
   display: flex;
   gap: 8px;
 }

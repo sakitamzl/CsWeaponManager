@@ -1,13 +1,23 @@
 <template>
   <div class="automate-management">
-    <div class="config-section">
+    <div class="config-toolbar">
+      <el-button type="primary" @click="openCreateTaskDialog">添加定时任务</el-button>
+    </div>
+    
+    <el-dialog
+      v-model="taskDialogVisible"
+      :title="isEditing ? '编辑定时任务' : '添加定时任务'"
+      width="600px"
+      class="task-config-dialog"
+      destroy-on-close
+      @close="handleTaskDialogClose"
+    >
       <el-form :model="automateForm" label-width="140px" label-position="left">
         <!-- 自动化类型选择 -->
         <el-form-item label="自动化类型">
           <el-select
             v-model="automateForm.automateType"
             placeholder="请选择自动化类型"
-            style="width: 300px"
             @change="handleTypeChange"
           >
             <el-option label="更新steam库存价格" value="auto_update" />
@@ -23,16 +33,14 @@
           <el-input 
             v-model="automateForm.taskName" 
             placeholder="请输入任务名称"
-            style="width: 300px"
           />
         </el-form-item>
 
         <!-- 第二个下拉框 - 根据类型动态显示 -->
-        <el-form-item v-if="automateForm.automateType" :label="secondSelectLabel">
+        <el-form-item v-if="automateForm.automateType && automateForm.automateType !== 'auto_refresh_auth'" :label="secondSelectLabel">
           <el-select 
             v-model="automateForm.selectedTask" 
             placeholder="请选择任务"
-            style="width: 300px"
           >
             <el-option 
               v-for="task in availableTasks" 
@@ -51,7 +59,6 @@
           <el-select
             v-model="automateForm.selectedSteamConfig"
             placeholder="请选择Steam账号"
-            style="width: 300px"
             filterable
           >
             <el-option
@@ -68,7 +75,6 @@
           <el-select
             v-model="automateForm.selectedDataSource"
             placeholder="请选择数据源"
-            style="width: 300px"
             filterable
           >
             <el-option
@@ -98,7 +104,6 @@
           <el-select
             v-model="automateForm.selectedSearchConfig"
             placeholder="请选择搜索配置"
-            style="width: 300px"
             filterable
           >
             <el-option
@@ -115,7 +120,6 @@
           <el-select 
             v-model="automateForm.interval" 
             placeholder="请选择执行间隔"
-            style="width: 300px"
           >
             <el-option label="5分钟" :value="5" />
             <el-option label="15分钟" :value="15" />
@@ -147,102 +151,113 @@
           <el-button type="primary" @click="handleExecute" :loading="executing">
             {{ isEditing ? '更新任务' : '保存定时任务' }}
           </el-button>
-          <el-button @click="handleReset">{{ isEditing ? '取消编辑' : '重置' }}</el-button>
+          <el-button @click="handleTaskDialogClose">{{ isEditing ? '取消编辑' : '重置' }}</el-button>
           <el-button v-if="isEditing" type="danger" plain @click="deleteTask(editingTaskId)">删除配置</el-button>
         </el-form-item>
       </el-form>
-    </div>
+    </el-dialog>
 
     <!-- 任务列表 -->
     <div class="task-list-section">
-      <div class="task-list-header">
-        <h3>定时任务列表</h3>
-        <div class="task-list-actions">
-          <el-button 
-            type="success" 
-            size="small" 
-            :disabled="bulkStarting || runningTasks.length === 0"
-            :loading="bulkStarting"
-            @click="startAllTasks"
-          >
-            启动全部
-          </el-button>
-          <el-button 
-            type="danger" 
-            size="small" 
-            plain
-            :disabled="bulkStopping || runningTasks.length === 0"
-            :loading="bulkStopping"
-            @click="stopAllTasks"
-          >
-            停止全部
-          </el-button>
-        </div>
-      </div>
-      <el-table :data="runningTasks" style="width: 100%">
-        <el-table-column prop="type" label="自动化类型" min-width="120" />
-        <el-table-column prop="taskName" label="任务名称" min-width="150" />
-        <el-table-column prop="targetInfo" label="使用账号" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="interval" label="间隔(分钟)" width="120" align="center">
-          <template #default="{ row }">
-            {{ formatInterval(row.interval) }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="status" label="状态" width="180" align="center">
-          <template #default="{ row }">
-            <div style="display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 6px;">
-              <el-tag
-                :type="row.status === '执行中' ? 'success' : (row.status === '运行中' ? 'warning' : 'info')"
-              >
-                {{ row.status === '运行中' ? '运行中' : row.status }}
-              </el-tag>
-              <span v-if="row.isExecuting && row.executingDuration > 0" style="font-size: 12px; color: #909399;">
-                {{ formatDuration(row.executingDuration) }}
-              </span>
+      <el-collapse v-model="activeTaskGroups" class="task-group-collapse">
+        <el-collapse-item
+          v-for="group in groupedRunningTasks"
+          :key="group.type"
+          :name="group.type"
+          class="task-group"
+        >
+          <template #title>
+            <div class="task-group-title">
+              <el-tag type="primary" effect="plain">{{ group.type }}</el-tag>
+              <span class="task-group-count">共 {{ group.tasks.length }} 个任务</span>
+              <div class="task-group-actions" @click.stop>
+                <el-button 
+                  type="success" 
+                  size="small" 
+                  :disabled="isGroupStarting(group.type) || group.tasks.filter(task => task.status === '已停止').length === 0"
+                  :loading="isGroupStarting(group.type)"
+                  @click="startGroupTasks(group.type, group.tasks)"
+                >
+                  启动全部
+                </el-button>
+                <el-button 
+                  type="danger" 
+                  size="small" 
+                  plain
+                  :disabled="isGroupStopping(group.type) || group.tasks.filter(task => task.status === '运行中').length === 0"
+                  :loading="isGroupStopping(group.type)"
+                  @click="stopGroupTasks(group.type, group.tasks)"
+                >
+                  停止全部
+                </el-button>
+              </div>
             </div>
           </template>
-        </el-table-column>
-        <el-table-column label="最后执行" width="120" align="center">
-          <template #default="{ row }">
-            <span style="font-size: 13px;">{{ formatTimeAgo(row.lastRun) }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="下次执行" width="120" align="center">
-          <template #default="{ row }">
-            <span v-if="row.status === '已停止' || !row.nextRun || row.nextRun === '-'" style="color: #909399;">-</span>
-            <span v-else-if="row.status === '执行中'" style="color: #67c23a;">执行中</span>
-            <span v-else style="font-size: 13px;">{{ formatCountdown(row.nextRun) }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="220" align="center" fixed="right">
-          <template #default="{ row }">
-            <el-button 
-              v-if="row.status === '已停止'" 
-              size="small" 
-              type="success" 
-              @click="startTask(row)"
-            >
-              启动
-            </el-button>
-            <el-button 
-              v-else 
-              size="small" 
-              type="danger" 
-              @click="stopTask(row.id)"
-            >
-              停止
-            </el-button>
-            <el-button 
-              size="small" 
-              type="primary" 
-              @click="editTask(row)"
-              plain
-            >
-              编辑
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+          <el-table :data="group.tasks" style="width: 100%">
+            <el-table-column prop="taskName" label="任务名称" min-width="150" />
+            <el-table-column prop="targetInfo" label="使用账号" min-width="200" show-overflow-tooltip />
+            <el-table-column prop="interval" label="间隔(分钟)" width="120" align="center">
+              <template #default="{ row }">
+                {{ formatInterval(row.interval) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="status" label="状态" width="180" align="center">
+              <template #default="{ row }">
+                <div style="display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 6px;">
+                  <el-tag
+                    :type="row.status === '执行中' ? 'success' : (row.status === '运行中' ? 'warning' : 'info')"
+                  >
+                    {{ row.status === '运行中' ? '运行中' : row.status }}
+                  </el-tag>
+                  <span v-if="row.isExecuting && row.executingDuration > 0" style="font-size: 12px; color: #909399;">
+                    {{ formatDuration(row.executingDuration) }}
+                  </span>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="最后执行" width="120" align="center">
+              <template #default="{ row }">
+                <span style="font-size: 13px;">{{ formatTimeAgo(row.lastRun) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="下次执行" width="120" align="center">
+              <template #default="{ row }">
+                <span v-if="row.status === '已停止' || !row.nextRun || row.nextRun === '-'" style="color: #909399;">-</span>
+                <span v-else-if="row.status === '执行中'" style="color: #67c23a;">执行中</span>
+                <span v-else style="font-size: 13px;">{{ formatCountdown(row.nextRun) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="220" align="center" fixed="right">
+              <template #default="{ row }">
+                <el-button 
+                  v-if="row.status === '已停止'" 
+                  size="small" 
+                  type="success" 
+                  @click="startTask(row)"
+                >
+                  启动
+                </el-button>
+                <el-button 
+                  v-else 
+                  size="small" 
+                  type="danger" 
+                  @click="stopTask(row.id)"
+                >
+                  停止
+                </el-button>
+                <el-button 
+                  size="small" 
+                  type="primary" 
+                  @click="openEditTaskDialog(row)"
+                  plain
+                >
+                  编辑
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-collapse-item>
+      </el-collapse>
       <div v-if="runningTasks.length === 0" class="empty-placeholder">
         <el-empty description="暂无运行中的定时任务" />
       </div>
@@ -253,14 +268,13 @@
 
 
 <script setup>
+import { ref, watch } from 'vue'
 import { useAutomateManagement } from './useAutomateManagement.js'
 
 const {
   automateForm,
   customInterval,
   executing,
-  bulkStarting,
-  bulkStopping,
   isEditing,
   editingTaskId,
   steamConfigList,
@@ -268,6 +282,7 @@ const {
   buffConfigList,
   dataSources,
   runningTasks,
+  groupedRunningTasks,
   renameSearchConfigList,
   pendantSearchConfigList,
   updateTasks,
@@ -289,11 +304,52 @@ const {
   handleReset,
   startTask,
   stopTask,
-  startAllTasks,
-  stopAllTasks,
+  startGroupTasks,
+  stopGroupTasks,
+  isGroupStarting,
+  isGroupStopping,
   editTask,
   deleteTask
 } = useAutomateManagement()
+
+const activeTaskGroups = ref([])
+const taskDialogVisible = ref(false)
+
+const openCreateTaskDialog = () => {
+  handleReset()
+  taskDialogVisible.value = true
+}
+
+const openEditTaskDialog = (row) => {
+  editTask(row)
+  taskDialogVisible.value = true
+}
+
+const handleTaskDialogClose = () => {
+  taskDialogVisible.value = false
+  handleReset()
+}
+
+watch(
+  groupedRunningTasks,
+  (groups) => {
+    const groupNames = groups.map(group => group.type)
+    if (activeTaskGroups.value.length === 0) {
+      activeTaskGroups.value = groupNames
+      return
+    }
+
+    const activeSet = new Set(activeTaskGroups.value)
+    groupNames.forEach(name => {
+      if (!activeSet.has(name)) {
+        activeSet.add(name)
+      }
+    })
+
+    activeTaskGroups.value = Array.from(activeSet).filter(name => groupNames.includes(name))
+  },
+  { immediate: true }
+)
 </script>
 
 <style scoped src="./styles.css"></style>

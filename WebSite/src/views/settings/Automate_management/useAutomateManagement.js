@@ -23,6 +23,8 @@ export function useAutomateManagement() {
   const executing = ref(false)
   const bulkStarting = ref(false)
   const bulkStopping = ref(false)
+  const groupStartingType = ref('')
+  const groupStoppingType = ref('')
   
   // 编辑状态
   const isEditing = ref(false)
@@ -42,6 +44,28 @@ export function useAutomateManagement() {
   
   // 运行中的任务
   const runningTasks = ref([])
+  
+  // 按自动化类型分组后的任务
+  const groupedRunningTasks = computed(() => {
+    if (!runningTasks.value.length) {
+      return []
+    }
+  
+    const groupMap = new Map()
+  
+    runningTasks.value.forEach(task => {
+      const typeLabel = task.type || '未分类'
+      if (!groupMap.has(typeLabel)) {
+        groupMap.set(typeLabel, [])
+      }
+      groupMap.get(typeLabel).push(task)
+    })
+  
+    return Array.from(groupMap.entries()).map(([type, tasks]) => ({
+      type,
+      tasks
+    }))
+  })
   
   // 搜索配置列表
   const renameSearchConfigList = ref([])
@@ -149,7 +173,12 @@ export function useAutomateManagement() {
     const sourceList = taskType === 'search_weapon_pendant'
       ? pendantSearchConfigList.value
       : renameSearchConfigList.value
-    return sourceList.find(config => config.dataID === configId) || null
+    return sourceList.find(config => String(config.dataID) === String(configId)) || null
+  }
+  
+  const findByDataId = (list, dataId) => {
+    if (!dataId || !Array.isArray(list)) return null
+    return list.find(item => String(item.dataID) === String(dataId)) || null
   }
   
   // 可用的任务列表
@@ -955,6 +984,67 @@ export function useAutomateManagement() {
     }
   }
   
+  const startGroupTasks = async (groupType, tasks = []) => {
+    const stoppedTasks = tasks.filter(task => task.status === '已停止')
+  
+    if (stoppedTasks.length === 0) {
+      ElMessage.info('该分组暂无需要启动的任务')
+      return
+    }
+  
+    groupStartingType.value = groupType
+    let successCount = 0
+  
+    try {
+      for (const task of stoppedTasks) {
+        const success = await startTask(task, { silent: true })
+        if (success) {
+          successCount++
+        }
+      }
+  
+      await loadSavedTasks()
+      ElMessage.success(`该分组已启动 ${successCount}/${stoppedTasks.length} 个任务`)
+    } catch (error) {
+      console.error('分组批量启动任务失败:', error)
+      ElMessage.error('分组批量启动任务失败: ' + error.message)
+    } finally {
+      groupStartingType.value = ''
+    }
+  }
+  
+  const stopGroupTasks = async (groupType, tasks = []) => {
+    const running = tasks.filter(task => task.status === '运行中')
+  
+    if (running.length === 0) {
+      ElMessage.info('该分组暂无运行中的任务')
+      return
+    }
+  
+    groupStoppingType.value = groupType
+    let successCount = 0
+  
+    try {
+      for (const task of running) {
+        const success = await stopTask(task.id, { silent: true })
+        if (success) {
+          successCount++
+        }
+      }
+  
+      await loadSavedTasks()
+      ElMessage.success(`该分组已停止 ${successCount}/${running.length} 个任务`)
+    } catch (error) {
+      console.error('分组批量停止任务失败:', error)
+      ElMessage.error('分组批量停止任务失败: ' + error.message)
+    } finally {
+      groupStoppingType.value = ''
+    }
+  }
+  
+  const isGroupStarting = (groupType) => groupStartingType.value === groupType
+  const isGroupStopping = (groupType) => groupStoppingType.value === groupType
+  
   // 编辑任务
   const editTask = (task) => {
     // 填充表单
@@ -1130,13 +1220,13 @@ export function useAutomateManagement() {
         configList = buffConfigList.value
       }
   
-      const config = configList.find(c => c.dataID === automateForm.value.selectedSteamConfig)
+      const config = findByDataId(configList, automateForm.value.selectedSteamConfig)
       return config ? `${config.dataName} (${config.steamID || '无SteamID'})` : '-'
     } else if (automateForm.value.automateType === 'auto_refresh_auth') {
-      const config = steamConfigList.value.find(c => c.dataID === automateForm.value.selectedSteamConfig)
+      const config = findByDataId(steamConfigList.value, automateForm.value.selectedSteamConfig)
       return config ? `${config.dataName} (${config.steamID || '无SteamID'})` : '-'
     } else if (['auto_fetch', 'auto_platform_price'].includes(automateForm.value.automateType)) {
-      const source = dataSources.value.find(s => s.dataID === automateForm.value.selectedDataSource)
+      const source = findByDataId(dataSources.value, automateForm.value.selectedDataSource)
       return source ? `${source.dataName} (${source.steamID || '无SteamID'})` : '-'
     } else if (automateForm.value.automateType === 'auto_search_weapon') {
       const config = findSearchConfigById(automateForm.value.selectedTask, automateForm.value.selectedSearchConfig)
@@ -1404,9 +1494,10 @@ export function useAutomateManagement() {
         configList = buffConfigList.value
       }
   
-      const config = configList.find(c => c.dataID === selectedId)
+      const config = findByDataId(configList, selectedId)
       if (!config) {
-        return '-'
+        const steamId = savedTask.config.selectedSteamId || savedTask.config.steamId
+        return steamId ? `Steam账号 (${steamId})` : '-'
       }
   
       // 显示格式: 配置名称 (SteamID)
@@ -1419,28 +1510,35 @@ export function useAutomateManagement() {
         return '-'
       }
   
-      const config = steamConfigList.value.find(c => c.dataID === selectedId)
+      const config = findByDataId(steamConfigList.value, selectedId)
       if (!config) {
-        return '-'
+        const steamId = savedTask.config.selectedSteamId || savedTask.config.steamId
+        return steamId ? `Steam账号 (${steamId})` : '-'
       }
   
       return config.steamID ? `${config.dataName} (${config.steamID})` : config.dataName
     } else if (['auto_fetch', 'auto_platform_price'].includes(savedTask.automateType)) {
       // 获取数据类型:只显示数据源名称和SteamID
-      const selectedId = savedTask.config.selectedDataSource
+      const selectedIds = savedTask.config.selectedDataSources?.length
+        ? savedTask.config.selectedDataSources
+        : [savedTask.config.selectedDataSource].filter(Boolean)
       
-      if (!selectedId) {
+      if (selectedIds.length === 0) {
         return '-'
       }
       
-      // 查找数据源
-      const source = dataSources.value.find(s => s.dataID === selectedId)
-      if (!source) {
-        return '-'
-      }
+      // 查找数据源（兼容历史多选字段）
+      const sourceNames = selectedIds
+        .map(id => findByDataId(dataSources.value, id))
+        .filter(Boolean)
+        .map(source => source.steamID ? `${source.dataName} (${source.steamID})` : source.dataName)
       
-      // 显示格式: 数据源名称 (SteamID)
-      return source.steamID ? `${source.dataName} (${source.steamID})` : source.dataName
+      if (sourceNames.length > 0) {
+        return sourceNames.join(', ')
+      }
+  
+      const steamId = savedTask.config.selectedSteamId || savedTask.config.steamId
+      return steamId ? `数据源账号 (${steamId})` : '-'
     } else if (savedTask.automateType === 'auto_search_weapon') {
       const config = findSearchConfigById(savedTask.config.selectedTask, savedTask.config.selectedSearchConfig)
       if (!config) {
@@ -1554,6 +1652,7 @@ export function useAutomateManagement() {
     buffConfigList,
     dataSources,
     runningTasks,
+    groupedRunningTasks,
     renameSearchConfigList,
     pendantSearchConfigList,
     updateTasks,
@@ -1577,6 +1676,10 @@ export function useAutomateManagement() {
     stopTask,
     startAllTasks,
     stopAllTasks,
+    startGroupTasks,
+    stopGroupTasks,
+    isGroupStarting,
+    isGroupStopping,
     editTask,
     deleteTask
   }

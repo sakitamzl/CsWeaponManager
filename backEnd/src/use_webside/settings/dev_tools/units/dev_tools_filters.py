@@ -126,7 +126,7 @@ class DevToolsFilters:
                         """
 
                     count_result = db.execute_query(count_sql, ())
-                    item_count = count_result[0][0] if count_success and count_result else 0
+                    item_count = count_result[0][0] if count_result else 0
 
                     steam_ids.append({
                         'dataID': data_id,
