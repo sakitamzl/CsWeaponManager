@@ -20,7 +20,11 @@ class BuyData:
 
         source = filters.get('source')
         if source:
-            add_clause("LOWER(`from`) = LOWER(?)", source)
+            s = str(source).strip().lower()
+            if s in ("c5", "c5game"):
+                add_clause("LOWER(`from`) IN ('c5', 'c5game')")
+            else:
+                add_clause("LOWER(`from`) = LOWER(?)", source)
 
         status = filters.get('status')
         if status:

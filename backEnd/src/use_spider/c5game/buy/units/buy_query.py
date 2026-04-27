@@ -12,7 +12,7 @@ class BuyQuery:
         """统计指定用户 C5GAME 平台购买记录数量"""
         try:
             count = BuyModel.count(
-                "data_user = ? AND \"from\" IN ('c5game', 'C5', 'C5game')",
+                "data_user = ? AND \"from\" IN ('c5', 'c5game', 'C5', 'C5game')",
                 (user_id,),
             )
             return jsonify({"count": int(count or 0)}), 200
@@ -25,7 +25,7 @@ class BuyQuery:
         """获取指定用户 C5GAME 平台最新一条购买记录（ID 和订单时间）"""
         try:
             records = BuyModel.find_all(
-                "data_user = ? AND \"from\" IN ('c5game', 'C5', 'C5game') ORDER BY order_time DESC",
+                "data_user = ? AND \"from\" IN ('c5', 'c5game', 'C5', 'C5game') ORDER BY order_time DESC",
                 (user_id,),
                 limit=1
             )

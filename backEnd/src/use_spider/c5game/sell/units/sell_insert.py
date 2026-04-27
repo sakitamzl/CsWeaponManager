@@ -50,7 +50,7 @@ class SellInsert:
             sell_record.rename = data.get("rename")
             sell_record.steam_hash_name = data.get("market_hash_name") or data.get("img_url")
             sell_record.steam_id = data.get("seller_id")
-            setattr(sell_record, "from", "c5game")
+            setattr(sell_record, "from", "c5")
 
             saved = sell_record.save()
             if not saved:

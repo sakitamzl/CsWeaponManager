@@ -49,7 +49,7 @@ class BuyInsert:
             buy_record.rename = data.get("rename")
             buy_record.steam_hash_name = data.get("market_hash_name") or data.get("img_url")
             buy_record.steam_id = data.get("seller_id")
-            setattr(buy_record, "from", "c5game")
+            setattr(buy_record, "from", "c5")
 
             saved = buy_record.save()
             if not saved:

@@ -601,6 +601,8 @@ export function useSell() {
       csfloat: 'CsFloat', 
       SMK: 'steam市场',
       ING: '游戏内购',
+      c5: 'C5game',
+      c5game: 'C5game',
       C5game: 'C5game',
       C5: 'C5game'
     }
