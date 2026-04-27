@@ -20,6 +20,65 @@ class TaskScheduler:
         self.execution_lock = threading.Lock()  # 任务执行互斥锁
         self.currently_executing = {}  # {task_id: {'task_name': str, 'start_time': datetime, 'config': dict}}
         self.log = Log()
+    
+    def _get_config_status(self, data_id):
+        """查询配置状态"""
+        if not data_id:
+            return None
+        try:
+            db = Date_base()
+            query_sql = f"SELECT status FROM config WHERE dataID = {int(data_id)}"
+            success, result = db.select(query_sql)
+            if success and result:
+                return str(result[0][0])
+        except Exception as e:
+            self.log.write_log(f"查询配置状态失败 (dataID={data_id}): {str(e)}", 'error')
+        return None
+    
+    def _validate_task_source_enabled(self, automate_type, config):
+        """校验任务依赖的数据源/账号是否启用"""
+        if not config:
+            return False, '任务配置为空'
+        
+        if automate_type in ['auto_update', 'auto_refresh_auth']:
+            source_id = config.get('selectedSteamConfig')
+            if not source_id:
+                return False, '缺少账号配置'
+            status = self._get_config_status(source_id)
+            return (status == '1', '账号数据源未启用')
+        
+        if automate_type in ['auto_fetch', 'auto_platform_price']:
+            source_ids = config.get('selectedDataSources') if isinstance(config.get('selectedDataSources'), list) else []
+            if not source_ids:
+                single_id = config.get('selectedDataSource')
+                source_ids = [single_id] if single_id else []
+            
+            if not source_ids:
+                return False, '缺少数据源配置'
+            
+            for source_id in source_ids:
+                status = self._get_config_status(source_id)
+                if status != '1':
+                    return False, '存在未启用的数据源'
+            return True, ''
+        
+        if automate_type == 'auto_search_weapon':
+            source_id = config.get('selectedSearchConfig')
+            if not source_id:
+                return False, '缺少搜索配置'
+            status = self._get_config_status(source_id)
+            return (status == '1', '搜索配置未启用')
+        
+        return True, ''
+    
+    def _disable_task_in_db(self, task_id):
+        """禁用任务（status=0）"""
+        try:
+            db = Date_base()
+            update_sql = f"UPDATE config SET status = '0' WHERE dataID = {task_id} AND key2 = 'auto_manager'"
+            db.update(update_sql)
+        except Exception as e:
+            self.log.write_log(f"自动禁用任务失败 (taskId={task_id}): {str(e)}", 'error')
         
     def start(self):
         """启动调度器"""
@@ -97,6 +156,15 @@ class TaskScheduler:
                 
                 try:
                     config = json.loads(row[3]) if row[3] else {}
+                    is_valid, reason = self._validate_task_source_enabled(automate_type, config)
+                    if not is_valid:
+                        self.log.write_log(
+                            f"任务依赖数据源未启用，自动关闭任务: {task_name} (ID: {task_id})，原因: {reason}",
+                            'warning'
+                        )
+                        self._disable_task_in_db(task_id)
+                        self.stop_task(task_id)
+                        continue
                     db_task_ids.add(task_id)
                     
                     # 如果任务不在运行中,启动它
@@ -148,6 +216,15 @@ class TaskScheduler:
                 
                 try:
                     config = json.loads(row[3]) if row[3] else {}
+                    is_valid, reason = self._validate_task_source_enabled(automate_type, config)
+                    if not is_valid:
+                        self.log.write_log(
+                            f"任务依赖数据源未启用，自动关闭任务: {task_name} (ID: {task_id})，原因: {reason}",
+                            'warning'
+                        )
+                        self._disable_task_in_db(task_id)
+                        self.stop_task(task_id)
+                        continue
                     next_run_str = config.get('nextRun')
                     
                     # 检查是否到期
