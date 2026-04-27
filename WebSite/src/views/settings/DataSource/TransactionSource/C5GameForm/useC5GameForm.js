@@ -100,7 +100,7 @@ export default function useC5GameForm(props, { emit }) {
               tokenCheckTimer.value = null
             }
 
-            stopC5GameTokenCollection()
+            await stopC5GameTokenCollection()
 
             // 发射令牌获取成功事件，触发自动保存
             emit('token-success')
