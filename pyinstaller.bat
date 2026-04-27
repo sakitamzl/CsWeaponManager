@@ -152,6 +152,13 @@ if exist "Releases\conf.ini" (
     echo Warning: conf.ini not found in Releases folder
 )
 
+if exist "Releases\cswm.p12" (
+    copy "Releases\cswm.p12" "Releases\%VERSION%\cswm.p12"
+    echo cswm.p12 copied successfully
+) else (
+    echo Warning: cswm.p12 not found in Releases folder
+)
+
 :: Copy update.bat
 if exist "update.bat" (
     copy "update.bat" "Releases\%VERSION%\update.bat"
